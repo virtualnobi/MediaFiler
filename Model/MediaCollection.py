@@ -553,7 +553,7 @@ class imageFilerModel(Observable, Observer):
         for word in re.split(r'[\W_/\\]+', path, flags=re.UNICODE):
             if ((word == '')  # emtpy string
                 or (Entry.isLegalExtension(word))  # known file types
-                or re.match(r'CAM\d+|IMG|HPIM\d+|DSC_\d+', word, re.IGNORECASE)):  # known file names
+                or re.match(r'CAM|IMG|HPIM|DSC', word, re.IGNORECASE)):  # TODO: make known file names configurable
                 pass  # these are ignored
             else:  # legal word
                 words.append(word)
