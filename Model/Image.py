@@ -27,7 +27,7 @@ class Image(Single):
 
 
 # Constants
-    LegalExtensions = ['jpg', 'png', 'gif', 'tif']
+    LegalExtensions = ['jpg', 'png', 'gif', 'tif', 'jpeg']
     PreviewImageFilename = 'Image.jpg'
     
     
@@ -96,7 +96,8 @@ class Image(Single):
         """
         if (not self.rawImage):  # lazily load raw image
             #print('Image.getRawImage(%s)' % self.getPath())
-            if (self.getExtension() == 'jpg'):
+            if ((self.getExtension() == 'jpg')
+                or (self.getExtension() == 'jpeg')):
                 self.rawImage = wx.Image(self.getPath(), wx.BITMAP_TYPE_JPEG)
                 if (debug and not self.rawImage):
                     print('Failed to load JPG "%s"' % self.getPath())
