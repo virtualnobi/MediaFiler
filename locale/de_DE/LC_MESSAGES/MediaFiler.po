@@ -1,0 +1,359 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2016-12-03 17:24+0100\n"
+"PO-Revision-Date: 2016-12-15 22:31+0100\n"
+"Last-Translator: \n"
+"Language-Team: nobisoft <virtualnobi@gmx.de>\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"X-Generator: Poedit 1.8.11\n"
+"X-Poedit-Basepath: .\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SearchPath-0: MediaFiler.pot\n"
+"X-Poedit-SearchPath-1: de_DE/LC_MESSAGES\n"
+
+#: UI\GUIId.py:68
+msgid "Change Image Directory"
+msgstr "Bilderverzeichnis wechseln"
+
+#: UI\GUIId.py:69
+msgid "Reload Images\tCtrl-R"
+msgstr "Bilder erneut laden\tCtrl+L"
+
+#: UI\GUIId.py:70
+msgid "Export (Filtered) Images"
+msgstr "Bilder exportieren"
+
+#: UI\GUIId.py:71
+msgid "Exit"
+msgstr "Beenden"
+
+#: UI\GUIId.py:75
+msgid "Delete Image"
+msgstr "Bild löschen"
+
+#: UI\GUIId.py:76
+msgid "Delete Doubles"
+msgstr "Doppelte löschen"
+
+#: UI\GUIId.py:77
+msgid "Remove Import Indicator"
+msgstr "Importindikator löschen"
+
+#: UI\GUIId.py:78
+msgid "Choose Free Name"
+msgstr "Freien Namen suchen"
+
+#: UI\GUIId.py:79
+msgid "Choose Name Manually..."
+msgstr "Namen auswählen"
+
+#: UI\GUIId.py:83
+msgid "Move to scene..."
+msgstr "Verschieben zu Szene..."
+
+#: UI\GUIId.py:86
+msgid "Relabel scene to..."
+msgstr "Szene umbenennen zu..."
+
+#: UI\GUIId.py:87
+msgid "Remove Illegal Elements"
+msgstr "Unbekannte Elemente löschen"
+
+#: UI\GUIId.py:88
+msgid "Filter Identical\tCtrl+I"
+msgstr "Gleiche filtern\tCtrl+G"
+
+#: UI\GUIId.py:89
+msgid "Filter Similar\tCtrl+F"
+msgstr "Ähnliche filtern\tCtrl+F"
+
+#: UI\GUIId.py:90
+msgid "View Fullscreen\tCtrl+V"
+msgstr "Vollbild zeigen\tCtrl+V"
+
+#: UI\GUIId.py:94
+msgid "Toggle Filter Pane"
+msgstr "Filter zeigen/verbergen"
+
+#: UI\GUIId.py:95
+msgid "Toggle Filter"
+msgstr "Filter an/aus"
+
+#: UI\GUIId.py:96
+msgid "Apply Filter"
+msgstr "Filter anwenden"
+
+#: UI\GUIId.py:97
+msgid "Clear Filter"
+msgstr "Filter löschen"
+
+#: UI\GUIId.py:98
+msgid "Toggle Tree Pane"
+msgstr "Dateibaum zeigen/verbergen"
+
+#: UI\GUIId.py:99
+msgid "Toggle Classification Pane"
+msgstr "Klassifizierung zeigen/verbergen"
+
+#: UI\GUIId.py:100
+msgid "Toggle Log Pane"
+msgstr "Protokoll zeigen/verbergen"
+
+#: UI\GUIId.py:101
+msgid "Previous Image"
+msgstr "Voriges Bild"
+
+#: UI\GUIId.py:102
+msgid "Next Image"
+msgstr "Nächstes Bild"
+
+#: UI\GUIId.py:103
+msgid "Stop Slideshow"
+msgstr "Präsentation anhalten"
+
+#: UI\GUIId.py:104
+msgid "Resume Slideshow"
+msgstr "Präsentation zeigen"
+
+#: UI\GUIId.py:105
+msgid "Present Quickly"
+msgstr "Schnell wechseln"
+
+#: UI\GUIId.py:106
+msgid "Present Slowly"
+msgstr "Langsam wechseln"
+
+#: UI\GUIId.py:117 UI\Importing.py:207
+msgid "Test Import"
+msgstr "Import testen"
+
+#: UI\GUIId.py:118 UI\Importing.py:208 __init__.py:88
+msgid "Import"
+msgstr "Importieren"
+
+#: UI\GUIId.py:121
+msgid "Generate Link Directory"
+msgstr "Linkverzeichnis erzeugen"
+
+#: UI\GUIId.py:122
+msgid "Generate Thumbnail Directory"
+msgstr "Minibilderverzeichnis erzeugen"
+
+#: UI\GUIId.py:123
+msgid "Rename Element"
+msgstr "Element umbenennen"
+
+#: UI\GUIId.py:124
+msgid "Edit Classes"
+msgstr "Klassen ändern"
+
+#: UI\GUIId.py:125
+msgid "Edit Names"
+msgstr "Namen ändern"
+
+#: UI\GUIId.py:126
+msgid "Harvest from URL..."
+msgstr "Bilder von URL importieren..."
+
+#: UI\GUIId.py:129
+msgid "Browse"
+msgstr "Auswählen"
+
+#: UI\GUIId.py:132
+msgid "Rename"
+msgstr "Umbennen"
+
+#: UI\GUIId.py:133
+msgid "Reuse Last"
+msgstr "Zuletzt benutzt"
+
+#: UI\Importing.py:209
+msgid "Directory"
+msgstr "Verzeichnis"
+
+#: UI\Importing.py:210
+msgid "Test Only"
+msgstr "Nur testen"
+
+#: UI\Importing.py:211
+msgid "Delete Originals"
+msgstr "Originale löschen"
+
+#: UI\Importing.py:212
+msgid "Maximum Number of Files to Import"
+msgstr "Nicht mehr Dateien importieren als"
+
+#: UI\Importing.py:213
+msgid "Ignore Files of Unknown Type"
+msgstr "Dateien unbekannten Typs ignorieren"
+
+#: UI\Importing.py:214
+msgid "Minimum File Size"
+msgstr "Mindestgröße zu importierender Dateien"
+
+#: UI\Importing.py:215
+msgid "Mark Imported Files as \"%s\""
+msgstr "Importierte Dateien mit \"%s\" markieren"
+
+#: UI\Importing.py:216
+msgid "Report Illegal Elements"
+msgstr "Report Illegal Elements"
+
+#: UI\Importing.py:217
+msgid "Prefer Date in Pathname over EXIF Date"
+msgstr "Aufnahmedatum im Dateipfad bevorzugen (ggn. EXIF)"
+
+#: UI\MediaFilterPane.py:69
+msgid "unknown"
+msgstr "unbekannt"
+
+#: UI\MediaFilterPane.py:72
+msgid "any"
+msgstr "alle"
+
+#: UI\MediaFilterPane.py:74
+msgid "ignore"
+msgstr "egal"
+
+#: UI\MediaFilterPane.py:75
+msgid "require"
+msgstr "erforderlich"
+
+#: UI\MediaFilterPane.py:76
+msgid "exclude"
+msgstr "ausgeschlossen"
+
+#: UI\MediaFilterPane.py:79
+msgid "Size:"
+msgstr "Größe:"
+
+#: UI\PresentationControlPane.py:49 __init__.py:72
+msgid "Name"
+msgstr "Name"
+
+#: __init__.py:70
+msgid "Filter"
+msgstr "Filter"
+
+#: __init__.py:71 __init__.py:85
+msgid "Image"
+msgstr "Bild"
+
+#: __init__.py:73
+msgid "Classification"
+msgstr "Klassifikation"
+
+#: __init__.py:74
+msgid "Log"
+msgstr "Protokoll"
+
+#: __init__.py:76
+msgid "Classify"
+msgstr "Klassifizieren"
+
+#: __init__.py:78
+msgid "Search"
+msgstr "Suchen"
+
+#: __init__.py:80
+msgid "Present"
+msgstr "Präsentieren"
+
+#: __init__.py:82
+msgid "All Views"
+msgstr "Alle Ansichten"
+
+#: __init__.py:83
+msgid "Last Used"
+msgstr "Zuletzt benutzt"
+
+#: __init__.py:84
+msgid "Program"
+msgstr "Programm"
+
+#: __init__.py:86
+msgid "View"
+msgstr "Ansicht"
+
+#: __init__.py:87
+msgid "Perspective"
+msgstr "Perspektive"
+
+#: __init__.py:89
+msgid "Tool"
+msgstr "Werkzeug"
+
+#: __init__.py:362
+msgid "Select New Image Directory:"
+msgstr "Neues Bilderverzeichnis auswählen:"
+
+#: __init__.py:379
+msgid "Select Directory to Export into:"
+msgstr "Exportverzeichnis auswählen:"
+
+#: __init__.py:395
+msgid "Closing..."
+msgstr "Aufräumen..."
+
+#: __init__.py:687
+msgid "Loading..."
+msgstr "Laden..."
+
+#: __init__.py:696
+msgid "Organized by date"
+msgstr "Nach Datum organisiert"
+
+#: __init__.py:698
+msgid "%s (%d used, %d free)"
+msgstr "%s (%d verwendet, %d frei)"
+
+#: __init__.py:700
+msgid "Organized by name"
+msgstr "Nach Namen organisiert"
+
+#: __init__.py:711
+msgid "Ready."
+msgstr "Fertig."
+
+#~ msgid "Images"
+#~ msgstr "Bild"
+
+#~ msgid "Views"
+#~ msgstr "Ansicht"
+
+#~ msgid "Perspectives"
+#~ msgstr "Perspektive"
+
+#~ msgid "Tools"
+#~ msgstr "Werkzeug"
+
+#~ msgid "New Image Root Directory:"
+#~ msgstr "Neues Bildverzeichnis:"
+
+#~ msgid "Filter Identical\tCtrl-I"
+#~ msgstr "Gleiche filtern\tStrg-G"
+
+#~ msgid "Filter Similar\tCtrl-F"
+#~ msgstr "Ähnliche filtern\tStrg-F"
+
+#~ msgid "Show Fullscreen\tCtrl-V"
+#~ msgstr "Vollbild zeigen\tStrg-V"
+
+#~ msgid "Filter Identical"
+#~ msgstr "Identische Bilder"
+
+#~ msgid "Filter Similar"
+#~ msgstr "Ähnliche Bilder"
+
+#~ msgid "Show Fullscreen"
+#~ msgstr "Vollbild zeigen"
