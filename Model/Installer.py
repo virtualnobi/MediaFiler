@@ -17,7 +17,7 @@ from MediaClassHandler import MediaClassHandler
 
 
 # Constants
-InstallationPath = 'N:/project/MediaFiler'  # TODO: derive from installation data
+InstallationPath = 'N:\\project\\MediaFiler'  # TODO: derive from installation data
 ImageFolder = 'images'
 LibraryFolder = 'lib'
 LogoFilename = 'Logo.ico'
@@ -94,11 +94,11 @@ def install(path):
     if (not os.path.isdir(getLibraryPath(path))):
         os.makedirs(getLibraryPath(path))
     if (not os.path.exists(getLogoPath(path))):
-        shutil.copyfile(os.path.join(InstallationPath, LogoFilename), 
+        shutil.copyfile(os.path.join(InstallationPath, ImageFolder, LogoFilename), 
                         getLogoPath(path))
     for c in Entry.ProductTrader.getClasses():
         if (not os.path.exists(os.path.join(getLibraryPath(path), c.PreviewImageFilename))):
-            shutil.copyfile(os.path.join(InstallationPath, 'images', c.PreviewImageFilename),
+            shutil.copyfile(os.path.join(InstallationPath, ImageFolder, c.PreviewImageFilename),
                             os.path.join(getLibraryPath(path), c.PreviewImageFilename))
     if (not os.path.exists(getClassFilePath(path))):
         with open(getClassFilePath(path), 'w') as cfile:
