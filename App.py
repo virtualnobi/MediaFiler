@@ -23,6 +23,7 @@ import wx.lib.dialogs
 ## nobi
 from nobi.ObserverPattern import Observable, Observer
 ## project
+from Model import Installer
 from Model.MediaCollection import imageFilerModel
 from Model.Entry import Entry
 #from Model import Group
@@ -93,13 +94,12 @@ class MediaFiler (wx.Frame, Observer, Observable):
 ## Lifecycle
     def __init__(self,
                  parent,
-                 identifier = -1,
                  title = '',
                  pos = wx.DefaultPosition,
                  size = wx.Size(1500,600),
                  style = (wx.DEFAULT_FRAME_STYLE | wx.SUNKEN_BORDER | wx.CLIP_CHILDREN)):
         # inheritance
-        wx.Frame.__init__(self, parent, identifier, title, pos, size, style) 
+        wx.Frame.__init__(self, parent, -1, title, pos, size, style) 
         # internal state
         self.model = None
         self.perspectives = []
@@ -707,46 +707,27 @@ class MediaFiler (wx.Frame, Observer, Observable):
 
 
 # Functions
-def filesAndFoldersOk(path): 
-    """Check whether all required files and folders exist in a give directory.
-    
-    String path
-    Returns Boolean 
-    """
-    (head, tail) = os.path.split(path)
-    if (tail == ''):
-        (head, tail) = os.path.split(head)
-    ok = ((tail == imageFilerModel.ImageFolderName)
-#          and os.path.exists(os.path.join(path, imageFilerModel.InitialFileName))  # TODO: need to find a standard file
-          and os.path.exists(os.path.join(path, imageFilerModel.ClassFileName))
-#          image replacement 
-#          movie replacement
-          and os.path.isdir(os.path.join(path, Entry.TrashDirectory))) 
-    return(ok)
-
-
-def prepareFilesAndFolders(frame):
+def prepareFilesAndFolders(frame, path):
     """Ask user for the directory to create the media directory in, and prepare it.
+    
+    wx.Frame frame contains parent window for Dialog
+    String path contains a default path
+    Return String containing media root folder
+        or None
     """
+    result = None
     dlg = wx.DirDialog(frame, "The current working directory for this program is not a valid media directory. Choose a media directory:", style=wx.DD_DEFAULT_STYLE)
+    dlg.SetPath(path)
     if (dlg.ShowModal() == wx.ID_OK):
         newPath = dlg.GetPath()
         if (os.path.isdir(newPath) 
-            and filesAndFoldersOk(newPath)):
-            os.chdir(newPath)
+            and Installer.checkInstallation(newPath)):
+            result = newPath
         else:
-            try:
-                os.makedirs(newPath)
-            except:
-                pass
-            newPath = os.path.join(newPath, imageFilerModel.ImageFolderName)
-            os.makedirs(newPath)
-            os.makedirs(os.path.join(newPath, '..', 'lib'))
-            os.makedirs(os.path.join(newPath, Entry.TrashDirectory))
-            with open(os.path.join(newPath, imageFilerModel.ClassFileName), 'w') as classFile:
-                classFile.write('#category    +condition    [] attribute1 attribute2 .. attributeN\n\n')
-            os.chdir(newPath)
+            Installer.install(newPath)
+            result = newPath
     dlg.Destroy()
+    return(result)
 
 
 # section: Executable script
@@ -754,8 +735,12 @@ if __name__ == "__main__":
     app = wx.App(False)    
     frame = MediaFiler(None, title=MediaFiler.AppTitle)
     frame.Show()
-    if (not filesAndFoldersOk(os.getcwd())):
-        prepareFilesAndFolders(frame)
-    frame.setModel(os.getcwd())
-    app.MainLoop()
+    (path, dummy) = os.path.split(os.getcwd())
+    if (dummy == ''):
+        (path, dummy) = os.path.split(path)
+    if (not Installer.checkInstallation(path)):
+        path = prepareFilesAndFolders(frame, path)
+    if (path):
+        frame.setModel(Installer.getImagePath(path))  # TODO: correct root folder
+        app.MainLoop()
     

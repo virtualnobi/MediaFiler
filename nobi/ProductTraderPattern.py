@@ -59,6 +59,13 @@ class SimpleProductTrader(object):
             return(self.productRegistry[specString])
         else:
             raise(BaseException('Specification "%s" not found in registry of SimpleProductTrader' % specString))
+        
+    
+    def getClasses(self):
+        """Return the set of classes registered.
+        """
+        return(set(self.productRegistry.values()))
+
 
 
 # Setters

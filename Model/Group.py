@@ -30,6 +30,7 @@ class Group(Entry):
 
 # Constants
     MessageDuplicatesDeleted = ('%d duplicate entries deleted')
+    PreviewImageFilename = 'Group.jpg'
 
 
 

@@ -1,6 +1,8 @@
 eclipse.preferences.version=1
+encoding//Model/Installer.py=latin1
 encoding//Model/Organization.py=latin1
 encoding//UI/MediaCanvasPane.py=latin1
 encoding//UI/MediaClassificationPane.py=latin1
 encoding//UI/MediaTreePane.py=latin1
+encoding//nobi/TemplateClassModule.py=latin1
 encoding//nobi/wxExtensions/CheckBoxGroup.py=latin1

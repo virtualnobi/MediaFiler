@@ -31,6 +31,9 @@ class MediaClassHandler(object):
     KeyProhibited = u'prohibited'  # key in class dictionary mapping to list of prohibited elements
     ElementIllegal = u'illegal'  # special element signalling that a combination of elements is not legal
     ElementNew = u'new'  # special element signalling that the entry is new, i.e., just imported
+    InitialFileContent = (u'# Classname Element+  # for classes with single-choice elements\n' +
+                          u'# Classname [] Element+  # for classes with multiple-choice elements\n' +
+                          u'# Classname +Element1 Element2+  # for a class which applies only if Element1 has been assigned')
 
 
 
