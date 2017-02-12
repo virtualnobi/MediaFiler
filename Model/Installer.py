@@ -17,13 +17,13 @@ from MediaClassHandler import MediaClassHandler
 
 
 # Constants
-InstallationPath = 'N:\\project\\MediaFiler'  # TODO: derive from installation data
-ImageFolder = 'images'
-LibraryFolder = 'lib'
-LogoFilename = 'Logo.ico'
-ClassFilename = 'classes.txt'
-TrashFolder = 'trash'
-ImportFolder = 'import'
+InstallationPath = os.path.normpath(os.path.join(os.path.split(__file__)[0], '..')) #'N:\\project\\MediaFiler'  # TODO: derive from installation data
+ImageFolder = u'images'
+LibraryFolder = u'lib'
+LogoFilename = u'Logo.ico'
+ClassFilename = u'classes.txt'
+TrashFolder = u'trash'
+ImportFolder = u'import'
 
 
 
