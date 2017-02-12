@@ -17,7 +17,7 @@ from MediaClassHandler import MediaClassHandler
 
 
 # Constants
-InstallationPath = os.path.normpath(os.path.join(os.path.split(__file__)[0], '..')) #'N:\\project\\MediaFiler'  # TODO: derive from installation data
+InstallationPath = os.path.normpath(os.path.join(os.path.split(__file__)[0], '..')) # TODO: derive from installation data
 ImageFolder = u'images'
 LibraryFolder = u'lib'
 LogoFilename = u'Logo.ico'

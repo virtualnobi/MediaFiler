@@ -25,7 +25,7 @@ from nobi.ObserverPattern import Observable, Observer
 ## project
 from Model import Installer
 from Model.MediaCollection import imageFilerModel
-from Model.Entry import Entry
+#from Model.Entry import Entry
 #from Model import Group
 #from Model import Single
 from Model import Image  # import even if "unused", otherwise it's never registered with Entry.ProductTrader
@@ -576,6 +576,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
     def onEditClasses (self, event):
         """Start external editor on class file.
         """
+        classFile = Installer.getClassFilePath(os.path.join(self.model.rootDirectory, '..'))  # TODO: fix root directory
         classFile = os.path.join(self.model.rootDirectory, imageFilerModel.ClassFileName)
         subprocess.call(['C:/Program Files (x86)/Gnu/Emacs-24.5/bin/runemacs.exe', classFile], shell=True)
         # reload current model

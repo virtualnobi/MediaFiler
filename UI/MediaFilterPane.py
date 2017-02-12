@@ -138,7 +138,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.filterValues = {}
         # create one row per class with class name, value, and mode
         classes = self.imageModel.getClassHandler().getClasses()
-        gridSizer = wx.GridBagSizer((len(classes) + 3), 3)  # more rows than classes: clear button, single filter, filter unknown
+        gridSizer = wx.GridBagSizer(3, 3)
         row = 0
         # add clear and apply buttons
         buttonBox = wx.BoxSizer(wx.HORIZONTAL)
@@ -149,10 +149,12 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.applyButton.Bind(wx.EVT_BUTTON, self.onApply, id=GUIId.ApplyFilter)
         buttonBox.Add(self.applyButton, 0, wx.EXPAND)
         gridSizer.Add(buttonBox, (row, 0), (1, 3))
-        row = (row + 1)
+        gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
+        row = (row + 2)
         # add "unknown elements" condition
         self.addUnknownFilter(gridSizer, row)
-        row = (row + 1)
+        gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
+        row = (row + 2)
         # add classes with all their elements
         for aClass in classes:
             # create choice of class values
@@ -168,9 +170,12 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             self.addTextFilter(gridSizer, row, aClass[MediaClassHandler.KeyName], valueChoice)
             # advance row count
             row = (row + 1)
+        gridSizer.Add(wx.BoxSizer(), (row, 0), (1, 1))
+        row = (row + 1)
         # add minimum/maximum size filter
         self.addSizeFilter(gridSizer, row)
-        row = (row + 1)
+        gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
+        row = (row + 2)
         # add single/group condition TODO: apply only for OrganizationByName
         if (not self.imageModel.organizedByDate):
             singleText = wx.StaticText(self, -1, self.SingleConditionIndex)
@@ -318,11 +323,11 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 
-# Inheritance - ObserverPattern.Observer
+# Inheritance - Observer
     def updateAspect(self, observable, aspect):
         """ ASPECT of OBSERVABLE has changed. 
         """
-        ObserverPattern.Observer.updateAspect(self, observable, aspect)
+        Observer.updateAspect(self, observable, aspect)
         if (aspect == 'changed'):
             self.importAndDisplayFilter()
 
@@ -343,14 +348,14 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             label = _(filterKey)
         else:
             label = filterKey
-        sizer.Add(wx.StaticText(self, -1, (label + ':')), (row, 0), flag=wx.ALIGN_RIGHT)
+        sizer.Add(wx.StaticText(self, -1, (label + ':')), (row, 0), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         # add control to specify value
-        sizer.Add(control, (row, 1))
+        sizer.Add(control, (row, 1), flag=wx.ALIGN_CENTER_VERTICAL)
         # create choice of mode, linking to the value choice 
         modeChoice = wx.Choice(self, -1, choices=self.FilterModeNames)
         modeChoice.SetSelection(self.FilterModeIndexIgnore)
         self.filterModes[filterKey] = modeChoice
-        sizer.Add(modeChoice, (row, 2), flag=wx.ALIGN_RIGHT)
+        sizer.Add(modeChoice, (row, 2), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         self.Bind(wx.EVT_CHOICE, self.onModeChanged, modeChoice)
 
     

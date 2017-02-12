@@ -39,6 +39,7 @@ import copy
 # nobi
 from nobi.ObserverPattern import Observable, Observer
 # Project 
+from . import Installer
 from .MediaFilter import MediaFilter
 from .Entry import Entry
 from .MediaClassHandler import MediaClassHandler 
@@ -97,7 +98,7 @@ class imageFilerModel(Observable, Observer):
         else:
             self.organizationStrategy = OrganizationByName
         self.organizationStrategy.setModel(self)
-        self.classHandler = MediaClassHandler(os.path.join(self.rootDirectory, imageFilerModel.ClassFileName))
+        self.classHandler = MediaClassHandler(Installer.getClassFilePath(os.path.join(self.rootDirectory, '..')))  # TODO: fix root directory
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
         self.loadSubentries(self.root)
@@ -270,11 +271,11 @@ class imageFilerModel(Observable, Observer):
 
 
 
-# Inheritance - ObserverPattern.Observer
+# Inheritance - Observer
     def updateAspect(self, observable, aspect):
         """observable changed its aspect. 
         """
-        ObserverPattern.Observer.updateAspect(self, observable, aspect)
+        Observer.updateAspect(self, observable, aspect)
         if (observable == self.filter):  # filter changed
             self.filterEntries()
         elif (aspect == 'remove'):  # entry removed
