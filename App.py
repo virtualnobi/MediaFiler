@@ -11,6 +11,7 @@ A Python 2.7 GUI application which lets you organize media (images and videos).
 import os 
 import subprocess
 import gettext
+import shutil
 #import threading
 import cProfile
 import pstats
@@ -372,16 +373,20 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """
         dialog = wx.DirDialog(self, _('Select Directory to Export into:'), style = (wx.DD_DEFAULT_STYLE))
         if (dialog.ShowModal() == wx.ID_OK):  # user selected directory
+            wx.BeginBusyCursor()
+            if (not os.path.isdir(dialog.GetPath())):
+                os.makedirs(dialog.GetPath())
             count = 0
             for entry in self.model:
                 if ((not entry.isGroup())
                     and (not entry.isFiltered)):
-                    destination = os.path.join(dialog.GetPath(), (entry.getFilename() + '.' + entry.getExtension()))
+#                    destination = os.path.join(dialog.GetPath(), (entry.getFilename() + '.' + entry.getExtension()))
                     #print('Exporting "%s" to "%s"' % (entry.getPath(), destination))
-                    subprocess.call(['copy', '/Y', entry.getPath(), destination],  # TODO: portable implementation
-                                    shell=True)
+#                    shutil.copy(entry.getPath(), destination)
+                    shutil.copy(entry.getPath(), dialog.GetPath())
                     count = (count + 1)
-        self.displayInfoMessage(_('%d media exported') % count)
+            wx.EndBusyCursor()
+            self.displayInfoMessage(_('%d media exported') % count)
         dialog.Destroy()  # destroy after getting the user input
 
 

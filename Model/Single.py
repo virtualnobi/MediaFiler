@@ -124,17 +124,20 @@ class Single(Entry):
         if (self.model.organizedByDate):
             pass
         else:  # organized by name
-            if (self.organizer.isSingleton()):
-                newEntry = self.model.getEntry(name=name)
+            if (self.organizer.isSingleton()
+                and name
+                and (name <> self.organizer.getName())):
+                newEntry = self.model.getEntry(name=name, group=True)
                 if (newEntry):
-                    if (newEntry.isGroup()):
-                        scene = MediaOrganization.NewIndicator
-                        makeUnique = True
-                    else:
+                    scene = MediaOrganization.NewIndicator
+                    makeUnique = True
+                else:
+                    newEntry = self.model.getEntry(name=name, group=False)
+                    if (newEntry):
                         print('Single.renameTo(): Merging of singletons into a group NYI!')  # TODO:
                         return
-                else:
-                    pass
+                    else:  # name does not yet exist
+                        pass
             else:  # part of a named Group(); assume parameters are correctly set by invoking group
                 pass
         return(super(Single, self).renameTo(year=year, month=month, day=day,
