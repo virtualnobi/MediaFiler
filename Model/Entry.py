@@ -274,7 +274,8 @@ class Entry(Observable):
             # remove from current group, and add to new group
             newGroup = self.organizer.__class__.getGroupFromPath(fname)
             if (newGroup <> None):
-                self.setParentGroup(newGroup)
+                self.setParentGroup(newGroup)  # old parent group will change selection to itself
+                self.model.setSelectedEntry(self)
             return(True)
 
 
@@ -548,7 +549,7 @@ class Entry(Observable):
         elif (menuId == GUIId.RemoveNew):
             self.removeNewIndicator()
         else: 
-            message = ('Unknown function id %d in Entry.runContextMenuItem()' % menuId)
+            print('Unknown function id %d in Entry.runContextMenuItem()' % menuId)
         return(message)
 
 

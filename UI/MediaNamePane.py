@@ -330,26 +330,6 @@ class MediaNamePane (wx.Panel, Observer):
                                 number=self.number,
                                 elements=(self.knownElements.union(self.unknownElements)))            
         else:  # organized by name
-            if (self.entry.isGroup ()):  # for entire groups, only the elements can be changed
-                print('Named Group not handled in MediaNamePane.onRename() anymore, relying on Group.renameTo()')
-#                 addedElements = self.lastElements  # elements to add
-#                 removedElements = set()  # classes to remove
-#                 # remove all elements for non-multiple classes for which an elements is added
-#                 for c in self.model.getClasses():
-#                     if (not self.model.getClassIsMultiple(c)):
-#                         for e in addedElements:
-#                             if (e in self.model.getClassElements(c)):
-#                                 removedElements.update(self.model.getClassElements(c))  # remove all elements of this class..
-#                                 removedElements.remove(e)  # ...except the one to be added
-#                 # remove all elements of classes to remove
-#                 for className in self.classesToRemove:
-#                     removedElements.update(self.model.getClassElements(className))
-#                 # remove/add elements for all subentries in group
-#                 for subentry in self.entry.getSubentries():
-#                     finalElements = subentry.getKnownElements().union(subentry.getUnknownElements()).union(addedElements).difference(removedElements)
-#                     print('Changing "%s" to elements %s' % (subentry.getPath(), finalElements))
-#                     subentry.renameTo(elements=finalElements)
-#            else:  # single image
             self.entry.renameTo(name=self.name,
                                 scene=self.scene, 
                                 number=self.number,
