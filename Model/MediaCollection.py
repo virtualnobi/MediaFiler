@@ -376,12 +376,12 @@ class imageFilerModel(Observable, Observer):
         """
         #print('Checking filter...')
         self.changedAspect('startFiltering')
-        if (not self.getFilter().isActive()):  # no filters, show all images
+        if (not self.getFilter().isActive()):  # no filters, show all images  TODO: use isEmpty()
             for entry in self:
                 entry.isFiltered = False
-        else:  # filters exist, apply them
+        else:  # filters exist
             #print('Filtering entries')
-            for entry in self:  # process all entries
+            for entry in self: 
                 entry.isFiltered = self.getFilter().isFiltered(entry)
         self.changedAspect('stopFiltering')
 
@@ -563,7 +563,7 @@ class imageFilerModel(Observable, Observer):
 
 
 # section: Iteration
-    def __iter__ (self):
+    def __iter__(self):
         """Return an iterator object, returning MediaFiler.Entry objects in self in post-order.
          
         Note this returns self, suitably initialized. This means only one iteration can run on self at any time.
@@ -573,7 +573,7 @@ class imageFilerModel(Observable, Observer):
         return(self)
         
         
-    def next (self):
+    def next(self):
         """Return next MediaFiler.Entry from self. 
         
         Return an Entry, or raise StopIteration if last entry was already returned

@@ -176,7 +176,10 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.addSizeFilter(gridSizer, row)
         gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
         row = (row + 2)
-        # add single/group condition TODO: apply only for OrganizationByName
+        # add date range
+        if (self.imageModel.organizedByDate):
+            pass  # TODO:
+        # add single/group condition
         if (not self.imageModel.organizedByDate):
             singleText = wx.StaticText(self, -1, self.SingleConditionIndex)
             self.addTextFilter(gridSizer, row, self.SingleConditionIndex, singleText)        
@@ -231,18 +234,23 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def onClear(self, event):  # @UnusedVariable
         """User wants to clear the filter.
         """
+        wx.BeginBusyCursor()
         self.filterModel.clear()
+        wx.EndBusyCursor()
 
 
     def onApply(self, event):  # @UnusedVariable
         """
         """
+        wx.BeginBusyCursor()
         self.filterModel.setConditions(active=True)
+        wx.EndBusyCursor()
 
 
     def onModeChanged(self, event):  # @UnusedVariable
         """User changed a mode in the filter. Update internal state. 
         """
+        wx.BeginBusyCursor()
         # TODO: Check whether class definition requires (de)activation of other choices
         # clear existing filters
         self.requiredElements = set()
@@ -293,6 +301,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                                        prohibited=self.prohibitedElements, 
                                        unknownRequired=self.unknownElementRequired,
                                        single=self.singleCondition)
+        wx.EndBusyCursor()
 
 
     def onValueChanged(self, event):
@@ -311,6 +320,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def onSliderChanged(self, event):
         """User changed the size slider.
         """
+        wx.BeginBusyCursor()
         print('Slider changed to %d' % event.EventObject.GetValue())
         if (event.EventObject == self.minimumSlider):
             self.maximumSliderMinimum = event.EventObject.GetValue()  # minimum slider position is new minimum for maximum slider
@@ -320,6 +330,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             self.minimumSliderMaximum = event.EventObject.GetValue()  # maximum slider position is new maximum for minimum slider
             self.minimumSlider.SetMax(self.minimumSliderMaximum)
             self.filterModel.setConditions(maximum=self.minimumSliderMaximum)
+        wx.EndBusyCursor()
 
 
 
@@ -327,7 +338,6 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def updateAspect(self, observable, aspect):
         """ ASPECT of OBSERVABLE has changed. 
         """
-        Observer.updateAspect(self, observable, aspect)
         if (aspect == 'changed'):
             self.importAndDisplayFilter()
 

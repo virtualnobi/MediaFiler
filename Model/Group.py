@@ -307,7 +307,7 @@ class Group(Entry):
                 print('   with scene mapping %s' % sceneMap)
                 # move each subEntry
                 print('   %d subentries' % len(self.subEntries))
-                for subEntry in self.getSubEntries(filtering=False):  
+                for subEntry in self.getSubEntries(False):  
                     newElements = subEntry.getElements()
                     if (elements):
                         newElements = (newElements.union(elements))

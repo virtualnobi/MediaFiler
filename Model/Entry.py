@@ -186,7 +186,7 @@ class Entry(Observable):
         self.treeItemID = treeItemID
 
 
-    def remove(self):  # TODO: does not remove entry from tree
+    def remove(self):
         """Remove self from the image set. 
         
         Move the image file into the trash directory.
@@ -198,7 +198,7 @@ class Entry(Observable):
         newName = os.path.join(self.model.rootDirectory, 
                                self.TrashDirectory, 
                                (self.getFilename() + '.' + self.getExtension()))
-        count = 1
+        count = 1  # TODO: re-use MediaOrganization function?
         while (os.path.exists(newName)):
             newName = os.path.join(self.model.rootDirectory,
                                    self.TrashDirectory,
@@ -538,11 +538,13 @@ class Entry(Observable):
             newName = self.model.getFreeName()
             if (newName):
                 self.renameTo(name=newName)
+            # TODO: select this item with new name again
         elif (menuId == GUIId.ChooseName):
             newName = self.askNewName(parentWindow)
             if (newName):
                 # TODO: handle to-group and from-group conversions
                 self.renameTo(name=newName)
+            # TODO: select this item with new name again
         elif (menuId == GUIId.RemoveNew):
             self.removeNewIndicator()
         else: 

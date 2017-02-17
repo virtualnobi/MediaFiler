@@ -46,20 +46,20 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
 # section: Lifecycle
     def __init__ (self, parent, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.TR_DEFAULT_STYLE):
         # initialize superclasses
-        wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT))
+        wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS))
         Observer.__init__(self)
         Observable.__init__(self, ['selection'])
         # define norgy images
         imglist = wx.ImageList(16, 16, True, 2)
-        imglist.Add(wx.ArtProvider_GetBitmap (wx.ART_FOLDER, wx.ART_OTHER, wx.Size (16, 16)))
-        imglist.Add(wx.ArtProvider_GetBitmap (wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size (16, 16)))
+        imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size (16, 16)))
+        imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size (16, 16)))
         self.AssignImageList(imglist)
         # bind events triggered by tree
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSelectionChanged, self)
         self.Bind(wx.EVT_TREE_ITEM_MENU, self.onContextMenuRequest, self)
         self.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)  # context menu actions on Entry objects
         # internal state
-        self.model = None  # imageFilerModel
+        self.model = None  
         self.ignoreSelectionChanges = False  # flag to stop onSelectionChanged events when mass deleting
         self.previousSelection = []  # selected entry and its parents to restore selection after filter change 
         self.previousSelectionExpanded = False  # whether selected entry was expanded (only if group)
@@ -82,7 +82,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
             self.SelectItem(self.model.getSelectedEntry().getTreeItemID())
 
 
-    def addSubTree (self, entry, parent, recurse=True):
+    def addSubTree (self, entry, parent):
         """Add a tree node for imageFilerEntry ENTRY under wx.TreeItemID PARENT, and recurse to add all descendants.
 
         Entry entry is the MediaFiler.Entry to add
@@ -90,6 +90,9 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
 
         Return the wx.TreeItemID of entry.
         """
+        if (entry.isFiltered):
+            print('MediaTreePane.addSubTree(): Ignoring filtered Entry "%s"' % entry.getPath())
+            return(None)
         # create a tree item
         item = wx.TreeItemData(entry)
         # insert tree item
@@ -98,9 +101,8 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
                 node = self.AddRoot("All", GUIId.TI_Folder, GUIId.TI_Folder, item)  
             else:   
                 node = self.AppendItem(parent, entry.getFilename(), GUIId.TI_Folder, data=item)
-            # recurse to add all descendants of entry
-            if (recurse):
-                for subentry in entry.getSubEntries():
+            for subentry in entry.getSubEntries():
+                if (not subentry.isFiltered):
                     self.addSubTree(subentry, node)
         else:
             # add a terminal node for entry
@@ -127,7 +129,6 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
             self.ignoreSelectionChanges = True
             self.model.setSelectedEntry(entry)
             self.ignoreSelectionChanges = False
-            #self.changedAspect('selection')
 
 
     def onContextMenuRequest (self, event):
@@ -166,9 +167,10 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
             self.EnsureVisible(node)  # to keep node visible after sorting
         elif (aspect == 'remove'):  # Entry deleted
             #print('MediaTreeCtrl: entry %s removed' % observable)
+            observable.removeObserver(self)
             node = observable.getTreeItemID()
             self.Delete(node)
-            observable.removeObserver(self)
+            print('MediaTreeControl.update(): entry "%s" removed' % observable.getPath())
         elif (aspect == 'children'):  # Group changes its children
             #print('MediaTreeCtrl: entry "%s" changing children...' % observable.getPath())
             node = observable.getTreeItemID()
@@ -178,7 +180,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
                 self.addSubTree(subEntry, node)
             self.SortChildren(node)
             self.ignoreSelectionChanges = False
-            #print('MediaTreeCtrl: entry "%s" changed' % observable.getPath())
+            print('MediaTreeCtrl.update(): entry "%s" changed children' % observable.getPath())
         elif (aspect == 'selection'):  # model changed selection
             self.ignoreSelectionChanges = True
             treeItem = observable.getSelectedEntry().getTreeItemID()
@@ -189,6 +191,8 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.saveSelection()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
+            self.DeleteAllItems()
+            self.addSubTree(self.model.getRootNode(), None)
             self.restoreSelection()
         else:
             print('Error: "%s" does not handle change of aspect "%s" of "%s"' % (self, aspect, observable))
@@ -249,7 +253,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
         """
         for selection in self.previousSelection:
             if (not selection.isFiltered):
-                print('Selecting "%s" after filtering' % selection.getPath())
+                print('MediaTreePane.restoreSelection() restoring "%s"' % selection.getPath())
                 self.ignoreSelectionChanges = True
                 self.SelectItem(selection.getTreeItemID())
                 self.ignoreSelectionChanges = False

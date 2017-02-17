@@ -290,7 +290,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
 #        tools_menu.AppendSeparator()
         tools_menu.Append(GUIId.RenameElement, GUIId.FunctionNames[GUIId.RenameElement])
         tools_menu.Append(GUIId.EditClasses, GUIId.FunctionNames[GUIId.EditClasses])        
-        if (False):  # TODO:
+        if (False):  # TODO: (not self.model.organizedByDate): does not work since model not defined yet
             tools_menu.Append(GUIId.EditNames, GUIId.FunctionNames[GUIId.EditNames])
 #        tools_menu.AppendSeparator()
 # TODO:        tools_menu.Append(GUIId.HarvestURLs, GUIId.FunctionNames[GUIId.HarvestURLs])
@@ -380,9 +380,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
             for entry in self.model:
                 if ((not entry.isGroup())
                     and (not entry.isFiltered)):
-#                    destination = os.path.join(dialog.GetPath(), (entry.getFilename() + '.' + entry.getExtension()))
                     #print('Exporting "%s" to "%s"' % (entry.getPath(), destination))
-#                    shutil.copy(entry.getPath(), destination)
                     shutil.copy(entry.getPath(), dialog.GetPath())
                     count = (count + 1)
             wx.EndBusyCursor()
@@ -446,7 +444,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
         EVENT is the event raised by the CheckMenuItem
         """
         # toggling menu item is done by CheckMenuItem
-        self.model.getFilter().setConditions(active=(not self.model.getFilter().active))  # toggle ImageFilter
+        wx.BeginBusyCursor()
+        self.model.getFilter().setConditions(active=(not self.model.getFilter().active))
+        wx.EndBusyCursor()
 
 
     def onToggleTreePane (self, event):
@@ -476,9 +476,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self._mgr.Update()
 
 
-    def onStartSlideShow (self, event):
-        # TODO:
-        pass
+    def onStartSlideShow (self, event):  # @UnusedVariable
+        self.presentationPane.presentNext()
     
     
 # - Perspectives Menu events
@@ -647,12 +646,10 @@ class MediaFiler (wx.Frame, Observer, Observable):
         '''
         if (aspect == 'startFiltering'):  # filter has changed, starting to filter entries
             self.displayInfoMessage('Filtering...')
-            wx.BeginBusyCursor()
-        elif (aspect == 'stopFiltering'):  # filter has changed, all entries are filtered
+        elif (aspect == 'stopFiltering'):  # filter has changed, filtering complete
             self.imageTree.DeleteAllItems() 
             self.imageTree.addSubTree(self.model.getRootNode(), None)
             self.displayInfoMessage('Ok')
-            wx.EndBusyCursor()
         else:
             print 'Unhandled change of aspect %s in observable %s' % (aspect, observable)
             pass
@@ -672,6 +669,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
     def setModel(self, directory):
         """Set the model from its root DIRECTORY. Update status and load initial image.
         """
+        wx.BeginBusyCursor()
         directory = unicode(directory)
         # update status bar
         self.statusbar.SetStatusText(directory, GUIId.SB_Root)
@@ -700,6 +698,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.imageTree.setModel(self.model)
         # update status bar
         self.displayInfoMessage(_('Ready.'))
+        wx.EndBusyCursor()
 
 
     def updateMenuAccordingToOrganization(self, organizationByDate):
