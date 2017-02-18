@@ -191,9 +191,11 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.saveSelection()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
+            print('MediaTreePane.update(): Recreating tree...')
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootNode(), None)
             self.restoreSelection()
+            print('MediaTreePane.update(): Recreating tree finished')
         else:
             print('Error: "%s" does not handle change of aspect "%s" of "%s"' % (self, aspect, observable))
 

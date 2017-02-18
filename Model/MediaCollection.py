@@ -48,12 +48,6 @@ from .Organization import OrganizationByName
 
 
 
-## Constants TODO: move into class
-namesFileName = u'/../lib/names.orig' # name of file containing names, if it exists, image name is organized by name, otherwise it's organized by date
-
-
-
-
 class imageFilerModel(Observable, Observer):
     """
     """
@@ -104,7 +98,8 @@ class imageFilerModel(Observable, Observer):
         self.loadSubentries(self.root)
         self.setFreeNames()
         # initialize filter to no restrictions
-        self.setFilter(MediaFilter(self))
+        self.filter = MediaFilter(self)
+        self.filter.addObserverForAspect(self, 'changed')
         # select initial entry
         initialEntry = self.getEntry(group=False, 
                                      path=os.path.join(rootDir, self.InitialFileName))
@@ -352,17 +347,17 @@ class imageFilerModel(Observable, Observer):
 
 
 ## Filtering
-    def setFilter(self, filterModel):
-        """Set the current MediaFilter.
-        """
-        try:  # if self.filter not defined, "if (self.filter)" raises AttributeError
-            self.filter.removeObserver(self)
-        except: 
-            pass
-        self.filter = filterModel
-        self.filter.addObserverForAspect(self, 'changed')
-        if (self.filter.isActive()):
-            self.filterEntries()
+#     def setFilter(self, filterModel):
+#         """Set the current MediaFilter.
+#         """
+#         try:  # if self.filter not defined, "if (self.filter)" raises AttributeError
+#             self.filter.removeObserver(self)
+#         except: 
+#             pass
+#         self.filter = filterModel
+#         self.filter.addObserverForAspect(self, 'changed')
+#         if (not self.getFilter().isEmpty()):
+#             self.filterEntries()
         
         
     def getFilter (self):
@@ -374,16 +369,17 @@ class imageFilerModel(Observable, Observer):
     def filterEntries(self):
         """Self's filter has changed. Recalculate the filtered entries. 
         """
-        #print('Checking filter...')
+        print('MediaCollection.filterEntries() started')
         self.changedAspect('startFiltering')
-        if (not self.getFilter().isActive()):  # no filters, show all images  TODO: use isEmpty()
+        if (self.getFilter().isEmpty()): 
             for entry in self:
                 entry.isFiltered = False
         else:  # filters exist
-            #print('Filtering entries')
+            print('Filtering entries')
             for entry in self: 
                 entry.isFiltered = self.getFilter().isFiltered(entry)
         self.changedAspect('stopFiltering')
+        print('MediaCollection.filterEntries() finished')
 
 
 
@@ -460,9 +456,7 @@ class imageFilerModel(Observable, Observer):
                         importParameters.logString('\nToo many folder levels for name organization!')
                         return
                     newName = self.organizationStrategy.deriveName(importParameters.log, oldPath[baseLength:])
-                    newPath = self.organizationStrategy.constructPath(rootDir=targetDir, name=newName)  # TODO: use this only
-                    n2 = os.path.join(targetDir, newName[0], newName)
-                    assert (newPath == n2), 'ImageFilerModel.importImagesRecursively() bad new name: \n\t%s\n\t%s\n' % (newPath, n2)
+                    newPath = self.organizationStrategy.constructPath(rootDir=targetDir, name=newName)  
                 self.importImagesRecursively(importParameters,
                                              oldPath, 
                                              (level + 1), 

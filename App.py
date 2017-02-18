@@ -538,9 +538,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
             self.displayInfoMessage(statusText % dialog.getParameterObject().getImportDirectory())
             log = self.model.importImages(importParameters)
             try:
-                logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, log, _('Import Report'))
+                logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, log, _('Import Report'), style=wx.RESIZE_BORDER)
             except:
-                logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'))
+                logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
             # TODO: make dialog resizable
             logDialog.SetSize(wx.Size(1000,600))
             logDialog.Show()
@@ -652,7 +652,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
             self.displayInfoMessage('Ok')
         else:
             print 'Unhandled change of aspect %s in observable %s' % (aspect, observable)
-            pass
+#            pass
 
 
 

@@ -152,34 +152,34 @@ class MediaFilter(Observable):
                self.toDate)
 
 
-    def isActive(self):
-        """Check whether the filter will reduce the set of all images.
-
-        Return True if filter conditions are defined, False otherwise.
-        """
-        if (self.active
-            and (not self.isEmpty())):
-            return(True)
-        else:
-            return(False)
+#     def isActive(self):
+#         """Check whether the filter will reduce the set of all images.
+# 
+#         Return True if filter conditions are defined, False otherwise.
+#         """
+#         if (self.active
+#             and (not self.isEmpty())):
+#             return(True)
+#         else:
+#             return(False)
         
         
     def isEmpty(self):
-        """Check whether filter conditions are defined.
+        """Check whether the filter will reduce the set of media.
         
         Return True if no filter conditions are defined, False otherwise.
         """
-        if ((len(self.requiredElements) > 0)
-            or (len(self.prohibitedElements) > 0)
-            or self.unknownElementRequired
-            or (self.minimumSize > self.model.getMinimumSize())
-            or (self.maximumSize < self.model.getMaximumSize())
-            or (self.singleCondition <> None)
-            or (self.fromDate <> None)
-            or (self.toDate <> None)):
-            return(False)
-        else:
-            return(True)
+        if (self.active):
+            if ((len(self.requiredElements) > 0)
+                or (len(self.prohibitedElements) > 0)
+                or self.unknownElementRequired
+                or (self.minimumSize > self.model.getMinimumSize())
+                or (self.maximumSize < self.model.getMaximumSize())
+                or (self.singleCondition <> None)
+                or (self.fromDate <> None)
+                or (self.toDate <> None)):
+                return(False)
+        return(True)
 
 
     def isFiltered(self, entry):

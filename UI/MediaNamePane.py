@@ -17,7 +17,7 @@ import wx
 from ObserverPattern import Observer
 ## project
 from UI import GUIId
-#from MediaFiler.Entry import Entry
+from Model.Entry import Entry
 
 
 class MediaNamePane (wx.Panel, Observer):
@@ -141,6 +141,8 @@ class MediaNamePane (wx.Panel, Observer):
     def setEntry(self, entry):
         """Set the selected ENTRY (either group or image), and name elements accordingly.
         """
+#         if (not isinstance(entry, Entry)):
+#             pass
         # establish observer pattern
         self.clear()
         self.entry = entry
@@ -334,3 +336,5 @@ class MediaNamePane (wx.Panel, Observer):
                                 scene=self.scene, 
                                 number=self.number,
                                 elements=(self.knownElements.union(self.unknownElements)))
+        self.model.setSelectedEntry(self.entry)  # when switching groups, old parent group will change selection to itself 
+

@@ -91,7 +91,7 @@ class Entry(Observable):
             try:
                 clas = self.ProductTrader.getClassFor(extension)
             except:  # probably extension has no class registered to handle it
-                print('No class registered to instantiate "%s"  media.' % extension)
+                print('No class registered to instantiate "%s" media "%s".' % (extension, path))
                 return(None)
         # instantiate
         return(clas(model, path))
@@ -274,8 +274,7 @@ class Entry(Observable):
             # remove from current group, and add to new group
             newGroup = self.organizer.__class__.getGroupFromPath(fname)
             if (newGroup <> None):
-                self.setParentGroup(newGroup)  # old parent group will change selection to itself
-                self.model.setSelectedEntry(self)
+                self.setParentGroup(newGroup)
             return(True)
 
 
@@ -394,7 +393,7 @@ class Entry(Observable):
         return(self.getKnownElements().union(self.getUnknownElements()))
     
     
-    def getElementString (self):  # TODO: obsolete
+    def getElementString (self):
         """Return a String containing all elements of self. 
         
         Contains a leading NameSeparator if non-empty.

@@ -1,19 +1,4 @@
 '''
-The ImageFilterPane defines the filter for all images. It shows one row per image class 
-(as defined by its model, an ImageFilerModel), each containing a condition (ignore, include, 
-exclude), the class name, and the class's elements (plus "any value"). In addition, the 
-pane contains a row with a checkbox to require unknown elements in the filter. 
-
-The ImageFilterPane creates its content when its model is set via setModel(). 
-
-The filter can be set using setFilter() and can be retrieved using getFilter(). 
-
-Whenever the user changes the filter, the ImageFilterPane notifies all its observers with
-a change of aspect 'filter'. 
-
-ObserverPattern.Observable aspects: 
-'filter': Changes to this aspect signal that the filter has been changed. 
-
 (c) by nobisoft 2015-
 '''
 
@@ -191,42 +176,42 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.importAndDisplayFilter()
 
 
-    def setFilter(self, required, prohibited, unknown, single):
-        '''Set the current filter, and update self's widgets accordingly.
-        
-        required - a Sequence of Strings containing required class elements
-        prohibited - a Sequence of Strings containing prohibited class elements
-        unknown - a Boolean indicating whether unknown elements are required
-        Boolean single whether to filter Singles or Groups (None if no filtering)
-        
-        Returns a Boolean indicating whether the new filter differs from the old.
-        '''
-        print('MediaFilterPane.setFilter() deprecated')
-        changed = ((self.requiredElements <> required)
-                   or (self.prohibitedElements <> prohibited)
-                   or (self.unknownElementRequired <> unknown)
-                   or (self.single <> single))
-        if (changed):  # filter criteria must change, update widgets
-            self.filterModel.setconditions(required=required,  # TODO: obsolete? remove!
-                                           prohibited=prohibited, 
-                                           unknownRequired=unknown,
-                                           single=single)
-            self.requiredElements = required
-            self.prohibitedElements = prohibited
-            self.unknownElementRequired = unknown
-            self.singleCondition = single
-        return(changed)
+#     def setFilter(self, required, prohibited, unknown, single):
+#         '''Set the current filter, and update self's widgets accordingly.
+#         
+#         required - a Sequence of Strings containing required class elements
+#         prohibited - a Sequence of Strings containing prohibited class elements
+#         unknown - a Boolean indicating whether unknown elements are required
+#         Boolean single whether to filter Singles or Groups (None if no filtering)
+#         
+#         Returns a Boolean indicating whether the new filter differs from the old.
+#         '''
+#         print('MediaFilterPane.setFilter() deprecated')
+#         changed = ((self.requiredElements <> required)
+#                    or (self.prohibitedElements <> prohibited)
+#                    or (self.unknownElementRequired <> unknown)
+#                    or (self.single <> single))
+#         if (changed):  # filter criteria must change, update widgets
+#             self.filterModel.setconditions(required=required,  
+#                                            prohibited=prohibited, 
+#                                            unknownRequired=unknown,
+#                                            single=single)
+#             self.requiredElements = required
+#             self.prohibitedElements = prohibited
+#             self.unknownElementRequired = unknown
+#             self.singleCondition = single
+#         return(changed)
 
 
 
 # Getters    
-    def getFilter(self): 
-        '''Get the current filter. 
-        
-        Returns (required, prohibited, unknown, single) as defined in setFilter.
-        '''
-        print('MediaFilterPane.getFilter() deprecated')
-        return (self.requiredElements, self.prohibitedElements, self.unknownElementRequired, self.singleCondition)
+#     def getFilter(self): 
+#         '''Get the current filter. 
+#         
+#         Returns (required, prohibited, unknown, single) as defined in setFilter.
+#         '''
+#         print('MediaFilterPane.getFilter() deprecated')
+#         return (self.requiredElements, self.prohibitedElements, self.unknownElementRequired, self.singleCondition)
 
 
 
