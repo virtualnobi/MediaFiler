@@ -393,8 +393,6 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """
         #print("MediaFiler.App onExit(")
         self.displayInfoMessage(_('Closing...'))
-        # remove Observer relations
-        self.classificationPane.destroy()
         self.imageTree.ignoreSelectionChanges = True
         self.imageTree.destroy()
         self._mgr.UnInit()
