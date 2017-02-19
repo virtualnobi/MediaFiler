@@ -37,8 +37,6 @@ class MediaNamePane (wx.Panel, Observer):
         # inheritance
         wx.Panel.__init__(self, parent, style=(style | wx.FULL_REPAINT_ON_RESIZE))
         Observer.__init__(self)
-        # observe classification pane for any change
-        classificationPane.addObserver(self)
         # internal state
         self.model = None
         self.entry = None
@@ -231,22 +229,39 @@ class MediaNamePane (wx.Panel, Observer):
         """
         #print('MediaNamePane: Received change of aspect "%s" of "%s"' % (aspect, observable))
         super(MediaNamePane, self).updateAspect(observable, aspect)
-        if (aspect == 'classification'):  # the selected Entry's classification has changed
-            self.readInputFields()  # read identifier information to keep them
-            self.knownElements = self.entry.getKnownElements()
-            self.unknownElements = self.entry.getUnknownElements()
-            self.setInputFields()
-            self.lastElements = self.knownElements.union(self.unknownElements)
-            print()
-        elif (aspect == 'selection'):
+#         if (aspect == 'classification'):  # the selected Entry's classification has changed
+#             self.readInputFields()  # read identifier information to keep them
+#             self.knownElements = self.entry.getKnownElements()
+#             self.unknownElements = self.entry.getUnknownElements()
+#             self.setInputFields()
+#             self.lastElements = self.knownElements.union(self.unknownElements)
+#             print()
+        if (aspect == 'selection'):
             entry = observable.getSelectedEntry()
             if (entry == None):
                 self.clear()
             else:   
                 self.setEntry(entry)
         elif (aspect == 'name'):  # the selected Entry's name has changed
-            # TODO: if self.entry stays the same and only the classification has changed, keep identifier parts from self's input fields
+            self.readInputFields()
+            if (self.model.organizedByDate):
+                keepYear = self.year
+                keepMonth = self.month
+                keepDay = self.day
+            else:
+                keepName = self.name
+                keepScene = self.scene
+            keepNumber = self.number
             self.setEntry(self.entry)
+            if (self.model.organizedByDate):
+                self.year = keepYear
+                self.month= keepMonth
+                self.day = keepDay
+            else:
+                self.name = keepName
+                self.scene = keepScene
+            self.number = keepNumber
+            self.setInputFields()
             self.lastElements = self.entry.getElements()
             print('MediaNamePane remembers elements %s' % self.lastElements)
 

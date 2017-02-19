@@ -35,13 +35,10 @@ def N_(message): return message
 
 
 
-class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer, Observable):
-    """To displays the classification of the currently selected Entry.
+class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
+    """To display the classification of the currently selected Entry.
 
     It observes the ImageFilerModel for selection changes, and the selected Entry for name changes.
-
-    Observable aspects:
-    'classification': the classification has been changed by the user
     """
 
 
@@ -64,7 +61,6 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer, Obse
         # inheritance
         wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, id=-1, size=wx.Size (450, 0), style=(style | wx.FULL_REPAINT_ON_RESIZE))
         Observer.__init__(self)
-        Observable.__init__(self, ['classification'])
         # 
         self.SetAutoLayout(1)
         self.SetupScrolling()
@@ -243,7 +239,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer, Obse
                 elements.add(element)
         elements.update(self.entry.getUnknownElements())
         self.entry.renameTo(elements=elements)
-        
+
 
 
 # Inheritance - ObserverPattern
