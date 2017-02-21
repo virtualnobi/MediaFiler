@@ -373,11 +373,11 @@ class imageFilerModel(Observable, Observer):
         self.changedAspect('startFiltering')
         if (self.getFilter().isEmpty()): 
             for entry in self:
-                entry.isFiltered = False
+                entry.setFilter(False)
         else:  # filters exist
             print('Filtering entries')
             for entry in self: 
-                entry.isFiltered = self.getFilter().isFiltered(entry)
+                entry.setFilter(self.getFilter().isFiltered(entry))
         self.changedAspect('stopFiltering')
         print('MediaCollection.filterEntries() finished')
 

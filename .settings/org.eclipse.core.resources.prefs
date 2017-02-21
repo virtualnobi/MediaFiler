@@ -1,6 +1,7 @@
 eclipse.preferences.version=1
 encoding//Model/Installer.py=latin1
 encoding//Model/Organization.py=latin1
+encoding//UI/GUIId.py=UTF-8
 encoding//UI/MediaCanvasPane.py=latin1
 encoding//UI/MediaClassificationPane.py=latin1
 encoding//UI/MediaTreePane.py=latin1

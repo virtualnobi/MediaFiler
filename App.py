@@ -26,12 +26,8 @@ from nobi.ObserverPattern import Observable, Observer
 ## project
 from Model import Installer
 from Model.MediaCollection import imageFilerModel
-#from Model.Entry import Entry
-#from Model import Group
-#from Model import Single
-from Model import Image  # import even if "unused", otherwise it's never registered with Entry.ProductTrader
-from Model import Movie  # import even if "unused", otherwise it's never registered with Entry.ProductTrader
-#from Model.MediaFilter import MediaFilter
+from Model import Image  # @UnusedImport import even if "unused", otherwise it's never registered with Entry.ProductTrader
+from Model import Movie  # @UnusedImport import even if "unused", otherwise it's never registered with Entry.ProductTrader  
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from UI.Importing import ImportDialog, ImportParameterObject
@@ -379,12 +375,12 @@ class MediaFiler (wx.Frame, Observer, Observable):
             count = 0
             for entry in self.model:
                 if ((not entry.isGroup())
-                    and (not entry.isFiltered)):
+                    and (not entry.filteredFlag)):
                     #print('Exporting "%s" to "%s"' % (entry.getPath(), destination))
                     shutil.copy(entry.getPath(), dialog.GetPath())
                     count = (count + 1)
             wx.EndBusyCursor()
-            self.displayInfoMessage(_('%d media exported') % count)
+            self.displayInfoMessage(_('%d media exported to "%s"') % (count, dialog.GetPath()))
         dialog.Destroy()  # destroy after getting the user input
 
 

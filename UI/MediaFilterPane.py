@@ -65,6 +65,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     FilterModeNames = [FilterModeNameIgnore, FilterModeNameRequire, FilterModeNameExclude]
     # Labels
     FileSizeLabel = _('Size:')
+    DateRangeLabel= _('Date Range:')
 
 
 
@@ -163,7 +164,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         row = (row + 2)
         # add date range
         if (self.imageModel.organizedByDate):
-            pass  # TODO:
+            self.addDateRangeFilter(gridSizer, row)
+            row = (row + 1)
         # add single/group condition
         if (not self.imageModel.organizedByDate):
             singleText = wx.StaticText(self, -1, self.SingleConditionIndex)
@@ -176,42 +178,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.importAndDisplayFilter()
 
 
-#     def setFilter(self, required, prohibited, unknown, single):
-#         '''Set the current filter, and update self's widgets accordingly.
-#         
-#         required - a Sequence of Strings containing required class elements
-#         prohibited - a Sequence of Strings containing prohibited class elements
-#         unknown - a Boolean indicating whether unknown elements are required
-#         Boolean single whether to filter Singles or Groups (None if no filtering)
-#         
-#         Returns a Boolean indicating whether the new filter differs from the old.
-#         '''
-#         print('MediaFilterPane.setFilter() deprecated')
-#         changed = ((self.requiredElements <> required)
-#                    or (self.prohibitedElements <> prohibited)
-#                    or (self.unknownElementRequired <> unknown)
-#                    or (self.single <> single))
-#         if (changed):  # filter criteria must change, update widgets
-#             self.filterModel.setconditions(required=required,  
-#                                            prohibited=prohibited, 
-#                                            unknownRequired=unknown,
-#                                            single=single)
-#             self.requiredElements = required
-#             self.prohibitedElements = prohibited
-#             self.unknownElementRequired = unknown
-#             self.singleCondition = single
-#         return(changed)
-
-
 
 # Getters    
-#     def getFilter(self): 
-#         '''Get the current filter. 
-#         
-#         Returns (required, prohibited, unknown, single) as defined in setFilter.
-#         '''
-#         print('MediaFilterPane.getFilter() deprecated')
-#         return (self.requiredElements, self.prohibitedElements, self.unknownElementRequired, self.singleCondition)
 
 
 
@@ -318,9 +286,14 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         wx.EndBusyCursor()
 
 
+    def onDateChanged(self, event):
+        print('DateRange changed')
+        pass
+
+
 
 # Inheritance - Observer
-    def updateAspect(self, observable, aspect):
+    def updateAspect(self, observable, aspect):  # @UnusedVariable
         """ ASPECT of OBSERVABLE has changed. 
         """
         if (aspect == 'changed'):
@@ -399,6 +372,24 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.maximumSlider.SetTickFreq(500, 1)
         self.maximumSlider.Bind(wx.EVT_SCROLL_CHANGED, self.onSliderChanged)
         sizer.Add(self.maximumSlider, (row, 2), (1, 1), flag=wx.ALIGN_RIGHT)
+
+
+    def addDateRangeFilter(self, sizer, row):
+        """Add a date range filter to sizer and bind to self
+
+        wx.GridBagSizer sizer  for layouting   
+        Number row             the row to use in sizer
+        """
+        sizer.Add(wx.StaticText(self, -1, self.DateRangeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
+        self.fromDate = wx.DatePickerCtrl(self, #size=(120,-1),
+                                          style = (wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
+        sizer.Add(self.fromDate, (row, 1), (1, 1))
+        self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.fromDate)
+        self.toDate = wx.DatePickerCtrl(self, #size=(120,-1),
+                                        style = (wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
+        sizer.Add(self.toDate, (row, 2), (1, 1))
+        self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.toDate)
+        
 
 
     def importAndDisplayFilter(self):

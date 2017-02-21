@@ -156,7 +156,7 @@ class Single(Entry):
         
         Returns Array of Entry. 
         """
-        if (self.isFiltered):
+        if (self.filteredFlag):
             return([])
         else:
             return([self])

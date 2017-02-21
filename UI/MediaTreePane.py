@@ -90,7 +90,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
 
         Return the wx.TreeItemID of entry.
         """
-        if (entry.isFiltered):
+        if (entry.filteredFlag):
             print('MediaTreePane.addSubTree(): Ignoring filtered Entry "%s"' % entry.getPath())
             return(None)
         # create a tree item
@@ -102,7 +102,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
             else:   
                 node = self.AppendItem(parent, entry.getFilename(), GUIId.TI_Folder, data=item)
             for subentry in entry.getSubEntries():
-                if (not subentry.isFiltered):
+                if (not subentry.filteredFlag):
                     self.addSubTree(subentry, node)
         else:
             # add a terminal node for entry
@@ -254,7 +254,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
         """Restore the selection saved via self.saveSelection()
         """
         for selection in self.previousSelection:
-            if (not selection.isFiltered):
+            if (not selection.filteredFlag):
                 print('MediaTreePane.restoreSelection() restoring "%s"' % selection.getPath())
                 self.ignoreSelectionChanges = True
                 self.SelectItem(selection.getTreeItemID())

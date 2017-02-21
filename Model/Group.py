@@ -97,7 +97,7 @@ class Group(Entry):
         if (filtering):
             result = []
             for entry in self.subEntries: 
-                if (entry.isFiltered):
+                if (entry.filteredFlag):
                     #print "%s filtered out" % entry.pathname
                     pass
                 else:
@@ -222,7 +222,7 @@ class Group(Entry):
         Returns Array of Entry.
         """
         result = []
-        if (not self.isFiltered):
+        if (not self.filteredFlag):
             # collect one entry from each subentry
             for subEntry in self.getSubEntries(True):
                 subsubEntries = subEntry.getEntriesForDisplay()
@@ -252,6 +252,7 @@ class Group(Entry):
         print('Group.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.DeleteDoubles):
             wx.BeginBusyCursor()
+            
             deleted = self.deleteDoubles()
             wx.EndBusyCursor()
             return(self.MessageDuplicatesDeleted % deleted)

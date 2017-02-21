@@ -110,8 +110,9 @@ class Entry(Observable):
         # internal state
         self.model = model  # store creator for later reference
         self.parentGroup = None  # not known yet
-        self.isFiltered = False  # initially, no entry is filtered
+        self.filteredFlag = False  # initially, no entry is filtered
         self.treeItemID = None  # not inserted into MediaTreePane yet
+        self.fileSize = None
         self.initFromPath(path)
         return(None)
 
@@ -127,6 +128,7 @@ class Entry(Observable):
             self.setExtension(extension)
         else:
             self.setExtension(extension[1:].lower())
+        self.getFileSize()
         if (self.isGroup() 
             and (self.getExtension() <> '')):
             print('Group "%s" should not use an extension' % self.getPath())
@@ -184,6 +186,14 @@ class Entry(Observable):
         if (not treeItemID):
             pass
         self.treeItemID = treeItemID
+
+
+    def setFilter(self, flag):
+        """Set whether self is filtered
+        
+        Boolean flag
+        """
+        self.filteredFlag = flag
 
 
     def remove(self):
@@ -285,6 +295,14 @@ class Entry(Observable):
         """
         raise NotImplementedError
 
+
+    def isFiltered(self):
+        """Check whether self is filtered, i.e. shall not be shown.
+        
+        Return Boolean indicating that self is filtered.
+        """
+        return(self.filteredFlag)
+
         
     def isIdentical(self, anEntry):
         """Check whether self and anEntry have the same content.
@@ -323,6 +341,14 @@ class Entry(Observable):
         Returns a String
         """
         return(self.fileExtension)
+
+
+    def getFileSize(self):
+        """Return the size of self's file, or 0 if no file associated.
+        
+        Return Number
+        """
+        return(0)
 
 
     def getOrganizationIdentifier(self):
