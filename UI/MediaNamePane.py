@@ -20,7 +20,7 @@ from UI import GUIId
 from Model.Entry import Entry
 
 
-class MediaNamePane (wx.Panel, Observer):
+class MediaNamePane(wx.Panel, Observer):
 # Constants
     ImageSizeFormat = '%dx%d'  # format string to display image size
     GroupSizeFormat = '%d images'  # format string to display group size
@@ -31,8 +31,10 @@ class MediaNamePane (wx.Panel, Observer):
 
 # Class Methods    
 # Lifecycle
-    def __init__ (self, parent, classificationPane, style=0):
-        """Create a new instance, inside window PARENT, listening to selection changes of IMAGETREE.
+    def __init__(self, parent, style=0):
+        """Create a new pane to show and enter media names.
+        
+        wx.Window parent is the parent window to display the new pane
         """
         # inheritance
         wx.Panel.__init__(self, parent, style=(style | wx.FULL_REPAINT_ON_RESIZE))

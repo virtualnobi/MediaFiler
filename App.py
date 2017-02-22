@@ -127,7 +127,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self._mgr.AddPane(self.classificationPane,
                           wx.aui.AuiPaneInfo().Name('classification').Caption(self.PaneCaptionClassification).BestSize((400,0)).Left().Layer(1).CloseButton(True).Show(self.showClassificationPane))
         # - name pane
-        self.namePane = MediaNamePane(self, self.classificationPane)
+        self.namePane = MediaNamePane(self)
         self._mgr.AddPane (self.namePane,
                            wx.aui.AuiPaneInfo().Name('name').Caption(self.PaneCaptionName).BestSize ([0,20]).Top().Layer(2).Show(True))
         # - presentation control pane
