@@ -17,7 +17,7 @@ import wx
 from ObserverPattern import Observer
 ## project
 from UI import GUIId
-from Model.Entry import Entry
+#from Model.Entry import Entry
 
 
 class MediaNamePane(wx.Panel, Observer):
@@ -209,8 +209,6 @@ class MediaNamePane(wx.Panel, Observer):
             else:
                 self.unknownElements.add(element)
         self.setInputFields()
-#         newElements = self.knownElements.union(self.unknownElements)
-#         self.elementInput.SetValue(self.model.getClassHandler().elementsToString(newElements))
         self.renameEntry()
 
 
@@ -231,13 +229,6 @@ class MediaNamePane(wx.Panel, Observer):
         """
         #print('MediaNamePane: Received change of aspect "%s" of "%s"' % (aspect, observable))
         super(MediaNamePane, self).updateAspect(observable, aspect)
-#         if (aspect == 'classification'):  # the selected Entry's classification has changed
-#             self.readInputFields()  # read identifier information to keep them
-#             self.knownElements = self.entry.getKnownElements()
-#             self.unknownElements = self.entry.getUnknownElements()
-#             self.setInputFields()
-#             self.lastElements = self.knownElements.union(self.unknownElements)
-#             print()
         if (aspect == 'selection'):
             entry = observable.getSelectedEntry()
             if (entry == None):

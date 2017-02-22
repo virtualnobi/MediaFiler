@@ -41,7 +41,7 @@ class MediaOrganization(object):
     NewIndicator = 'new'  # indicates a newly imported media
     NameSeparator = '-'  # to separate identifier parts such as name, scene, year, month, day
     ElementSeparator = '.'  # to separate elements
-    RESeparatorsRecognized = ('[_' + NameSeparator + ElementSeparator + ']')
+#    RESeparatorsRecognized = ('[_' + NameSeparator + ElementSeparator + ']')
     FormatNumber = '%03d'  # format string for number ensuring uniqueness of pathname
 
 

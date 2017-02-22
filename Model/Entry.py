@@ -45,7 +45,7 @@ class Entry(Observable):
     SpecificationGroup = 'directory'  # Specification for Product Trader, registering to handle directories
     NameSeparator = '.'  # character separating image elements in file name
     IdentifierSeparator = '-'  # character separating scene, day, month, year, number in file name
-    RESeparatorsRecognized = ('[_' + NameSeparator + IdentifierSeparator + ']')
+    RESeparatorsRecognized = ('[, _' + NameSeparator + IdentifierSeparator + ']')
     TrashDirectory = os.path.join('..', 'trash')  # directory to move deleted entries to
 
 
