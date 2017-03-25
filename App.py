@@ -575,7 +575,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Start external editor on class file.
         """
         classFile = Installer.getClassFilePath(os.path.join(self.model.rootDirectory, '..'))  # TODO: fix root directory
-        classFile = os.path.join(self.model.rootDirectory, imageFilerModel.ClassFileName)
+#        classFile = os.path.join(self.model.rootDirectory, imageFilerModel.ClassFileName)
         subprocess.call(['C:/Program Files (x86)/Gnu/Emacs-24.5/bin/runemacs.exe', classFile], shell=True)
         # reload current model
         self.onReload(event)

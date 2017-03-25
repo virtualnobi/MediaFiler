@@ -12,7 +12,7 @@ import gettext
 import wx.lib.scrolledpanel
 import wx.lib.rcsizer
 ## nobi
-from ObserverPattern import Observable, Observer
+from nobi.ObserverPattern import Observer
 #from wxExtensions.CheckBoxGroup import CheckBoxGroup
 ## project
 import UI

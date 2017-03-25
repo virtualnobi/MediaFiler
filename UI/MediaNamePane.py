@@ -14,7 +14,7 @@ It observes the ImageTree for selection changes, and the selected Entry for name
 ## contributed
 import wx
 ## nobi
-from ObserverPattern import Observer
+from nobi.ObserverPattern import Observer
 ## project
 from UI import GUIId
 #from Model.Entry import Entry

@@ -105,7 +105,8 @@ def install(path):
             cfile.write(MediaClassHandler.InitialFileContent)
     if (not os.path.isdir(getTrashPath(path))):
         os.makedirs(getTrashPath(path))
-    
+    if (not os.path.isdir(getImportFolder(path))):
+        os.makedirs(getImportFolder(path))
     
 
 # Executable Script

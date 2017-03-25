@@ -11,10 +11,10 @@ import os.path
 ## contributed
 import wx
 ## nobi
+from nobi.PauseableObservable import PauseableObservable
 ## project
 from .Entry import Entry
 from UI import GUIId
-#from symbol import except_clause
 #import MediaFiler.Organization  
 
 
@@ -252,7 +252,6 @@ class Group(Entry):
         print('Group.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.DeleteDoubles):
             wx.BeginBusyCursor()
-            
             deleted = self.deleteDoubles()
             wx.EndBusyCursor()
             return(self.MessageDuplicatesDeleted % deleted)
@@ -331,6 +330,7 @@ class Group(Entry):
         Boolean mergeElements indicates that elements from both doubles shall be merged into remaining name
         Return Number indicating how many doubles were deleted. 
         """
+        PauseableObservable.pauseUpdates(Entry, None, None)
         doubles = 0
         for entry1 in self.subEntries[:]:
             if (entry1.isGroup()):
@@ -345,6 +345,7 @@ class Group(Entry):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
                         entry1.organizer.deleteDouble(entry2, mergeElements)
                         doubles = (doubles + 1)
+        PauseableObservable.resumeUpdates(Entry, None, None)
         return(doubles)
 
 

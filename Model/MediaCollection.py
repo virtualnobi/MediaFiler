@@ -56,7 +56,7 @@ class imageFilerModel(Observable, Observer):
 
 # Constants
     ImageFolderName = u'images'  # name of directory containing images
-    ClassFileName = os.path.join('..', 'lib' ,'classes') # name of file containing class definitions, relative to images directory
+#    ClassFileName = os.path.join('..', 'lib' ,'classes') # name of file containing class definitions, relative to images directory
     NamesFileName = os.path.join('..', 'lib', 'names.orig')  # name of file containing names, if it exists, images are organized by name, otherwise by date
     InitialFileName = u'initial.jpg'  # lowercase file name to show after loading
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day

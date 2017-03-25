@@ -10,7 +10,8 @@ import os.path
 ## contributed
 import wx
 ## nobi
-from ObserverPattern import Observer, Observable
+from nobi.ObserverPattern import Observer
+from nobi.PauseableObservable import PauseableObservable
 ## project
 import UI
 from UI import GUIId
@@ -33,7 +34,7 @@ def N_(message): return message
 
 
 
-class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
+class MediaTreeCtrl (wx.TreeCtrl, PauseableObservable, Observer):
     """The MediaTreeCtrl displays a hierarchy of all media in its model, an ImageFilerModel.
 
     ObserverPattern aspects:
@@ -48,7 +49,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
         # initialize superclasses
         wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS))
         Observer.__init__(self)
-        Observable.__init__(self, ['selection'])
+        PauseableObservable.__init__(self, ['selection'])
         # define norgy images
         imglist = wx.ImageList(16, 16, True, 2)
         imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size (16, 16)))
@@ -158,7 +159,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observer, Observable):
     def updateAspect (self, observable, aspect):
         """ ASPECT of OBSERVABLE changed. 
         """
-        Observer.updateAspect(self, observable, aspect)
+        super(MediaTreeCtrl, self).updateAspect(observable, aspect)
         if (aspect == 'name'):  # name of an Entry changed
             #print('MediaTreeCtrl: name change of %s' % observable)
             node = observable.getTreeItemID()

@@ -11,7 +11,7 @@ import os.path
 import wx.lib.scrolledpanel
 #import wx.lib.rcsizer
 ## nobi
-from ObserverPattern import Observer
+from nobi.ObserverPattern import Observer
 ## project
 import UI  # to access UI.PackagePath
 from UI import GUIId

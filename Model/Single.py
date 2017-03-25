@@ -1,8 +1,7 @@
-"""MediaFiler module
-
-A Single represents a single media object, such as an Image or a Movie.
-
-A Single is an Entry, which is an Observable.
+#!python
+# -*- coding: latin-1 -*-
+"""
+(c) by nobisoft 2016-
 """
 
 
@@ -18,7 +17,6 @@ import wx
 ## project
 from UI import GUIId
 from .Entry import Entry
-#from .Entry import Menu
 from .Group import Group
 from collections import OrderedDict
 from .Organization import OrganizationByName, MediaOrganization

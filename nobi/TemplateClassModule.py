@@ -1,3 +1,4 @@
+#!python
 # -*- coding: latin-1 -*-
 """
 (c) by nobisoft 2016-

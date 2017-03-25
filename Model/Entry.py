@@ -12,6 +12,7 @@ import os.path
 import wx
 ## nobi
 from nobi.ObserverPattern import Observable
+from nobi.PauseableObservable import PauseableObservable
 from nobi.wxExtensions.Menu import Menu
 from nobi.ProductTraderPattern import SimpleProductTrader
 from UI import GUIId
@@ -21,8 +22,8 @@ from UI import GUIId
 
 
 # Class 
-class Entry(Observable):
-    """An Entry is an Observable representing either an image or a group of the image tree. 
+class Entry(PauseableObservable):
+    """An Entry is an PauseableObservable representing either an image or a group of the image tree. 
     A group can either be a folder (based on directory structure) or be based on special naming of image files.
 
     The Entry class is also a SimpleProductTrader, to allow subclasses to register for filename extensions. 
@@ -37,6 +38,8 @@ class Entry(Observable):
     - name: The file name on disk has changed
     - remove: The entry is deleted
     - children: The children of an entry group have changed
+
+    Pausing updates is used in batch commands like the deletion of doubles.
     """
 
 
