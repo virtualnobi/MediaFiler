@@ -260,21 +260,6 @@ class MediaClassHandler(object):
 
 
 # Event Handlers
-    def handleObservableChanged(self, observable):
-        """
-        """
-        pass
-#    update = handleObservableChanged
-
-
-    def handleObservableChangedAspect(self, observable, aspect):
-        """
-        """
-        pass
-#    updateAspect = handleObservableChangedAspect
-
-
-
 # Internal - to change without notice
     def readClassesFromFile(self, pathname):
         """Set self's internal state from the class definition in the given file.

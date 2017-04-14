@@ -82,13 +82,7 @@ class ClassName(object):
     
 
 # Event Handlers
-    def handleObservableChanged(self, observable):
-        """
-        """
-        pass
-
-
-    def handleObservableChangedAspect(self, observable, aspect):
+    def updateAspect(self, observable, aspect):
         """
         """
         pass

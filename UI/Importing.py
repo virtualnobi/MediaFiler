@@ -178,25 +178,9 @@ class ImportParameterObject(object):
 
 
 # Event Handlers
-#     def handleObservableChanged(self, observable):
-#         """
-#         """
-#         pass
-# 
-# 
-#     def handleObservableChangedAspect(self, observable, aspect):
-#         """
-#         """
-#         pass
-
-
-
 # Internal - to change without notice
-    pass
-
-
 # Class Initialization
-pass
+
 
 
 
@@ -473,26 +457,10 @@ class ImportDialog(wx.Dialog):
         print('PreferPathDate=%s' % self.parameters.getPreferPathDateOverExifDate())
 
 
-    def handleObservableChanged(self, observable):
-        """
-        """
-        pass
-
-
-    def handleObservableChangedAspect(self, observable, aspect):
-        """
-        """
-        pass
-
-
 
 # Internal - to change without notice
-    pass
-
-
-
 # Class Initialization
-pass
+
 
 
 # Executable Script

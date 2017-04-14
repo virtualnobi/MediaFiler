@@ -11,7 +11,7 @@
 
 
 ## Class
-class Observable (object):
+class Observable(object):
     """An Observable accepts registrations of an Observer, which will be notified when the Observable changes.
     
        Part of the Observer pattern. 
@@ -43,13 +43,13 @@ class Observable (object):
         
                 
 # section: Observer handling
-    def addObserver (self, observer):
-        """Register observer for self.
-        
-        Ensure no observer is registered twice.
-        """
-        self.removeObserver(observer)  # ensure no registration exists
-        self.observersAllAspects.append(observer)  # now add a single registration
+#     def addObserver(self, observer):
+#         """Register observer for self.
+#         
+#         Ensure no observer is registered twice.
+#         """
+#         self.removeObserver(observer)  # ensure no registration exists
+#         self.observersAllAspects.append(observer)  # now add a single registration
 
 
     def addObserverForAspect (self, observer, aspect):
@@ -78,11 +78,11 @@ class Observable (object):
                 self.observersSpecificAspects[aspect].remove(observer) 
 
 
-    def changed(self):
-        """Notify all observers that self has changed.
-        """
-        for aspect in self.allAspects:
-            self.changedAspect(aspect)
+#     def changed(self):
+#         """Notify all observers that self has changed.
+#         """
+#         for aspect in self.allAspects:
+#             self.changedAspect(aspect)
 
 
     def changedAspect(self, aspect):

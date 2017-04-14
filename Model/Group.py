@@ -346,6 +346,7 @@ class Group(Entry):
                         entry1.organizer.deleteDouble(entry2, mergeElements)
                         doubles = (doubles + 1)
         PauseableObservable.resumeUpdates(Entry, None, None)
+        #TODO: if self was selected, reselect to make changes visible
         return(doubles)
 
 

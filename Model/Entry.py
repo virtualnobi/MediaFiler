@@ -11,13 +11,13 @@ import os.path
 ## Contributed
 import wx
 ## nobi
-from nobi.ObserverPattern import Observable
+#from nobi.ObserverPattern import Observable
 from nobi.PauseableObservable import PauseableObservable
 from nobi.wxExtensions.Menu import Menu
 from nobi.ProductTraderPattern import SimpleProductTrader
+## Project
 from UI import GUIId
 #from MediaFiler.MediaClassHandler import MediaClassHandler
-## Project
 
 
 

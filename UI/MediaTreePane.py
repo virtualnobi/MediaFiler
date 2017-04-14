@@ -15,7 +15,6 @@ from nobi.PauseableObservable import PauseableObservable
 ## project
 import UI
 from UI import GUIId
-#from UI import UIUpdateControl
 
 
 
@@ -109,7 +108,9 @@ class MediaTreeCtrl (wx.TreeCtrl, PauseableObservable, Observer):
             # add a terminal node for entry
             node = self.AppendItem(parent, entry.getFilename(), GUIId.TI_Image, data=item)
         # register as observer for entry
-        entry.addObserver(self)
+        entry.addObserverForAspect(self, 'name')
+        entry.addObserverForAspect(self, 'remove')
+        entry.addObserverForAspect(self, 'children')
         # store wx.TreeItemID in entry for reverse lookup
         entry.setTreeItemID(node)
         self.SortChildren(node)
