@@ -15,7 +15,7 @@ import os.path
 ## Contributed
 import wx
 ## nobi
-from ObserverPattern import Observer
+from nobi.ObserverPattern import Observer
 ## Project
 import UI  # to access UI.PackagePath
 from UI import GUIId
