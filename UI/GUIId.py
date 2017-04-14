@@ -22,7 +22,8 @@ try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['en'])
 except BaseException as e:  # likely an IOError because no translation file found
-    print('%s: Cannot initialize translation engine from path %s; using original texts (error following).' % (__file__, LocalesPath))
+    language = os.environ['LANGUAGE']
+    print('%s: No translation found at %s; using originals instead of %s. Complete error:' % (__file__, LocalesPath, language))
     print(e)
     def _(message): return message
 else:
