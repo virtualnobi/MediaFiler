@@ -340,16 +340,20 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def addSizeFilter(self, sizer, row):
         """
         """
+        imageMinimumSize = self.imageModel.getMinimumSize()
+        imageMaximumSize = self.imageModel.getMaximumSize()
+        if (imageMinimumSize == imageMaximumSize):  # min and max of wx.Slider must be different
+            imageMaximumSize = (imageMinimumSize + 1)
         # label
         sizer.Add(wx.StaticText(self, -1, self.FileSizeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
         # minimum
-        if (0 < self.filterModel.maximumSize):  # == 0):  # maximum size requirement
+        if (0 < self.filterModel.maximumSize):  # maximum size requirement
             self.minimumSliderMaximum = self.filterModel.maximumSize  # minimum can only move to max requirement 
         else:  # no max requirement
-            self.minimumSliderMaximum = self.imageModel.getMaximumSize()
+            self.minimumSliderMaximum = imageMaximumSize
         self.minimumSlider = wx.Slider(self, -1, 
                                        self.filterModel.minimumSize,  # initial slider value 
-                                       self.imageModel.getMinimumSize(),  # slider minimum
+                                       imageMinimumSize,  # slider minimum
                                        self.minimumSliderMaximum,  # slider maximum
                                        (30, 60),  # ?
                                        (100, -1),  # size
@@ -361,11 +365,11 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         if (0 < self.filterModel.minimumSize):  # minimum size requirement
             self.maximumSliderMinimum = self.filterModel.minimumSize  # maximum can only move to min requirement
         else:  # no min requirement
-            self.maximumSliderMinimum = self.imageModel.getMinimumSize()
+            self.maximumSliderMinimum = imageMinimumSize
         self.maximumSlider = wx.Slider(self, -1, 
                                        self.filterModel.maximumSize,  # initial slider value 
                                        self.maximumSliderMinimum,  # slider minimum
-                                       self.imageModel.getMaximumSize(),  # slider maximum
+                                       imageMaximumSize,  # slider maximum
                                        (30, 60),  # ?
                                        (100, -1),  # size
                                        (wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_BOTTOM))  # styles, wx.SL_SELRANGE only on Windows95
