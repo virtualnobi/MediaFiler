@@ -66,7 +66,7 @@ class ImportParameterObject(object):
         self.importDirectory = os.path.normpath(os.path.join(model.getRootDirectory(), '..', 'import'))
         self.testRun = True
         self.ignoreUnhandledTypes = (model.organizationStrategy == OrganizationByName)
-        self.minimumFileSize = 1000
+        self.minimumFileSize = 10000
         self.deleteOriginals = True
         self.markAsNew = True
         self.maxFilesToImport = 1000

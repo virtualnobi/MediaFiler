@@ -34,7 +34,7 @@ import os
 import re
 import random
 import copy
-#import StringIO
+import ConfigParser
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer
@@ -45,6 +45,21 @@ from .Entry import Entry
 from .MediaClassHandler import MediaClassHandler 
 from .Organization import OrganizationByDate
 from .Organization import OrganizationByName
+
+
+
+class SecureConfigParser(ConfigParser.ConfigParser):
+    
+    def __init__(self, filename):
+#        super(SecureConfigParser, self).__init__()
+        ConfigParser.ConfigParser.__init__(self)
+        self.filename = filename
+
+    def set(self, section, option, value):
+#        super(SecureConfigParser, self).set(section, option, value)
+        ConfigParser.ConfigParser.set(self, section, option, value)
+        with open(self.filename, 'w') as f:
+            self.write(f)
 
 
 
@@ -60,6 +75,10 @@ class imageFilerModel(Observable, Observer):
     NamesFileName = os.path.join('..', 'lib', 'names.orig')  # name of file containing names, if it exists, images are organized by name, otherwise by date
     InitialFileName = u'initial.jpg'  # lowercase file name to show after loading
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
+    ConfigurationName = 'MediaFiler'
+    ConfigurationOptionLastMedia = 'last-media'
+    ConfigurationOptionLastPerspective = 'last-perspective'
+    ConfigurationFilename = os.path.join('..', 'lib', (ConfigurationName + '.ini'))
 
 
 
@@ -85,6 +104,11 @@ class imageFilerModel(Observable, Observer):
         self.freeNames = None  # list of all free names, lazily defined
         self.classes = []
         self.knownElements = []
+        # set up the configuration persistence
+        self.configuration = SecureConfigParser(self.ConfigurationFilename)
+        self.configuration.read(self.ConfigurationFilename)
+        if (not self.configuration.has_section(self.ConfigurationName)):
+            self.configuration.add_section(self.ConfigurationName)
         # read legal names and class definitions
         self.readNamesFromFile(os.path.join(self.rootDirectory, self.__class__.NamesFileName))
         if (self.organizedByDate):
@@ -101,8 +125,12 @@ class imageFilerModel(Observable, Observer):
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'changed')
         # select initial entry
-        initialEntry = self.getEntry(group=False, 
-                                     path=os.path.join(rootDir, self.InitialFileName))
+        if (self.configuration.has_option(self.ConfigurationName, self.ConfigurationOptionLastMedia)):
+            initialEntry = self.getEntry(path=self.configuration.get(self.ConfigurationName, 
+                                                                     self.ConfigurationOptionLastMedia))
+            if (initialEntry == None):
+                initialEntry = self.getEntry(group=False, 
+                                             path=os.path.join(rootDir, self.InitialFileName))
         if (initialEntry <> None):
             print('Found initial entry to select')
             self.setSelectedEntry(initialEntry)
@@ -123,6 +151,7 @@ class imageFilerModel(Observable, Observer):
                                                path=os.path.join(self.rootDirectory, self.InitialFileName))
         else:
             self.selectedEntry = entry
+        self.configuration.set(self.ConfigurationName, self.ConfigurationOptionLastMedia, entry.getPath())
         self.changedAspect('selection')
 
 
@@ -173,7 +202,7 @@ class imageFilerModel(Observable, Observer):
 
 
     def getEntry(self, 
-                 filtering=False, group=True,
+                 filtering=False, group=None,
                  path=None,
                  year=None, month=None, day=None,  
                  name=None, scene=None):
@@ -193,7 +222,7 @@ class imageFilerModel(Observable, Observer):
         searching = self.getRootNode().getSubEntries(filtering)
         while (len(searching) > 0):
             entry = searching.pop()
-            if ((group == entry.isGroup())
+            if (((group == None) or (group == entry.isGroup()))
                 and ((path == None) or (path == entry.getPath()))
                 and ((year == None) or (year == entry.getYear()))
                 and ((month == None) or (month == entry.getMonth()))
@@ -347,19 +376,6 @@ class imageFilerModel(Observable, Observer):
 
 
 ## Filtering
-#     def setFilter(self, filterModel):
-#         """Set the current MediaFilter.
-#         """
-#         try:  # if self.filter not defined, "if (self.filter)" raises AttributeError
-#             self.filter.removeObserver(self)
-#         except: 
-#             pass
-#         self.filter = filterModel
-#         self.filter.addObserverForAspect(self, 'changed')
-#         if (not self.getFilter().isEmpty()):
-#             self.filterEntries()
-        
-        
     def getFilter (self):
         """Return the current MediaFilter.
         """
@@ -453,7 +469,7 @@ class imageFilerModel(Observable, Observer):
                     newPath = targetDir
                 else:  # organized by name
                     if (0 < level):
-                        importParameters.logString('\nToo many folder levels for name organization!')
+                        importParameters.logString('\nCannot import embedded folder "%s"!' % oldPath)
                         return
                     newName = self.organizationStrategy.deriveName(importParameters.log, oldPath[baseLength:])
                     newPath = self.organizationStrategy.constructPath(rootDir=targetDir, name=newName)  
@@ -473,12 +489,16 @@ class imageFilerModel(Observable, Observer):
                 if (Entry.isLegalExtension(extension[1:]) 
                     or (not importParameters.getIgnoreUnhandledTypes())):
                     if (importParameters.canImportOneMoreFile()):
-                        self.organizationStrategy.importImage(importParameters, 
-                                                              oldPath, 
-                                                              level, 
-                                                              baseLength, 
-                                                              targetDir, 
-                                                              illegalElements)
+                        fileSize = os.stat(oldPath).st_size
+                        if (importParameters.getMinimumFileSize() < fileSize):
+                            self.organizationStrategy.importImage(importParameters, 
+                                                                  oldPath, 
+                                                                  level, 
+                                                                  baseLength, 
+                                                                  targetDir, 
+                                                                  illegalElements)
+                        else:
+                            importParameters.logString('\nIgnoring small %sb file "%s"' % (fileSize, oldPath))
                     else:
                         importParameters.logString('\nMaximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
                         raise StopIteration

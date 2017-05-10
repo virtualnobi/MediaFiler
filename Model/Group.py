@@ -265,12 +265,13 @@ class Group(Entry):
                        name=None, scene=None, 
                        number=None, elements=None, removeIllegalElements=False):
         """Rename self.
+        
+        Return Boolean indicating success
         """
         if (number
             and (number <> '')):
             print('Group.renameTo(): No number allowed!')
-            return
-        # TODO: reorganize to find new group (1) if existing, insert (2) if single exists, merge (3) if not existing, create
+            return(False)
         if (self.model.organizedByDate):
             if (((year == None)
                  or (year == u'')
@@ -281,10 +282,11 @@ class Group(Entry):
                 and ((day == None)
                      or (day == u'')
                      or (day == self.organizer.getDay()))):
+                PauseableObservable.pauseUpdates(Entry, None, None)
                 for subEntry in self.subEntries:
                     newElements = subEntry.getElements().union(elements)
                     subEntry.renameTo(year=year, month=month, day=day, elements=newElements, removeIllegalElements=removeIllegalElements)
-                return
+                PauseableObservable.resumeUpdates(Entry, None, None)
             else:
                 newGroup = self.model.getEntry(year=year, month=month, day=day)
                 if (newGroup):
@@ -292,11 +294,21 @@ class Group(Entry):
                 else:
                     print('NYI: Group.renameTo() cannot create new groups')
         else:  # organized by name
-            if (scene):
-                print('Group.renameTo(): No scene allowed')
-                return
-            newGroup = self.model.getEntry(name=name) 
-            if (newGroup):  # group with NAME exists
+            newEntry = self.model.getEntry(name=name)
+            if (newEntry == None):
+                print('No entry named "%s" exists, ignoring scene "%s"' % (name, scene))
+                return(super(Group, self).renameTo(name=name, elements=elements, removeIllegalElements=removeIllegalElements))
+            else:
+                if (scene):
+                    print('Group.renameTo(): No scene allowed!')
+                    return(False)
+                if (newEntry.isGroup()):
+                    print('Group named "%s" exists' % name)
+                    newGroup = newEntry
+                else:  # newEntry is a Single
+                    print('Single named "%s" exists' % name)
+                    newGroup = Group.createFromName(self.model, name)
+                    newEntry.renameTo(name=name, scene='1')
                 print('Moving subentries from "%s"\n                     to "%s"\n' % (self.getPath(), newGroup.getPath()))
                 # construct mapping from scenes in current group to scenes in existing target group
                 sceneMap = {}
@@ -307,21 +319,19 @@ class Group(Entry):
                 print('   with scene mapping %s' % sceneMap)
                 # move each subEntry
                 print('   %d subentries' % len(self.subEntries))
+                PauseableObservable.pauseUpdates(Entry, None, None)
                 for subEntry in self.getSubEntries(False):  
                     newElements = subEntry.getElements()
                     if (elements):
                         newElements = (newElements.union(elements))
                     if (removeIllegalElements):
-                        newElements.remove(self.model.getUnknownElements())
+                        newElements.remove(subEntry.getUnknownElements())
                     subEntry.renameTo(name=name, 
                                       scene=sceneMap[subEntry.getScene()], 
                                       number=subEntry.getNumber(), 
                                       elements=newElements, 
                                       removeIllegalElements=removeIllegalElements)
-                if (self <> newGroup):
-                    self.remove()
-            else:  # group with NAME does not exist
-                return(Entry.renameTo(self, name=name, elements=elements, removeIllegalElements=removeIllegalElements))       
+                PauseableObservable.resumeUpdates(Entry, None, None)
 
 
     def deleteDoubles(self, mergeElements=True):
