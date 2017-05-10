@@ -11,7 +11,7 @@ import os.path
 ## contributed
 import wx
 ## nobi
-from nobi.PauseableObservable import PauseableObservable
+from nobi.PausableObservable import PausableObservable
 ## project
 from .Entry import Entry
 from UI import GUIId
@@ -282,11 +282,11 @@ class Group(Entry):
                 and ((day == None)
                      or (day == u'')
                      or (day == self.organizer.getDay()))):
-                PauseableObservable.pauseUpdates(Entry, None, None)
+                PausableObservable.pauseUpdates(Entry, None, None)
                 for subEntry in self.subEntries:
                     newElements = subEntry.getElements().union(elements)
                     subEntry.renameTo(year=year, month=month, day=day, elements=newElements, removeIllegalElements=removeIllegalElements)
-                PauseableObservable.resumeUpdates(Entry, None, None)
+                PausableObservable.resumeUpdates(Entry, None, None)
             else:
                 newGroup = self.model.getEntry(year=year, month=month, day=day)
                 if (newGroup):
@@ -319,7 +319,7 @@ class Group(Entry):
                 print('   with scene mapping %s' % sceneMap)
                 # move each subEntry
                 print('   %d subentries' % len(self.subEntries))
-                PauseableObservable.pauseUpdates(Entry, None, None)
+                PausableObservable.pauseUpdates(Entry, None, None)
                 for subEntry in self.getSubEntries(False):  
                     newElements = subEntry.getElements()
                     if (elements):
@@ -331,7 +331,7 @@ class Group(Entry):
                                       number=subEntry.getNumber(), 
                                       elements=newElements, 
                                       removeIllegalElements=removeIllegalElements)
-                PauseableObservable.resumeUpdates(Entry, None, None)
+                PausableObservable.resumeUpdates(Entry, None, None)
 
 
     def deleteDoubles(self, mergeElements=True):
@@ -340,7 +340,7 @@ class Group(Entry):
         Boolean mergeElements indicates that elements from both doubles shall be merged into remaining name
         Return Number indicating how many doubles were deleted. 
         """
-        PauseableObservable.pauseUpdates(Entry, None, None)
+        PausableObservable.pauseUpdates(Entry, None, None)
         doubles = 0
         for entry1 in self.subEntries[:]:
             if (entry1.isGroup()):
@@ -355,7 +355,7 @@ class Group(Entry):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
                         entry1.organizer.deleteDouble(entry2, mergeElements)
                         doubles = (doubles + 1)
-        PauseableObservable.resumeUpdates(Entry, None, None)
+        PausableObservable.resumeUpdates(Entry, None, None)
         #TODO: if self was selected, reselect to make changes visible
         return(doubles)
 

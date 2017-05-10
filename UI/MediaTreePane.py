@@ -11,7 +11,7 @@ import os.path
 import wx
 ## nobi
 from nobi.ObserverPattern import Observer
-from nobi.PauseableObservable import PauseableObservable
+from nobi.PausableObservable import PausableObservable
 ## project
 import UI
 from UI import GUIId
@@ -33,7 +33,7 @@ def N_(message): return message
 
 
 
-class MediaTreeCtrl (wx.TreeCtrl, PauseableObservable, Observer):
+class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
     """The MediaTreeCtrl displays a hierarchy of all media in its model, an ImageFilerModel.
 
     ObserverPattern aspects:
@@ -48,7 +48,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PauseableObservable, Observer):
         # initialize superclasses
         wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS))
         Observer.__init__(self)
-        PauseableObservable.__init__(self, ['selection'])
+        PausableObservable.__init__(self, ['selection'])
         # define norgy images
         imglist = wx.ImageList(16, 16, True, 2)
         imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size (16, 16)))

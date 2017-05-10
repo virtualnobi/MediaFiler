@@ -7,7 +7,7 @@
 
 # Imports
 ## Standard
-#import gettext
+import inspect
 ## Contributed
 ## nobi
 import ObserverPattern
@@ -15,13 +15,15 @@ import ObserverPattern
 
 
 
-class PauseableObservable(ObserverPattern.Observable): 
+class PausableObservable(ObserverPattern.Observable): 
     """An Observable which can be paused, i.e., on which the update process can be paused and resumed.
     
     Which updates are paused may depend on 
     - the class or instance of the observable, 
     - the aspect to be updated,
     - the class or instance of the observer.
+    
+    Pausing updates is controlled by the class methods pauseUpdates() and resumeUpdates().
     """
     
 
@@ -36,17 +38,16 @@ class PauseableObservable(ObserverPattern.Observable):
     def pauseUpdates(clas, observable, aspect, observer):
         """Pause updates as specified.
         
-        If any of observable, aspect, observer is None, it acts as a wildcard, matching all.
+        If observable, aspect or observer is None, it acts as a wildcard, matching all.
         
         object observable pause all updates from this object (if it's a class, pause updates from all instances) 
-        String aspect specifies which aspect to pause.
+        String/Unicode aspect specifies which aspect to pause.
         object observer pause all updates at this object (if it's a class, pause updates on all instances)
         """
-        # TODO: check that observable and observer are either class or instance
         if ((aspect <> None)
             and (not isinstance(aspect, str))
             and (not isinstance(aspect, unicode))):
-            raise TypeError
+            raise TypeError, 'pauseUpdates(): aspect must be either None, str or unicode!'
         clas.PausedTriples.append((observable, aspect, observer))
 
 
@@ -54,7 +55,7 @@ class PauseableObservable(ObserverPattern.Observable):
     def resumeUpdates(clas, observable, aspect, observer):
         """Resume updates as specified. 
         
-        The triple observer, aspect, observable must correspond to a prior call to pauseUpdates, 
+        The triple observer, aspect, observable must correspond to parameter of a prior call to pauseUpdates(), 
         otherwise a ValueError is raised.
 
         object observable  
@@ -76,32 +77,32 @@ class PauseableObservable(ObserverPattern.Observable):
 
 
 # Lifecycle
-    def __init__(self, allAspects):
-        """
-        """
-        # inheritance
-        super(PauseableObservable, self).__init__(allAspects)
-        # internal state
-        return(None)
+#     def __init__(self, allAspects):
+#         """
+#         """
+#         # inheritance
+#         super(PausableObservable, self).__init__(allAspects)
+#         # internal state
+#         return(None)
 
 
 
 # Setters
-    def changedAspect (self, aspect):
-        """Notify observers that aspect of self has changed.
-
-        Check whether this update is paused, and if so, stop it.
-        """
-        stop = False
-        for triple in self.__class__.PausedTriples: 
-            if (self.matches(triple[0], self)
-                and ((triple[1] == None)
-                     or (triple[1] == aspect))):
-                print('PauseableObservable: Update stopped for aspect "%s" on %s' % (aspect, self))
-                stop = True
-                break
-        if (not stop):
-            super(PauseableObservable, self).changedAspect(aspect)
+#     def changedAspect (self, aspect):
+#         """Notify observers that aspect of self has changed.
+# 
+#         Check whether this update is paused, and if so, stop it.
+#         """
+#         stop = False
+#         for triple in self.__class__.PausedTriples: 
+#             if (self.matches(triple[0], self)
+#                 and ((triple[1] == None)
+#                      or (triple[1] == aspect))):
+#                 print('PausableObservable: Update paused for aspect "%s" on %s' % (aspect, self))
+#                 stop = True
+#                 break
+#         if (not stop):
+#             super(PausableObservable, self).changedAspect(aspect)
 
 
     def doUpdateAspect(self, observer, aspect):
@@ -109,8 +110,11 @@ class PauseableObservable(ObserverPattern.Observable):
         """
         stop = False
         for triple in self.__class__.PausedTriples: 
-            if self.matches(triple[2], observer):
-                print('PauseableObservable: Update not delivered to %s' % observer)
+            if (self.matches(triple[0], self)
+                and ((triple[1] == None)
+                     or (triple[1] == aspect))
+                and self.matches(triple[2], observer)):
+                print('PausableObservable: Paused update of aspect "%s" of %s to %s' % (aspect, self, observer))
                 stop = True
                 break
         if (not stop):
@@ -134,7 +138,8 @@ class PauseableObservable(ObserverPattern.Observable):
         """
         return((None == matchingSpec)
                or (matchingSpec == matchingObject)
-               or isinstance(matchingObject, matchingSpec))
+               or (inspect.isclass(matchingSpec)
+                   and isinstance(matchingObject, matchingSpec)))
 
 
 
