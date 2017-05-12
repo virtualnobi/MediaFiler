@@ -64,7 +64,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
 
 
 # Constants
-    AppTitle = 'MediaFiler'  # window title
+#    AppTitle = 'MediaFiler'  # window title
     PaneCaptionFilter = _('Filter')
     PaneCaptionImages = _('Image')
     PaneCaptionName = _('Name')
@@ -85,7 +85,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
     MenuTitlePerspective = _('Perspectiv&e')
     MenuTitleImport = _('&Import')
     MenuTitleTool = _('&Tool')
-
+    ConfigurationOptionLastPerspective = 'last-perspective'
 
 
 ## Lifecycle
@@ -218,6 +218,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         #menu.Append(GUIId.CreatePerspective, 'Create Perspective')
         # TODO: if perspective loaded, add "Remove this perspective" entry
         self._mgr.Update()
+
 
 
     def createStatusBar (self):
@@ -403,24 +404,6 @@ class MediaFiler (wx.Frame, Observer, Observable):
             entry.runContextMenuItem(event.GetId(), self)
    
     
-#     def onImageDelete (self, event):
-#         entry = event.EventObject.getSelectedEntry() 
-#         if (entry):
-#             entry.remove() 
-
-
-#     def onImageFilterSimilar (self, event):  
-#         entry = event.EventObject.getSelectedEntry()
-#         if (entry):
-#             entry.filterImages(False)
-
-
-#     def onImageFilterIdentical (self, event):
-#         entry = event.EventObject.getSelectedEntry()
-#         if (entry):
-#             entry.filterImages(True)
-
-
 # - View Menu events
     def onToggleFilterPane (self, event):
         """Toggle visibility of filter pane.
@@ -477,7 +460,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
 # - Perspectives Menu events
     def onCreatePerspective (self, event):  # @UnusedVariable
         # Store current window state as perspective.
-        dlg = wx.TextEntryDialog(self, "Enter a name for the new perspective:", self.AppTitle)
+        dlg = wx.TextEntryDialog(self, "Enter a name for the new perspective:", GUIId.AppTitle)
         dlg.SetValue("Perspective %d" % (len(self.perspectives) + 1))  # TODO: check non-existence of new name
         if (dlg.ShowModal() == wx.ID_OK):  # user entered new perspective name
             self.perspectives.append(self._mgr.SavePerspective())
@@ -487,8 +470,10 @@ class MediaFiler (wx.Frame, Observer, Observable):
     def onRestorePerspective (self, event):
         """Switch to the perspective selected by the user.
         """
-        print('Loading perspective %s = %s' % ((event.GetId() - GUIId.LoadPerspective), self.perspectives[event.GetId() - GUIId.LoadPerspective]))
-        self._mgr.LoadPerspective(self.perspectives[event.GetId() - GUIId.LoadPerspective])
+        perspectiveNumber = (event.GetId() - GUIId.LoadPerspective)
+        print('Loading perspective %s = %s' % (perspectiveNumber, self.perspectives[perspectiveNumber]))
+        self._mgr.LoadPerspective(self.perspectives[perspectiveNumber])
+        self.model.setConfiguration(self.ConfigurationOptionLastPerspective, str(perspectiveNumber))
 
 
     def onDeletePerspective (self, event):
@@ -691,6 +676,10 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.canvas.setModel(self.model)
         self.presentationPane.setModel(self.model)
         self.imageTree.setModel(self.model)
+        # load last viewed perspective
+        lastPerspective = self.model.getConfiguration(self.ConfigurationOptionLastPerspective)
+        if (lastPerspective):
+            self._mgr.LoadPerspective(self.perspectives[int(lastPerspective)])
         # update status bar
         self.displayInfoMessage(_('Ready.'))
         wx.EndBusyCursor()
@@ -733,7 +722,7 @@ def prepareFilesAndFolders(frame, path):
 # section: Executable script
 if __name__ == "__main__":
     app = wx.App(False)    
-    frame = MediaFiler(None, title=MediaFiler.AppTitle)
+    frame = MediaFiler(None, title=GUIId.AppTitle)
     frame.Show()
     (path, dummy) = os.path.split(os.getcwd())
     if (dummy == ''):

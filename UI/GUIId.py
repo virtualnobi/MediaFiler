@@ -32,6 +32,11 @@ def N_(message): return message
 
 
 
+# Constant Strings
+AppTitle = 'MediaFiler'
+
+
+
 # Sizes and Ranges
 MaxNumberRecentFiles = 10  # maximum number of stored recent root directories
 MaxNumberScenes = 99  # maximum number of change scene functions

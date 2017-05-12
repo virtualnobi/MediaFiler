@@ -34,7 +34,6 @@ import os
 import re
 import random
 import copy
-import ConfigParser
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer
@@ -46,30 +45,7 @@ from .Entry import Entry
 from .MediaClassHandler import MediaClassHandler 
 from .Organization import OrganizationByDate
 from .Organization import OrganizationByName
-
-
-
-# class SecureConfigParser(ConfigParser.ConfigParser):
-#     
-#     def __init__(self, filename):
-# #        super(SecureConfigParser, self).__init__()
-#         ConfigParser.ConfigParser.__init__(self)
-#         self.filename = filename
-# 
-#     def set(self, section, option, value):
-#         encodedValue = unicode(value).encode('utf-8', 'replace')
-# #        super(SecureConfigParser, self).set(section, option, encodedValue)
-#         ConfigParser.ConfigParser.set(self, section, option, encodedValue)
-#         with open(self.filename, 'w') as f:
-#             self.write(f)
-# 
-#     def get(self, section, option):
-# #        encodedValue = super(SecureConfigParser, self).get(section, option)
-#         encodedValue = ConfigParser.ConfigParser.get(self, section, option)
-#         value = encodedValue.decode('utf-8', 'replace')
-#         return(value)
-
-
+from UI import GUIId
 
 class imageFilerModel(Observable, Observer):
     """
@@ -79,14 +55,11 @@ class imageFilerModel(Observable, Observer):
 
 # Constants
     ImageFolderName = u'images'  # name of directory containing images
-#    ClassFileName = os.path.join('..', 'lib' ,'classes') # name of file containing class definitions, relative to images directory
     NamesFileName = os.path.join('..', 'lib', 'names.orig')  # name of file containing names, if it exists, images are organized by name, otherwise by date
     InitialFileName = u'initial.jpg'  # lowercase file name to show after loading
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
-    ConfigurationName = 'MediaFiler'
     ConfigurationOptionLastMedia = 'last-media'
-    ConfigurationOptionLastPerspective = 'last-perspective'
-    ConfigurationFilename = os.path.join('..', 'lib', (ConfigurationName + '.ini'))
+    ConfigurationFilename = os.path.join('..', 'lib', (GUIId.AppTitle + '.ini'))
 
 
 
@@ -115,8 +88,8 @@ class imageFilerModel(Observable, Observer):
         # set up the configuration persistence
         self.configuration = SecureConfigParser(self.ConfigurationFilename)
         self.configuration.read(self.ConfigurationFilename)
-        if (not self.configuration.has_section(self.ConfigurationName)):
-            self.configuration.add_section(self.ConfigurationName)
+        if (not self.configuration.has_section(GUIId.AppTitle)):
+            self.configuration.add_section(GUIId.AppTitle)
         # read legal names and class definitions
         self.readNamesFromFile(os.path.join(self.rootDirectory, self.__class__.NamesFileName))
         if (self.organizedByDate):
@@ -134,9 +107,8 @@ class imageFilerModel(Observable, Observer):
         self.filter.addObserverForAspect(self, 'changed')
         # select initial entry
         initialEntry = None
-        if (self.configuration.has_option(self.ConfigurationName, self.ConfigurationOptionLastMedia)):
-            initialEntry = self.getEntry(path=self.configuration.get(self.ConfigurationName, 
-                                                                     self.ConfigurationOptionLastMedia))
+        if (self.configuration.has_option(GUIId.AppTitle, self.ConfigurationOptionLastMedia)):
+            initialEntry = self.getEntry(path=self.getConfiguration(self.ConfigurationOptionLastMedia))
         if (initialEntry == None):
             initialEntry = self.getEntry(group=False, 
                                          path=os.path.join(rootDir, self.InitialFileName))
@@ -161,9 +133,7 @@ class imageFilerModel(Observable, Observer):
         else:
             self.selectedEntry = entry
         # ConfigParser cannot store unicode() values
-        self.configuration.set(self.ConfigurationName, 
-                               self.ConfigurationOptionLastMedia, 
-                               entry.getPath())
+        self.setConfiguration(self.ConfigurationOptionLastMedia, entry.getPath())
         self.changedAspect('selection')
 
 
@@ -195,7 +165,18 @@ class imageFilerModel(Observable, Observer):
         return(result)
 
 
-    
+    def setConfiguration(self, option, value):
+        """Set the configuration option to value.
+        
+        String option
+        String value
+        """
+        if (not self.configuration.has_section(GUIId.AppTitle)):
+            self.configuration.add_section(GUIId.AppTitle)
+        self.configuration.set(GUIId.AppTitle, option, value)
+
+
+
 # Getters
     def getRootDirectory(self):
         return(self.rootDirectory)
@@ -304,6 +285,18 @@ class imageFilerModel(Observable, Observer):
         else:
             return(entry.getPreviousEntry(entry))
 
+
+    def getConfiguration(self, option):
+        """Retrieve the value for configuration option.
+        
+        String option
+        Returns String containing value or None if not existing
+        """
+        if (self.configuration.has_section(GUIId.AppTitle)
+            and self.configuration.has_option(GUIId.AppTitle, option)):
+            return(self.configuration.get(GUIId.AppTitle, option))
+        else: 
+            return(None)
 
 
 
