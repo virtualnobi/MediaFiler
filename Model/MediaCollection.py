@@ -38,6 +38,7 @@ import ConfigParser
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer
+from nobi.SecureConfigParser import SecureConfigParser
 # Project 
 from . import Installer
 from .MediaFilter import MediaFilter
@@ -48,18 +49,25 @@ from .Organization import OrganizationByName
 
 
 
-class SecureConfigParser(ConfigParser.ConfigParser):
-    
-    def __init__(self, filename):
-#        super(SecureConfigParser, self).__init__()
-        ConfigParser.ConfigParser.__init__(self)
-        self.filename = filename
-
-    def set(self, section, option, value):
-#        super(SecureConfigParser, self).set(section, option, value)
-        ConfigParser.ConfigParser.set(self, section, option, value)
-        with open(self.filename, 'w') as f:
-            self.write(f)
+# class SecureConfigParser(ConfigParser.ConfigParser):
+#     
+#     def __init__(self, filename):
+# #        super(SecureConfigParser, self).__init__()
+#         ConfigParser.ConfigParser.__init__(self)
+#         self.filename = filename
+# 
+#     def set(self, section, option, value):
+#         encodedValue = unicode(value).encode('utf-8', 'replace')
+# #        super(SecureConfigParser, self).set(section, option, encodedValue)
+#         ConfigParser.ConfigParser.set(self, section, option, encodedValue)
+#         with open(self.filename, 'w') as f:
+#             self.write(f)
+# 
+#     def get(self, section, option):
+# #        encodedValue = super(SecureConfigParser, self).get(section, option)
+#         encodedValue = ConfigParser.ConfigParser.get(self, section, option)
+#         value = encodedValue.decode('utf-8', 'replace')
+#         return(value)
 
 
 
@@ -125,12 +133,13 @@ class imageFilerModel(Observable, Observer):
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'changed')
         # select initial entry
+        initialEntry = None
         if (self.configuration.has_option(self.ConfigurationName, self.ConfigurationOptionLastMedia)):
             initialEntry = self.getEntry(path=self.configuration.get(self.ConfigurationName, 
                                                                      self.ConfigurationOptionLastMedia))
-            if (initialEntry == None):
-                initialEntry = self.getEntry(group=False, 
-                                             path=os.path.join(rootDir, self.InitialFileName))
+        if (initialEntry == None):
+            initialEntry = self.getEntry(group=False, 
+                                         path=os.path.join(rootDir, self.InitialFileName))
         if (initialEntry <> None):
             print('Found initial entry to select')
             self.setSelectedEntry(initialEntry)
@@ -151,7 +160,10 @@ class imageFilerModel(Observable, Observer):
                                                path=os.path.join(self.rootDirectory, self.InitialFileName))
         else:
             self.selectedEntry = entry
-        self.configuration.set(self.ConfigurationName, self.ConfigurationOptionLastMedia, entry.getPath())
+        # ConfigParser cannot store unicode() values
+        self.configuration.set(self.ConfigurationName, 
+                               self.ConfigurationOptionLastMedia, 
+                               entry.getPath())
         self.changedAspect('selection')
 
 

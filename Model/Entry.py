@@ -571,7 +571,6 @@ class Entry(PausableObservable):
         elif (menuId == GUIId.ChooseName):
             newName = self.askNewName(parentWindow)
             if (newName):
-                # TODO: handle to-group and from-group conversions
                 self.renameTo(name=newName)
             # TODO: select this item with new name again
         elif (menuId == GUIId.RemoveNew):
@@ -658,47 +657,3 @@ class Entry(PausableObservable):
         return (newName)
 
 
-#     def fixNumber(self, path):
-#         """Repair systematically wrong pathnames. Renames the file, and returns the corrected pathname.
-#         
-#         String path is the pathname of the entry
-#         
-#         Returns a String containing the corrected pathname
-#         """
-#         monthRegex = re.compile(r'''^(.+)                  # root directory
-#                                     \\([12][90]\d\d)       # year folder
-#                                     \\\2-([01]\d)          # month folder
-#                                     \\\2-\3                # date repeated
-#                                     (\d\d\d[^\\]*)$        # number + elements   
-#                                  ''',
-#                                  re.VERBOSE)
-#         match = monthRegex.match(path)
-#         if (match):
-#             newPath = os.path.join(match.group(1),
-#                                    match.group(2),
-#                                    match.group(2) + '-' + match.group(3),
-#                                    match.group(2) + '-' + match.group(3) + '-' + match.group(4))            
-#         else:
-#             dayRegex = re.compile(r'''^(.+)                  # root directory
-#                                       \\([12][90]\d\d)       # year folder
-#                                       \\\2-([01]\d)          # month folder
-#                                       \\\2-\3-([0123]\d)     # day folder
-#                                       \\\2-\3-\4             # date repeated
-#                                       (\d\d\d[^\\]*)$        # elements   
-#                                    ''',
-#                                    re.VERBOSE)
-#             match = dayRegex.match(path)
-#             if (match):
-#                 newPath = os.path.join(match.group(1),
-#                                        match.group(2),
-#                                        match.group(2) + '-' + match.group(3),
-#                                        match.group(2) + '-' + match.group(3) + '-' + match.group(4),
-#                                        match.group(2) + '-' + match.group(3) + '-' + match.group(4) + '-' + match.group(5))            
-#         if (match):
-#             print('Fixing %s\n to    %s' % (path, newPath))
-#             os.rename(path, newPath)
-#         else:
-#             newPath = path
-#         return(newPath)
-    
-    

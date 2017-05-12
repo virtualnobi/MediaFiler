@@ -296,8 +296,10 @@ class Group(Entry):
         else:  # organized by name
             newEntry = self.model.getEntry(name=name)
             if (newEntry == None):
-                print('No entry named "%s" exists, ignoring scene "%s"' % (name, scene))
-                return(super(Group, self).renameTo(name=name, elements=elements, removeIllegalElements=removeIllegalElements))
+                print('No entry named "%s" exists, ignoring scene "%s" and elements "%s"' % (name, scene, elements))
+                return(super(Group, self).renameTo(name=name, 
+                                                   elements=[], 
+                                                   removeIllegalElements=removeIllegalElements))
             else:
                 if (scene):
                     print('Group.renameTo(): No scene allowed!')

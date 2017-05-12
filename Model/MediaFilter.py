@@ -92,11 +92,10 @@ class MediaFilter(Observable):
             self.minimumSize = minimum
         if (maximum <> None):
             self.maximumSize = maximum
-        if (single <> None):
-            if (self.model.organizedByDate):
-                print('Only images organized by name can be filtered by single/group!')
-            else:
-                self.singleCondition = single
+        if (self.model.organizedByDate):
+            print('Only images organized by name can be filtered by single/group!')
+        else:  # organized by name
+            self.singleCondition = single
         if (fromDate <> None):
             if (self.model.organizedByDate):
                 self.fromDate = fromDate
@@ -152,18 +151,6 @@ class MediaFilter(Observable):
                self.toDate)
 
 
-#     def isActive(self):
-#         """Check whether the filter will reduce the set of all images.
-# 
-#         Return True if filter conditions are defined, False otherwise.
-#         """
-#         if (self.active
-#             and (not self.isEmpty())):
-#             return(True)
-#         else:
-#             return(False)
-        
-        
     def isEmpty(self):
         """Check whether the filter will reduce the set of media.
         
@@ -200,8 +187,10 @@ class MediaFilter(Observable):
                     if (not entry.isSingleton()):
                         return(True)
                 elif (self.singleCondition == False):
-                    if (entry.isGroup()):
+                    if (entry.isSingleton()):
                         return(True)
+                else:  # singleCondition == None
+                    pass
             # check for unknown requirement
             if (self.unknownElementRequired): 
                 if (self.model.organizedByDate):  
