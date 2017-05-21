@@ -140,7 +140,7 @@ class MediaOrganization(object):
         String path contains the media's file path
         Returns a MediaFiler.Group instance
         """
-        return(cls.ImageFilerModel.getRootNode())
+        return(cls.ImageFilerModel.getRootEntry())
 
 
     @classmethod

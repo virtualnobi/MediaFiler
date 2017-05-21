@@ -60,9 +60,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         self.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)  # context menu actions on Entry objects
         # internal state
         self.model = None  
+        self.selectionBeforeFiltering = None  # selected Entry before filtering started, to detect whether it is filtered
         self.ignoreSelectionChanges = False  # flag to stop onSelectionChanged events when mass deleting
-        self.previousSelection = []  # selected entry and its parents to restore selection after filter change 
-        self.previousSelectionExpanded = False  # whether selected entry was expanded (only if group)
 
 
 
@@ -77,7 +76,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')        
         self.DeleteAllItems()
-        self.addSubTree(self.model.getRootNode(), None)
+        self.addSubTree(self.model.getRootEntry(), None)
         if (self.model.getSelectedEntry()):
             self.SelectItem(self.model.getSelectedEntry().getTreeItemID())
 
@@ -156,7 +155,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 
 
 
-# Inheritance - ObserverPattern
+# Inheritance - Observer
     def updateAspect (self, observable, aspect):
         """ ASPECT of OBSERVABLE changed. 
         """
@@ -184,19 +183,21 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.ignoreSelectionChanges = False
             print('MediaTreeCtrl.update(): entry "%s" changed children' % observable.getPath())
         elif (aspect == 'selection'):  # model changed selection
+            entry = observable.getSelectedEntry()
+            print('MediaTreeCtrl.update(): entry "%s" selected' % entry.getPath())
             self.ignoreSelectionChanges = True
-            treeItem = observable.getSelectedEntry().getTreeItemID()
-            if (not treeItem):
-                pass
-            self.SelectItem(treeItem)
+            treeItemID = entry.getTreeItemID()
+            self.SelectItem(treeItemID)
             self.ignoreSelectionChanges = False
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
-            self.saveSelection()
+            self.selectionBeforeFiltering = self.model.getSelectedEntry()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
             print('MediaTreePane.update(): Recreating tree...')
             self.DeleteAllItems()
-            self.addSubTree(self.model.getRootNode(), None)
-            self.restoreSelection()
+            self.addSubTree(self.model.getRootEntry(), None)
+            if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
+                self.SelectItem(self.model.getSelectedEntry().getTreeItemID())
+                self.Expand(self.model.getSelectedEntry().getTreeItemID())
             print('MediaTreePane.update(): Recreating tree finished')
         else:
             print('Error: "%s" does not handle change of aspect "%s" of "%s"' % (self, aspect, observable))
@@ -236,36 +237,3 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 
 
 # Internal
-    def saveSelection(self):
-        """Store the current selection for later restoration with self.restoreSelection()
-        """
-        self.previousSelection = []
-        selection = self.model.getSelectedEntry()
-        if (selection):
-            self.previousSelectionExpanded = self.IsExpanded(selection.getTreeItemID()) 
-        while (selection):
-            if (selection == self.model.getRootNode()):
-                pass
-            else:
-                self.previousSelection.append(selection)
-            selection = selection.getParentGroup()
-        #print('Remembering selection "%s"' % self.previousSelection)
-
-
-    def restoreSelection(self):
-        """Restore the selection saved via self.saveSelection()
-        """
-        for selection in self.previousSelection:
-            if (not selection.filteredFlag):
-                print('MediaTreePane.restoreSelection() restoring "%s"' % selection.getPath())
-                self.ignoreSelectionChanges = True
-                self.SelectItem(selection.getTreeItemID())
-                self.ignoreSelectionChanges = False
-                break
-            # getting here means the previously selected entry is deleted/filtered, so its parent was expanded
-            self.previousSelectionExpanded = True
-        if (self.previousSelectionExpanded):
-            self.Expand(selection.getTreeItemID())
-        self.previousSelection = []
-        self.previousSelectionExpanded = False
-

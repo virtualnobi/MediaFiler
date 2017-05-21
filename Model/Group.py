@@ -268,6 +268,10 @@ class Group(Entry):
         
         Return Boolean indicating success
         """
+        if (scene
+            and (scene <> '')):
+            print('Group.renameTo(): No scene allowed!')
+            return(False)
         if (number
             and (number <> '')):
             print('Group.renameTo(): No number allowed!')
@@ -282,11 +286,11 @@ class Group(Entry):
                 and ((day == None)
                      or (day == u'')
                      or (day == self.organizer.getDay()))):
-                PausableObservable.pauseUpdates(Entry, None, None)
+                #PausableObservable.pauseUpdates(Entry, None, None)
                 for subEntry in self.subEntries:
                     newElements = subEntry.getElements().union(elements)
                     subEntry.renameTo(year=year, month=month, day=day, elements=newElements, removeIllegalElements=removeIllegalElements)
-                PausableObservable.resumeUpdates(Entry, None, None)
+                #PausableObservable.resumeUpdates(Entry, None, None)
             else:
                 newGroup = self.model.getEntry(year=year, month=month, day=day)
                 if (newGroup):
@@ -294,46 +298,54 @@ class Group(Entry):
                 else:
                     print('NYI: Group.renameTo() cannot create new groups')
         else:  # organized by name
-            newEntry = self.model.getEntry(name=name)
-            if (newEntry == None):
-                print('No entry named "%s" exists, ignoring scene "%s" and elements "%s"' % (name, scene, elements))
-                return(super(Group, self).renameTo(name=name, 
-                                                   elements=[], 
-                                                   removeIllegalElements=removeIllegalElements))
+            existingEntryToBeDeleted = False
+            if (name == None):
+                print('Renaming subentries of "%s"' % self.getPath())
+                # construct an identity scene map
+                sceneMap = {}
+                for scene in self.getScenes():
+                    sceneMap[scene] = scene
             else:
-                if (scene):
-                    print('Group.renameTo(): No scene allowed!')
-                    return(False)
-                if (newEntry.isGroup()):
-                    print('Group named "%s" exists' % name)
-                    newGroup = newEntry
-                else:  # newEntry is a Single
-                    print('Single named "%s" exists' % name)
+                existingEntry = self.model.getEntry(name=name)
+                if (existingEntry == None):
+                    print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.getName(), elements))
+                    return(super(Group, self).renameTo(name=name, 
+                                                       elements=[], 
+                                                       removeIllegalElements=removeIllegalElements))
+                elif (existingEntry.isGroup()):
+                    print('Group "%s" exists' % name)
+                    newGroup = existingEntry
+                    existingEntryToBeDeleted = True
+                else:  # existingEntry is a Single
+                    print('Single "%s" exists' % name)
                     newGroup = Group.createFromName(self.model, name)
-                    newEntry.renameTo(name=name, scene='1')
-                print('Moving subentries from "%s"\n                     to "%s"\n' % (self.getPath(), newGroup.getPath()))
+                    existingEntry.renameTo(name=name, scene='1')
+                print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newGroup.getPath()))
                 # construct mapping from scenes in current group to scenes in existing target group
                 sceneMap = {}
                 nextFreeScene = (len(newGroup.getScenes()) + 1)  # TODO: ignore special '99' scene
                 for scene in self.getScenes():
                     sceneMap[scene] = ('%02d' % nextFreeScene)  # TODO: refer to Organization 
                     nextFreeScene = (nextFreeScene + 1)
-                print('   with scene mapping %s' % sceneMap)
-                # move each subEntry
-                print('   %d subentries' % len(self.subEntries))
-                PausableObservable.pauseUpdates(Entry, None, None)
-                for subEntry in self.getSubEntries(False):  
-                    newElements = subEntry.getElements()
-                    if (elements):
-                        newElements = (newElements.union(elements))
-                    if (removeIllegalElements):
-                        newElements.remove(subEntry.getUnknownElements())
-                    subEntry.renameTo(name=name, 
-                                      scene=sceneMap[subEntry.getScene()], 
-                                      number=subEntry.getNumber(), 
-                                      elements=newElements, 
-                                      removeIllegalElements=removeIllegalElements)
-                PausableObservable.resumeUpdates(Entry, None, None)
+            print('   with scene mapping %s' % sceneMap)
+            # move each subEntry
+            print('   %d subentries' % len(self.subEntries))
+            #PausableObservable.pauseUpdates(Entry, None, None)
+            for subEntry in self.getSubEntries(False):  
+                newElements = subEntry.getElements()
+                if (elements):
+                    newElements = (newElements.union(elements))
+                if (removeIllegalElements):
+                    newElements.remove(subEntry.getUnknownElements())
+                subEntry.renameTo(name=name, 
+                                  scene=sceneMap[subEntry.getScene()], 
+                                  number=subEntry.getNumber(), 
+                                  elements=newElements, 
+                                  removeIllegalElements=removeIllegalElements)
+            if (existingEntryToBeDeleted):
+                existingEntry.remove()
+                self.model.setSelectedEntry(newGroup)
+            #PausableObservable.resumeUpdates(Entry, None, None)
 
 
     def deleteDoubles(self, mergeElements=True):

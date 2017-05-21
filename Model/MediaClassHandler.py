@@ -65,13 +65,6 @@ class MediaClassHandler(object):
 
 
 # Setters
-    def setAttribute(self, value):
-        """
-        """
-        pass
-    
-    
-
 # Getters
     def getClasses(self):
         """Return a list of all classes.

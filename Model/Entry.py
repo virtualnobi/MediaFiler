@@ -246,7 +246,7 @@ class Entry(PausableObservable):
         if (elements == None):  # no new elements, re-use existing ones
             elements = self.getElements()
         if (removeIllegalElements):  
-            elements.remove(self.model.getUnknownElements())
+            elements = [e for e in elements if self.model.getClassHandler().isLegalElement(e)]
         # determine new name from organizer
         newPath = self.organizer.constructPathForSelf(rootDir=self.model.rootDirectory,
                                                       year=year, 

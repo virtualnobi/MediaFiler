@@ -25,7 +25,7 @@ import wx.lib.dialogs
 from nobi.ObserverPattern import Observable, Observer
 ## project
 from Model import Installer
-from Model.MediaCollection import imageFilerModel
+from Model.MediaCollection import MediaCollection
 from Model import Image  # @UnusedImport import even if "unused", otherwise it's never registered with Entry.ProductTrader
 from Model import Movie  # @UnusedImport import even if "unused", otherwise it's never registered with Entry.ProductTrader  
 import UI  # to access UI.PackagePath
@@ -86,6 +86,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
     MenuTitleImport = _('&Import')
     MenuTitleTool = _('&Tool')
     ConfigurationOptionLastPerspective = 'last-perspective'
+    ConfigurationOptionMaximizeOnStart = 'maximize-on-start'
 
 
 ## Lifecycle
@@ -533,7 +534,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Remove the new indicator from all (non-filtered) media.
         """
         wx.BeginBusyCursor()
-        self.model.getRootNode().removeNewIndicator()
+        self.model.getRootEntry().removeNewIndicator()
         wx.EndBusyCursor()
 
 
@@ -560,7 +561,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Start external editor on class file.
         """
         classFile = Installer.getClassFilePath(os.path.join(self.model.rootDirectory, '..'))  # TODO: fix root directory
-#        classFile = os.path.join(self.model.rootDirectory, imageFilerModel.ClassFileName)
+#        classFile = os.path.join(self.model.rootDirectory, MediaCollection.ClassFileName)
         subprocess.call(['C:/Program Files (x86)/Gnu/Emacs-24.5/bin/runemacs.exe', classFile], shell=True)
         # reload current model
         self.onReload(event)
@@ -571,7 +572,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """When image collection is organized by names, start external editor on names list.
         """
         if (not self.model.organizedByDate):
-            nameFile = self.model.rootDirectory + imageFilerModel.NamesFileName
+            nameFile = self.model.rootDirectory + MediaCollection.NamesFileName
             subprocess.call(['C:/Program Files (x86)/Gnu/Emacs-24.5/bin/runemacs.exe', nameFile], shell=True)
         else:
             print('Not supported!')
@@ -627,7 +628,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
             self.displayInfoMessage('Filtering...')
         elif (aspect == 'stopFiltering'):  # filter has changed, filtering complete
             self.imageTree.DeleteAllItems() 
-            self.imageTree.addSubTree(self.model.getRootNode(), None)
+            self.imageTree.addSubTree(self.model.getRootEntry(), None)
             self.displayInfoMessage('Ok')
         else:
             print 'Unhandled change of aspect %s in observable %s' % (aspect, observable)
@@ -657,7 +658,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         print('Setting app icon from "%s"' % os.path.join(directory, '../lib/logo.ico'))
         self.SetIcon(wx.Icon(os.path.join(directory, '../lib/logo.ico'), wx.BITMAP_TYPE_ICO))
         # create the model
-        self.model = imageFilerModel(directory)
+        self.model = MediaCollection(directory)
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
         # update status bar
@@ -723,13 +724,16 @@ def prepareFilesAndFolders(frame, path):
 if __name__ == "__main__":
     app = wx.App(False)    
     frame = MediaFiler(None, title=GUIId.AppTitle)
-    frame.Show()
     (path, dummy) = os.path.split(os.getcwd())
     if (dummy == ''):
         (path, dummy) = os.path.split(path)
     if (not Installer.checkInstallation(path)):
         path = prepareFilesAndFolders(frame, path)
     if (path):
+        frame.Show()
         frame.setModel(Installer.getImagePath(path))  # TODO: correct root folder
+        if (frame.model.getConfiguration(frame.ConfigurationOptionMaximizeOnStart)):
+            print('Maximizing window')
+            frame.Maximize(True)            
         app.MainLoop()
     

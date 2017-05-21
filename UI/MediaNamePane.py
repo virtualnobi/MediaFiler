@@ -141,8 +141,6 @@ class MediaNamePane(wx.Panel, Observer):
     def setEntry(self, entry):
         """Set the selected ENTRY (either group or image), and name elements accordingly.
         """
-#         if (not isinstance(entry, Entry)):
-#             pass
         # establish observer pattern
         self.clear()
         self.entry = entry
@@ -184,7 +182,9 @@ class MediaNamePane(wx.Panel, Observer):
         """
         if (self.entry.isGroup()):  # TODO: Let the Group handle this
             if (self.model.organizedByDate):
-                pass
+                self.readInputFields()  # ensure all other changes to input fields are kept
+                self.unknownElements = set()  # remove unknown elements 
+                self.renameEntry(True)
             else:  # organized by name 
                 for subentry in self.entry.getSubEntries():
                     finalElements = subentry.getKnownElements()
@@ -194,7 +194,7 @@ class MediaNamePane(wx.Panel, Observer):
         else:  # single file, either within a Group or outside of a Group
             self.readInputFields()  # ensure all other changes to input fields are kept
             self.unknownElements = set()  # remove unknown elements 
-            self.renameEntry()
+            self.renameEntry(True)
 
 
     def onReuseLastClasses (self, event):  # @UnusedVariable
@@ -209,7 +209,7 @@ class MediaNamePane(wx.Panel, Observer):
             else:
                 self.unknownElements.add(element)
         self.setInputFields()
-        self.renameEntry()
+        self.renameEntry(False)
 
 
     def onRename(self, event):  # @UnusedVariable
@@ -219,7 +219,7 @@ class MediaNamePane(wx.Panel, Observer):
         """
         self.readInputFields()
         self.lastElements = self.knownElements.union(self.unknownElements)
-        self.renameEntry()
+        self.renameEntry(False)
 
 
 
@@ -330,19 +330,23 @@ class MediaNamePane(wx.Panel, Observer):
                 self.unknownElements.add(element)
     
     
-    def renameEntry(self):
+    def renameEntry(self, removeUnkownTags):
         """Rename the entry, using the values from the internal state.
+        
+        Boolean removeUnknownTags indicates whether unknown tags shall be cleared from entry
         """
         if (self.model.organizedByDate):
             self.entry.renameTo(year=self.year, 
                                 month=self.month, 
                                 day=self.day,
                                 number=self.number,
-                                elements=(self.knownElements.union(self.unknownElements)))            
+                                elements=(self.knownElements.union(self.unknownElements)),
+                                removeIllegalElements=removeUnkownTags)            
         else:  # organized by name
             self.entry.renameTo(name=self.name,
                                 scene=self.scene, 
                                 number=self.number,
-                                elements=(self.knownElements.union(self.unknownElements)))
+                                elements=(self.knownElements.union(self.unknownElements)),
+                                removeIllegalElements=removeUnkownTags)
         self.model.setSelectedEntry(self.entry)  # when switching groups, old parent group will change selection to itself 
 

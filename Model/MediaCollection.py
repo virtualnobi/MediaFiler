@@ -47,7 +47,9 @@ from .Organization import OrganizationByDate
 from .Organization import OrganizationByName
 from UI import GUIId
 
-class imageFilerModel(Observable, Observer):
+
+
+class MediaCollection(Observable, Observer):
     """
     """
 
@@ -126,7 +128,7 @@ class imageFilerModel(Observable, Observer):
         If entry is "next", the next image will be selected (respecting filtering).
         If entry is "previous", the previous image will be selected (respecting filtering).
         """
-        #print('imageFilerModel.setSelectedEntry "%s"' % entry.getPath())
+        #print('MediaCollection.setSelectedEntry "%s"' % entry.getPath())
         if (entry == self.root):
             self.selectedEntry = self.getEntry(filtering=False, 
                                                path=os.path.join(self.rootDirectory, self.InitialFileName))
@@ -186,11 +188,11 @@ class imageFilerModel(Observable, Observer):
         return(self.classHandler)
 
 
-    def getRootNode(self):
+    def getRootEntry(self):
         """Return the root element. This is a Group containing all other Entries.
         """
         if (self.root == None):
-            print('ImageFilerModel.getRootNode(): No root defined')
+            print('ImageFilerModel.getRootEntry(): No root defined')
         return(self.root)
 
 
@@ -212,7 +214,7 @@ class imageFilerModel(Observable, Observer):
         
         Returns an Entry, or None
         """
-        searching = self.getRootNode().getSubEntries(filtering)
+        searching = self.getRootEntry().getSubEntries(filtering)
         while (len(searching) > 0):
             entry = searching.pop()
             if (((group == None) or (group == entry.isGroup()))
@@ -399,6 +401,13 @@ class imageFilerModel(Observable, Observer):
             print('Filtering entries')
             for entry in self: 
                 entry.setFilter(self.getFilter().isFiltered(entry))
+        # if selected entry is filtered, search for unfiltered parent
+        if (self.getSelectedEntry().isFiltered()):
+            entry = self.getSelectedEntry().getParentGroup()
+            while ((entry <> self.getRootEntry())
+                and entry.isFiltered()):
+                entry = self.getSelectedEntry().getParentGroup()
+            self.setSelectedEntry(entry)
         self.changedAspect('stopFiltering')
         print('MediaCollection.filterEntries() finished')
 

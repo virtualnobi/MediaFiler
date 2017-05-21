@@ -104,13 +104,13 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Setters
-    def setModel(self, imageFilerModel):
+    def setModel(self, mediaCollection):
         """Set the model, and create widgets on self accordingly.
         """
         if (self.model):
             self.clear()
             self.model.removeObserver(self)
-        self.model = imageFilerModel
+        self.model = mediaCollection
         self.model.addObserverForAspect(self, 'selection')
         # store references to selectionBoxes here
         self.selectionBoxes = {}
