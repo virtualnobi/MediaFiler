@@ -717,7 +717,7 @@ class OrganizationByDate(MediaOrganization):
         """
         """
         (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
-        group = cls.ImageFilerModel.getEntry(year=year, month=month, day=day)
+        group = cls.ImageFilerModel.getEntry(group=True, year=year, month=month, day=day)
         if (group):
             return(group)
         else:

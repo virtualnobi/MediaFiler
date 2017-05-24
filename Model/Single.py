@@ -360,6 +360,8 @@ class Single(Entry):
         #print('Single.getBitMap(%dx%d) on %s' % (width, height, self.getPath()))
         # determine final size
         (w, h) = self.getSize(width, height)
+        if (not ((0 < w) and (0 < h))):
+            pass  # this will violate an assertion in Rescale()
         # load and resize bitmap if needed 
         if ((self.bitmap == None)  # no bitmap loaded
             or (self.bitmapWidth <> w)  # width differs

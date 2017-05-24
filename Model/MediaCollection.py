@@ -104,6 +104,7 @@ class MediaCollection(Observable, Observer):
         self.root = Entry.createInstance(self, self.rootDirectory)
         self.loadSubentries(self.root)
         self.setFreeNames()
+        self.cacheCollectionProperties()
         # initialize filter to no restrictions
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'changed')
@@ -242,26 +243,24 @@ class MediaCollection(Observable, Observer):
     def getMinimumSize(self):
         """Return the smallest image size in bytes.
         """
-        smallest = 0
-        for entry in self:
-            if (not entry.isGroup()):
+        if (self.cachedMinimumSize == 0):
+            for entry in self:
                 fsize = entry.getFileSize()
-                if ((fsize < smallest)  # smaller one found
-                    or (smallest == 0)):  # no image found so far
-                    smallest = fsize
-        return (smallest);
-    
-    
+                if ((fsize < self.cachedMinimumSize)  # smaller one found
+                    or (self.cachedMinimumSize == 0)):  # no image found so far
+                    self.cachedMinimumSize = fsize
+        return (self.cachedMinimumSize)
+
+
     def getMaximumSize(self):
         """Return the biggest image size in bytes.
         """
-        biggest = 0
-        for entry in self:
-            if (not entry.isGroup()):
+        if (self.cachedMaximumSize == 0):
+            for entry in self:
                 fsize = entry.getFileSize()
-                if (biggest < fsize):  # bigger one found
-                    biggest = fsize
-        return (biggest);
+                if (self.cachedMaximumSize < fsize):  # bigger one found
+                    self.cachedMaximumSize = fsize
+        return (self.cachedMaximumSize)
 
 
     def getNextEntry(self, entry):
@@ -310,12 +309,19 @@ class MediaCollection(Observable, Observer):
         if (observable == self.filter):  # filter changed
             self.filterEntries()
         elif (aspect == 'remove'):  # entry removed
+            # invalidate cached properties if affected
+            if (observable.getFileSize() == self.cachedMinimumSize):
+                self.cachedMinimumSize = 0
+            if (observable.getFileSize() == self.cachedMaximumSize):
+                self.cachedMaximumSize = 0
+            # ensure selected entry is not subitem of removed entry
             entry = self.selectedEntry
             while (entry <> None):
                 if (entry == observable):
                     self.setSelectedEntry(observable.getParentGroup())
                     break
                 entry = entry.getParentGroup()
+
 
 
 ## Name Handling
@@ -399,14 +405,20 @@ class MediaCollection(Observable, Observer):
                 entry.setFilter(False)
         else:  # filters exist
             print('Filtering entries')
+            increment = 100
+            number = 0
+            entryFilter = self.getFilter()
             for entry in self: 
-                entry.setFilter(self.getFilter().isFiltered(entry))
+                entry.setFilter(entryFilter.isFiltered(entry))
+                number = (number + 1)
+                if ((number % increment) == 0):
+                    print('  reached "%s"' % entry.getPath())
         # if selected entry is filtered, search for unfiltered parent
         if (self.getSelectedEntry().isFiltered()):
             entry = self.getSelectedEntry().getParentGroup()
             while ((entry <> self.getRootEntry())
                 and entry.isFiltered()):
-                entry = self.getSelectedEntry().getParentGroup()
+                entry = entry.getParentGroup()
             self.setSelectedEntry(entry)
         self.changedAspect('stopFiltering')
         print('MediaCollection.filterEntries() finished')
@@ -631,3 +643,16 @@ class MediaCollection(Observable, Observer):
         raise StopIteration  # stack of positions is exhausted, no more entries
     
                 
+#  Internal
+    def cacheCollectionProperties(self):
+        """Calculate and cache properties of the entire collection, to avoid repeated iterations.
+        """
+        self.cachedMinimumSize = 0
+        self.cachedMaximumSize = 0
+        for entry in self:
+            fsize = entry.getFileSize()
+            if ((fsize < self.cachedMinimumSize)  # smaller one found
+                or (self.cachedMinimumSize == 0)):  # no image found so far
+                self.cachedMinimumSize = fsize
+            if (self.cachedMaximumSize < fsize):  # bigger one found
+                self.cachedMaximumSize = fsize

@@ -192,13 +192,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.selectionBeforeFiltering = self.model.getSelectedEntry()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
-            print('MediaTreePane.update(): Recreating tree...')
+            #print('MediaTreePane.update(): Recreating tree...')
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
                 self.SelectItem(self.model.getSelectedEntry().getTreeItemID())
                 self.Expand(self.model.getSelectedEntry().getTreeItemID())
-            print('MediaTreePane.update(): Recreating tree finished')
+            #print('MediaTreePane.update(): Recreating tree finished')
         else:
             print('Error: "%s" does not handle change of aspect "%s" of "%s"' % (self, aspect, observable))
 

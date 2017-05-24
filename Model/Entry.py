@@ -117,6 +117,7 @@ class Entry(PausableObservable):
         self.treeItemID = None  # not inserted into MediaTreePane yet
         self.fileSize = None
         self.initFromPath(path)
+        self.fileSize = self.getFileSize()
         return(None)
 
 
