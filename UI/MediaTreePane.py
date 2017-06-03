@@ -157,7 +157,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 
 # Inheritance - Observer
     def updateAspect (self, observable, aspect):
-        """ ASPECT of OBSERVABLE changed. 
+        """ASPECT of OBSERVABLE changed. 
         """
         super(MediaTreeCtrl, self).updateAspect(observable, aspect)
         if (aspect == 'name'):  # name of an Entry changed
@@ -200,7 +200,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
                 self.Expand(self.model.getSelectedEntry().getTreeItemID())
             #print('MediaTreePane.update(): Recreating tree finished')
         else:
-            print('Error: "%s" does not handle change of aspect "%s" of "%s"' % (self, aspect, observable))
+            super(self, MediaTreeCtrl).update(observable, aspect)
+            #print('Error: "%s" does not handle change of aspect "%s" of "%s"' % (self, aspect, observable))
 
 
 
@@ -208,12 +209,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
     def GetDescendants (self, treeItemID):
         """Return the set of all descendants (direct children and, recursively, their descendants) of treeItemID.
         """
+        # TODO: why is this needed?
         result = set()
         child = self.GetFirstChild(treeItemID)[0]
         result.add(treeItemID)  # include item here
         while (child.IsOk()):  # while there are children
             result.update(self.GetDescendants(child))  # get child's descendants
-            child = self.GetNextSibling (child)  # get next child
+            child = self.GetNextSibling(child)  # get next child
         return(result)
 
 

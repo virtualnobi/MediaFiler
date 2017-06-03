@@ -285,9 +285,15 @@ class Entry(PausableObservable):
             return(False)
         else:
             self.initFromPath(fname)
+            self.organizer.__class__.registerMoveToLocation(year=self.getYear(),
+                                                            month=self.getMonth(),
+                                                            day=self.getDay(),
+                                                            name=self.getName(),
+                                                            scene=self.getScene())
             # remove from current group, and add to new group
             newGroup = self.organizer.__class__.getGroupFromPath(fname)
-            if (newGroup <> None):
+            if ((newGroup <> None)
+                and (newGroup <> self.getParentGroup())):
                 self.setParentGroup(newGroup)
             return(True)
 
@@ -538,6 +544,7 @@ class Entry(PausableObservable):
         menu.Append(GUIId.FilterIdentical, GUIId.FunctionNames[GUIId.FilterIdentical])
         menu.Append(GUIId.FilterSimilar, GUIId.FunctionNames[GUIId.FilterSimilar])
         # second group of functions related to organization
+        menu.AppendSeparator()
         self.organizer.extendContextMenu(menu)
         # third group of functions is delete
         menu.AppendSeparator()
@@ -577,6 +584,7 @@ class Entry(PausableObservable):
         elif (menuId == GUIId.RemoveNew):
             self.removeNewIndicator()
         else: 
+            self.organizer.runContextMenuItem(menuId, parentWindow)
             print('Unknown function id %d in Entry.runContextMenuItem()' % menuId)
         return(message)
 

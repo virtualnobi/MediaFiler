@@ -41,6 +41,7 @@ AppTitle = 'MediaFiler'
 MaxNumberRecentFiles = 10  # maximum number of stored recent root directories
 MaxNumberScenes = 99  # maximum number of change scene functions
 MaxNumberPerspectives = 10  # maximum number of stored perspectives
+MaxNumberMoveToLocations = 10  # max number of remembered last move-to locations
 
 
 
@@ -81,19 +82,24 @@ EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to M
 DeleteImage = generateWxIdForLabel(_('Delete Image'))  # TODO: add name of selected image here; consolidate with MediaTree
 DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
 RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
-RandomName = generateWxIdForLabel(_('Choose Free Name'))  # TODO: add random free name here
-ChooseName = generateWxIdForLabel(_('Choose Name Manually...'))
+RandomName = generateWxIdForLabel(_('Choose Random Name\tCtrl-R'))  # TODO: add random free name here
+ChooseName = generateWxIdForLabel(_('Choose Name Manually...\tCtrl-C'))
 RandomConvertToSingle = wx.NewId()  # for a Single inside a Group, choose a random (free) name
 ChooseConvertToSingle = wx.NewId()  # for a Single inside a Group, ask user for an (existing) name
-ConvertToGroup = wx.NewId()  # convert a Single into a Group
-SelectScene = generateWxIdForLabel(_('Move to scene...'))
-for i in xrange(MaxNumberScenes - 1):  # reserve additional menu items for more scene numbers
-    wx.NewId()
-RelabelScene = generateWxIdForLabel(_('Relabel scene to...'))
+ConvertToGroup = generateWxIdForLabel(_('Convert to Group\tCtrl-G'))  # convert a Single into a Group
 RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Elements'))
 FilterIdentical = generateWxIdForLabel(_('Filter Identical\tCtrl+I'))
 FilterSimilar = generateWxIdForLabel(_('Filter Similar\tCtrl+F'))
 StartExternalViewer = generateWxIdForLabel(_('View Fullscreen\tCtrl+V'))
+# Functions specific to OrganizationByName
+SelectScene = generateWxIdForLabel(_('Move to scene...'))
+for i in xrange(MaxNumberScenes - 1):  # reserve additional menu items for more scene numbers
+    wx.NewId()
+RelabelScene = generateWxIdForLabel(_('Rename scene to...'))
+# Functions Specific to OrganizationByDate
+SelectMoveToLocation = generateWxIdForLabel(_('Move to date...'))
+for i in xrange(MaxNumberMoveToLocations - 1):
+    wx.NewId()
 EntryFunctionLast = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
 
 ## View

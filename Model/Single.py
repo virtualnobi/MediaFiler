@@ -6,6 +6,7 @@
 
 
 # Imports
+from __future__ import print_function
 ## standard
 from decimal import Decimal
 import os
@@ -88,12 +89,12 @@ class Single(Entry):
         MediaFiler.Entry entry is the media being displayed
         Number imageSize is the number of bytes consumed by entry
         """
-        #print('Single.registerMemoryConsumption: "%s" consumes %dKB (%d consumed)' % (entry.getPath(), (imageSize / 1024), cls.MemoryUsed))
+        print('%dKB used, consuming %dKB for "%s"' % ((cls.MemoryUsed / 1024), (imageSize / 1024), entry.getPath()))
         cls.MemoryUsed = (cls.MemoryUsed + imageSize)
         cls.MemoryUsageList[entry] = imageSize
         while (cls.MemoryMaximum < cls.MemoryUsed):
             (oldEntry, oldSize) = cls.MemoryUsageList.popitem(last=False)
-            #print('Single.registerMemoryConsumption: releasing %dKB from "%s"' % ((oldSize / 1024), oldEntry.getPath()))
+            print('\treleasing %dKB from "%s"' % ((oldSize / 1024), oldEntry.getPath()))
             cls.MemoryUsed = (cls.MemoryUsed - oldSize)
             oldEntry.releaseMemory()
 

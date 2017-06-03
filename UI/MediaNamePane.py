@@ -335,18 +335,27 @@ class MediaNamePane(wx.Panel, Observer):
         
         Boolean removeUnknownTags indicates whether unknown tags shall be cleared from entry
         """
-        if (self.model.organizedByDate):
-            self.entry.renameTo(year=self.year, 
-                                month=self.month, 
-                                day=self.day,
-                                number=self.number,
-                                elements=(self.knownElements.union(self.unknownElements)),
-                                removeIllegalElements=removeUnkownTags)            
+        if (self.model.organizedByDate):  # TODO: move to self.entry.organizer()
+            result = self.entry.renameTo(year=self.year, 
+                                         month=self.month, 
+                                         day=self.day,
+                                         number=self.number,
+                                         elements=(self.knownElements.union(self.unknownElements)),
+                                         removeIllegalElements=removeUnkownTags)            
         else:  # organized by name
-            self.entry.renameTo(name=self.name,
-                                scene=self.scene, 
-                                number=self.number,
-                                elements=(self.knownElements.union(self.unknownElements)),
-                                removeIllegalElements=removeUnkownTags)
-        self.model.setSelectedEntry(self.entry)  # when switching groups, old parent group will change selection to itself 
+            result = self.entry.renameTo(name=self.name,
+                                         scene=self.scene, 
+                                         number=self.number,
+                                         elements=(self.knownElements.union(self.unknownElements)),
+                                         removeIllegalElements=removeUnkownTags)
+        if (result):
+            self.model.setSelectedEntry(self.entry)  # when switching groups, old parent group will change selection to itself 
+        else:
+            dlg = wx.MessageDialog(self, 
+                                   'Cannot rename media!',
+                                   'Error',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+
 

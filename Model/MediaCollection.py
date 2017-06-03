@@ -28,6 +28,7 @@ The following aspects of ImageFilerModel are observable:
 
 
 ## Imports
+from __future__ import print_function
 # Standard
 import types
 import os
@@ -647,12 +648,21 @@ class MediaCollection(Observable, Observer):
     def cacheCollectionProperties(self):
         """Calculate and cache properties of the entire collection, to avoid repeated iterations.
         """
+        print('MediaCollection.cacheCollectionProperties()')
         self.cachedMinimumSize = 0
         self.cachedMaximumSize = 0
+        count = 0
         for entry in self:
+            count = (count + 1)
+            if (count == 80):
+                print('.', end='\n')
+                count = 0
+            else:
+                print('.', end='')
             fsize = entry.getFileSize()
             if ((fsize < self.cachedMinimumSize)  # smaller one found
                 or (self.cachedMinimumSize == 0)):  # no image found so far
                 self.cachedMinimumSize = fsize
             if (self.cachedMaximumSize < fsize):  # bigger one found
                 self.cachedMaximumSize = fsize
+        print('\nMediaCollection.cacheCollectionProperties() done')

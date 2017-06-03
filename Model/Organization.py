@@ -47,6 +47,7 @@ class MediaOrganization(object):
 
 # Class Variables
     ImageFilerModel = None  # to access legal names 
+    MoveToLocations = []  # defining this here makes concurrent use of subclasses impossible
 
     
     
@@ -185,6 +186,16 @@ class MediaOrganization(object):
                 raise e
 
 
+    @classmethod
+    def registerMoveToLocation(cls, year, month, day, name, scene):
+        """Store information where media was moved to, for retrieval as targets for subsequent moves.
+        
+        Subclasses must pick appropriate parameters.
+        """
+        #raise NotImplementedError
+        pass
+
+
 
 # Lifecycle
     def __init__(self, anEntry, aPath):
@@ -283,6 +294,8 @@ class MediaOrganization(object):
     # These getters must be defined in the respective subclasses
     def extendContextMenu(self, menu):
         pass
+    def runContextMenuItem(self, menuId, parentWindow):  # @UnusedVariable
+        print('Unknown function id %d in Organization.runContextMenuItem()!' % menuId)
     # OrganizationByName only
     def getName(self):
         return(None)
@@ -595,12 +608,22 @@ class OrganizationByName(MediaOrganization):
         MediaFiler.Entry.Menu menu 
         """
         # functions applicable to all entries
-        menu.insertAfterId(GUIId.FilterSimilar, newText='Choose Name\tCtrl-C', newId=GUIId.ChooseName) 
-        menu.insertAfterId(GUIId.FilterSimilar, newText='Random Name\tCtrl-R', newId=GUIId.RandomName)
-        menu.insertAfterId(GUIId.FilterSimilar)
+#        menu.insertAfterId(GUIId.FilterSimilar, 
+#                            newText=GUIId.FunctionNames[GUIId.ChooseName], 
+#                            newId=GUIId.ChooseName) 
+#         menu.insertAfterId(GUIId.FilterSimilar, 
+#                            newText=GUIId.FunctionNames[GUIId.RandomName], 
+#                            newId=GUIId.RandomName)
+#         menu.insertAfterId(GUIId.FilterSimilar)
+        menu.Append(GUIId.RandomName, GUIId.FunctionNames[GUIId.RandomName])
+        menu.Append(GUIId.ChooseName, GUIId.FunctionNames[GUIId.ChooseName])
+        menu.AppendSeparator()
         # functions applicable to singletons, i.e. media outside groups
         if (self.context.isSingleton()):
-            menu.insertAfterId(GUIId.ChooseName, newText='Convert to Group\tCtrl-G', newId=GUIId.ConvertToGroup)
+#             menu.insertAfterId(GUIId.ChooseName, 
+#                                newText=GUIId.FunctionNames[GUIId.ConvertToGroup], 
+#                                newId=GUIId.ConvertToGroup)
+            menu.Append(GUIId.ConvertToGroup, GUIId.FunctionNames[GUIId.ConvertToGroup])
         # functions applicable to Singles inside named Groups
         if ((not self.context.isGroup())
             and (not self.context.isSingleton())):
@@ -614,8 +637,30 @@ class OrganizationByName(MediaOrganization):
                         sceneMenu.Enable(sceneId, False)
                     sceneId = (sceneId + 1)
             if (sceneId > GUIId.SelectScene):  # scenes exist
-                menu.insertAfterId(GUIId.ChooseName, newText=GUIId.FunctionNames[GUIId.RelabelScene], newId=GUIId.RelabelScene)
-                menu.insertAfterId(GUIId.ChooseName, newText=GUIId.FunctionNames[GUIId.SelectScene], newMenu=sceneMenu)
+                menu.insertAfterId(GUIId.ChooseName, 
+                                   newText=GUIId.FunctionNames[GUIId.RelabelScene], 
+                                   newId=GUIId.RelabelScene)
+                menu.insertAfterId(GUIId.ChooseName, 
+                                   newText=GUIId.FunctionNames[GUIId.SelectScene], 
+                                   newMenu=sceneMenu)
+
+
+    def runContextMenuItem(self, menuId, parentWindow):  # @UnusedVariable
+        """Run the functions for the menu items added in extendContextMenu()
+        """
+        if (menuId == GUIId.ChooseName):
+            pass
+        elif (menuId == GUIId.RandomName):
+            pass
+        elif (menuId == GUIId.ConvertToGroup):
+            pass
+        elif (menuId == GUIId.RelabelScene):
+            pass
+        elif ((GUIId.SelectScene <= menuId)
+              and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
+            pass
+        else:
+            super(OrganizationByName, self).runContextMenu(menuId, parentWindow)
 
 
     def isSingleton(self):
@@ -711,6 +756,8 @@ class OrganizationByDate(MediaOrganization):
     ReducedDayPattern = re.compile('%s(%s)(%s)\\2(%s)(?!\d)' % (ReducedYearString, SeparatorString, MonthString, DayString))
 
 
+
+# Variables
 # Class Methods
     @classmethod
     def getGroupFromPath(cls, path):
@@ -1042,6 +1089,23 @@ class OrganizationByDate(MediaOrganization):
         return(year)
 
 
+    @classmethod
+    def registerMoveToLocation(cls, year=None, month=None, day=None, name=None, scene=None):
+        """Store information where media was moved to, for retrieval as targets for subsequent moves.
+        
+        String year
+        String month
+        String day
+        """
+        if ((name <> None)
+            or (scene <> None)):
+            raise ValueError
+        cls.MoveToLocations.append({'rootdir': '', 'year': year, 'month': month, 'day': day})
+        print('OrganizationByDate.registerMoveToLocation(): Registered (%s, %s, %s)' % (year, month, day))
+        if (len(cls.MoveToLocations) > GUIId.MaxNumberMoveToLocations):
+            cls.MoveToLocations = cls.MoveToLocations[1:]
+
+
 
 # Lifecycle
 # Setters
@@ -1059,6 +1123,35 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Getters
+    def extendContextMenu(self, menu):
+        """Extend the context menu to contain functions relevant for organization by date.
+
+        MediaFiler.Entry.Menu menu 
+        Return nobi.wxExtensions.Menu (which is a wx.Menu)
+        """
+        moveToMenu = Menu()
+        moveToId = GUIId.SelectMoveToLocation
+        for mtl in self.__class__.MoveToLocations:
+            if (moveToId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations)):
+                print('Adding move-to location "%s" into menu id %d' % (mtl, moveToId))
+                moveToMenu.Append(moveToId, self.constructPathHead(mtl))
+                if (mtl == self.getScene()):
+                    moveToMenu.Enable(moveToId, False)
+                moveToId = (moveToId + 1)
+        if (moveToId > GUIId.SelectMoveToLocation):  # scenes exist
+            menu.AppendMenu(0, GUIId.FunctionNames[GUIId.SelectMoveToLocation], moveToMenu)
+        return(menu)
+
+
+    def runContextMenuItem(self, menuId, parentWindow):
+        """Run functions to handle the menu items added in extendContextMenu()
+        """
+        if (False):
+            pass
+        else:
+            super(OrganizationByDate, self).runContextMenuItem(self, menuId, parentWindow)
+
+
     def getYear(self):
         if (self.year == None):
             return('')

@@ -682,7 +682,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         if (lastPerspective):
             self._mgr.LoadPerspective(self.perspectives[int(lastPerspective)])
         # update status bar
-        self.displayInfoMessage(_('Ready.'))
+        self.displayInfoMessage(_('Ready'))
         wx.EndBusyCursor()
 
 
