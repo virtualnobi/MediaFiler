@@ -256,8 +256,12 @@ class ImportDialog(wx.Dialog):
               (1, 1),
               (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL))
         checkbox = wx.CheckBox(self)
-        checkbox.SetValue(self.parameters.getDeleteOriginals())
-        checkbox.Enable(not self.parameters.getTestRun())
+        if (self.parameters.getTestRun()):
+            checkbox.SetValue(False)
+            checkbox.Enable(False)
+        else:
+            checkbox.SetValue(self.parameters.getDeleteOriginals())
+            checkbox.Enable(True)
         self.Bind(wx.EVT_CHECKBOX, self.onDeleteOriginal, checkbox)
         s.Add(checkbox, 
               (2, 1),
