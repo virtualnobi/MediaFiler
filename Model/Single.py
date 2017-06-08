@@ -338,7 +338,7 @@ class Single(Entry):
                 height = rawImage.Height
             return(width, height)
         else:  # illegal parameters
-            raise('Illegal Parameters to Image.getSize() - only one of width and height are given')
+            raise('Illegal Parameters to Single.getSize() - only one of width and height are given')
         
 
     def getFileSize(self):

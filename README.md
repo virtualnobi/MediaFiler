@@ -45,17 +45,18 @@ If you don't want a github account, and are willing to repeat these steps for ev
 ## Set up MediaFiler
 
 * Set the LANGUAGE parameter to your locale. Supported values are "de_DE" and "en_US":
-Enter 'Environment Variable' (or 'Umgebungsvariable') into the search field. The program which comes up has a button 'Evironment Variables', which presents user-specific variables. Usually, LANGUAGE is not defined, so you need to press 'New'. 
+On Windows 10, enter 'Environment Variable' (or 'Umgebungsvariable') into the Windows search field. The program which comes up has a button 'Evironment Variables', which presents user-specific variables. Usually, LANGUAGE is not defined, so you need to press 'New'. 
 
 * Pick or create an image directory to keep all your images:
-A good choice on Windows is '<your-user-name>/Pictures/MediaFiler'. 
+A good choice on Windows is '/Users/<your-user-name>/Pictures/MediaFiler'. 
 Mediafiler will create subdirectories called 'images' (all your images), 'lib' (some configuration files), 'trash' (all media you delete, for easy recovery), and 'import' (the default directory from which media is imported).
 
-* Create a shortcut for the 'App.pyw' file, move it to your desktop, and change its working directory to the image directory. 
+* Create a shortcut for the 'App.pyw' file, move it to your desktop, and change its working directory to the image directory.
 
 * Start the shortcut.
 
 # How to help?
 
-* Translate if you need another language. 
+* Translate if you need another language: 
+This project uses the standard PO/MO translation files. You'll find them in the 'locale' folder. Just send me translated versions. 
 

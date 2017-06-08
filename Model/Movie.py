@@ -80,6 +80,11 @@ class Movie(Single):
 
     def getRawImage (self):
         """Retrieve raw data (JPG or PNG or GIF) for image.
+
+        TODO: Extract first frame of movie to display
+        
+        See https://tobilehman.com/blog/2013/01/20/extract-array-of-frames-from-mp4-using-python-opencv-bindings/
+        or https://stackoverflow.com/questions/10672578/extract-video-frames-in-python
         """
         return(self.rawImage)
 
