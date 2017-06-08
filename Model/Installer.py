@@ -8,106 +8,192 @@
 ## Standard
 import os.path
 import shutil
+import gettext
 ## Contributed
+import wx
 ## nobi
 ## Project
 from Entry import Entry
 from MediaClassHandler import MediaClassHandler
+import UI
+from UI import GUIId
+
+
+
+# Internationalization
+# requires "PackagePath = __path__[0]" in _init_.py
+try:
+    LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
+    Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['en'])
+except BaseException as e:  # likely an IOError because no translation file found
+    print('%s: Cannot initialize translation engine from path %s; using original texts (error following).' % (__file__, LocalesPath))
+    print(e)
+    def _(message): return message
+else:
+    _ = Translation.ugettext
+def N_(message): return message
 
 
 
 # Constants
-InstallationPath = os.path.normpath(os.path.join(os.path.split(__file__)[0], '..')) # TODO: derive from installation data
+InstallationPath = os.path.normpath(os.path.join(os.path.split(__file__)[0], '..')) 
+CurrentPath = None
 ImageFolder = u'images'
 LibraryFolder = u'lib'
 LogoFilename = u'Logo.ico'
 ClassFilename = u'classes.txt'
+ConfigurationFilename = (u'%s.ini' % GUIId.AppTitle)
+NamesFilename = u'names.orig'
 TrashFolder = u'trash'
 ImportFolder = u'import'
 
 
 
-def getImagePath(path):
-    """Return the path to the image directory, given the root directory.
+def getImagePath():
+    """Return the path to the image directory.
     """
-    return(os.path.join(path, ImageFolder))
+    return(os.path.join(CurrentPath, ImageFolder))
 
 
-def getLibraryPath(path):
-    """Return the path to the library directory, given the root directory.
+def getLibraryPath():
+    """Return the path to the library directory.
     """
-    return(os.path.join(path, LibraryFolder))
+    return(os.path.join(CurrentPath, LibraryFolder))
 
 
-def getLogoPath(path):
-    """Return the path to the logo icon, given the root directory.
+def getLogoPath():
+    """Return the path to the logo icon.
     """
-    return(os.path.join(getLibraryPath(path), LogoFilename))
+    return(os.path.join(getLibraryPath(), LogoFilename))
 
 
-def getClassFilePath(path):
-    """Return the path to the class definition file, given the root dirctory.
+def getClassFilePath():
+    """Return the path to the class definition file.
     """
-    return(os.path.join(getLibraryPath(path), ClassFilename))
+    return(os.path.join(getLibraryPath(), ClassFilename))
 
 
-def getTrashPath(path):
-    """Return the path to the trash directory, given the root directory.
+def getConfigurationFilePath():
+    """Return the path to the configuration (.INI) file.
     """
-    return(os.path.join(path, TrashFolder))
+    return(os.path.join(getLibraryPath(), ConfigurationFilename))
 
 
-def getImportFolder(path):
-    """Return the path to the default import directory, given the root directory.
+def getNamesFilePath():
+    """Return the path to the name list.
     """
-    return(os.path.join(path, ImportFolder))
+    return(os.path.join(getLibraryPath(), NamesFilename))
 
 
-def checkInstallation(path):
+def getTrashPath():
+    """Return the path to the trash directory.
+    """
+    return(os.path.join(CurrentPath, TrashFolder))
+
+
+def getImportFolder():
+    """Return the path to the default import directory.
+    """
+    return(os.path.join(CurrentPath, ImportFolder))
+
+
+def checkInstallation():
     """Determine whether the specified path contains all required files.
-    
-    String path
-    Returns Boolean
+
+    Returns Boolean indicating whether the installation is ok
     """
-    if (not os.path.isdir(getImagePath(path))):
+    print('Checking "%s"...' % CurrentPath)
+    if (not os.path.isdir(getImagePath())):
+        print('Image directory missing')
         return(False)
-    if (not os.path.isdir(getLibraryPath(path))):
+    if (not os.path.isdir(getLibraryPath())):
         return(False)
-    if (not os.path.exists(getLogoPath(path))):
+    if (not os.path.exists(getLogoPath())):
+        return(False)
+    if (not os.path.exists(getConfigurationFilePath())):
         return(False)
     for c in Entry.ProductTrader.getClasses():
-        if (not os.path.exists(os.path.join(getLibraryPath(path), c.PreviewImageFilename))):
+        if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
             print('No preview image for class %s exists.' % c)
             return(False)
-    if (not os.path.exists(getClassFilePath(path))):
+    if (not os.path.exists(getClassFilePath())):
         return(False)
-    if (not os.path.isdir(getTrashPath(path))):
+    if (not os.path.isdir(getTrashPath())):
         return(False)
+    print('Check passed')
     return(True)
 
 
-def install(path):
-    """Create required paths and files, keeping all existing settings.
+def install():
+    """Create required paths and files in global CurrentPath, keeping all existing settings.
+
+    Return Boolean indicating installation succeeded
     """
-    if (not os.path.isdir(getImagePath(path))):
-        os.makedirs(getImagePath(path))
-    if (not os.path.isdir(getLibraryPath(path))):
-        os.makedirs(getLibraryPath(path))
-    if (not os.path.exists(getLogoPath(path))):
-        shutil.copyfile(os.path.join(InstallationPath, ImageFolder, LogoFilename), 
-                        getLogoPath(path))
-    for c in Entry.ProductTrader.getClasses():
-        if (not os.path.exists(os.path.join(getLibraryPath(path), c.PreviewImageFilename))):
-            shutil.copyfile(os.path.join(InstallationPath, ImageFolder, c.PreviewImageFilename),
-                            os.path.join(getLibraryPath(path), c.PreviewImageFilename))
-    if (not os.path.exists(getClassFilePath(path))):
-        with open(getClassFilePath(path), 'w') as cfile:
-            cfile.write(MediaClassHandler.InitialFileContent)
-    if (not os.path.isdir(getTrashPath(path))):
-        os.makedirs(getTrashPath(path))
-    if (not os.path.isdir(getImportFolder(path))):
-        os.makedirs(getImportFolder(path))
+    print('Installing MediaFiler at "%s"' % CurrentPath)
+    try:
+        if (not os.path.isdir(getImagePath())):
+            os.makedirs(getImagePath())
+        if (not os.path.isdir(getLibraryPath())):
+            os.makedirs(getLibraryPath())
+        if (not os.path.exists(getLogoPath())):
+            shutil.copyfile(os.path.join(InstallationPath, ImageFolder, LogoFilename), 
+                            getLogoPath())
+        if (not os.path.exists(getConfigurationFilePath())):
+            with open(getConfigurationFilePath(), 'w') as outfile:
+                outfile.write('[%s]\n' % GUIId.AppTitle)
+        for c in Entry.ProductTrader.getClasses():
+            if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
+                shutil.copyfile(os.path.join(InstallationPath, ImageFolder, c.PreviewImageFilename),
+                                os.path.join(getLibraryPath(), c.PreviewImageFilename))
+        if (not os.path.exists(getClassFilePath())):
+            with open(getClassFilePath(), 'w') as cfile:
+                cfile.write(MediaClassHandler.InitialFileContent)
+        if (not os.path.isdir(getTrashPath())):
+            os.makedirs(getTrashPath())
+        if (not os.path.isdir(getImportFolder())):
+            os.makedirs(getImportFolder())
+    except:
+        print('Installation failed')
+        return(False)
+    print('Installation ok')
+    return(True)
+
+
+def ensureInstallationOk(window):
+    """Ensure current working directory contains all required files.
     
+    Check whether current working dir contains a valid installation. 
+    Ask for directory if issues are found, and ensure installation is ok in new location.
+    
+    wx.Window frame to display Directory Dialog
+    
+    Return Boolean indicating a valid installation. 
+    """
+    global CurrentPath
+    CurrentPath = os.getcwdu()
+    print(CurrentPath)
+    if (not checkInstallation()):
+        dlg = wx.DirDialog(window, 
+                           _("The current working directory for this program is not a valid media directory. Choose a media directory:"), 
+                           style=wx.DD_DEFAULT_STYLE)
+        dlg.SetPath(CurrentPath)
+        CurrentPath = None
+        if (dlg.ShowModal() == wx.ID_OK):
+            CurrentPath = dlg.GetPath()
+            print('User selected "%s"' % CurrentPath)
+            if (not checkInstallation()
+                and not install()):
+                CurrentPath = None
+        else:
+            print('Cancelled by user')
+        dlg.Destroy()
+    if (CurrentPath):
+        print('Changing working directory to "%s"' % CurrentPath)
+        os.chdir(CurrentPath)
+        return(True)
+    else:
+        return(False)
+
 
 # Executable Script
 if __name__ == "__main__":

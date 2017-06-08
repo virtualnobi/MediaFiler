@@ -11,12 +11,12 @@ import os.path
 ## Contributed
 import wx
 ## nobi
-#from nobi.ObserverPattern import Observable
 from nobi.PausableObservable import PausableObservable
 from nobi.wxExtensions.Menu import Menu
 from nobi.ProductTraderPattern import SimpleProductTrader
 ## Project
 from UI import GUIId
+import Installer
 #from MediaFiler.MediaClassHandler import MediaClassHandler
 
 
@@ -49,7 +49,7 @@ class Entry(PausableObservable):
     NameSeparator = '.'  # character separating image elements in file name
     IdentifierSeparator = '-'  # character separating scene, day, month, year, number in file name
     RESeparatorsRecognized = ('[, _' + NameSeparator + IdentifierSeparator + ']')
-    TrashDirectory = os.path.join('..', 'trash')  # directory to move deleted entries to
+#    TrashDirectory = os.path.join('..', 'trash')  # directory to move deleted entries to
 
 
 
@@ -89,8 +89,8 @@ class Entry(PausableObservable):
         if (os.path.isdir(path)):
             clas = self.ProductTrader.getClassFor(self.SpecificationGroup)
         else:
-            (dummy, extension) = os.path.splitext(path)  # @UnusedVariable
-            extension = extension[1:]  # remove leading '.'
+            (dummy, extension) = os.path.splitext(path) 
+            extension = extension[1:].lower()  # remove leading '.'
             try:
                 clas = self.ProductTrader.getClassFor(extension)
             except:  # probably extension has no class registered to handle it
@@ -210,12 +210,12 @@ class Entry(PausableObservable):
         # move to trash
         oldName = self.getPath()
         newName = os.path.join(self.model.rootDirectory, 
-                               self.TrashDirectory, 
+                               Installer.getTrashPath(),  # self.TrashDirectory, 
                                (self.getFilename() + '.' + self.getExtension()))
         count = 1  # TODO: re-use MediaOrganization function?
         while (os.path.exists(newName)):
             newName = os.path.join(self.model.rootDirectory,
-                                   self.TrashDirectory,
+                                   Installer.getTrashPath(),  # self.TrashDirectory,
                                    (self.getFilename() + '-' + str(count) + '.' + self.getExtension()))
             count = (count + 1)
         print ('Trashing "%s" (into "%s")' % (oldName, newName))

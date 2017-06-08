@@ -19,9 +19,10 @@ class SecureConfigParser(SafeConfigParser):
     - it will save all changes to the configuration immediately (i.e., when .set() is called)
     - it will assume all values are unicode() and encode them using UTF-8 before saving
     
-    A design issue whether the filename to read and write from should be given in the constructor (as done currently), 
-    or whether it can be derived from calls to .read() and .write(). 
-    The second option might end up with the .set() method called before the filename is known.
+    A design issue is whether the filename to read and write from should be given in the 
+    constructor (as done currently), or whether it can be derived from calls to .read() and .write(). 
+    The second option might end up with the .set() method called before the filename is known, and 
+    thus no possibility to save the value immediately.
     """
     
 
@@ -48,24 +49,6 @@ class SecureConfigParser(SafeConfigParser):
 # Getters
 # Event Handlers
 # Inheritance - Superclass
-#     def read(self, filenames):
-#         """
-#         """
-#         result = SafeConfigParser.read(self, filenames)
-#         if (len(result) > 0):
-#             if (result[0] <> self.filename):
-#                 raise 'File "%s" to store configuration is not the first successfully read configuration file!'
-#             self.filename = result[0]
-#         return(result)
-# 
-# 
-#     def write(self, fileobject):
-#         """
-#         """
-#         result = SafeConfigParser.write(fileobject)
-#         return(result)
-
-
     def set(self, section, option, value):
         """Set an option in a section to a value, and save the configuration.
         

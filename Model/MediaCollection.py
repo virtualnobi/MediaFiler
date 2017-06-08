@@ -57,12 +57,12 @@ class MediaCollection(Observable, Observer):
 
 
 # Constants
-    ImageFolderName = u'images'  # name of directory containing images
-    NamesFileName = os.path.join('..', 'lib', 'names.orig')  # name of file containing names, if it exists, images are organized by name, otherwise by date
+#    ImageFolderName = u'images'  # name of directory containing images
+#    NamesFileName = os.path.join('..', 'lib', 'names.orig')  # name of file containing names, if it exists, images are organized by name, otherwise by date
     InitialFileName = u'initial.jpg'  # lowercase file name to show after loading
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
     ConfigurationOptionLastMedia = 'last-media'
-    ConfigurationFilename = os.path.join('..', 'lib', (GUIId.AppTitle + '.ini'))
+#    ConfigurationFilename = os.path.join('..', 'lib', (GUIId.AppTitle + '.ini'))
 
 
 
@@ -89,18 +89,18 @@ class MediaCollection(Observable, Observer):
         self.classes = []
         self.knownElements = []
         # set up the configuration persistence
-        self.configuration = SecureConfigParser(self.ConfigurationFilename)
-        self.configuration.read(self.ConfigurationFilename)
+        self.configuration = SecureConfigParser(Installer.getConfigurationFilePath())
+        self.configuration.read(Installer.getConfigurationFilePath())
         if (not self.configuration.has_section(GUIId.AppTitle)):
             self.configuration.add_section(GUIId.AppTitle)
         # read legal names and class definitions
-        self.readNamesFromFile(os.path.join(self.rootDirectory, self.__class__.NamesFileName))
+        self.readNamesFromFile(Installer.getNamesFilePath())
         if (self.organizedByDate):
             self.organizationStrategy = OrganizationByDate
         else:
             self.organizationStrategy = OrganizationByName
         self.organizationStrategy.setModel(self)
-        self.classHandler = MediaClassHandler(Installer.getClassFilePath(os.path.join(self.rootDirectory, '..')))  # TODO: fix root directory
+        self.classHandler = MediaClassHandler(Installer.getClassFilePath())
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
         self.loadSubentries(self.root)

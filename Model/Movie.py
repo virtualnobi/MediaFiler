@@ -25,7 +25,7 @@ class Movie(Single):
 
 
 # Constants
-    LegalExtensions = ['mov', 'mp4', '3gp']  # all file formats handled by Movie
+    LegalExtensions = ['mov', 'mp4', '3gp', 'mpg']  # all file formats handled by Movie
     PreviewImageFilename = 'Movie.jpg'  # image shown as placeholder for movie
 
 

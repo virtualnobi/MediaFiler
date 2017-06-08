@@ -390,9 +390,9 @@ class ImportDialog(wx.Dialog):
         #print('ImportDialog.onBrowse() here')
         # set up a few texts
         if (self.parameters.getTestRun()):
-            dialogTitle = "Choose a directory to test import:"
+            dialogTitle = _("Choose a directory to test import:")
         else:
-            dialogTitle = "Choose a directory to import from:"
+            dialogTitle = _("Choose a directory to import from:")
         dirDialog = wx.DirDialog(self, dialogTitle, style = (wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST))
         dirDialog.SetPath(self.parameters.getImportDirectory())  # TODO: expand and scroll to this directory
         if (dirDialog.ShowModal() == wx.ID_OK):  

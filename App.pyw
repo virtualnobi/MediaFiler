@@ -560,10 +560,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
     def onEditClasses (self, event):
         """Start external editor on class file.
         """
-        classFile = Installer.getClassFilePath(os.path.join(self.model.rootDirectory, '..'))  # TODO: fix root directory
-#        classFile = os.path.join(self.model.rootDirectory, MediaCollection.ClassFileName)
+        classFile = Installer.getClassFilePath()
         subprocess.call(['C:/Program Files (x86)/Gnu/Emacs-24.5/bin/runemacs.exe', classFile], shell=True)
-        # reload current model
         self.onReload(event)
         pass
     
@@ -671,11 +669,17 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.statusbar.Show()
         # update UI
         self.updateMenuAccordingToOrganization(self.model.organizedByDate)
+        print('Setting up name pane')
         self.namePane.setModel(self.model)
+        print('Setting up filter pane')
         self.filterPane.setModel(self.model)
+        print('Setting up classification pane')
         self.classificationPane.setModel(self.model)
+        print('Setting up canvas pane')
         self.canvas.setModel(self.model)
+        print('Setting up presentation pane')
         self.presentationPane.setModel(self.model)
+        print('Setting up tree pane')
         self.imageTree.setModel(self.model)
         # load last viewed perspective
         lastPerspective = self.model.getConfiguration(self.ConfigurationOptionLastPerspective)
@@ -697,41 +701,36 @@ class MediaFiler (wx.Frame, Observer, Observable):
 
 
 # Functions
-def prepareFilesAndFolders(frame, path):
-    """Ask user for the directory to create the media directory in, and prepare it.
-    
-    wx.Frame frame contains parent window for Dialog
-    String path contains a default path
-    Return String containing media root folder
-        or None
-    """
-    result = None
-    dlg = wx.DirDialog(frame, "The current working directory for this program is not a valid media directory. Choose a media directory:", style=wx.DD_DEFAULT_STYLE)
-    dlg.SetPath(path)
-    if (dlg.ShowModal() == wx.ID_OK):
-        newPath = dlg.GetPath()
-        if (os.path.isdir(newPath) 
-            and Installer.checkInstallation(newPath)):
-            result = newPath
-        else:
-            Installer.install(newPath)
-            result = newPath
-    dlg.Destroy()
-    return(result)
+# def prepareFilesAndFolders(frame, path):
+#     """Ask user for the directory to create the media directory in, and prepare it.
+#     
+#     wx.Frame frame contains parent window for Dialog
+#     String path contains a default path
+#     Return String containing media root folder
+#         or None
+#     """
+#     result = None
+#     dlg = wx.DirDialog(frame, "The current working directory for this program is not a valid media directory. Choose a media directory:", style=wx.DD_DEFAULT_STYLE)
+#     dlg.SetPath(path)
+#     if (dlg.ShowModal() == wx.ID_OK):
+#         newPath = dlg.GetPath()
+#         if (os.path.isdir(newPath) 
+#             and Installer.checkInstallation(newPath)):
+#             result = newPath
+#         else:
+#             Installer.install(newPath)
+#             result = newPath
+#     dlg.Destroy()
+#     return(result)
 
 
 # section: Executable script
 if __name__ == "__main__":
     app = wx.App(False)    
     frame = MediaFiler(None, title=GUIId.AppTitle)
-    (path, dummy) = os.path.split(os.getcwd())
-    if (dummy == ''):
-        (path, dummy) = os.path.split(path)
-    if (not Installer.checkInstallation(path)):
-        path = prepareFilesAndFolders(frame, path)
-    if (path):
+    if (Installer.ensureInstallationOk(frame)):
         frame.Show()
-        frame.setModel(Installer.getImagePath(path))  # TODO: correct root folder
+        frame.setModel(Installer.getImagePath())
         if (frame.model.getConfiguration(frame.ConfigurationOptionMaximizeOnStart)):
             print('Maximizing window')
             frame.Maximize(True)            
