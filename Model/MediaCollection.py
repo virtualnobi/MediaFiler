@@ -59,7 +59,7 @@ class MediaCollection(Observable, Observer):
 # Constants
 #    ImageFolderName = u'images'  # name of directory containing images
 #    NamesFileName = os.path.join('..', 'lib', 'names.orig')  # name of file containing names, if it exists, images are organized by name, otherwise by date
-    InitialFileName = u'initial.jpg'  # lowercase file name to show after loading
+#    InitialFileName = u'initial.jpg'  # lowercase file name to show after loading
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
     ConfigurationOptionLastMedia = 'last-media'
 #    ConfigurationFilename = os.path.join('..', 'lib', (GUIId.AppTitle + '.ini'))
@@ -84,6 +84,7 @@ class MediaCollection(Observable, Observer):
         self.rootDirectory = os.path.normpath(rootDir)
         # clear all data
         self.selectedEntry = None
+        self.initialEntry = None
         self.names = []  # list of all legal names
         self.freeNames = None  # list of all free names, lazily defined
         self.classes = []
@@ -110,15 +111,16 @@ class MediaCollection(Observable, Observer):
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'changed')
         # select initial entry
-        initialEntry = None
+        self.initialEntry = Entry.createInstance(self, Installer.getInitialFilePath())
         if (self.configuration.has_option(GUIId.AppTitle, self.ConfigurationOptionLastMedia)):
-            initialEntry = self.getEntry(path=self.getConfiguration(self.ConfigurationOptionLastMedia))
-        if (initialEntry == None):
-            initialEntry = self.getEntry(group=False, 
-                                         path=os.path.join(rootDir, self.InitialFileName))
-        if (initialEntry <> None):
-            print('Found initial entry to select')
-            self.setSelectedEntry(initialEntry)
+            entry = self.getEntry(path=self.getConfiguration(self.ConfigurationOptionLastMedia))
+            if (entry <> None):
+                print('Selecting "%s" from last run' % entry.getPath())
+                self.setSelectedEntry(entry)
+            else:
+                self.setSelectedEntry(None)
+        else: 
+            self.setSelectedEntry(None)
 
 
 
@@ -127,17 +129,11 @@ class MediaCollection(Observable, Observer):
         """Set the selected entry.
         
         If entry is the (hidden) root entry, the initial image will be selected, if it exists.
-        If entry is "next", the next image will be selected (respecting filtering).
-        If entry is "previous", the previous image will be selected (respecting filtering).
         """
         #print('MediaCollection.setSelectedEntry "%s"' % entry.getPath())
-        if (entry == self.root):
-            self.selectedEntry = self.getEntry(filtering=False, 
-                                               path=os.path.join(self.rootDirectory, self.InitialFileName))
-        else:
-            self.selectedEntry = entry
-        # ConfigParser cannot store unicode() values
-        self.setConfiguration(self.ConfigurationOptionLastMedia, entry.getPath())
+        self.selectedEntry = entry
+        if (self.selectedEntry):
+            self.setConfiguration(self.ConfigurationOptionLastMedia, entry.getPath())
         self.changedAspect('selection')
 
 
@@ -236,9 +232,12 @@ class MediaCollection(Observable, Observer):
 
 
     def getSelectedEntry(self):
-        """Return the selected entry.
+        """Return the selected entry, or None is the (hidden) root is selected.
         """
-        return(self.selectedEntry)
+        if (self.selectedEntry == self.getRootEntry()):
+            return(None)
+        else:
+            return(self.selectedEntry)
 
 
     def getMinimumSize(self):
@@ -270,7 +269,9 @@ class MediaCollection(Observable, Observer):
         Return a MediaFiler.Entry or None
         """
         if ((entry == None)
-            or (entry.getPath() == os.path.join(self.rootDirectory, self.InitialFileName))):
+            or (entry == self.getRootEntry())
+            or (entry.getPath() == self.initialEntry)
+            ):
             return(self.root.getFirstEntry())
         else:
             return(entry.getNextEntry(entry))
@@ -282,7 +283,9 @@ class MediaCollection(Observable, Observer):
         Return MediaFiler.Entry or None
         """
         if ((entry == None)
-            or (entry.getPath() == os.path.join(self.rootDirectory, self.InitialFileName))):
+            or (entry == self.getRootEntry())
+            or (entry.getPath() == self.initialEntry)
+            ):
             return(self.root.getLastEntry())
         else:
             return(entry.getPreviousEntry(entry))

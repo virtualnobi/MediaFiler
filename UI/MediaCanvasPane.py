@@ -83,14 +83,15 @@ class MediaCanvas(wx.Panel, Observer):
             self.model.removeObserver(self)
         self.model = model
         self.model.addObserverForAspect(self, 'selection')
-        if (self.model.getSelectedEntry()):
-            self.setEntry(self.model.getSelectedEntry())
+        self.setEntry(self.model.getSelectedEntry())
 
 
     def setEntry (self, entry):
         """Set the entry to display.
         """
         #print('MediaCanvas: setEntry(%s' % entry.getPath())
+        if (entry == None):
+            entry = self.model.initialEntry
         if (self.entry <> entry):
             wx.BeginBusyCursor()
             column = 1  # count columns when placing images in grid

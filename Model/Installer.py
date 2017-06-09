@@ -44,6 +44,7 @@ LogoFilename = u'Logo.ico'
 ClassFilename = u'classes.txt'
 ConfigurationFilename = (u'%s.ini' % GUIId.AppTitle)
 NamesFilename = u'names.orig'
+InitialFilename = u'initial.jpg'
 TrashFolder = u'trash'
 ImportFolder = u'import'
 
@@ -83,6 +84,12 @@ def getNamesFilePath():
     """Return the path to the name list.
     """
     return(os.path.join(getLibraryPath(), NamesFilename))
+
+
+def getInitialFilePath():
+    """Return the path to the initial image to display on startup.
+    """
+    return(os.path.join(getLibraryPath(), InitialFilename))
 
 
 def getTrashPath():
