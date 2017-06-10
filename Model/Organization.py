@@ -1100,7 +1100,7 @@ class OrganizationByDate(MediaOrganization):
         if ((name <> None)
             or (scene <> None)):
             raise ValueError
-        cls.MoveToLocations.append({'rootdir': '', 'year': year, 'month': month, 'day': day})
+        cls.MoveToLocations.append({'rootDir': '', 'year': year, 'month': month, 'day': day})
         print('OrganizationByDate.registerMoveToLocation(): Registered (%s, %s, %s)' % (year, month, day))
         if (len(cls.MoveToLocations) > GUIId.MaxNumberMoveToLocations):
             cls.MoveToLocations = cls.MoveToLocations[1:]
@@ -1134,7 +1134,7 @@ class OrganizationByDate(MediaOrganization):
         for mtl in self.__class__.MoveToLocations:
             if (moveToId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations)):
                 print('Adding move-to location "%s" into menu id %d' % (mtl, moveToId))
-                moveToMenu.Append(moveToId, self.constructPathHead(mtl))
+                moveToMenu.Append(moveToId, self.__class__.constructPathHead(**mtl))
                 if (mtl == self.getScene()):
                     moveToMenu.Enable(moveToId, False)
                 moveToId = (moveToId + 1)

@@ -111,7 +111,8 @@ class MediaCollection(Observable, Observer):
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'changed')
         # select initial entry
-        self.initialEntry = Entry.createInstance(self, Installer.getInitialFilePath())
+        if (os.path.exists(Installer.getInitialFilePath())):
+            self.initialEntry = Entry.createInstance(self, Installer.getInitialFilePath())
         if (self.configuration.has_option(GUIId.AppTitle, self.ConfigurationOptionLastMedia)):
             entry = self.getEntry(path=self.getConfiguration(self.ConfigurationOptionLastMedia))
             if (entry <> None):
