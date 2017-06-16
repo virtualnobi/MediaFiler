@@ -234,7 +234,7 @@ class ImportDialog(wx.Dialog):
         s = wx.GridBagSizer(8, 8)
         # row 1 - import directory
         vBox = wx.BoxSizer()
-        self.importDirectoryField = wx.TextCtrl(self, -1)
+        self.importDirectoryField = wx.TextCtrl(self, size=(200,0))
         self.importDirectoryField.SetValue(self.parameters.getImportDirectory())
         vBox.Add(self.importDirectoryField, flag=(wx.EXPAND|wx.ALIGN_CENTER_VERTICAL))
         self.importDirectoryBrowseButton = wx.Button(self, GUIId.BrowseImportDirectory)

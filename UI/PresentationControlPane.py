@@ -177,7 +177,10 @@ class PresentationControlPane(wx.Panel, Observer):
         """
         super(PresentationControlPane, self).updateAspect(observable, aspect)
         if (aspect == 'selection'):
-            self.mediaName.SetLabel(observable.getSelectedEntry().getFilename())
+            if (observable.getSelectedEntry() <> None):
+                self.mediaName.SetLabel(observable.getSelectedEntry().getFilename())
+            else: 
+                self.mediaName.SetLabel('')
             self.GetSizer().Layout()
             pass
 

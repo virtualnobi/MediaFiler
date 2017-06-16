@@ -419,7 +419,8 @@ class MediaCollection(Observable, Observer):
                 if ((number % increment) == 0):
                     print('  reached "%s"' % entry.getPath())
         # if selected entry is filtered, search for unfiltered parent
-        if (self.getSelectedEntry().isFiltered()):
+        if (self.getSelectedEntry()
+            and self.getSelectedEntry().isFiltered()):
             entry = self.getSelectedEntry().getParentGroup()
             while ((entry <> self.getRootEntry())
                 and entry.isFiltered()):

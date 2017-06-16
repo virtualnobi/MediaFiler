@@ -198,30 +198,31 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         if (self.entry):
             self.entry.removeObserver(self)  # unregister from previous observable
         self.entry = entry
-        if (entry == None):
-            pass
-        self.entry.addObserverForAspect(self, 'name')  # register for changes of name
-        # enable the first radiobutton in each group (the 'n/a' one) only if entry is a group
-        for className in self.model.getClassHandler().getClassNames():
-            if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, use checkboxes
-                self.selectionBoxes[className]['list'][0].Enable(self.entry.isGroup())
-            else:  # single selection, use radiobuttons
-                self.selectionBoxes[className].EnableItem(0, self.entry.isGroup())
-        # fill in data from the selected entry/group
-        entryElements = self.entry.getKnownElements()
-        for className in self.model.getClassHandler().getClassNames():
-            hits = entryElements.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
-            if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes
-                for checkBox in self.selectionBoxes[className]['list']:  # translate each existing class element into checked box 
-                    checkBox.SetValue(checkBox.GetLabel() in hits)
-            else:  # single selection, radioboxes
-                if (len(hits) > 0):  # applies, select radio button
-                    self.selectionBoxes[className].SetStringSelection(hits.pop())
-                else:  # does not apply
-                    if (self.entry.isGroup()):  # for a group, select "n/a" item
-                        self.selectionBoxes[className].SetSelection(0)
-                    else:  # for an image, select empty item
-                        self.selectionBoxes[className].SetSelection(1)
+        if (entry <> None):
+            self.entry.addObserverForAspect(self, 'name')  # register for changes of name
+            # enable the first radiobutton in each group (the 'n/a' one) only if entry is a group
+            for className in self.model.getClassHandler().getClassNames():
+                if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, use checkboxes
+                    self.selectionBoxes[className]['list'][0].Enable(self.entry.isGroup())
+                else:  # single selection, use radiobuttons
+                    self.selectionBoxes[className].EnableItem(0, self.entry.isGroup())
+            # fill in data from the selected entry/group
+            entryElements = self.entry.getKnownElements()
+            for className in self.model.getClassHandler().getClassNames():
+                hits = entryElements.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
+                if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes
+                    for checkBox in self.selectionBoxes[className]['list']:  # translate each existing class element into checked box 
+                        checkBox.SetValue(checkBox.GetLabel() in hits)
+                else:  # single selection, radioboxes
+                    if (len(hits) > 0):  # applies, select radio button
+                        self.selectionBoxes[className].SetStringSelection(hits.pop())
+                    else:  # does not apply
+                        if (self.entry.isGroup()):  # for a group, select "n/a" item
+                            self.selectionBoxes[className].SetSelection(0)
+                        else:  # for an image, select empty item
+                            self.selectionBoxes[className].SetSelection(1)
+        else:  # no entry selected
+            pass  # TODO: reset all widgets
         # relayout
         self.SetupScrolling()
         self.GetSizer().Layout()

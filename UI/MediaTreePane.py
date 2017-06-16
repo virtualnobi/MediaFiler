@@ -171,7 +171,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             observable.removeObserver(self)
             node = observable.getTreeItemID()
             self.Delete(node)
-            print('MediaTreeControl.update(): entry "%s" removed' % observable.getPath())
+            print('MediaTreeCtrl.update(): entry "%s" removed' % observable.getPath())
         elif (aspect == 'children'):  # Group changes its children
             #print('MediaTreeCtrl: entry "%s" changing children...' % observable.getPath())
             node = observable.getTreeItemID()

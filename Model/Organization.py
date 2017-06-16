@@ -1100,7 +1100,7 @@ class OrganizationByDate(MediaOrganization):
         if ((name <> None)
             or (scene <> None)):
             raise ValueError
-        cls.MoveToLocations.append({'rootDir': '', 'year': year, 'month': month, 'day': day})
+        cls.MoveToLocations.append({'year': year, 'month': month, 'day': day})
         print('OrganizationByDate.registerMoveToLocation(): Registered (%s, %s, %s)' % (year, month, day))
         if (len(cls.MoveToLocations) > GUIId.MaxNumberMoveToLocations):
             cls.MoveToLocations = cls.MoveToLocations[1:]
@@ -1134,8 +1134,12 @@ class OrganizationByDate(MediaOrganization):
         for mtl in self.__class__.MoveToLocations:
             if (moveToId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations)):
                 print('Adding move-to location "%s" into menu id %d' % (mtl, moveToId))
-                moveToMenu.Append(moveToId, self.__class__.constructPathHead(**mtl))
-                if (mtl == self.getScene()):
+                path = self.__class__.constructPathHead(rootDir='', **mtl)
+                (dummy, tail) = os.path.split(path)
+                moveToMenu.Append(moveToId, tail)
+                if ((mtl['year'] == self.getYear())
+                    and (mtl['month'] == self.getMonth())
+                    and(mtl['day'] == self.getDay())):
                     moveToMenu.Enable(moveToId, False)
                 moveToId = (moveToId + 1)
         if (moveToId > GUIId.SelectMoveToLocation):  # scenes exist
@@ -1146,8 +1150,11 @@ class OrganizationByDate(MediaOrganization):
     def runContextMenuItem(self, menuId, parentWindow):
         """Run functions to handle the menu items added in extendContextMenu()
         """
-        if (False):
-            pass
+        if ((GUIId.SelectMoveToLocation <= menuId)
+            and (menuId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations))):
+            mtlIndex = (menuId - GUIId.SelectMoveToLocation)
+            mtl = self.__class__.MoveToLocations[mtlIndex]
+            print('Moving "%s" to %s' % (self.getPath(), mtl))
         else:
             super(OrganizationByDate, self).runContextMenuItem(self, menuId, parentWindow)
 

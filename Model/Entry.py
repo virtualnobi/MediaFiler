@@ -175,12 +175,19 @@ class Entry(PausableObservable):
         self.unknownElements = aSet
 
 
-    def setParentGroup(self, group):
-        """Add self to group. Includes removing from current parent and adding to group.
+    def setParentGroup(self, group, notifyObserversOfRemoval=True):
+        """Add self to a Group. 
+        
+        Does also remove self from current parent and adds it to new group.
+        If an Entry is removed, the current parent is notified via the 'remove' aspect. 
+        To avoid double notifications, set notifyObserversOfRemoval to False.
+        
+        MediaFiler.Group group is the new parent of self
+        Boolean notifyObserversOfRemoval indicates whether to notify observers of current parent about removal of self
         """
         if (self.parentGroup <> group):
             if (self.parentGroup <> None):
-                self.parentGroup.removeEntryFromGroup(self)
+                self.parentGroup.removeEntryFromGroup(self, notifyObserversOfRemoval)
             self.parentGroup = group
             if (group <> None):
                 group.addEntryToGroup(self)
@@ -206,7 +213,7 @@ class Entry(PausableObservable):
         Move the image file into the trash directory.
         """
         self.changedAspect('remove')
-        self.setParentGroup(None)
+        self.setParentGroup(None, notifyObserversOfRemoval=False)
         # move to trash
         oldName = self.getPath()
         newName = os.path.join(self.model.rootDirectory, 

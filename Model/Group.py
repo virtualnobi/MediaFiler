@@ -66,11 +66,18 @@ class Group(Entry):
 
 
 # Setters
-    def removeEntryFromGroup (self, entry):
-        """Remove the photoFilerEntry entry from self's collection.
+    def removeEntryFromGroup (self, entry, notifyObservers=True):
+        """Remove an Entry from self.
+        
+        When removing an Entry, its parent Group will also change its children. 
+        To avoid double changes, set notifyObservers to False.
+        
+        MediaFiler.Entry entry the subentry of self to remove. 
+        Boolean notifyObservers indicates whether to notify self's Observers.
         """
         self.subEntries.remove(entry)
-        self.changedAspect('children')
+        if (notifyObservers):
+            self.changedAspect('children')
     
     
     def addEntryToGroup (self, entry):

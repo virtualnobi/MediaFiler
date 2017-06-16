@@ -57,11 +57,12 @@ class MediaCanvas(wx.Panel, Observer):
         """ ASPECT of OBSERVABLE has changed. 
         """
         super(MediaCanvas, self).updateAspect(observable, aspect)
-        if (aspect == 'selection'):  # model changes selection
+        if (aspect == 'selection'):  # MediaCollection changes selection
             entry = observable.getSelectedEntry()
             if (entry == None):
                 self.clear()
             else:
+                print('Displaying "%s" on canvas' % entry.getPath())
                 self.setEntry(entry)
         elif (aspect == 'children'):  # the currently selected Entry has changed children
             self.clear()
@@ -71,7 +72,7 @@ class MediaCanvas(wx.Panel, Observer):
                 parent = self.entry
                 self.clear()
                 self.setEntry(parent)
-            
+
 
 
 # Getters
