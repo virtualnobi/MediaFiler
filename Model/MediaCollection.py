@@ -33,8 +33,8 @@ from __future__ import print_function
 import types
 import os
 import re
-import random
-import copy
+#import random
+#import copy
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer
@@ -47,6 +47,7 @@ from .MediaClassHandler import MediaClassHandler
 from .Organization import OrganizationByDate
 from .Organization import OrganizationByName
 from UI import GUIId
+from Model.MediaNameHandler import MediaNameHandler
 
 
 
@@ -57,12 +58,8 @@ class MediaCollection(Observable, Observer):
 
 
 # Constants
-#    ImageFolderName = u'images'  # name of directory containing images
-#    NamesFileName = os.path.join('..', 'lib', 'names.orig')  # name of file containing names, if it exists, images are organized by name, otherwise by date
-#    InitialFileName = u'initial.jpg'  # lowercase file name to show after loading
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
     ConfigurationOptionLastMedia = 'last-media'
-#    ConfigurationFilename = os.path.join('..', 'lib', (GUIId.AppTitle + '.ini'))
 
 
 
@@ -75,7 +72,7 @@ class MediaCollection(Observable, Observer):
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection'])
         # internal state
         self.setRootDirectory(rootDir)
-        return (None)
+        return(None)
 
 
     def setRootDirectory (self, rootDir):
@@ -95,6 +92,8 @@ class MediaCollection(Observable, Observer):
         if (not self.configuration.has_section(GUIId.AppTitle)):
             self.configuration.add_section(GUIId.AppTitle)
         # read legal names and class definitions
+        self.nameHandler = MediaNameHandler(Installer.getNamesFilePath())
+        self.organizedByDate = (not self.nameHandler.isValid())
         self.readNamesFromFile(Installer.getNamesFilePath())
         if (self.organizedByDate):
             self.organizationStrategy = OrganizationByDate
@@ -356,15 +355,17 @@ class MediaCollection(Observable, Observer):
         if ((name == None)  # illegal input 
             or (self.organizedByDate)):  # names are irrelevant
             return (False)
-        elif (name in self.names):  # name is legal
-            return (True)
-        else:  # check whether name suffixed by digits 
-            match = re.match('^([^\d]+)\d+$', name)
-            if (match):  # digits exist
-                name = match.group(1)
-                return (name in self.names)
-            else:  # no match
-                return(False)
+        else:
+            return(self.nameHandler.isNameLegal(name))
+#         elif (name in self.names):  # name is legal
+#             return (True)
+#         else:  # check whether name suffixed by digits 
+#             match = re.match('^([^\d]+)\d+$', name)
+#             if (match):  # digits exist
+#                 name = match.group(1)
+#                 return (name in self.names)
+#             else:  # no match
+#                 return(False)
 
 
     def setFreeNames (self):
@@ -373,10 +374,13 @@ class MediaCollection(Observable, Observer):
         if (self.organizedByDate):
             self.freeNames = None
         else:
-            self.freeNames = copy.copy(self.names) # start with list of all names
-            for entry in self: 
-                if (entry.getName() in self.freeNames):
-                    self.freeNames.remove(entry.getName())
+            self.nameHandler.registerAllNamesAsFree()
+            for entry in self:
+                self.nameHandler.registerNameAsUsed(entry.getName())
+#             self.freeNames = copy.copy(self.names) # start with list of all names
+#             for entry in self: 
+#                 if (entry.getName() in self.freeNames):
+#                     self.freeNames.remove(entry.getName())
 
         
     def getFreeName(self):
@@ -386,10 +390,11 @@ class MediaCollection(Observable, Observer):
         if (self.organizedByDate):
             return(None)
         else:
-            if (len(self.freeNames) > 0): # free names exist
-                return(self.freeNames.pop(random.randint(0,(len(self.freeNames) - 1)))) # pick one randomly
-            else: # no free names left
-                return(None)
+            return(self.nameHandler.getFreeName())
+#             if (len(self.freeNames) > 0): # free names exist
+#                 return(self.freeNames.pop(random.randint(0,(len(self.freeNames) - 1)))) # pick one randomly
+#             else: # no free names left
+#                 return(None)
 
 
 
@@ -425,6 +430,8 @@ class MediaCollection(Observable, Observer):
             while ((entry <> self.getRootEntry())
                 and entry.isFiltered()):
                 entry = entry.getParentGroup()
+            if (entry == None):
+                print('Root not found!')
             self.setSelectedEntry(entry)
         self.changedAspect('stopFiltering')
         print('MediaCollection.filterEntries() finished')

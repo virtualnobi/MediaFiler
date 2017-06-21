@@ -654,7 +654,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.displayInfoMessage(_('Loading...'))
         # set window icon
         print('Setting app icon from "%s"' % os.path.join(directory, '../lib/logo.ico'))
-        self.SetIcon(wx.Icon(os.path.join(directory, '../lib/logo.ico'), wx.BITMAP_TYPE_ICO))
+#        self.SetIcon(wx.Icon(os.path.join(directory, '../lib/logo.ico'), wx.BITMAP_TYPE_ICO))
+        self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
         # create the model
         self.model = MediaCollection(directory)
         self.model.addObserverForAspect(self, 'startFiltering')
@@ -663,7 +664,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
         if (self.model.organizedByDate):
             self.statusbar.SetStatusText (_('Organized by date'), GUIId.SB_Organization)
         else:
-            text = _('%s (%d used, %d free)') % (directory, len(self.model.names), len(self.model.freeNames)) 
+            text = _('%s (%d used, %d free)') % (directory, 
+                                                 self.model.nameHandler.getNumberUsedNames(), 
+                                                 self.model.nameHandler.getNumberFreeNames()) 
             self.statusbar.SetStatusText(text, GUIId.SB_Root)           
             self.statusbar.SetStatusText(_('Organized by name'), GUIId.SB_Organization)
         self.statusbar.Show()

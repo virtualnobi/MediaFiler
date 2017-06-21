@@ -7,6 +7,7 @@
 
 # Imports
 ## Standard
+from __future__ import print_function
 import gettext
 import os.path
 ## Contributed

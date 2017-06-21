@@ -14,8 +14,10 @@ import wx
 ## nobi
 ## project
 from UI import GUIId
+import Installer
 from .Entry import Entry
 from .Single import Single
+from Model.MediaCollection import MediaCollection
 
 
 
@@ -28,20 +30,22 @@ class Image(Single):
 
 # Constants
     LegalExtensions = ['jpg', 'png', 'gif', 'tif', 'jpeg']
+    ConfigurationOptionViewer = 'viewer-image'
+    ConfigurationParameter = '%1'
     PreviewImageFilename = 'Image.jpg'
     
     
 
 ## Inheritance - Entry
     @classmethod
-    def getLegalExtensions(self):
+    def getLegalExtensions(cls):
         """Return a set of file extensions which clas can display.
         
         File extensions are lower-case, not including the preceeding dot.
         
         Returns a Set of Strings.
         """
-        return(set(self.LegalExtensions))
+        return(set(cls.LegalExtensions))
 
 
 
@@ -70,12 +74,13 @@ class Image(Single):
         """
         print('Image.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.StartExternalViewer):
-            codec = sys.getfilesystemencoding()
-            filename = self.getPath().encode(codec)
-            try:
-                subprocess.call(['i_view32.exe', filename, '/fs'], shell=True)
-            except:
-                print('Cannot invoke IrfanView on "%s"!' % filename)
+#             codec = sys.getfilesystemencoding()
+#             filename = self.getPath().encode(codec)
+#             try:
+#                 subprocess.call(['i_view32.exe', filename, '/fs'], shell=True)
+#             except:
+#                 print('Cannot invoke IrfanView on "%s"!' % filename)
+            self.runExternalViewer(parentWindow)
         else:
             return(super(Image, self).runContextMenuItem(menuId, parentWindow))
 
@@ -116,7 +121,7 @@ class Image(Single):
             else: 
                 print('Image: Illegal extension in file "%s", using preview image' % self.getPath())
             if (self.rawImage == None):
-                self.rawImage = wx.Image(os.path.join(self.model.rootDirectory, '..', 'lib', self.PreviewImageFilename),
+                self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
                                          wx.BITMAP_TYPE_JPEG)
             assert (self.rawImage <> None), ('Cannot load "%s"' % self.getPath())
             # derive size from raw data
@@ -125,7 +130,7 @@ class Image(Single):
                 self.rawHeight = self.rawImage.GetHeight()
             except:
                 print('Image: Cannot determine size of "%s", using preview image' % self.getPath())
-                self.rawImage = wx.Image(os.path.join(self.model.rootDirectory, '..', 'lib', self.PreviewImageFilename),
+                self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
                                          wx.BITMAP_TYPE_JPEG)
                 self.rawWidth = self.rawImage.GetWidth()
                 self.rawHeight = self.rawImage.GetHeight()                
@@ -172,6 +177,36 @@ class Image(Single):
         Return a String
         """
         return('%dx%d' % (self.getRawImage().Width, self.getRawImage().Height))
+
+
+
+# Internal - to change without notice
+    def runExternalViewer(self, parentWindow):
+        """Run an external viewer, as given in MediaFiler configuration, to view self's media.
+        
+        wx.Window parentWindow is the window on which to display an error dialog, if needed
+        """
+        fileName = self.getPath().encode(sys.getfilesystemencoding())
+        if (not self.model.configuration.has_option(GUIId.AppTitle, self.__class__.ConfigurationOptionViewer)):
+            dlg = wx.MessageDialog(parentWindow,
+                                   ('No external command specified with\n"%s" option!' % self.__class__.ConfigurationOptionViewer),
+                                   'Error',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+        viewerName = self.model.getConfiguration(self.__class__.ConfigurationOptionViewer)
+        viewerName = viewerName.replace(self.__class__.ConfigurationParameter, fileName)
+        commandArgs = viewerName.split()
+        print('Calling %s' % commandArgs)
+        result = subprocess.call(commandArgs, shell=True)  # TODO: interpret ".." correctly in options, to get rid of shell option 
+        if (result <> 0):
+            dlg = wx.MessageDialog(parentWindow,
+                                   ('External command\n"%s"\nfailed with error code %d!' % (viewerName, result)),
+                                   'Error',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
 
 
 

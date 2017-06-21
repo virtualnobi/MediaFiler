@@ -65,7 +65,7 @@ class SecureConfigParser(SafeConfigParser):
     
     def get(self, section, option):
 #        encodedValue = super(SecureConfigParser, self).get(section, option)
-        encodedValue = SafeConfigParser.get(self, section, option)
+        encodedValue = SafeConfigParser.get(self, section, option, raw=True)
         value = encodedValue.decode(self.EncodingName, 'replace')
         return(value)
     

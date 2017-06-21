@@ -12,6 +12,7 @@ import wx
 ## nobi
 ## project
 from UI import GUIId
+import Installer
 from .Entry import Entry
 from .Single import Single
 
@@ -38,8 +39,10 @@ class Movie(Single):
         Single.__init__(self, model, path)
         # internal state
         # load preview image for movies
-        self.rawImage = wx.Image(os.path.join (self.model.rootDirectory, '..', 'lib', Movie.PreviewImageFilename), 
-                                 wx.BITMAP_TYPE_JPEG)        
+#        self.rawImage = wx.Image(os.path.join (self.model.rootDirectory, '..', 'lib', Movie.PreviewImageFilename), 
+#                                 wx.BITMAP_TYPE_JPEG)        
+        self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
+                                 wx.BITMAP_TYPE_JPEG)
         return(None)
 
 

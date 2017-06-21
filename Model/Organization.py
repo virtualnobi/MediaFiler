@@ -527,12 +527,9 @@ class OrganizationByName(MediaOrganization):
                 log.write('No more free names.\n')
             else:
                 log.write('Choosing free name "%s" for file "%s"\n' % (newName, path))
-        elif (newName in self.ImageFilerModel.freeNames):  # old name exists and is still free
+        elif (self.ImageFilerModel.nameHandler.isNameFree(newName)):  # old name exists and is still free
             log.write('Found free legal name "%s" in file "%s"\n' % (newName, path))
-            self.ImageFilerModel.freeNames.remove(newName) 
-        elif (re.match ("\w+\d+$", newName)):  # found legal name plus number
-            log.write('Found (free?) legal name "%s" in file "%s"\n' % (newName, path))
-            pass
+            self.ImageFilerModel.nameHandler.registerNameAsUsed(newName) 
         else: # old name exists but is occupied
             log.write('Existing name "%s" used in file "%s"\n' % (newName, path))
         return(newName)
