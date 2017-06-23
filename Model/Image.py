@@ -186,7 +186,6 @@ class Image(Single):
         
         wx.Window parentWindow is the window on which to display an error dialog, if needed
         """
-        fileName = self.getPath().encode(sys.getfilesystemencoding())
         if (not self.model.configuration.has_option(GUIId.AppTitle, self.__class__.ConfigurationOptionViewer)):
             dlg = wx.MessageDialog(parentWindow,
                                    ('No external command specified with\n"%s" option!' % self.__class__.ConfigurationOptionViewer),
@@ -196,7 +195,8 @@ class Image(Single):
             dlg.Destroy()
             return
         viewerName = self.model.getConfiguration(self.__class__.ConfigurationOptionViewer)
-        viewerName = viewerName.replace(self.__class__.ConfigurationParameter, fileName)
+        viewerName = viewerName.replace(self.__class__.ConfigurationParameter, self.getPath())
+        viewerName = viewerName.encode(sys.getfilesystemencoding())
         commandArgs = viewerName.split()
         print('Calling %s' % commandArgs)
         result = subprocess.call(commandArgs, shell=True)  # TODO: interpret ".." correctly in options, to get rid of shell option 

@@ -299,7 +299,7 @@ class MediaCollection(Observable, Observer):
         """
         if (self.configuration.has_section(GUIId.AppTitle)
             and self.configuration.has_option(GUIId.AppTitle, option)):
-            return(self.configuration.get(GUIId.AppTitle, option))
+            return(unicode(self.configuration.get(GUIId.AppTitle, option)))
         else: 
             return(None)
 
