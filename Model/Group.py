@@ -119,10 +119,10 @@ class Group(Entry):
         """Return a Set of all known elements of self.
            Returns Set of String.
         """
-        result = set()
+        result = None
         for subEntry in self.subEntries:
-            if (len(result) == 0):  # result empty = first iteration
-                result = subEntry.getKnownElements()
+            if (result == None):  # first iteration
+                result = set(subEntry.getKnownElements())
             else:
                 result.intersection_update(subEntry.getKnownElements())
         return(result)
@@ -132,10 +132,10 @@ class Group(Entry):
         """Return all unknown elements of self.
            Returns Set of String
         """
-        result = set()
+        result = None
         for subEntry in self.subEntries:
-            if (len(result) == 0):  # result empty = first iteration
-                result = subEntry.getUnknownElements()
+            if (result == None):  # first iteration
+                result = set(subEntry.getUnknownElements())
             else:
                 result.intersection_update(subEntry.getUnknownElements())
         return(result)

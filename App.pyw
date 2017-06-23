@@ -653,8 +653,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.statusbar.SetStatusText(directory, GUIId.SB_Root)
         self.displayInfoMessage(_('Loading...'))
         # set window icon
-        print('Setting app icon from "%s"' % os.path.join(directory, '../lib/logo.ico'))
-#        self.SetIcon(wx.Icon(os.path.join(directory, '../lib/logo.ico'), wx.BITMAP_TYPE_ICO))
+        #print('Setting app icon from "%s"' % os.path.join(directory, '../lib/logo.ico'))
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
         # create the model
         self.model = MediaCollection(directory)
