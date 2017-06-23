@@ -205,7 +205,8 @@ class Group(Entry):
 
     def getKnownElements (self):
         """Return a Set of all known elements of self.
-           Returns Set of String.
+        
+        Return Set of String.
         """
         result = None
         for subEntry in self.subEntries:
@@ -213,12 +214,16 @@ class Group(Entry):
                 result = set(subEntry.getKnownElements())
             else:
                 result.intersection_update(subEntry.getKnownElements())
-        return(result)
+        if (result == None):
+            return(set())
+        else:
+            return(result)
     
     
     def getUnknownElements (self):
         """Return all unknown elements of self.
-           Returns Set of String
+        
+        Return Set of String
         """
         result = None
         for subEntry in self.subEntries:
@@ -226,7 +231,10 @@ class Group(Entry):
                 result = set(subEntry.getUnknownElements())
             else:
                 result.intersection_update(subEntry.getUnknownElements())
-        return(result)
+        if (result == None):
+            return(set())
+        else:
+            return(result)
 
     
     def getScenes(self): 
