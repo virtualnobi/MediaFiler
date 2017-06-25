@@ -44,6 +44,17 @@ class ImportParameterObject(object):
 
 
 # Constants
+    ConfigurationOptionImportPath = 'import-path'
+    ConfigurationOptionImportIgnoreUnhandled = 'import-ignore-unhandled'
+    ConfigurationOptionImportMinimumSize = 'import-minimum-size'
+    ConfigurationOptionImportMaximumFiles = 'import-maximum-files'
+    ConfigurationOptionImportDeleteOriginals = 'import-delete-originals'
+    ConfigurationOptionImportMarkAsNew = 'import-mark-as-new'
+    ConfigurationOptionImportReportIllegals = 'import-report-illegals'
+    ConfigurationOptionImportPreferExif = 'import-prefer-exif'
+
+
+
 # Class Variables
 # Class Methods
     @classmethod
@@ -63,17 +74,36 @@ class ImportParameterObject(object):
         # internal state
         self.log = StringIO.StringIO()
         self.illegalElements = {}
-        self.importDirectory = os.path.normpath(os.path.join(model.getRootDirectory(), '..', 'import'))
         self.testRun = True
-        self.ignoreUnhandledTypes = (model.organizationStrategy == OrganizationByName)
-        self.minimumFileSize = 10000
-        self.deleteOriginals = True
-        self.markAsNew = True
-        self.maxFilesToImport = 1000
         self.numberOfImportedFiles = 0
-        self.reportIllegalElements = False
+        # the following are options on the UI, which are defaulted to last used values
+        self.importDirectory = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportPath)
+        if (self.importDirectory == None):
+            self.importDirectory = os.path.normpath(os.path.join(model.getRootDirectory(), '..', 'import'))
+        self.ignoreUnhandledTypes = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportIgnoreUnhandled)
+        if (self.ignoreUnhandledTypes == None):
+            self.ignoreUnhandledTypes = (model.organizationStrategy == OrganizationByName)
+        self.minimumFileSize = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMinimumSize)
+        if (self.minimumFileSize == None):
+            self.minimumFileSize = 10000
+        self.deleteOriginals = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportDeleteOriginals)
+        if (self.deleteOriginals == None):
+            self.deleteOriginals = True
+        self.markAsNew = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMarkAsNew)
+        if (self.markAsNew == None):
+            self.markAsNew = True
+        self.maxFilesToImport = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMaximumFiles)
+        if (self.maxFilesToImport == None):
+            self.maxFilesToImport = 1000
+        self.reportIllegalElements = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportReportIllegals)
+        if (self.reportIllegalElements == None):
+            self.reportIllegalElements = False
         # parameters for OrganizationByDate
-        self.preferPathDateOverExifDate = True
+        self.preferPathDateOverExifDate = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportPreferExif)
+        if (self.preferPathDateOverExifDate == None):
+            self.preferPathDateOverExifDate = True
+        else: 
+            self.preferPathDateOverExifDate = (not self.preferPathDateOverExifDate)
         # parameters for OrganizationByName
         return(None)
 
