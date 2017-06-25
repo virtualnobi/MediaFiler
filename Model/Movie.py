@@ -6,12 +6,13 @@
 # Imports
 ## standard
 import os.path
-import subprocess
+#import subprocess
+#import sys
 ## contributed
 import wx
 ## nobi
 ## project
-from UI import GUIId
+#from UI import GUIId
 import Installer
 from .Entry import Entry
 from .Single import Single
@@ -27,27 +28,12 @@ class Movie(Single):
 
 # Constants
     LegalExtensions = ['mov', 'mp4', '3gp', 'mpg']  # all file formats handled by Movie
+    ConfigurationOptionViewer = 'viewer-movie'
     PreviewImageFilename = 'Movie.jpg'  # image shown as placeholder for movie
 
 
 
-# Lifecycle
-    def __init__ (self, model, path):
-        """Create a Movie from the file at PATH, based on imageFilerModel MODEL. 
-        """
-        # inheritance
-        Single.__init__(self, model, path)
-        # internal state
-        # load preview image for movies
-#        self.rawImage = wx.Image(os.path.join (self.model.rootDirectory, '..', 'lib', Movie.PreviewImageFilename), 
-#                                 wx.BITMAP_TYPE_JPEG)        
-        self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
-                                 wx.BITMAP_TYPE_JPEG)
-        return(None)
-
-
-
-## Inheritance - Entry
+# Class Methods
     @classmethod
     def getLegalExtensions(clas):
         """Return a set of file extensions which clas can display.
@@ -59,6 +45,21 @@ class Movie(Single):
         return(set(clas.LegalExtensions))
 
     
+
+# Lifecycle
+    def __init__ (self, model, path):
+        """Create a Movie from the file at PATH, based on imageFilerModel MODEL. 
+        """
+        # inheritance
+        Single.__init__(self, model, path)
+        # internal state
+        self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
+                                 wx.BITMAP_TYPE_JPEG)
+        return(None)
+
+
+
+## Inheritance - Entry
     def runContextMenuItem(self, menuId, parentWindow):
         """User selected menuId from context menu on self. Execute this function.
         
@@ -67,14 +68,21 @@ class Movie(Single):
         Returns
         """
         print('Running function %d on "%s"' % (menuId, self.getPath()))
-        if (menuId == GUIId.StartExternalViewer):
-            subprocess.call(['vlc.exe', self.getPath()], shell=True)
-        else:
-            return(super(Movie, self).runContextMenuItem(menuId, parentWindow))
+        return(super(Movie, self).runContextMenuItem(menuId, parentWindow))
 
 
 
 ## Inheritance - Single
+    def getConfigurationOptionExternalViewer(self):
+        """Return the configuration option to retrieve the command string for an external viewer of self.
+        
+        The string must contain the %1 spec which is replaced by the media file name.
+        
+        Return the external command string, or None if none given.
+        """
+        return(Movie.ConfigurationOptionViewer)
+
+
     def releaseMemory(self):
         """
         """
@@ -103,8 +111,6 @@ class Movie(Single):
 # Getters
 # Event Handlers
 # Internal - to change without notice
-
-
 # Class Initialization
 for extension in Movie.LegalExtensions: 
     Entry.ProductTrader.registerClassFor(Movie, extension)  # register Movie to handle extension

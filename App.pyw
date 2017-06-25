@@ -12,6 +12,7 @@ import os
 import subprocess
 import gettext
 import shutil
+import shlex
 #import threading
 import cProfile
 import pstats
@@ -87,6 +88,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
     MenuTitleTool = _('&Tool')
     ConfigurationOptionLastPerspective = 'last-perspective'
     ConfigurationOptionMaximizeOnStart = 'maximize-on-start'
+    ConfigurationOptionTextEditor = 'editor-text'
+
 
 
 ## Lifecycle
@@ -154,8 +157,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
         # TODO: replace fixed entries by dynamic history
         index = GUIId.LoadRecentDirectory;
         self.recentRootDirectories = ['N:\\shared\\images\\family', 
-                                      'Y:\home\Paul\PaulsBilder\images', 
-                                      'Y:\home\Gilla\GillasBilder\images']
+                                      'Y:\\home\\Lars\\LarsBilder\\images', 
+                                      'Y:\\home\\Paul\\PaulsBilder\\images', 
+                                      'Y:\\home\\Gilla\\GillasBilder\\images']
         for name in self.recentRootDirectories:
             menu.Append (index, name)
             index = (index + 1)
@@ -169,7 +173,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.perspectives[GUIId.MaxNumberPerspectives - 1] = self._mgr.SavePerspective()
         # perspective "Classify" to change classification of media
         self._mgr.GetPane('filter').Hide()
-        self._mgr.GetPane('tree').Show().Left()
+        self._mgr.GetPane('tree').Show().Left().BestSize(wx.Size(1000,1))
         self._mgr.GetPane('classification').Show().Left()
         self._mgr.GetPane('canvas').Show().Center()
         self._mgr.GetPane('name').Show().Top()
@@ -180,7 +184,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
                                       self.PerspectiveNameClassify)
         # perspective "Filter" to filter media
         self._mgr.GetPane('filter').Show().Left()
-        self._mgr.GetPane('tree').Show().Left()
+        self._mgr.GetPane('tree').Show().Left().BestSize(wx.Size(600,1))
         self._mgr.GetPane('classification').Hide()
         self._mgr.GetPane('canvas').Show().Center()
         self._mgr.GetPane('name').Show().Top()
@@ -203,7 +207,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         # perspective "All" containing all panes
         self.perspectives_menu.AppendSeparator()
         self._mgr.GetPane('filter').Show().Left()
-        self._mgr.GetPane('tree').Show().Left()
+        self._mgr.GetPane('tree').Show().Left().BestSize(wx.Size(600,1))
         self._mgr.GetPane('classification').Show().Left()
         self._mgr.GetPane('canvas').Show().Center()
         self._mgr.GetPane('name').Show().Top()
@@ -281,15 +285,16 @@ class MediaFiler (wx.Frame, Observer, Observable):
         import_menu.Append (GUIId.Import, GUIId.FunctionNames[GUIId.Import])
         import_menu.Append (GUIId.RemoveNew, GUIId.FunctionNames[GUIId.RemoveNew])
         # Tools / Generate
-        tools_menu = wx.Menu ()
-        mb.Append (tools_menu, self.MenuTitleTool)
+        self.toolsMenu = wx.Menu()
+        mb.Append(self.toolsMenu, self.MenuTitleTool)
 # TODO:        tools_menu.Append (GUIId.GenerateLinkDirectory, GUIId.FunctionNames[GUIId.GenerateLinkDirectory])
 # TODO:        tools_menu.Append (GUIId.GenerateThumbnails, GUIId.FunctionNames[GUIId.GenerateThumbnails])
 #        tools_menu.AppendSeparator()
-        tools_menu.Append(GUIId.RenameElement, GUIId.FunctionNames[GUIId.RenameElement])
-        tools_menu.Append(GUIId.EditClasses, GUIId.FunctionNames[GUIId.EditClasses])        
-        if (False):  # TODO: (not self.model.organizedByDate): does not work since model not defined yet
-            tools_menu.Append(GUIId.EditNames, GUIId.FunctionNames[GUIId.EditNames])
+        self.toolsMenu.Append(GUIId.RenameElement, GUIId.FunctionNames[GUIId.RenameElement])
+        self.toolsMenu.Append(GUIId.EditClasses, GUIId.FunctionNames[GUIId.EditClasses])
+        menuItem = wx.MenuItem(self.toolsMenu, GUIId.EditNames, GUIId.FunctionNames[GUIId.EditNames])
+        self.menuItemsByName.append(menuItem)
+        self.toolsMenu.AppendItem(menuItem)
 #        tools_menu.AppendSeparator()
 # TODO:        tools_menu.Append(GUIId.HarvestURLs, GUIId.FunctionNames[GUIId.HarvestURLs])
         
@@ -561,17 +566,33 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Start external editor on class file.
         """
         classFile = Installer.getClassFilePath()
-        subprocess.call(['C:/Program Files (x86)/Gnu/Emacs-24.5/bin/runemacs.exe', classFile], shell=True)
-        self.onReload(event)
-        pass
+        editorName = self.model.getConfiguration(MediaFiler.ConfigurationOptionTextEditor)
+        if (editorName):
+            editorName = editorName.replace(MediaCollection.ConfigurationOptionParameter, classFile)
+            commandArgs = shlex.split(editorName)  # editorName.split() does not respect quotes
+            print('Calling %s' % commandArgs)
+            subprocess.call(commandArgs, shell=False)
+            self.onReload(event)
+        else:
+            print(_('No editor defined with "%s" configuration option!') % MediaFiler.ConfigurationOptionTextEditor)
+            # TODO: error message, but on which window?
+            pass
     
     
     def onEditNames (self, event):  # @UnusedVariable
         """When image collection is organized by names, start external editor on names list.
         """
         if (not self.model.organizedByDate):
-            nameFile = self.model.rootDirectory + MediaCollection.NamesFileName
-            subprocess.call(['C:/Program Files (x86)/Gnu/Emacs-24.5/bin/runemacs.exe', nameFile], shell=True)
+            namesFile = Installer.getNamesFilePath()
+            editorName = self.model.getConfiguration(MediaFiler.ConfigurationOptionTextEditor)
+            if (editorName):
+                editorName = editorName.replace(MediaCollection.ConfigurationOptionParameter, namesFile)
+                commandArgs = shlex.split(editorName)
+                print('Calling %s' % commandArgs)
+                subprocess.call(commandArgs, shell=False)
+            else:
+                print(_('No editor defined with "%s" configuration option!') % MediaFiler.ConfigurationOptionTextEditor)
+                # TODO: error message, but on which window?
         else:
             print('Not supported!')
     
@@ -585,7 +606,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
 #             dialog.setLevels(2)
 #             if (dialog.ShowModal() == wx.ID_OK):
 #                 dialog.execute()
-
+        pass
 
 
 # - Window Events
@@ -670,7 +691,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
             self.statusbar.SetStatusText(_('Organized by name'), GUIId.SB_Organization)
         self.statusbar.Show()
         # update UI
-        self.updateMenuAccordingToOrganization(self.model.organizedByDate)
+        self.updateMenuAccordingToModel(self.model)
         print('Setting up name pane')
         self.namePane.setModel(self.model)
         print('Setting up filter pane')
@@ -692,40 +713,23 @@ class MediaFiler (wx.Frame, Observer, Observable):
         wx.EndBusyCursor()
 
 
-    def updateMenuAccordingToOrganization(self, organizationByDate):
-        """Hide/show the menu entries according to the media organization. 
+    def updateMenuAccordingToModel(self, mediaCollection):
+        """Hide/disable the menu entries according to the media organization. 
         
-        Boolean organizationByDate indicates that media is organized by date
+        MediaCollection specifies the model
         """
-        for menuItem in self.menuItemsByName:
-            menuItem.Enable(not organizationByDate)
+        if (mediaCollection.organizedByDate):
+            for menuItem in self.menuItemsByName:
+                menuItem.Enable(False)
+        else:  # organized by name
+            pass
+        if (not mediaCollection.getConfiguration(MediaFiler.ConfigurationOptionTextEditor)):
+            self.GetMenuBar().Enable(GUIId.EditClasses, enable=False)
+            self.GetMenuBar().Enable(GUIId.EditNames, enable=False)
 
 
 
 # Functions
-# def prepareFilesAndFolders(frame, path):
-#     """Ask user for the directory to create the media directory in, and prepare it.
-#     
-#     wx.Frame frame contains parent window for Dialog
-#     String path contains a default path
-#     Return String containing media root folder
-#         or None
-#     """
-#     result = None
-#     dlg = wx.DirDialog(frame, "The current working directory for this program is not a valid media directory. Choose a media directory:", style=wx.DD_DEFAULT_STYLE)
-#     dlg.SetPath(path)
-#     if (dlg.ShowModal() == wx.ID_OK):
-#         newPath = dlg.GetPath()
-#         if (os.path.isdir(newPath) 
-#             and Installer.checkInstallation(newPath)):
-#             result = newPath
-#         else:
-#             Installer.install(newPath)
-#             result = newPath
-#     dlg.Destroy()
-#     return(result)
-
-
 # section: Executable script
 if __name__ == "__main__":
     app = wx.App(False)    
@@ -733,7 +737,7 @@ if __name__ == "__main__":
     if (Installer.ensureInstallationOk(frame)):
         frame.Show()
         frame.setModel(Installer.getImagePath())
-        if (frame.model.getConfiguration(frame.ConfigurationOptionMaximizeOnStart)):
+        if (frame.model.getConfiguration(MediaFiler.ConfigurationOptionMaximizeOnStart)):
             print('Maximizing window')
             frame.Maximize(True)            
         app.MainLoop()

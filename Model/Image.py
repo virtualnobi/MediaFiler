@@ -5,19 +5,19 @@
 
 # Imports
 ## standard
-import sys
+#import sys
 import os.path
 #import glob
-import subprocess
+#import subprocess
 ## contributed
 import wx
 ## nobi
 ## project
-from UI import GUIId
+#from UI import GUIId
 import Installer
 from .Entry import Entry
 from .Single import Single
-from Model.MediaCollection import MediaCollection
+#from Model.MediaCollection import MediaCollection
 
 
 
@@ -31,7 +31,6 @@ class Image(Single):
 # Constants
     LegalExtensions = ['jpg', 'png', 'gif', 'tif', 'jpeg']
     ConfigurationOptionViewer = 'viewer-image'
-    ConfigurationParameter = '%1'
     PreviewImageFilename = 'Image.jpg'
     
     
@@ -73,16 +72,7 @@ class Image(Single):
             or None
         """
         print('Image.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
-        if (menuId == GUIId.StartExternalViewer):
-#             codec = sys.getfilesystemencoding()
-#             filename = self.getPath().encode(codec)
-#             try:
-#                 subprocess.call(['i_view32.exe', filename, '/fs'], shell=True)
-#             except:
-#                 print('Cannot invoke IrfanView on "%s"!' % filename)
-            self.runExternalViewer(parentWindow)
-        else:
-            return(super(Image, self).runContextMenuItem(menuId, parentWindow))
+        return(super(Image, self).runContextMenuItem(menuId, parentWindow))
 
     
 
@@ -153,6 +143,16 @@ class Image(Single):
 
 
 # Getters
+    def getConfigurationOptionExternalViewer(self):
+        """Return the configuration option to retrieve the command string for an external viewer of self.
+        
+        The string must contain the %1 spec which is replaced by the media file name.
+        
+        Return the external command string, or None if none given.
+        """
+        return(Image.ConfigurationOptionViewer)
+
+
     def getRawImageMemoryUsage(self):
         """Return self's current memory usage for the raw image, in Bytes.
         """
@@ -181,35 +181,6 @@ class Image(Single):
 
 
 # Internal - to change without notice
-    def runExternalViewer(self, parentWindow):
-        """Run an external viewer, as given in MediaFiler configuration, to view self's media.
-        
-        wx.Window parentWindow is the window on which to display an error dialog, if needed
-        """
-        if (not self.model.configuration.has_option(GUIId.AppTitle, self.__class__.ConfigurationOptionViewer)):
-            dlg = wx.MessageDialog(parentWindow,
-                                   ('No external command specified with\n"%s" option!' % self.__class__.ConfigurationOptionViewer),
-                                   'Error',
-                                   wx.OK | wx.ICON_ERROR)
-            dlg.ShowModal()
-            dlg.Destroy()
-            return
-        viewerName = self.model.getConfiguration(self.__class__.ConfigurationOptionViewer)
-        viewerName = viewerName.replace(self.__class__.ConfigurationParameter, self.getPath())
-        viewerName = viewerName.encode(sys.getfilesystemencoding())
-        commandArgs = viewerName.split()
-        print('Calling %s' % commandArgs)
-        result = subprocess.call(commandArgs, shell=True)  # TODO: interpret ".." correctly in options, to get rid of shell option 
-        if (result <> 0):
-            dlg = wx.MessageDialog(parentWindow,
-                                   ('External command\n"%s"\nfailed with error code %d!' % (viewerName, result)),
-                                   'Error',
-                                   wx.OK | wx.ICON_ERROR)
-            dlg.ShowModal()
-            dlg.Destroy()
-
-
-
 # Class Initialization
 for extension in Image.LegalExtensions: 
     Entry.ProductTrader.registerClassFor(Image, extension)

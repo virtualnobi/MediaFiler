@@ -11,12 +11,16 @@ from __future__ import print_function
 from decimal import Decimal
 import os
 import glob
+import shlex
+import sys
+import subprocess
 ## contributed
 import wx
 #from oset import oset 
 ## nobi
 ## project
 from UI import GUIId
+from MediaCollection import MediaCollection
 from .Entry import Entry
 from .Group import Group
 from collections import OrderedDict
@@ -31,7 +35,7 @@ class ImageBitmap (wx.StaticBitmap):
     When a bitmap is clicked, the underlying Entry can be recovered via .getEntry()
     """
 ## Lifecycle
-    def __init__(self, parent, id, entry, x, y, width, height):
+    def __init__(self, parent, ident, entry, x, y, width, height):
         """Create bitmap and store entry for reference
         """
         # correct position (x, y) to place image in middle of frame
@@ -39,7 +43,7 @@ class ImageBitmap (wx.StaticBitmap):
         x = x + ((width - w) / 2)
         y = y + ((height - h) / 2)
         # inheritance
-        wx.StaticBitmap.__init__(self, parent, id, entry.getBitmap(width, height), pos=(x, y))
+        wx.StaticBitmap.__init__(self, parent, ident, entry.getBitmap(width, height), pos=(x, y))
         # internal state
         self.entry = entry
  
@@ -147,6 +151,17 @@ class Single(Entry):
 
 
 # Getters
+    def getConfigurationOptionExternalViewer(self):
+        """Return the configuration option to retrieve the command string for an external viewer of self.
+        
+        The string must contain the %1 spec which is replaced by the media file name.
+        
+        Return the external command string, or None if none given.
+        """
+        return(None)
+
+
+
 ## Inheritance - Entry
     def getEntriesForDisplay (self):
         """Return the list of entries to represent self in an image display.
@@ -168,6 +183,9 @@ class Single(Entry):
         """
         menu = super(Single, self).getContextMenu()
         menu.Insert(0, GUIId.StartExternalViewer, GUIId.FunctionNames[GUIId.StartExternalViewer])
+        if ((not self.getConfigurationOptionExternalViewer()) 
+            or (not self.model.getConfiguration(self.getConfigurationOptionExternalViewer()))):
+            menu.Enable(GUIId.StartExternalViewer, enable=False)
         return(menu)
 
 
@@ -182,6 +200,7 @@ class Single(Entry):
             or None
         """
         #print('Single.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
+        # TODO: move scene functions to OrganizationByName
         if ((GUIId.SelectScene <= menuId)
             and (menuId < (GUIId.SelectScene + GUIId.MaxNumberScenes))):  # function "change to scene..."
             newScene = self.getParentGroup().getScenes()[menuId - GUIId.SelectScene]
@@ -197,6 +216,8 @@ class Single(Entry):
             pass
         elif (menuId == GUIId.ConvertToGroup):  # turn single media into a group
             self.convertToGroup()
+        elif (menuId == GUIId.StartExternalViewer):
+            self.runExternalViewer(parentWindow)
         else:
             return(super(Single, self).runContextMenuItem(menuId, parentWindow))
 
@@ -358,9 +379,10 @@ class Single(Entry):
         Number height
         Returns a MediaFiler.Single.ImageBitmap fitted into (width x height)
         """
-        #print('Single.getBitMap(%dx%d) on %s' % (width, height, self.getPath()))
+        print('Single.getBitMap(%dx%d) for "%s"' % (width, height, self.getPath()))
         # determine final size
         (w, h) = self.getSize(width, height)
+        print('  final size (%dx%d)' % (width, height))
         if (not ((0 < w) and (0 < h))):
             pass  # this will violate an assertion in Rescale()
         # load and resize bitmap if needed 
@@ -414,3 +436,33 @@ class Single(Entry):
                 newSceneString = None
         dialog.Destroy()
         return (newSceneString)
+
+
+    def runExternalViewer(self, parentWindow):
+        """Run an external viewer, as given in MediaFiler configuration, to view self's media.
+        
+        wx.Window parentWindow is the window on which to display an error dialog, if needed
+        """
+        option = self.getConfigurationOptionExternalViewer()
+        viewerName = self.model.getConfiguration(option)
+        if (not viewerName):
+            dlg = wx.MessageDialog(parentWindow,
+                                   ('No external command specified with the\n"%s" option!' % option),
+                                   'Error',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+        viewerName = viewerName.replace(MediaCollection.ConfigurationOptionParameter, self.getPath())
+        viewerName = viewerName.encode(sys.getfilesystemencoding())
+        commandArgs = shlex.split(viewerName)  # viewerName.split() will not respect quoting (for whitespace in file names)
+        print('Calling %s' % commandArgs)
+        result = subprocess.call(commandArgs, shell=False)
+        if (result <> 0):
+            dlg = wx.MessageDialog(parentWindow,
+                                   ('External command\n"%s"\nfailed with error code %d!' % (viewerName, result)),
+                                   'Error',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+

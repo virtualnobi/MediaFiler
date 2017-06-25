@@ -191,8 +191,8 @@ class MediaCanvas(wx.Panel, Observer):
         """Calculate number of rows and columns for given numberOfImages.
         """
         # determine aspect ratio of canvas
-        (self.width, self.height) = self.GetSizeTuple ()
-        ratio = (float (self.width) / float (self.height))
+        (self.width, self.height) = self.GetSizeTuple()
+        ratio = (float(self.width) / float(self.height))
         # calculate number of columns
         if (numberOfImages == 0): # special case - no images, no display
             #self.displayMessage ("No images selected")

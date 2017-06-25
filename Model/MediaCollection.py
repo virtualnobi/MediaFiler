@@ -59,6 +59,7 @@ class MediaCollection(Observable, Observer):
 
 # Constants
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
+    ConfigurationOptionParameter = '%1'
     ConfigurationOptionLastMedia = 'last-media'
 
 
@@ -112,12 +113,14 @@ class MediaCollection(Observable, Observer):
         # select initial entry
         if (os.path.exists(Installer.getInitialFilePath())):
             self.initialEntry = Entry.createInstance(self, Installer.getInitialFilePath())
-        if (self.configuration.has_option(GUIId.AppTitle, self.ConfigurationOptionLastMedia)):
-            entry = self.getEntry(path=self.getConfiguration(self.ConfigurationOptionLastMedia))
-            if (entry <> None):
+        path = self.getConfiguration(self.ConfigurationOptionLastMedia)
+        if (path):
+            entry = self.getEntry(path=path)
+            if (entry):
                 print('Selecting "%s" from last run' % entry.getPath())
                 self.setSelectedEntry(entry)
             else:
+                print('Last viewed media "%s" does not exist.' % path)
                 self.setSelectedEntry(None)
         else: 
             self.setSelectedEntry(None)
