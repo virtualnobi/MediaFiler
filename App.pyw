@@ -13,14 +13,12 @@ import subprocess
 import gettext
 import shutil
 import shlex
-#import threading
+import logging
+import time
 import cProfile
 import pstats
 ## contributed
-#import wx
-#import wx.grid
 import wx.aui
-#import wx.lib.scrolledpanel
 import wx.lib.dialogs
 ## nobi
 from nobi.ObserverPattern import Observable, Observer
@@ -65,7 +63,6 @@ class MediaFiler (wx.Frame, Observer, Observable):
 
 
 # Constants
-#    AppTitle = 'MediaFiler'  # window title
     PaneCaptionFilter = _('Filter')
     PaneCaptionImages = _('Image')
     PaneCaptionName = _('Name')
@@ -735,10 +732,16 @@ if __name__ == "__main__":
     app = wx.App(False)    
     frame = MediaFiler(None, title=GUIId.AppTitle)
     if (Installer.ensureInstallationOk(frame)):
+        logging.basicConfig(filename=(Installer.getLogFilePath() % 1),
+                            filemode='w',
+                            level=logging.DEBUG,
+                            datefmt='%H:%M:%S',
+                            format='%(asctime)s| %(message)s')
+        logging.info('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getImagePath()))
         frame.Show()
         frame.setModel(Installer.getImagePath())
         if (frame.model.getConfiguration(MediaFiler.ConfigurationOptionMaximizeOnStart)):
-            print('Maximizing window')
+            logging.info('App maximizing window')
             frame.Maximize(True)            
         app.MainLoop()
     

@@ -7,6 +7,7 @@
 ## standard
 import gettext
 import os.path
+import logging
 ## contributed
 import wx.lib.scrolledpanel
 #import wx.lib.rcsizer

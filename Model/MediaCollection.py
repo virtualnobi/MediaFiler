@@ -33,8 +33,7 @@ from __future__ import print_function
 import types
 import os
 import re
-#import random
-#import copy
+import logging
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer
@@ -69,10 +68,12 @@ class MediaCollection(Observable, Observer):
     def __init__ (self, rootDir):
         """From a root directory, create the image set model.
         """
+        logging.debug('MediaCollection.init()')
         # inheritance
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection'])
         # internal state
         self.setRootDirectory(rootDir)
+        logging.debug('MediaCollection.init() finished')
         return(None)
 
 
@@ -133,7 +134,7 @@ class MediaCollection(Observable, Observer):
         
         If entry is the (hidden) root entry, the initial image will be selected, if it exists.
         """
-        #print('MediaCollection.setSelectedEntry "%s"' % entry.getPath())
+        logging.debug('MediaCollection.setSelectedEntry(%s)' % (entry.getPath() if entry else entry))
         self.selectedEntry = entry
         if (self.selectedEntry):
             self.setConfiguration(self.ConfigurationOptionLastMedia, entry.getPath())

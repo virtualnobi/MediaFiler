@@ -45,6 +45,7 @@ ClassFilename = u'classes.txt'
 ConfigurationFilename = (u'%s.ini' % GUIId.AppTitle)
 NamesFilename = u'names.orig'
 InitialFilename = u'initial.jpg'
+LogFilename = u'log-%d.txt'
 TrashFolder = u'trash'
 ImportFolder = u'import'
 
@@ -90,6 +91,14 @@ def getInitialFilePath():
     """Return the path to the initial image to display on startup.
     """
     return(os.path.join(getLibraryPath(), InitialFilename))
+
+
+def getLogFilePath():
+    """Return the path to the log file. 
+    
+    Path includes a %d specifier to be replaced by the log number.
+    """
+    return(os.path.join(getLibraryPath(), LogFilename))
 
 
 def getTrashPath():
@@ -178,7 +187,6 @@ def ensureInstallationOk(window):
     """
     global CurrentPath
     CurrentPath = os.getcwdu()
-    print(CurrentPath)
     if (not checkInstallation()):
         dlg = wx.DirDialog(window, 
                            _("The current working directory for this program is not a valid media directory. Choose a media directory:"), 
