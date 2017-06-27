@@ -93,23 +93,12 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         if (self.imageModel):
             self.imageModel.removeObserver(self)
-#             self.imageModel = None
-#             if (self.filterModel):
-#                 self.filterModel.removeObserver(self)
-#                 self.filterModel = None
-#             self.clearButton = None
-#             self.applyButton = None
-# #             for idx in range(len(self.GetSizer().GetChildren())-1, -1, -1):
-# #                 self.GetSizer().Detach(idx)
-#             for w in self.GetSizer().GetChildren():
-#                 w.Detach(self.GetSizer())
-#             #self.GetSizer().DeleteWindows()
-#             self.SetSizer(None)
 
 
     def setModel(self, anImageFilerModel):
         """Make anImageFilerModel the model of self, and create widgets on self accordingly.
         """
+        logging.debug('MediaFilterPane.setModel()')
         # store MediaFiler model
         self.releaseModel()
         if (self.imageModel <> None):  # release previous model
@@ -144,6 +133,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         row = (row + 2)
         # add classes with all their elements
         for aClass in classes:
+            logging.debug('MediaFilterPane.setModel(): creating filter for class %s' % aClass[MediaClassHandler.KeyName])
             # create choice of class values
             choices = []
             choices.extend(self.imageModel.getClassHandler().getElementsOfClass(aClass))
@@ -160,15 +150,18 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         gridSizer.Add(wx.BoxSizer(), (row, 0), (1, 1))
         row = (row + 1)
         # add minimum/maximum size filter
+        logging.debug('MediaFilterPane.setModel(): creating filter for media size')
         self.addSizeFilter(gridSizer, row)
         gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
         row = (row + 2)
         # add date range
         if (self.imageModel.organizedByDate):
+            logging.debug('MediaFilterPane.setModel(): creating filter for date')
             self.addDateRangeFilter(gridSizer, row)
             row = (row + 1)
         # add single/group condition
         if (not self.imageModel.organizedByDate):
+            logging.debug('MediaFilterPane.setModel(): creating filter for single/group condition')
             singleText = wx.StaticText(self, -1, self.SingleConditionIndex)
             self.addTextFilter(gridSizer, row, self.SingleConditionIndex, singleText)        
             row = (row + 1)
@@ -176,7 +169,9 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.SetSizer(gridSizer) 
         gridSizer.Layout()
         # import filter conditions
+        logging.debug('MediaFilterPane.setModel(): setting up filter')
         self.importAndDisplayFilter()
+        logging.debug('MediaFilterPane.setModel() finished')
 
 
 

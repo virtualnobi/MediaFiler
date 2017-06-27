@@ -14,6 +14,7 @@ import glob
 import shlex
 import sys
 import subprocess
+import logging
 ## contributed
 import wx
 #from oset import oset 
@@ -75,7 +76,8 @@ class Single(Entry):
 
 
 # Constants
-    MemoryMaximum = 80000000000  # fictional memory maximum to be used for Singles
+    MemoryMaximum = 8000000000  # fictional memory maximum to be used for Singles
+    ConfigurationOptionEmailClient = 'editor-email'
 
 
 
@@ -93,7 +95,7 @@ class Single(Entry):
         MediaFiler.Entry entry is the media being displayed
         Number imageSize is the number of bytes consumed by entry
         """
-        print('%dKB used, consuming %dKB for "%s"' % ((cls.MemoryUsed / 1024), (imageSize / 1024), entry.getPath()))
+        logging.debug('%dKB free, consuming %dKB for "%s"' % (((cls.MemoryMaximumm - cls.MemoryUsed) / 1024), (imageSize / 1024), entry.getPath()))
         cls.MemoryUsed = (cls.MemoryUsed + imageSize)
         cls.MemoryUsageList[entry] = imageSize
         while (cls.MemoryMaximum < cls.MemoryUsed):
@@ -186,6 +188,9 @@ class Single(Entry):
         if ((not self.getConfigurationOptionExternalViewer()) 
             or (not self.model.getConfiguration(self.getConfigurationOptionExternalViewer()))):
             menu.Enable(GUIId.StartExternalViewer, enable=False)
+        menu.Append(GUIId.SendMail, GUIId.FunctionNames[GUIId.SendMail])
+        if (not self.model.getConfiguration(Single.ConfigurationOptionEmailClient)):
+            menu.Enable(GUIId.SendMail, enable=False)
         return(menu)
 
 
@@ -218,6 +223,8 @@ class Single(Entry):
             self.convertToGroup()
         elif (menuId == GUIId.StartExternalViewer):
             self.runExternalViewer(parentWindow)
+        elif (menuId == GUIId.SendMail):
+            return(self.sendMail())
         else:
             return(super(Single, self).runContextMenuItem(menuId, parentWindow))
 
@@ -466,3 +473,12 @@ class Single(Entry):
             dlg.ShowModal()
             dlg.Destroy()
 
+
+    def sendMail(self):
+        """Open the email client as listed in the configuration with self's media as attachment.
+        """
+        emailClient = self.model.getConfiguration(Single.ConfigurationOptionEmailClient)        
+        if (emailClient):
+            emailClient = emailClient.replace(MediaCollection.ConfigurationOptionParameter, self.getPath())
+            commandArgs = shlex.split(emailClient)
+            subprocess.call(commandArgs, shell=False)

@@ -12,6 +12,7 @@ It observes the MediaFilerModel for selection changes.
 import threading
 import gettext
 import os.path
+import logging
 ## Contributed
 import wx
 ## nobi
@@ -177,12 +178,8 @@ class PresentationControlPane(wx.Panel, Observer):
         """
         super(PresentationControlPane, self).updateAspect(observable, aspect)
         if (aspect == 'selection'):
-            if (observable.getSelectedEntry() <> None):
-                self.mediaName.SetLabel(observable.getSelectedEntry().getFilename())
-            else: 
-                self.mediaName.SetLabel('')
+            self.mediaName.SetLabel(observable.getSelectedEntry().getFilename())
             self.GetSizer().Layout()
-            pass
 
 
 
@@ -191,10 +188,9 @@ class PresentationControlPane(wx.Panel, Observer):
         """
         """
         self.model.setSelectedEntry(self.model.getNextEntry(self.model.getSelectedEntry()))
-        print('Scheduling next image in %s secs' % self.timerDelay)
         self.presentationTimer = threading.Timer(self.timerDelay, self.presentNext)
         self.presentationTimer.start()
-        print('Started %s' % self.presentationTimer)
+        logging.debug('PresentationController.presentNext(): Scheduled timer %s to show next image in %s secs' % (self.presentationTimer, self.timerDelay))
 
 
 

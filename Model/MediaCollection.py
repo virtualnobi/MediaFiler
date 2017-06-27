@@ -118,13 +118,14 @@ class MediaCollection(Observable, Observer):
         if (path):
             entry = self.getEntry(path=path)
             if (entry):
-                print('Selecting "%s" from last run' % entry.getPath())
+                logging.info('MediaCollection.setRootDirectory(): selecting "%s" from last run' % entry.getPath())
                 self.setSelectedEntry(entry)
             else:
-                print('Last viewed media "%s" does not exist.' % path)
-                self.setSelectedEntry(None)
+                logging.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
+                self.setSelectedEntry(self.root)
         else: 
-            self.setSelectedEntry(None)
+            logging.info('MediaCollection.setRootDirectory(): last viewed media not saved')
+            self.setSelectedEntry(self.root)
 
 
 
@@ -238,8 +239,9 @@ class MediaCollection(Observable, Observer):
     def getSelectedEntry(self):
         """Return the selected entry, or None is the (hidden) root is selected.
         """
-        if (self.selectedEntry == self.getRootEntry()):
-            return(None)
+        if ((self.selectedEntry == None)
+            or (self.selectedEntry == self.root)):
+            return(self.root)  # self.initialEntry)
         else:
             return(self.selectedEntry)
 
@@ -428,14 +430,13 @@ class MediaCollection(Observable, Observer):
                 if ((number % increment) == 0):
                     print('  reached "%s"' % entry.getPath())
         # if selected entry is filtered, search for unfiltered parent
-        if (self.getSelectedEntry()
-            and self.getSelectedEntry().isFiltered()):
+        if (self.getSelectedEntry().isFiltered()):
             entry = self.getSelectedEntry().getParentGroup()
             while ((entry <> self.getRootEntry())
                 and entry.isFiltered()):
                 entry = entry.getParentGroup()
             if (entry == None):
-                print('Root not found!')
+                logging.error('MediaCollection.filterEntries(): Root not found!')
             self.setSelectedEntry(entry)
         self.changedAspect('stopFiltering')
         print('MediaCollection.filterEntries() finished')
@@ -664,21 +665,14 @@ class MediaCollection(Observable, Observer):
     def cacheCollectionProperties(self):
         """Calculate and cache properties of the entire collection, to avoid repeated iterations.
         """
-        print('MediaCollection.cacheCollectionProperties()')
+        logging.info('MediaCollection.cacheCollectionProperties()')
         self.cachedMinimumSize = 0
         self.cachedMaximumSize = 0
-        count = 0
         for entry in self:
-            count = (count + 1)
-            if (count == 80):
-                print('.', end='\n')
-                count = 0
-            else:
-                print('.', end='')
             fsize = entry.getFileSize()
             if ((fsize < self.cachedMinimumSize)  # smaller one found
                 or (self.cachedMinimumSize == 0)):  # no image found so far
                 self.cachedMinimumSize = fsize
             if (self.cachedMaximumSize < fsize):  # bigger one found
                 self.cachedMaximumSize = fsize
-        print('\nMediaCollection.cacheCollectionProperties() done')
+        logging.info('MediaCollection.cacheCollectionProperties() finished')

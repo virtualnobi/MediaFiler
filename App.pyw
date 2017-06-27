@@ -403,8 +403,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
 # - Image menu events
     def onDelegateToEntry(self, event):
         entry = self.model.getSelectedEntry()
-        if (entry):
-            entry.runContextMenuItem(event.GetId(), self)
+        entry.runContextMenuItem(event.GetId(), self)
    
     
 # - View Menu events

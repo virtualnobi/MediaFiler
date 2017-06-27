@@ -144,31 +144,32 @@ class MediaNamePane(wx.Panel, Observer):
         # establish observer pattern
         self.clear()
         self.entry = entry
-        self.entry.addObserverForAspect(self, 'name')  # register as observer
+        self.entry.addObserverForAspect(self, 'name')
         # initialize 
         self.classesToRemove = set()  # classes to remove; for Groups
         # fill components depending on organization of model
-        isImage = (not entry.isGroup())  # some fields do not apply to groups
-        if (self.model.organizedByDate):
-            if (entry.getYear()):
-                self.year = entry.getYear()
-            if (entry.getMonth()):
-                self.month = entry.getMonth()
-            if (entry.getDay()):
-                self.day = entry.getDay()
+        if (entry <> self.model.root):
+            isImage = (not entry.isGroup())  # some fields do not apply to groups
+            if (self.model.organizedByDate):
+                if (entry.getYear()):
+                    self.year = entry.getYear()
+                if (entry.getMonth()):
+                    self.month = entry.getMonth()
+                if (entry.getDay()):
+                    self.day = entry.getDay()
+                if (entry.getNumber()):
+                    self.number = entry.getNumber()
+            else:  # organized by name
+                self.name = entry.getName() 
+                self.sceneInput.Enable(isImage)
+                if (entry.getScene()):
+                    self.scene = entry.getScene()
+                self.numberInput.Enable(isImage)
             if (entry.getNumber()):
-                self.number = entry.getNumber()
-        else:  # organized by name
-            self.name = entry.getName() 
-            self.sceneInput.Enable(isImage)
-            if (entry.getScene()):
-                self.scene = entry.getScene()
+                self.number= entry.getNumber()
             self.numberInput.Enable(isImage)
-        if (entry.getNumber()):
-            self.number= entry.getNumber()
-        self.numberInput.Enable(isImage)
-        self.knownElements = entry.getKnownElements()
-        self.unknownElements = entry.getUnknownElements()
+            self.knownElements = entry.getKnownElements()
+            self.unknownElements = entry.getUnknownElements()
         # display components
         self.setInputFields()
         # layout again
@@ -231,10 +232,7 @@ class MediaNamePane(wx.Panel, Observer):
         super(MediaNamePane, self).updateAspect(observable, aspect)
         if (aspect == 'selection'):
             entry = observable.getSelectedEntry()
-            if (entry == None):
-                self.clear()
-            else:   
-                self.setEntry(entry)
+            self.setEntry(entry)
         elif (aspect == 'name'):  # the selected Entry's name has changed
             self.readInputFields()
             if (self.model.organizedByDate):

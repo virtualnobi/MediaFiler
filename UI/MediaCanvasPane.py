@@ -59,11 +59,7 @@ class MediaCanvas(wx.Panel, Observer):
         super(MediaCanvas, self).updateAspect(observable, aspect)
         if (aspect == 'selection'):  # MediaCollection changes selection
             entry = observable.getSelectedEntry()
-            if (entry == None):
-                self.clear()
-            else:
-                print('Displaying "%s" on canvas' % entry.getPath())
-                self.setEntry(entry)
+            self.setEntry(entry)
         elif (aspect == 'children'):  # the currently selected Entry has changed children
             self.clear()
             self.setEntry(observable)
@@ -91,7 +87,7 @@ class MediaCanvas(wx.Panel, Observer):
         """Set the entry to display.
         """
         #print('MediaCanvas: setEntry(%s' % entry.getPath())
-        if (entry == None):
+        if (entry == self.model.root):
             entry = self.model.initialEntry
         if (self.entry <> entry):
             wx.BeginBusyCursor()

@@ -21,6 +21,7 @@ import glob
 import shutil
 import StringIO
 from collections import OrderedDict
+import logging
 ## Contributed 
 import exifread
 ## nobi
@@ -581,7 +582,7 @@ class OrganizationByName(MediaOrganization):
                     self.name = match.group(1)
                     rest = ''
                 else:  # no match, or illegal name
-                    print('OrganizationByName cannot extract identifiers from "%s"' % path)
+                    logging.info('OrganizationByName.setIdentifiersFromPath(): Cannot extract identifiers from "%s"' % path)
                     rest = path  # neither image nor group, nothing consumed
         return(rest)
 

@@ -7,6 +7,7 @@
 ## standard
 import gettext
 import os.path
+import logging
 ## contributed
 import wx
 ## nobi
@@ -77,8 +78,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         self.model.addObserverForAspect(self, 'stopFiltering')        
         self.DeleteAllItems()
         self.addSubTree(self.model.getRootEntry(), None)
-        if (self.model.getSelectedEntry()):
-            self.SelectItem(self.model.getSelectedEntry().getTreeItemID())
+        self.setEntry(self.model.getSelectedEntry())
 
 
     def addSubTree (self, entry, parent):
@@ -114,6 +114,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         entry.setTreeItemID(node)
         self.SortChildren(node)
         return(node)
+
+
+    def setEntry(self, entry):
+        """Select the specified entry in the tree.
+        """
+        if (entry <> self.model.getRootEntry()):
+            self.SelectItem(entry.getTreeItemID())
 
 
 
@@ -181,28 +188,25 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
                 self.addSubTree(subEntry, node)
             self.SortChildren(node)
             self.ignoreSelectionChanges = False
-            print('MediaTreeCtrl.update(): entry "%s" changed children' % observable.getPath())
+            logging.debug('MediaTreeCtrl.update(): children of "%s" changed' % observable.getPath())
         elif (aspect == 'selection'):  # model changed selection
             entry = observable.getSelectedEntry()
-            print('MediaTreeCtrl.update(): entry "%s" selected' % entry.getPath())
             self.ignoreSelectionChanges = True
-            treeItemID = entry.getTreeItemID()
-            self.SelectItem(treeItemID)
+            self.setEntry(entry)
             self.ignoreSelectionChanges = False
+            logging.debug('MediaTreeCtrl.update(): selected entry "%s"' % entry.getPath())
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.selectionBeforeFiltering = self.model.getSelectedEntry()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
-            #print('MediaTreePane.update(): Recreating tree...')
+            logging.debug('MediaTreePane.update(): Recreating tree...')
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
-                self.SelectItem(self.model.getSelectedEntry().getTreeItemID())
+                self.SelectEntry(self.model.getSelectedEntry())
                 self.Expand(self.model.getSelectedEntry().getTreeItemID())
-            #print('MediaTreePane.update(): Recreating tree finished')
+            logging.debug('MediaTreePane.update(): Recreating tree finished')
         else:
             super(self, MediaTreeCtrl).update(observable, aspect)
-            #print('Error: "%s" does not handle change of aspect "%s" of "%s"' % (self, aspect, observable))
-
 
 
 # Inheritance - wx.TreeCtrl

@@ -250,7 +250,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         super(MediaClassificationPane, self).updateAspect (observable, aspect)
         if (aspect == 'selection'):
             self.setEntry(observable.getSelectedEntry())
-        if (aspect == 'name'):
+        elif (aspect == 'name'):
             self.setEntry(observable)
         
 
