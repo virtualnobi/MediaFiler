@@ -76,7 +76,8 @@ class Single(Entry):
 
 
 # Constants
-    MemoryMaximum = 8000000000  # fictional memory maximum to be used for Singles
+    MemoryMaximum = 80000000  # fictional memory maximum to be used for Singles
+    MBFactor = (1024 * 1024)
     ConfigurationOptionEmailClient = 'editor-email'
 
 
@@ -95,14 +96,20 @@ class Single(Entry):
         MediaFiler.Entry entry is the media being displayed
         Number imageSize is the number of bytes consumed by entry
         """
-        logging.debug('%dKB free, consuming %dKB for "%s"' % (((cls.MemoryMaximumm - cls.MemoryUsed) / 1024), (imageSize / 1024), entry.getPath()))
+        logging.debug('Single.registerMemoryConsumption(): %3dMB free, consuming %3dMB for "%s"' 
+                      % (((cls.MemoryMaximum - cls.MemoryUsed) / cls.MBFactor), 
+                         (imageSize / cls.MBFactor), 
+                         entry.getPath()))
         cls.MemoryUsed = (cls.MemoryUsed + imageSize)
         cls.MemoryUsageList[entry] = imageSize
         while (cls.MemoryMaximum < cls.MemoryUsed):
             (oldEntry, oldSize) = cls.MemoryUsageList.popitem(last=False)
-            print('\treleasing %dKB from "%s"' % ((oldSize / 1024), oldEntry.getPath()))
+            if (oldEntry == entry): 
+                logging.error('Single.registerMemoryConsumption(): not enough memory to add "%s"' % entry.getPath())
+                sys.exit()
+            oldSize = oldEntry.releaseMemory()
             cls.MemoryUsed = (cls.MemoryUsed - oldSize)
-            oldEntry.releaseMemory()
+            logging.debug('Single.registerMemoryConsumption(): releasing %3dMB from "%s"' % ((oldSize / cls.MBFactor), oldEntry.getPath()))
 
 
 
@@ -241,9 +248,11 @@ class Single(Entry):
 
 
     def releaseMemory(self):
-        """Release memory used for self's raw image
+        """Release memory used for self's raw image.
+        
+        Return a Number of bytes freed.
         """
-        raise('Subclass must implement releaseMemory()')
+        raise(NotImplementedError)
 
 
     def removeNewIndicator(self):

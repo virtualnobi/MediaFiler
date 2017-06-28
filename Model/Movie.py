@@ -6,13 +6,10 @@
 # Imports
 ## standard
 import os.path
-#import subprocess
-#import sys
 ## contributed
 import wx
 ## nobi
 ## project
-#from UI import GUIId
 import Installer
 from .Entry import Entry
 from .Single import Single
@@ -86,7 +83,7 @@ class Movie(Single):
     def releaseMemory(self):
         """
         """
-        pass
+        return(0)  # TODO: if using a frame of the video, it must be freed
 
 
     def getRawImage (self):

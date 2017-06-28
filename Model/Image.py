@@ -5,19 +5,14 @@
 
 # Imports
 ## standard
-#import sys
 import os.path
-#import glob
-#import subprocess
 ## contributed
 import wx
 ## nobi
 ## project
-#from UI import GUIId
 import Installer
 from .Entry import Entry
 from .Single import Single
-#from Model.MediaCollection import MediaCollection
 
 
 
@@ -125,7 +120,7 @@ class Image(Single):
                 self.rawWidth = self.rawImage.GetWidth()
                 self.rawHeight = self.rawImage.GetHeight()                
             #print ("Image %s has size %sx%s" % (self.pathname, self.rawWidth, self.rawHeight))
-            self.registerMemoryConsumption(self, self.getRawImageMemoryUsage())
+            self.__class__.registerMemoryConsumption(self, self.getRawImageMemoryUsage())
             # invalidate bitmap
             self.removeBitmap()
         assert (self.rawImage <> None), ('Raw Image empty in "%s"' % self.getPath())
@@ -135,8 +130,10 @@ class Image(Single):
     def releaseMemory(self):
         """Release memory used for self's raw image.
         """
+        result = self.getRawImageMemoryUsage()
         self.rawImage = None
-    
+        return(result)
+
 
 
 # Setters
@@ -157,7 +154,7 @@ class Image(Single):
         """Return self's current memory usage for the raw image, in Bytes.
         """
         if (self.rawImage <> None):
-            return(self.rawWidth * self.rawHeight * 3)  # taken from wwx.Image.setData() documentation
+            return(self.rawWidth * self.rawHeight * 3)  # taken from wx.Image.setData() documentation
         else:
             return(0)
 
