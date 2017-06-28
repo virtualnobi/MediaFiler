@@ -581,7 +581,7 @@ class MediaCollection(Observable, Observer):
         words = self.getWordsInPathName(self.fixPathWhileImporting(parameters, oldPath[baseLength:]))  # split into components
         for word in words: 
             if self.classHandler.isLegalElement(word):  # keep legal elements
-                elements.add(word)
+                elements.add(self.classHandler.normalizeTag(word))
             elif (re.match("^\d+$", word)):  # ignore numbers
                 pass  
             elif ((not self.organizedByDate)  # TODO: Delegate to Organization.isIgnoredNamePart

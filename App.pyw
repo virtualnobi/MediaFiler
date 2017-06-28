@@ -503,10 +503,10 @@ class MediaFiler (wx.Frame, Observer, Observable):
            If event.GetId() == GUIId.TestImport, only show generated filenames, don't actually import anything.
         """
         # variables depending on test mode
-        if (event.GetId() == GUIId.TestImport):  # only test
+        if (event.GetId() == GUIId.TestImport):  
             testRun = True
             statusText = _('Testing import from %s')
-        else:  # really import
+        else:  
             testRun = False
             statusText = _('Importing from %s')
         # prepare import parameters

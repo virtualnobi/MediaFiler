@@ -163,8 +163,26 @@ class MediaClassHandler(object):
         """Return True if element is a legal class element, False otherwise.
         
         String element
+        Return Boolean
         """
-        return(element in self.getKnownElements())    
+        return(self.normalizeTag(element) in self.getKnownElements())    
+
+    
+    def normalizeTag(self, tag):
+        """Normalize a tag (element), for example, when importing.
+        
+        This will compare the tag with all known tags in a case-insensitive way, 
+        and return the defined spelling if found in the known tags.
+        If not found in the known tags, it will be returned without changes.
+
+        String tag
+        Return Boolean
+        """
+        for knownTag in self.getKnownElements():
+            if (knownTag.lower() == tag.lower()):
+                return(knownTag)
+        return(tag)
+
 
 
 # Element Handling

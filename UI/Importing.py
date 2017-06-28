@@ -115,7 +115,7 @@ class ImportParameterObject(object):
 
 
     def setTestRun(self, value):
-        self.testRun = value
+        self.testRun = value        
 
 
     def setIgnoreUnhandledTypes(self, value):
@@ -266,6 +266,7 @@ class ImportDialog(wx.Dialog):
         vBox = wx.BoxSizer()
         self.importDirectoryField = wx.TextCtrl(self, size=(200,0))
         self.importDirectoryField.SetValue(self.parameters.getImportDirectory())
+        self.Bind(wx.EVT_TEXT, self.onDirectoryChanged, self.importDirectoryField)
         vBox.Add(self.importDirectoryField, flag=(wx.EXPAND|wx.ALIGN_CENTER_VERTICAL))
         self.importDirectoryBrowseButton = wx.Button(self, GUIId.BrowseImportDirectory)
         self.importDirectoryBrowseButton.SetLabel(GUIId.FunctionNames[GUIId.BrowseImportDirectory])
@@ -412,6 +413,12 @@ class ImportDialog(wx.Dialog):
         """
         #event.GetEventObject().GetSizer().Layout()
         print('Not Resizing')
+
+
+    def onDirectoryChanged(self, event):  # @UnusedVariable
+        """
+        """
+        self.parameters.setImportDirectory(self.importDirectoryField.GetValue())
 
 
     def onBrowse(self, event):  # @UnusedVariable
