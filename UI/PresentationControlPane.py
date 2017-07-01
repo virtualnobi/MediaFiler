@@ -109,16 +109,23 @@ class PresentationControlPane(wx.Panel, Observer):
 
 
 # Setters
-    def setModel(self, aMediaFilerModel):
-        """Observe the model for selection changes
+    def setModel(self, aMediaCollection):
+        """Store a MediaCollection. 
         """
         if (self.model):
             self.model.removeObserver(self)
-        self.model = aMediaFilerModel
-        if (self.model):
-            self.model.addObserverForAspect(self, 'selection')
+        self.model = aMediaCollection
+        self.model.addObserverForAspect(self, 'selection')
+        self.setEntry(self.model.getSelectedEntry())
 
     
+    def setEntry(self, anEntry):
+        """Store anEntry as the selected entry. 
+        """
+        self.entry = anEntry
+        self.mediaName.SetLabel(self.entry.getOrganizationIdentifier())
+        self.GetSizer().Layout()
+
 
     def setPresentationDuration(self, seconds):
         """Set the duration to present an image to the specified number of seconds
@@ -128,30 +135,31 @@ class PresentationControlPane(wx.Panel, Observer):
 
 
 # Getters
-    def getAttribute(self):  # inherited from SuperClass
-        """
-        """
-        pass
-    
-    
-
 # Event Handlers
     def onPreviousImage(self, event):  # @UnusedVariable
+        """Select the previous media.
+        """
         self.onStopPresentation(event)
         self.model.setSelectedEntry(self.model.getPreviousEntry(self.model.getSelectedEntry()))
 
 
     def onNextImage(self, event):  # @UnusedVariable
+        """Select the next media.
+        """
         self.model.setSelectedEntry(self.model.getNextEntry(self.model.getSelectedEntry()))
 
 
     def onResumeSlideshow(self, event):  # @UnusedVariable
+        """Start the presentation.
+        """
         self.resumeButton.Disable()
         self.stopButton.Enable()
         self.presentNext()
 
 
     def onStopPresentation(self, event):  # @UnusedVariable
+        """Stop the running presentation.
+        """
         if (self.presentationTimer):
             print('Stopping %s' % self.presentationTimer)
             self.presentationTimer.cancel()
@@ -161,6 +169,8 @@ class PresentationControlPane(wx.Panel, Observer):
 
 
     def onChangeDuration(self, event):
+        """Change the presentation duration for an image (faster or slower, depending on button pressed).
+        """
         if (event.GetId() == GUIId.QuickSlideshow):
             self.setPresentationDuration(self.TimerDelayShort)
             self.quickButton.Disable()
@@ -178,14 +188,13 @@ class PresentationControlPane(wx.Panel, Observer):
         """
         super(PresentationControlPane, self).updateAspect(observable, aspect)
         if (aspect == 'selection'):
-            self.mediaName.SetLabel(observable.getSelectedEntry().getFilename())
-            self.GetSizer().Layout()
+            self.setEntry(observable.getSelectedEntry())
 
 
 
 # Other API Functions
     def presentNext(self):
-        """
+        """Present the next media, and schedule the next run of this function. 
         """
         self.model.setSelectedEntry(self.model.getNextEntry(self.model.getSelectedEntry()))
         self.presentationTimer = threading.Timer(self.timerDelay, self.presentNext)

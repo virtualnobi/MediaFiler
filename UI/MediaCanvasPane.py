@@ -7,6 +7,7 @@
 # Imports
 ## standard
 import math
+import logging
 ## contributed
 import wx
 ## nobi
@@ -86,7 +87,7 @@ class MediaCanvas(wx.Panel, Observer):
     def setEntry (self, entry):
         """Set the entry to display.
         """
-        #print('MediaCanvas: setEntry(%s' % entry.getPath())
+        logging.debug('MediaCanvas.setEntry("%s")' % entry.getPath())
         if (entry == self.model.root):
             entry = self.model.initialEntry
         if (self.entry <> entry):
@@ -102,10 +103,9 @@ class MediaCanvas(wx.Panel, Observer):
                 entry.addObserverForAspect(self, 'name')
             # display entries
             self.calculateGrid(len(displayedEntries))
-            #print 'ImageFilterCanvas:           grid calculated'
             for entry in displayedEntries:
                 # place image on canvas
-                #print('Placing image in column %d at (%d, %d)' % (column, x, y))
+                logging.debug('MediaCanvasPane.setEntry(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
                 bitmap = ImageBitmap(self, 
                                      -1, 
                                      entry, 
@@ -130,7 +130,7 @@ class MediaCanvas(wx.Panel, Observer):
         else:
             #print('  Setting identical entry, ignored')
             pass
-        #print('MediaCanvas: setEntry()')
+        logging.debug('MediaCanvas.setEntry() finished')
 
 
 # Event Handling

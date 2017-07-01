@@ -8,6 +8,7 @@
 ## standard
 import os.path
 import gettext
+import logging
 ## contributed
 import wx.lib.scrolledpanel
 import wx.lib.rcsizer
@@ -133,7 +134,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 columns = min (len (choices), 4)
             # create radiobox/checkbox group with class elements
             if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, use checkboxes
-                choices.remove('(none)')  # not needed for checkboxes
+                choices.remove(self.__class__.ClassUnselectedText)  # not needed for checkboxes
                 # data container for checkboxes and Sizer
                 checkboxes = dict()
                 checkboxes['list'] = []
@@ -176,24 +177,13 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 self.GetSizer().Add(radioBox)
         # after all selectionBoxes are added, ensure scrolling works
         self.SetupScrolling()
+        self.setEntry(self.model.getSelectedEntry())
 
 
-    def clear(self):
-        """Remove all widgets from self.
-        """
-        # remove all selectionBoxes if there are any
-        for className in self.selectionBoxes.keys():
-            # TODO: self.Unbind(event, source, id, id2, handler)
-            container = self.selectionBoxes[className]
-            if (self.model.getClassHandler().isMultipleClassByName(className)):
-                self.GetSizer().Remove(container['sizer'])
-            else:
-                self.GetSizer().Remove(container) # not self.RemoveChild(container)
-
-    
     def setEntry (self, entry):
         """Set the selected entry (either group or image), and enable/set checkboxes and radiobuttons accordingly.
         """
+        logging.debug('MediaClassificationPane.setEntry(%s)' % entry.getPath())
         # observer pattern
         if (self.entry):
             self.entry.removeObserver(self)  # unregister from previous observable
@@ -256,6 +246,19 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Internal
+    def clear(self):
+        """Remove all widgets from self.
+        """
+        # remove all selectionBoxes if there are any
+        for className in self.selectionBoxes.keys():
+            # TODO: self.Unbind(event, source, id, id2, handler)
+            container = self.selectionBoxes[className]
+            if (self.model.getClassHandler().isMultipleClassByName(className)):
+                self.GetSizer().Remove(container['sizer'])
+            else:
+                self.GetSizer().Remove(container) # not self.RemoveChild(container)
+
+    
     def currentFilename (self):
         # Return the file name of entry as defined by current radiobox selections
         result = ''

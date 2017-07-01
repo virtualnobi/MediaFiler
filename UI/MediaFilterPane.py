@@ -48,9 +48,9 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     RowSingle = 2  # row of single/group condition
     RowUnknown = 3  # row of unknown elements (regular elements follow)
     # 
-    SingleConditionIndex = 'single'  # string to access single/group condition
-    SingleValueString = 'single'
-    GroupValueString = 'group'
+    SingleConditionIndex = N_('single')  # string to access single/group condition
+    SingleValueString = _('single')
+    GroupValueString = _('group')
     # unknown elements
     UnknownElementsIndex = N_('unknown')  # string to access unknown filter in dictionary
     # special element to match any element of a class
@@ -84,7 +84,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.filterModel = None  # MediaFilter, to manage filter conditions
         self.filterModes = {}  # Dictionary mapping class name to filter mode wx.Choice
         self.filterValues = {}  # Dictionary mapping class name to filter value wx.Choice
-       
+
 
 
 # Setters
@@ -93,6 +93,9 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         if (self.imageModel):
             self.imageModel.removeObserver(self)
+        if (self.filterModel):
+            self.filterModel.removeObserver(self)
+        self.DestroyChildren()
 
 
     def setModel(self, anImageFilerModel):
@@ -133,7 +136,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         row = (row + 2)
         # add classes with all their elements
         for aClass in classes:
-            logging.debug('MediaFilterPane.setModel(): creating filter for class %s' % aClass[MediaClassHandler.KeyName])
+            logging.debug('MediaFilterPane.setModel(): creating controls for class %s' % aClass[MediaClassHandler.KeyName])
             # create choice of class values
             choices = []
             choices.extend(self.imageModel.getClassHandler().getElementsOfClass(aClass))
@@ -270,21 +273,27 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """User changed the size slider.
         """
         wx.BeginBusyCursor()
-        print('Slider changed to %d' % event.EventObject.GetValue())
+        print('Slider changed to %d' % event.GetEventObject().GetValue())
         if (event.EventObject == self.minimumSlider):
-            self.maximumSliderMinimum = event.EventObject.GetValue()  # minimum slider position is new minimum for maximum slider
+            self.maximumSliderMinimum = event.GetEventObject().GetValue()  # minimum slider position is new minimum for maximum slider
             self.maximumSlider.SetMin(self.maximumSliderMinimum)
             self.filterModel.setConditions(minimum=self.maximumSliderMinimum)
         else:
-            self.minimumSliderMaximum = event.EventObject.GetValue()  # maximum slider position is new maximum for minimum slider
+            self.minimumSliderMaximum = event.GetEventObject().GetValue()  # maximum slider position is new maximum for minimum slider
             self.minimumSlider.SetMax(self.minimumSliderMaximum)
             self.filterModel.setConditions(maximum=self.minimumSliderMaximum)
         wx.EndBusyCursor()
 
 
     def onDateChanged(self, event):
-        print('DateRange changed')
-        pass
+        """
+        """
+        if (event.GetEventObject() == self.fromDate):
+            self.filterModel.setConditions(fromDate=self.fromDatePicker.GetValue())
+            print('fromDate changed')
+        else:
+            self.filterModel.setConditions(toDate=self.toDatePicker.GetValue())
+            print('toDate changed')
 
 
 
@@ -381,47 +390,39 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         Number row             the row to use in sizer
         """
         sizer.Add(wx.StaticText(self, -1, self.DateRangeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
-        self.fromDate = wx.DatePickerCtrl(self, #size=(120,-1),
-                                          style = (wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
-        sizer.Add(self.fromDate, (row, 1), (1, 1))
-        self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.fromDate)
-        self.toDate = wx.DatePickerCtrl(self, #size=(120,-1),
+        self.fromDatePicker = wx.DatePickerCtrl(self, #size=(120,-1),
+                                                style = (wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
+        sizer.Add(self.fromDatePicker, (row, 1), (1, 1))
+        self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.fromDatePicker)
+        self.toDatePicker = wx.DatePickerCtrl(self, #size=(120,-1),
                                         style = (wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
-        sizer.Add(self.toDate, (row, 2), (1, 1))
-        self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.toDate)
+        sizer.Add(self.toDatePicker, (row, 2), (1, 1))
+        self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.toDatePicker)
         
 
 
     def importAndDisplayFilter(self):
-        """Redisplay  filter criteria. 
+        """Redisplay criteria from self's filter. 
         """
         (active,
-         self.requiredElements,
-         self.prohibitedElements,
-         self.unknownElementRequired,
-         self.minimumFileSize,
-         self.maximumSize,
-         self.singleCondition,
-         self.fromDate,
-         self.toDate) = self.filterModel.getFilterConditions()
-        # single/group condition
-        if (not self.imageModel.organizedByDate):
-            if (self.singleCondition == None):
-                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexIgnore)
-            elif (self.singleCondition == True):
-                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexRequire)
-            elif (self.singleCondition == False):
-                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexExclude)
+         requiredElements,
+         prohibitedElements,
+         unknownElementRequired,
+         minimumFileSize,
+         maximumFileSize,
+         singleCondition,
+         fromDate,
+         toDate) = self.filterModel.getFilterConditions()
         # unknown elements
-        if (self.filterModel.unknownElementRequired):
+        if (unknownElementRequired):
             self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexRequire)
         else:
             self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexIgnore)
-            for tag in self.requiredElements: 
+            for tag in requiredElements: 
                 if (not self.imageModel.getClassHandler().isLegalElement(tag)):
                     self.filterValues[self.UnknownElementsIndex].SetValue(tag)
                     self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexRequire)
-            for tag in self.prohibitedElements:
+            for tag in prohibitedElements:
                 if (not self.imageModel.getClassHandler().isLegalElement(tag)):
                     self.filterValues[self.UnknownElementsIndex].SetValue(tag)
                     self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexExclude)    
@@ -430,22 +431,37 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             # reset to no filtering
             self.filterModes[className].SetSelection(self.FilterModeIndexIgnore)
             self.filterValues[className].SetSelection(self.FilterModeIndexIgnore)
-            if (className in self.filterModel.requiredElements):
+            if (className in requiredElements):
                 self.filterModes[className].SetSelection(self.FilterModeIndexRequire)
                 self.filterValues[className].SetStringSelection(self.FilterElementValuesAnyString)
-            elif (className in self.filterModel.prohibitedElements):
+            elif (className in prohibitedElements):
                 self.filterModes[className].SetSelection(self.FilterModeIndexExclude)
                 self.filterValues[className].SetStringSelection(self.FilterElementValuesAnyString)
             else:
                 for element in self.imageModel.getClassHandler().getElementsOfClassByName(className):
-                    if (element in self.filterModel.requiredElements):
+                    if (element in requiredElements):
                         #print('Showing required "%s" in "%s"' % (element, className))
                         self.filterModes[className].SetSelection(self.FilterModeIndexRequire)
                         self.filterValues[className].SetStringSelection(element)
-                    elif (element in self.filterModel.prohibitedElements):
+                    elif (element in prohibitedElements):
                         #print('Showing prohibited "%s" in "%s"' % (element, className))
                         self.filterModes[className].SetSelection(self.FilterModeIndexExclude)
                         self.filterValues[className].SetStringSelection(element)
+        # file sizes
+        self.minimumSlider.SetValue(minimumFileSize)
+        self.maximumSlider.SetValue(maximumFileSize)
+        # date range
+        if (self.imageModel.organizedByDate):
+            self.fromDatePicker.SetValue(fromDate)
+            self.toDatePicker.SetValue(toDate)
+        # single/group condition
+        if (not self.imageModel.organizedByDate):
+            if (singleCondition == None):
+                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexIgnore)
+            elif (singleCondition == True):
+                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexRequire)
+            elif (singleCondition == False):
+                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexExclude)
         # button activation
         self.clearButton.Enable(enable=(not self.filterModel.isEmpty()))
         self.applyButton.Enable(enable=(not active))

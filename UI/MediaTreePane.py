@@ -47,7 +47,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 # section: Lifecycle
     def __init__ (self, parent, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.TR_DEFAULT_STYLE):
         # initialize superclasses
-        wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS))
+        wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.TR_MULTIPLE | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS))
         Observer.__init__(self)
         PausableObservable.__init__(self, ['selection'])
         # define norgy images
@@ -81,7 +81,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         self.setEntry(self.model.getSelectedEntry())
 
 
-    def addSubTree (self, entry, parent):
+    def addSubTree(self, entry, parent):
         """Add a tree node for imageFilerEntry ENTRY under wx.TreeItemID PARENT, and recurse to add all descendants.
 
         Entry entry is the MediaFiler.Entry to add
@@ -90,7 +90,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         Return the wx.TreeItemID of entry.
         """
         if (entry.filteredFlag):
-            print('MediaTreePane.addSubTree(): Ignoring filtered Entry "%s"' % entry.getPath())
+            print('MediaTreeCtrl.addSubTree(): Ignoring filtered Entry "%s"' % entry.getPath())
             return(None)
         # create a tree item
         item = wx.TreeItemData(entry)
@@ -119,9 +119,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
     def setEntry(self, entry):
         """Select the specified entry in the tree.
         """
+        logging.debug('MediaTreeCtrl.setEntry(%s)' % entry.getPath())
         if (entry <> self.model.getRootEntry()):
-            self.SelectItem(entry.getTreeItemID())
-
+            if (entry.getTreeItemID()):
+                self.SelectItem(entry.getTreeItemID())
+                self.EnsureVisible(entry.getTreeItemID())
+            else:
+                logging.error('MediaTreeCtrl.setEntry(): no tree item ID for "%s"' % entry.getPath())
 
 
 # Getters
@@ -129,11 +133,11 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
     def onSelectionChanged (self, event):
         """User changed the selection in the tree.
         """
-        #print('MediaTreePane onSelectionChanged')
+        #print('MediaTreeCtrl onSelectionChanged')
         if (self.ignoreSelectionChanges): 
             pass
         else:
-            entry = self.GetItemData(event.GetItem()).GetData()
+            entry = self.GetItemData(event.GetItem()).GetData()  # TODO: crashes with failure in setting item data??
             self.ignoreSelectionChanges = True
             self.model.setSelectedEntry(entry)
             self.ignoreSelectionChanges = False
@@ -198,13 +202,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.selectionBeforeFiltering = self.model.getSelectedEntry()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
-            logging.debug('MediaTreePane.update(): Recreating tree...')
+            logging.debug('MediaTreeCtrl.update(): Recreating tree...')
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
                 self.SelectEntry(self.model.getSelectedEntry())
                 self.Expand(self.model.getSelectedEntry().getTreeItemID())
-            logging.debug('MediaTreePane.update(): Recreating tree finished')
+            logging.debug('MediaTreeCtrl.update(): Recreating tree finished')
         else:
             super(self, MediaTreeCtrl).update(observable, aspect)
 

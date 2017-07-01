@@ -7,7 +7,7 @@
 ## Standard
 import re
 import os.path
-#import glob
+import logging
 ## Contributed
 import wx
 ## nobi
@@ -94,7 +94,7 @@ class Entry(PausableObservable):
             try:
                 clas = self.ProductTrader.getClassFor(extension)
             except:  # probably extension has no class registered to handle it
-                print('No class registered to instantiate "%s" media "%s".' % (extension, path))
+                logging.error('Entry.createInstance(): no class registered to instantiate "%s" media "%s".' % (extension, path))
                 return(None)
         # instantiate
         return(clas(model, path))

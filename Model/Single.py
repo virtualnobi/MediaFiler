@@ -76,7 +76,7 @@ class Single(Entry):
 
 
 # Constants
-    MemoryMaximum = 80000000  # fictional memory maximum to be used for Singles
+    MemoryMaximum = 1000000000  # fictional memory maximum to be used for Singles
     MBFactor = (1024 * 1024)
     ConfigurationOptionEmailClient = 'editor-email'
 
@@ -89,6 +89,17 @@ class Single(Entry):
 
 
 # Class Methods
+    @classmethod
+    def getConfigurationOptionExternalViewer(self):
+        """Return the configuration option to retrieve the command string for an external viewer of self.
+        
+        The string must contain the %1 spec which is replaced by the media file name.
+        
+        Return the external command string, or None if none given.
+        """
+        return(None)
+
+
     @classmethod
     def registerMemoryConsumption(cls, entry, imageSize):
         """Stores the memory consumed by entry, and releases memory of other images if overall consumption is too high.
@@ -160,17 +171,6 @@ class Single(Entry):
 
 
 # Getters
-    def getConfigurationOptionExternalViewer(self):
-        """Return the configuration option to retrieve the command string for an external viewer of self.
-        
-        The string must contain the %1 spec which is replaced by the media file name.
-        
-        Return the external command string, or None if none given.
-        """
-        return(None)
-
-
-
 ## Inheritance - Entry
     def getEntriesForDisplay (self):
         """Return the list of entries to represent self in an image display.
@@ -192,8 +192,8 @@ class Single(Entry):
         """
         menu = super(Single, self).getContextMenu()
         menu.Insert(0, GUIId.StartExternalViewer, GUIId.FunctionNames[GUIId.StartExternalViewer])
-        if ((not self.getConfigurationOptionExternalViewer()) 
-            or (not self.model.getConfiguration(self.getConfigurationOptionExternalViewer()))):
+        if ((not self.__class__.getConfigurationOptionExternalViewer()) 
+            or (not self.model.getConfiguration(self.__class__.getConfigurationOptionExternalViewer()))):
             menu.Enable(GUIId.StartExternalViewer, enable=False)
         menu.Append(GUIId.SendMail, GUIId.FunctionNames[GUIId.SendMail])
         if (not self.model.getConfiguration(Single.ConfigurationOptionEmailClient)):
@@ -350,7 +350,7 @@ class Single(Entry):
         rawImage = self.getRawImage()  # get image in original size
         if (rawImage == None):
             print('Raw image of "%s" doesn\'t exist' % self.getPath())
-            rawImage = self.getRawImage(True)  # TODO: add debugging flag
+            rawImage = self.getRawImage(True)
         if ((width == None) 
             and (height == None)):  # return original size
             return(rawImage.Width, rawImage.Height)
@@ -395,22 +395,20 @@ class Single(Entry):
         Number height
         Returns a MediaFiler.Single.ImageBitmap fitted into (width x height)
         """
-        print('Single.getBitMap(%dx%d) for "%s"' % (width, height, self.getPath()))
         # determine final size
         (w, h) = self.getSize(width, height)
-        print('  final size (%dx%d)' % (width, height))
+        logging.debug('Single.getBitmap(%dx%d) calculated size %dx%d for "%s"' % (width, height, w, h, self.getPath()))
         if (not ((0 < w) and (0 < h))):
             pass  # this will violate an assertion in Rescale()
         # load and resize bitmap if needed 
         if ((self.bitmap == None)  # no bitmap loaded
             or (self.bitmapWidth <> w)  # width differs
             or (self.bitmapHeight <> h)):  # height differs
+            logging.debug('Single.getBitmap(): creating %dx%d bitmap for "%s"' % (w, h, self.getPath()))
             if (self.bitmap):
-                #print('    bitmap of %dx%d' % (self.bitmapWidth, self.bitmapHeight))
                 self.registerMemoryConsumption(self, -self.getBitmapMemoryUsage())
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
             self.bitmap = self.getRawImage().Copy().Rescale(self.bitmapWidth, self.bitmapHeight).ConvertToBitmap()
-            #print('    resized to %dx%d' % (self.bitmapWidth, self.bitmapHeight))
             self.registerMemoryConsumption(self, self.getBitmapMemoryUsage())
         return(self.bitmap)
 
@@ -459,7 +457,7 @@ class Single(Entry):
         
         wx.Window parentWindow is the window on which to display an error dialog, if needed
         """
-        option = self.getConfigurationOptionExternalViewer()
+        option = self.__class__.getConfigurationOptionExternalViewer()
         viewerName = self.model.getConfiguration(option)
         if (not viewerName):
             dlg = wx.MessageDialog(parentWindow,

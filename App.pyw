@@ -665,46 +665,41 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Set the model from its root DIRECTORY. Update status and load initial image.
         """
         wx.BeginBusyCursor()
-        directory = unicode(directory)
-        # update status bar
         self.statusbar.SetStatusText(directory, GUIId.SB_Root)
         self.displayInfoMessage(_('Loading...'))
-        # set window icon
-        #print('Setting app icon from "%s"' % os.path.join(directory, '../lib/logo.ico'))
+        logging.debug('App.setModel(): loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
-        # create the model
         self.model = MediaCollection(directory)
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
-        # update status bar
+        self.updateMenuAccordingToModel(self.model)
+        logging.debug('MediaFiler: Setting up name pane')
+        self.namePane.setModel(self.model)
+        logging.debug('MediaFiler: Setting up filter pane')
+        self.filterPane.setModel(self.model)
+        logging.debug('MediaFiler: Setting up classification pane')
+        self.classificationPane.setModel(self.model)
+        logging.debug('MediaFiler: Setting up canvas pane')
+        self.canvas.setModel(self.model)
+        logging.debug('MediaFiler: Setting up presentation pane')
+        self.presentationPane.setModel(self.model)
+        logging.debug('MediaFiler: Setting up tree pane')
+        self.imageTree.setModel(self.model)
         if (self.model.organizedByDate):
             self.statusbar.SetStatusText (_('Organized by date'), GUIId.SB_Organization)
+            text = _('%s (%d media)') % (directory, 
+                                         self.model.getCollectionSize())
         else:
-            text = _('%s (%d used, %d free)') % (directory, 
-                                                 self.model.nameHandler.getNumberUsedNames(), 
-                                                 self.model.nameHandler.getNumberFreeNames()) 
-            self.statusbar.SetStatusText(text, GUIId.SB_Root)           
             self.statusbar.SetStatusText(_('Organized by name'), GUIId.SB_Organization)
+            text = _('%s (%d media, %d used, %d free)') % (directory,
+                                                           self.model.getCollectionSize(), 
+                                                           self.model.nameHandler.getNumberUsedNames(), 
+                                                           self.model.nameHandler.getNumberFreeNames()) 
+        self.statusbar.SetStatusText(text, GUIId.SB_Root)           
         self.statusbar.Show()
-        # update UI
-        self.updateMenuAccordingToModel(self.model)
-        print('Setting up name pane')
-        self.namePane.setModel(self.model)
-        print('Setting up filter pane')
-        self.filterPane.setModel(self.model)
-        print('Setting up classification pane')
-        self.classificationPane.setModel(self.model)
-        print('Setting up canvas pane')
-        self.canvas.setModel(self.model)
-        print('Setting up presentation pane')
-        self.presentationPane.setModel(self.model)
-        print('Setting up tree pane')
-        self.imageTree.setModel(self.model)
-        # load last viewed perspective
         lastPerspective = self.model.getConfiguration(self.ConfigurationOptionLastPerspective)
         if (lastPerspective):
             self._mgr.LoadPerspective(self.perspectives[int(lastPerspective)])
-        # update status bar
         self.displayInfoMessage(_('Ready'))
         wx.EndBusyCursor()
 

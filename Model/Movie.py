@@ -32,16 +32,27 @@ class Movie(Single):
 
 # Class Methods
     @classmethod
-    def getLegalExtensions(clas):
+    def getLegalExtensions(cls):
         """Return a set of file extensions which clas can display.
         
         File extensions are lower-case, not including the preceeding dot.
         
         Returns a Set of Strings.
         """
-        return(set(clas.LegalExtensions))
+        return(set(cls.LegalExtensions))
 
     
+    @classmethod
+    def getConfigurationOptionExternalViewer(cls):
+        """Return the configuration option to retrieve the command string for an external viewer of self.
+        
+        The string must contain the %1 spec which is replaced by the media file name.
+        
+        Return the external command string, or None if none given.
+        """
+        return(cls.ConfigurationOptionViewer)
+
+
 
 # Lifecycle
     def __init__ (self, model, path):
@@ -70,16 +81,6 @@ class Movie(Single):
 
 
 ## Inheritance - Single
-    def getConfigurationOptionExternalViewer(self):
-        """Return the configuration option to retrieve the command string for an external viewer of self.
-        
-        The string must contain the %1 spec which is replaced by the media file name.
-        
-        Return the external command string, or None if none given.
-        """
-        return(Movie.ConfigurationOptionViewer)
-
-
     def releaseMemory(self):
         """
         """

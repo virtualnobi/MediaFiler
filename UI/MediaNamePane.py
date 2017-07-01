@@ -11,6 +11,7 @@ It observes the ImageTree for selection changes, and the selected Entry for name
 
 # Imports
 ## standard
+import logging
 ## contributed
 import wx
 ## nobi
@@ -132,8 +133,7 @@ class MediaNamePane(wx.Panel, Observer):
         self.sizeString = wx.StaticText(self, -1, '')
         self.GetSizer().Add(self.sizeString, flag=(wx.ALIGN_CENTER_VERTICAL))
         self.GetSizer().Add(wx.StaticText(self, -1, '  '))  # padding
-        # clear component values
-        self.clear()
+        self.setEntry(self.model.getSelectedEntry())
         # relayout all of them
         self.GetSizer().Layout()
 
@@ -141,6 +141,7 @@ class MediaNamePane(wx.Panel, Observer):
     def setEntry(self, entry):
         """Set the selected ENTRY (either group or image), and name elements accordingly.
         """
+        logging.debug('MediaNamePane.setEntry(%s)' % entry.getPath())
         # establish observer pattern
         self.clear()
         self.entry = entry

@@ -65,14 +65,21 @@ class MediaCollection(Observable, Observer):
 
 # Class Methods
 # Lifecycle 
-    def __init__ (self, rootDir):
-        """From a root directory, create the image set model.
+    def __init__ (self, rootDir=None):
+        """Create a new MediaCollection.
+        
+        It may be more appropriate to create the MediaCollection without images first, 
+        to connect the observers, and finally to load the images via .setRootDirectory().
+        In this way, the initial image will be posted to the observers. 
+        
+        String rootDir specifies the path to the image root directory.
         """
         logging.debug('MediaCollection.init()')
         # inheritance
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection'])
         # internal state
-        self.setRootDirectory(rootDir)
+        if (rootDir):
+            self.setRootDirectory(rootDir)
         logging.debug('MediaCollection.init() finished')
         return(None)
 
@@ -86,8 +93,8 @@ class MediaCollection(Observable, Observer):
         self.initialEntry = None
         self.names = []  # list of all legal names
         self.freeNames = None  # list of all free names, lazily defined
-        self.classes = []
-        self.knownElements = []
+#        self.classes = []
+#        self.knownElements = []
         # set up the configuration persistence
         self.configuration = SecureConfigParser(Installer.getConfigurationFilePath())
         self.configuration.read(Installer.getConfigurationFilePath())
@@ -269,6 +276,12 @@ class MediaCollection(Observable, Observer):
         return (self.cachedMaximumSize)
 
 
+    def getCollectionSize(self):
+        """Return the number of media in self's collection.
+        """
+        return(self.cachedCollectionSize)
+
+
     def getNextEntry(self, entry):
         """Get the next entry following entry. 
 
@@ -319,6 +332,7 @@ class MediaCollection(Observable, Observer):
         if (observable == self.filter):  # filter changed
             self.filterEntries()
         elif (aspect == 'remove'):  # entry removed
+            self.cachedCollectionSize = (self.cachedCollectionSize - 1)
             # invalidate cached properties if affected
             if (observable.getFileSize() == self.cachedMinimumSize):
                 self.cachedMinimumSize = 0
@@ -666,9 +680,11 @@ class MediaCollection(Observable, Observer):
         """Calculate and cache properties of the entire collection, to avoid repeated iterations.
         """
         logging.info('MediaCollection.cacheCollectionProperties()')
+        self.cachedCollectionSize = 0
         self.cachedMinimumSize = 0
         self.cachedMaximumSize = 0
         for entry in self:
+            self.cachedCollectionSize = (self.cachedCollectionSize + 1)
             fsize = entry.getFileSize()
             if ((fsize < self.cachedMinimumSize)  # smaller one found
                 or (self.cachedMinimumSize == 0)):  # no image found so far

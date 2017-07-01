@@ -41,6 +41,17 @@ class Image(Single):
         """
         return(set(cls.LegalExtensions))
 
+    
+    @classmethod
+    def getConfigurationOptionExternalViewer(cls):
+        """Return the configuration option to retrieve the command string for an external viewer of self.
+        
+        The string must contain the %1 spec which is replaced by the media file name.
+        
+        Return the external command string, or None if none given.
+        """
+        return(cls.ConfigurationOptionViewer)
+
 
 
 # Lifecycle
@@ -140,16 +151,6 @@ class Image(Single):
 
 
 # Getters
-    def getConfigurationOptionExternalViewer(self):
-        """Return the configuration option to retrieve the command string for an external viewer of self.
-        
-        The string must contain the %1 spec which is replaced by the media file name.
-        
-        Return the external command string, or None if none given.
-        """
-        return(Image.ConfigurationOptionViewer)
-
-
     def getRawImageMemoryUsage(self):
         """Return self's current memory usage for the raw image, in Bytes.
         """
