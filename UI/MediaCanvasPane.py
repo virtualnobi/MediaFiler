@@ -49,6 +49,7 @@ class MediaCanvas(wx.Panel, Observer):
         self.lastRightDownImage = None  # last Image on which right mouse button went down, for context menu
         self.SetBackgroundColour('white')
         self.ClearBackground()
+        (self.width, self.height) = self.GetSizeTuple()
         self.rows = 1
         self.cols = 1
 
@@ -87,7 +88,7 @@ class MediaCanvas(wx.Panel, Observer):
     def setEntry (self, entry):
         """Set the entry to display.
         """
-        logging.debug('MediaCanvas.setEntry("%s")' % entry.getPath())
+        logging.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
         if (entry == self.model.root):
             entry = self.model.initialEntry
         if (self.entry <> entry):
@@ -181,6 +182,7 @@ class MediaCanvas(wx.Panel, Observer):
             child.Unbind(wx.EVT_MOUSE_EVENTS)
             child.Unbind(wx.EVT_MENU_RANGE)
             child.Destroy()
+        self.ClearBackground()
 
 
     def calculateGrid (self, numberOfImages):
