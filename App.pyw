@@ -64,7 +64,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
 
 # Constants
     PaneCaptionFilter = _('Filter')
-    PaneCaptionImages = _('Image')
+    PaneCaptionImages = _('Media')
     PaneCaptionName = _('Name')
     PaneCaptionClassification = _('Classification')
     PaneCaptionLog = _('Log')
