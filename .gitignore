@@ -94,3 +94,4 @@ ENV/
 
 # Rope project settings
 .ropeproject
+.settings/org.eclipse.core.resources.prefs
