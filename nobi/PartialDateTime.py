@@ -30,7 +30,8 @@ class PartialDateTime(object):
     
 
 # Constants
-    ConstantName = 'value'
+#    ThirtyDayMonths = [2, 4, 6, 9, 11]
+
 
 
 # Class Variables
@@ -73,7 +74,7 @@ class PartialDateTime(object):
                 self.year = arg.year
                 self.month = arg.month
                 self.day = arg.day
-                self.time = arg.time
+                self.time = arg.time()
             elif (isinstance(arg, datetime.date)):
                 self.year = arg.year
                 self.month = arg.month
@@ -121,10 +122,10 @@ class PartialDateTime(object):
             and ((self.month < 1)
                  or (12 < self.month))):
             raise ValueError
-        if (self.day
-            and ((self.day < 1)
-                 or (31 < self.day))):  # TODO: correctly check for max day of month
-            raise ValueError
+        if (self.day):
+            if ((self.day < 1)
+                or (self.lastDayOfMonth(self.year, self.month) < self.day)):
+                raise ValueError
         return(None)
 
 
@@ -146,6 +147,26 @@ class PartialDateTime(object):
     def getTime(self):
         return(self.time)
 
+
+    def getEarliestDateTime(self):
+        """Return the earliest datetime.datetime covered by self.
+        """
+        year = (self.year if self.year else datetime.MINYEAR)
+        month = (self.month if self.month else 1)
+        day = (self.day if self.day else 1)
+        time = (self.time if self.time else datetime.time.min)
+        return(datetime.datetime(year, month, day, time.hour, time.minute, time.second, time.microsecond))
+
+
+    def getLatestDateTime(self):
+        """Return the latest datetime.datetime covered by self.
+        """
+        year = (self.year if self.year else datetime.MAXYEAR)
+        month = (self.month if self.month else 12)
+        day = (self.day if self.day else self.lastDayOfMonth(year, month))
+        time = (self.time if self.time else datetime.time.max)
+        #print('PartialDateTime.getLatestDateTime(): returning %d-%d-%d' % (year, month, day))
+        return(datetime.datetime(year, month, day, time.hour, time.minute, time.second, time.microsecond))
 
 
 # Event Handlers
@@ -307,7 +328,20 @@ class PartialDateTime(object):
 
         
 # Internal - to change without notice
-    pass
+    def lastDayOfMonth(self, year, month):
+        """Return the last day of the month (28, 29, 30, 31), depending on year and month.
+        """
+        for day in [31, 30, 29, 28]:
+            try:
+                datetime.datetime(year, month, day)
+            except ValueError as exc:
+                continue
+            except Exception as exc:
+                raise exc
+            else: 
+                return (day)
+        raise ValueError, ('Cannot determine latest day of month %d in year %d' % (month, year))
+
 
 
 # Class Initialization

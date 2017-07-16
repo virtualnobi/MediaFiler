@@ -42,7 +42,9 @@ class TestPartialDateTime(unittest.TestCase):
 
 
     def testCreationFromDateTime(self):
-        self.assertTrue(PartialDateTime(datetime.datetime.now()), 'datetime.now() failed')
+        self.assertTrue(PartialDateTime(datetime.datetime.now()), 'Failed for datetime.now()')
+        self.assertTrue(PartialDateTime(datetime.datetime.min), 'Failed for datetime.min')
+        self.assertTrue(PartialDateTime(datetime.datetime.max), 'Failed for datetime.max')
 
 
     def testCreationFromDate(self):
@@ -112,6 +114,40 @@ class TestPartialDateTime(unittest.TestCase):
         self.assertFalse((PartialDateTime('2000-01-24') >= PartialDateTime('2000-01')))
         self.assertFalse((PartialDateTime('2000-01-24') > PartialDateTime('2000-01')))
         self.assertTrue((PartialDateTime('2000-01-24') != PartialDateTime('2000-01')))
+
+
+    def testConversionDateTime(self):
+        self.assertEqual(datetime.datetime.now(), 
+                         PartialDateTime(datetime.datetime.now()).getEarliestDateTime(), 
+                         'Conversion of now() to earliest datetime failed')
+        self.assertEqual(datetime.datetime.now(), 
+                         PartialDateTime(datetime.datetime.now()).getLatestDateTime(), 
+                         'Conversion of now() to latest datetime failed')
+        self.assertEqual(datetime.datetime(2017, 1, 1),
+                         PartialDateTime(2017, None, None).getEarliestDateTime(),
+                         'Conversion of year to earliest failed')
+        self.assertEqual(datetime.datetime(2017, 12, 31, 23, 59, 59, 999999),
+                         PartialDateTime(2017, None, None).getLatestDateTime(),
+                         'Conversion of year to latest failed')
+        self.assertEqual(datetime.datetime(2017, 4, 1),
+                         PartialDateTime(2017, 4, None).getEarliestDateTime(),
+                         'Conversion of month to earliest failed')
+        self.assertEqual(datetime.datetime(2017, 4, 30, 23, 59, 59, 999999),
+                         PartialDateTime(2017, 4, None).getLatestDateTime(),
+                         'Conversion of month to latest failed')
+        self.assertEqual(datetime.datetime(2017, 5, 1),
+                         PartialDateTime(2017, 5, None).getEarliestDateTime(),
+                         'Conversion of month to earliest failed')
+        self.assertEqual(datetime.datetime(2017, 5, 31, 23, 59, 59, 999999),
+                         PartialDateTime(2017, 5, None).getLatestDateTime(),
+                         'Conversion of month to latest failed')
+        self.assertEqual(datetime.datetime(2017, 4, 15, 0, 0, 0, 0),
+                         PartialDateTime(2017, 4, 15).getEarliestDateTime(),
+                         'Conversion of day to earliest failed')
+        self.assertEqual(datetime.datetime(2017, 4, 15, 23, 59, 59, 999999),
+                         PartialDateTime(2017, 4, 15).getLatestDateTime(),
+                         'Conversion of day to latest failed')
+
 
 
 # Internal - to change without notice
