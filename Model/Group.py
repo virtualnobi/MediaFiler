@@ -115,7 +115,6 @@ class Group(Entry):
                 for subEntry in self.subEntries:
                     newElements = subEntry.getElements().union(elements)
                     subEntry.renameTo(year=year, month=month, day=day, elements=newElements, removeIllegalElements=removeIllegalElements)
-                #PausableObservable.resumeUpdates(Entry, None, None)
             else:
                 newGroup = self.model.getEntry(year=year, month=month, day=day)
                 if (newGroup):

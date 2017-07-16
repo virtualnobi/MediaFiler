@@ -8,6 +8,7 @@
 import re
 import os.path
 import logging
+import datetime
 ## Contributed
 import wx
 ## nobi
@@ -292,9 +293,9 @@ class Entry(PausableObservable):
             return(False)
         else:
             self.initFromPath(fname)
-            self.organizer.__class__.registerMoveToLocation(year=self.getYear(),
-                                                            month=self.getMonth(),
-                                                            day=self.getDay(),
+            self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYearString(),
+                                                            month=self.organizer.getMonthString(),
+                                                            day=self.organizer.getDayString(),
                                                             name=self.getName(),
                                                             scene=self.getScene())
             # remove from current group, and add to new group
@@ -523,6 +524,7 @@ class Entry(PausableObservable):
         
         Return a String
         """
+        print('Entry.getYear() deprecated')
         return(self.organizer.getYear())
 
 
@@ -531,6 +533,7 @@ class Entry(PausableObservable):
         
         Return a String
         """
+        print('Entry.getMonth() deprecated')
         return(self.organizer.getMonth())
 
 
@@ -539,7 +542,17 @@ class Entry(PausableObservable):
         
         Return a String
         """
+        print('Entry.getDay() deprecated')
         return(self.organizer.getDay())
+
+
+    def getDate(self):
+        """Return the date the media was captured.
+        
+        Return datetime.date
+        """
+        print('Entry.getDate() deprecated')
+        return(datetime.date(int(self.getYear()), int(self.getMonth()), int(self.getDay())))
 
 
     def getContextMenu(self):
