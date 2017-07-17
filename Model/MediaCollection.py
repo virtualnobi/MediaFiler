@@ -34,6 +34,7 @@ import types
 import os
 import re
 import logging
+import datetime
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer
@@ -206,6 +207,13 @@ class MediaCollection(Observable, Observer):
         return(self.root)
 
 
+    def getInitialEntry(self):
+        """Return the "initial" entry, which may be used to display an entry before all entries are loaded, 
+        or if none is selected.
+        """
+        return(self.initialEntry)
+
+
     def getEntry(self, 
                  filtering=False, group=None,
                  path=None,
@@ -229,9 +237,9 @@ class MediaCollection(Observable, Observer):
             entry = searching.pop()
             if (((group == None) or (group == entry.isGroup()))
                 and ((path == None) or (path == entry.getPath()))
-                and ((year == None) or (year == entry.getYear()))
-                and ((month == None) or (month == entry.getMonth()))
-                and ((day == None) or (day == entry.getDay()))
+                and ((year == None) or (year == entry.organizer.getYearString()))
+                and ((month == None) or (month == entry.organizer.getMonthString()))
+                and ((day == None) or (day == entry.organizer.getDayString()))
                 and ((name == None) or (name == entry.getName()))
                 and ((scene == None) or (scene == entry.getScene()))):
                 return (entry)
@@ -280,6 +288,18 @@ class MediaCollection(Observable, Observer):
         """Return the number of media in self's collection.
         """
         return(self.cachedCollectionSize)
+
+
+    def getEarliestDate(self):
+        """Return the date of the earliest Entry in self.
+        """
+        return(self.cachedEarliestDate)
+
+
+    def getLatestDate(self):
+        """Return the date of the latest Entry in self.
+        """
+        return(self.cachedLatestDate)
 
 
     def getNextEntry(self, entry):
@@ -540,7 +560,7 @@ class MediaCollection(Observable, Observer):
                 if ((not importParameters.getTestRun())
                     and (importParameters.getDeleteOriginals())
                     and (len(os.listdir(oldPath)) == 0)):
-                    importParameters.logString('\nRemoving empty directory "%s"' % oldPath)
+                    importParameters.logString('Removing empty directory "%s"\n' % oldPath)
                     os.rmdir(oldPath)
             else:  # import a media file
                 (dummy, extension) = os.path.splitext(oldPath)
@@ -556,12 +576,12 @@ class MediaCollection(Observable, Observer):
                                                                   targetDir, 
                                                                   illegalElements)
                         else:
-                            importParameters.logString('\nIgnoring small %sb file "%s"' % (fileSize, oldPath))
+                            importParameters.logString('\tIgnoring small %sb file "%s"' % (fileSize, oldPath))
                     else:
                         importParameters.logString('\nMaximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
                         raise StopIteration
                 else:
-                    importParameters.logString('\nIgnoring unhandled file "%s"' % oldPath)
+                    importParameters.logString('\tIgnoring unhandled file "%s"' % oldPath)
 
 
     def fixPathWhileImporting(self, parameters, oldPath):
@@ -683,6 +703,8 @@ class MediaCollection(Observable, Observer):
         self.cachedCollectionSize = 0
         self.cachedMinimumSize = 0
         self.cachedMaximumSize = 0
+        self.cachedEarliestDate = None
+        self.cachedLatestDate = None
         for entry in self:
             self.cachedCollectionSize = (self.cachedCollectionSize + 1)
             fsize = entry.getFileSize()
@@ -691,4 +713,16 @@ class MediaCollection(Observable, Observer):
                 self.cachedMinimumSize = fsize
             if (self.cachedMaximumSize < fsize):  # bigger one found
                 self.cachedMaximumSize = fsize
+            if (self.organizedByDate):
+                entryDate = entry.organizer.dateTaken
+                if ((not self.cachedEarliestDate)
+                    or (entryDate.getEarliestDateTime() < self.cachedEarliestDate)):
+                    self.cachedEarliestDate = entryDate.getEarliestDateTime()
+                if ((not self.cachedLatestDate)
+                    or (self.cachedLatestDate < entryDate.getLatestDateTime())):
+                    self.cachedLatestDate = entryDate.getLatestDateTime()
+        logging.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
+                      % (self.cachedEarliestDate, self.cachedLatestDate))
+        logging.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 
+                      % (self.cachedMinimumSize, self.cachedMaximumSize))                
         logging.info('MediaCollection.cacheCollectionProperties() finished')

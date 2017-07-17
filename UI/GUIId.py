@@ -73,9 +73,9 @@ LoadRecentDirectory = wx.NewId()  # load first recent root directory
 for i in xrange(MaxNumberRecentFiles - 1):  # reserve additional menu items for more recent directories
     wx.NewId()
 ChangeRootDirectory = generateWxIdForLabel(_('Change Image Directory'))
-ReloadDirectory = generateWxIdForLabel(_('Reload Images\tCtrl+R'))
+ReloadDirectory = generateWxIdForLabel(_('Reload Images'))
 ExportImages = generateWxIdForLabel(_('Export (Filtered) Images'))
-FunctionNames[wx.ID_EXIT] = _('E&xit')
+FunctionNames[wx.ID_EXIT] = _('Exit')
 
 ## Image
 EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
@@ -83,17 +83,17 @@ DeleteImage = generateWxIdForLabel(_('Delete Image'))  # TODO: add name of selec
 DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
 
 RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
-RandomName = generateWxIdForLabel(_('Choose Random Name\tCtrl-R'))  # TODO: add random free name here
-ChooseName = generateWxIdForLabel(_('Choose Name Manually...\tCtrl-C'))
+RandomName = generateWxIdForLabel(_('Choose Random Name'))  # TODO: add random free name here
+ChooseName = generateWxIdForLabel(_('Choose Name Manually...'))
 RandomConvertToSingle = wx.NewId()  # for a Single inside a Group, choose a random (free) name
 ChooseConvertToSingle = wx.NewId()  # for a Single inside a Group, ask user for an (existing) name
-ConvertToGroup = generateWxIdForLabel(_('Convert to Group\tCtrl-G'))  # convert a Single into a Group
+ConvertToGroup = generateWxIdForLabel(_('Convert to Group'))  # convert a Single into a Group
 RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Elements'))
 
-FilterIdentical = generateWxIdForLabel(_('Filter Identical\tCtrl+I'))
-FilterSimilar = generateWxIdForLabel(_('Filter Similar\tCtrl+F'))
+FilterIdentical = generateWxIdForLabel(_('Filter Identical'))
+FilterSimilar = generateWxIdForLabel(_('Filter Similar'))
 
-StartExternalViewer = generateWxIdForLabel(_('View Fullscreen\tCtrl+V'))
+StartExternalViewer = generateWxIdForLabel(_('View Fullscreen'))
 SendMail = generateWxIdForLabel(_('Send Email'))
 # Functions specific to OrganizationByName
 SelectScene = generateWxIdForLabel(_('Move to scene...'))

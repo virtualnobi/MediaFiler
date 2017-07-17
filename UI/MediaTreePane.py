@@ -16,6 +16,7 @@ from nobi.PausableObservable import PausableObservable
 ## project
 import UI
 from UI import GUIId
+#from Model.Entry import Entry
 
 
 
@@ -47,7 +48,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 # section: Lifecycle
     def __init__ (self, parent, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.TR_DEFAULT_STYLE):
         # initialize superclasses
-        wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.TR_MULTIPLE | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS))
+        wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS))  # | wx.TR_MULTIPLE 
         Observer.__init__(self)
         PausableObservable.__init__(self, ['selection'])
         # define norgy images
@@ -71,12 +72,12 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """Set imageFilerModel
         """
         if (self.model):
+            self.DeleteAllItems()
             self.model.removeObserver(self)
         self.model = model
         self.model.addObserverForAspect(self, 'selection')
         self.model.addObserverForAspect(self, 'startFiltering')
-        self.model.addObserverForAspect(self, 'stopFiltering')        
-        self.DeleteAllItems()
+        self.model.addObserverForAspect(self, 'stopFiltering')
         self.addSubTree(self.model.getRootEntry(), None)
         self.setEntry(self.model.getSelectedEntry())
 
@@ -120,12 +121,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """Select the specified entry in the tree.
         """
         logging.debug('MediaTreeCtrl.setEntry(%s)' % entry.getPath())
-        if (entry <> self.model.getRootEntry()):
-            if (entry.getTreeItemID()):
-                self.SelectItem(entry.getTreeItemID())
-                self.EnsureVisible(entry.getTreeItemID())
-            else:
-                logging.error('MediaTreeCtrl.setEntry(): no tree item ID for "%s"' % entry.getPath())
+        if (entry == self.model.getRootEntry()):
+            entry = self.model.getInitialEntry()
+        if (entry.getTreeItemID()):
+            self.SelectItem(entry.getTreeItemID())
+            self.EnsureVisible(entry.getTreeItemID())
+        else:
+            logging.error('MediaTreeCtrl.setEntry(): no tree item ID for "%s"' % entry.getPath())
 
 
 # Getters
@@ -137,7 +139,9 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         if (self.ignoreSelectionChanges): 
             pass
         else:
-            entry = self.GetItemData(event.GetItem()).GetData()  # TODO: crashes with failure in setting item data??
+            print('MediaTreeCtrl.onSelectionChanged(): Received event %s with item %s' % (event, event.GetItem()))
+            entry = self.GetItemData(event.GetItem()).GetData()
+            print('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry.getPath())
             self.ignoreSelectionChanges = True
             self.model.setSelectedEntry(entry)
             self.ignoreSelectionChanges = False
@@ -206,7 +210,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
-                self.SelectEntry(self.model.getSelectedEntry())
+                self.SelectItem(self.model.getSelectedEntry().getTreeItemID())
                 self.Expand(self.model.getSelectedEntry().getTreeItemID())
             logging.debug('MediaTreeCtrl.update(): Recreating tree finished')
         else:

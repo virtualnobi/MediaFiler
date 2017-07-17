@@ -26,6 +26,7 @@ import logging
 import exifread
 ## nobi
 from nobi.wxExtensions.Menu import Menu
+from nobi.PartialDateTime import PartialDateTime
 ## Project
 from UI import GUIId
 from .Entry import Entry
@@ -49,8 +50,7 @@ class MediaOrganization(object):
 
 # Class Variables
     ImageFilerModel = None  # to access legal names 
-#    MoveToLocations = []  # defining this here makes concurrent use of subclasses impossible
-    MoveToLocations2 = OrderedDict()  # last move-to locations for repeating; no concurrent usage of subclasses!
+    MoveToLocations = OrderedDict()  # last move-to locations for repeating; no concurrent usage of subclasses!
     
     
 # Class Methods
@@ -174,7 +174,7 @@ class MediaOrganization(object):
         Dictionary illegalElements collects a mapping of illegal elements to source pathnames
         """
         newPath = cls.constructPathFromImport(importParameters, sourcePath, level, baseLength, targetDir, illegalElements)
-        importParameters.logString('Importing "%s"\n       as "%s"\n' % (sourcePath, newPath))
+        importParameters.logString('\tImporting "%s"\n\t       as "%s"\n' % (sourcePath, newPath))
         if (not importParameters.getTestRun()):
             try:
                 (head, tail) = os.path.split(newPath)  # @UnusedVariable
@@ -297,7 +297,7 @@ class MediaOrganization(object):
     def extendContextMenu(self, menu):
         pass
     def runContextMenuItem(self, menuId, parentWindow):  # @UnusedVariable
-        print('Unknown function id %d in Organization.runContextMenuItem()!' % menuId)
+        raise NotImplementedError
     # OrganizationByName only
     def getName(self):
         return(None)
@@ -307,12 +307,22 @@ class MediaOrganization(object):
         return(False)
     # OrganizationByDate only
     def getYear(self):
-        return(None)
+        raise NotImplementedError
     def getMonth(self):
-        return(None)
+        raise NotImplementedError
     def getDay(self):
-        return(None)
+        raise NotImplementedError
     
+
+
+# Other API Functions
+    def fillNamePane(self, aMediaNamePane):
+        """Set the fields of the MediaNamePane for self.
+        """
+        if (self.getNumber()):
+            aMediaNamePane.number = self.getNumber()
+        aMediaNamePane.numberInput.Enable(not self.context.isGroup())
+
 
 
 # Internal - to change without notice
@@ -693,18 +703,19 @@ class OrganizationByName(MediaOrganization):
             result.sort()
         return(result)
 
+    
 
-    def getRelativePath(self):  # inherited from MediaOrganization
-        print('MediaOrganization.getRelativePath() deprecated')
-        if (self.isSingleton()):
-            return(os.path.join(self.name[0:1],
-                                self.name))
-        else:
-            return(os.path.join(self.name[0:1],
-                                self.name, 
-                                ('%02%s%03d%s' % (self.scene, self.__class__.NameSeparator, self.number))))
-    
-    
+# Other API Funcions
+    def fillNamePane(self, aMediaNamePane):
+        """Set the fields of the MediaNamePane for self.
+        """
+        super(OrganizationByName, self).fillNamePane(aMediaNamePane)
+        aMediaNamePane.name = self.getName() 
+        if (self.getScene()):
+            aMediaNamePane.scene = self.getScene()
+        aMediaNamePane.sceneInput.Enable(not self.context.isGroup())
+
+
     
 # Internal - to change without notice
     def constructPathForSelf(self, **kwargs):
@@ -734,13 +745,13 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Constants
-    UnknownDateName = '0000'
     # format strings for date output
     FormatYear = '%04d'
     FormatMonth = '%02d'
     FormatYearMonth = (FormatYear + MediaOrganization.NameSeparator + FormatMonth)
     FormatDay = '%02d'
     FormatYearMonthDay = (FormatYearMonth + MediaOrganization.NameSeparator + FormatDay)
+    UnknownDateName = (FormatYear % 0)
     # RE patterns to recognize dates
     YearString = '((?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d))'  # 4-digit year
     ReducedYearString = r'[/\\](\d\d)'  # 2-digit year, only allowed at beginning of path component
@@ -1100,18 +1111,13 @@ class OrganizationByDate(MediaOrganization):
             or (scene <> None)):
             raise ValueError
         print('OrganizationByDate.registerMoveToLocation(): Registering (%s, %s, %s)' % (year, month, day))
-# 
-#         cls.MoveToLocations.append({'year': year, 'month': month, 'day': day})
-#         if (len(cls.MoveToLocations) > GUIId.MaxNumberMoveToLocations):
-#             cls.MoveToLocations = cls.MoveToLocations[1:]
-#
         moveToLocation = {'year': year, 'month': month, 'day': day}
         path = cls.constructPathHead(rootDir='', **moveToLocation)
         (dummy, menuText) = os.path.split(path)
-        if (not menuText in cls.MoveToLocations2):
-            cls.MoveToLocations2[menuText] = moveToLocation
-            if (GUIId.MaxNumberMoveToLocations < len(cls.MoveToLocations2)):
-                cls.MoveToLocations2.popitem(last=False)
+        if (not menuText in cls.MoveToLocations):
+            cls.MoveToLocations[menuText] = moveToLocation
+            if (GUIId.MaxNumberMoveToLocations < len(cls.MoveToLocations)):
+                cls.MoveToLocations.popitem(last=False)
 
 
 # Lifecycle
@@ -1125,6 +1131,10 @@ class OrganizationByDate(MediaOrganization):
         self.year = year
         self.month = month
         self.day = day
+        year = (int(year) if year else None)
+        month = (int(month) if month else None)
+        day = (int(day) if day else None)
+        self.dateTaken = PartialDateTime(year, month, day)
         return(rest)
 
 
@@ -1138,29 +1148,16 @@ class OrganizationByDate(MediaOrganization):
         """
         moveToMenu = Menu()
         moveToId = GUIId.SelectMoveToLocation
-        for menuText in sorted(self.__class__.MoveToLocations2.keys()):
+        for menuText in sorted(self.__class__.MoveToLocations.keys()):
             if (moveToId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations)):
-                mtl = self.__class__.MoveToLocations2[menuText]
+                mtl = self.__class__.MoveToLocations[menuText]
                 print('Adding move-to location "%s" into menu entry %s with id %d' % (mtl, menuText, moveToId))
                 moveToMenu.Append(moveToId, menuText)
-                if ((mtl['year'] == self.getYear())
-                    and (mtl['month'] == self.getMonth())
-                    and (mtl['day'] == self.getDay())):
+                if ((mtl['year'] == self.getYearString())
+                    and (mtl['month'] == self.getMonthString())
+                    and (mtl['day'] == self.getDayString())):
                     moveToMenu.Enable(moveToId, False)
                 moveToId = (moveToId + 1)
-# 
-#         for mtl in self.__class__.MoveToLocations:
-#             if (moveToId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations)):
-#                 print('Adding move-to location "%s" into menu id %d' % (mtl, moveToId))
-#                 path = self.__class__.constructPathHead(rootDir='', **mtl)
-#                 (dummy, tail) = os.path.split(path)
-#                 moveToMenu.Append(moveToId, tail)
-#                 if ((mtl['year'] == self.getYear())
-#                     and (mtl['month'] == self.getMonth())
-#                     and(mtl['day'] == self.getDay())):
-#                     moveToMenu.Enable(moveToId, False)
-#                 moveToId = (moveToId + 1)
-#
         if (GUIId.SelectMoveToLocation < moveToId):  
             menu.AppendMenu(0, GUIId.FunctionNames[GUIId.SelectMoveToLocation], moveToMenu)
         return(menu)
@@ -1172,46 +1169,84 @@ class OrganizationByDate(MediaOrganization):
         if ((GUIId.SelectMoveToLocation <= menuId)
             and (menuId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations))):
             mtlIndex = (menuId - GUIId.SelectMoveToLocation)
-            mtlText = sorted(self.__class__.MoveToLocations2.keys())[mtlIndex]
-            mtl = self.__class__.MoveToLocations2[mtlText]
-#            mtl = self.__class__.MoveToLocations[mtlIndex]
+            mtlText = sorted(self.__class__.MoveToLocations.keys())[mtlIndex]
+            mtl = self.__class__.MoveToLocations[mtlText]
             print('Moving "%s" to %s' % (self.getPath(), mtl))
             self.context.renameTo(makeUnique=True, **mtl)
         else:
             super(OrganizationByDate, self).runContextMenuItem(self, menuId, parentWindow)
 
 
+    def getDateTaken(self):
+        return(self.dateTaken)
+
+
     def getYear(self):
+        if (((self.year <> None)
+             and (int(self.year) <> self.dateTaken.getYear()))
+            or ((self.year == None)
+                and self.dateTaken.getYear())):
+            print('OrganizationByDate.getYear(): explicit and PartialDateTime year do not match')
         if (self.year == None):
-            return('')
+            return(u'')
         else:
             return(self.year)
+
     
-    
+    def getYearString(self):
+        if (self.dateTaken.getYear()):
+            return(self.__class__.FormatYear % self.dateTaken.getYear())
+        else:
+            return(self.__class__.UnknownDateName)
+
+
     def getMonth(self):
+        if (((self.month <> None)
+             and (int(self.month) <> self.dateTaken.getMonth()))
+            or ((self.month == None)
+                and self.dateTaken.getMonth())):
+            print('OrganizationByDate.getMonth(): explicit and PartialDateTime month do not match')
         if (self.month == None):
-            return('')
+            return(u'')
         else:
             return(self.month)
     
+
+    def getMonthString(self):
+        if (self.dateTaken.getMonth()):
+            return(self.__class__.FormatMonth % self.dateTaken.getMonth())
+        else:
+            return(u'')
+
     
     def getDay(self):
+        if (((self.day <> None)
+             and (int(self.day) <> self.dateTaken.getDay()))
+            or ((self.day == None)
+                and self.dateTaken.getDay())):
+            print('OrganizationByDate.getDay(): explicit and PartialDateTime day do not match')
         if (self.day == None):
-            return('')
+            return(u'')
         else:
             return(self.day)    
 
 
-    def getRelativePath(self):  # inherited from MediaOrganization
-        print('MediaOrganization.getRelativePath() deprecated')
-        result = self.getYear()
-        if (len(self.getMonth()) > 0):
-            result = os.path.join(result, 
-                                  self.FormatYearMonth % (int(self.getYear()), int(self.getMonth())))
-            if (len(self.getDay()) > 0):
-                result = os.path.join(result,
-                                      self.FormatYearMonthDay % (int(self.getYear()), int(self.getMonth()), int(self.getDay())))
-        return(result)
+    def getDayString(self):
+        if (self.dateTaken.getDay()):
+            return(self.__class__.FormatDay % self.dateTaken.getDay())
+        else:
+            return(u'')
+
+
+
+# Other API Funcions
+    def fillNamePane(self, aMediaNamePane):
+        """Set the fields of the MediaNamePane for self.
+        """
+        super(OrganizationByDate, self).fillNamePane(aMediaNamePane)
+        aMediaNamePane.year = self.getYearString()
+        aMediaNamePane.month = self.getMonthString()
+        aMediaNamePane.day = self.getDayString()
 
 
 
@@ -1227,13 +1262,13 @@ class OrganizationByDate(MediaOrganization):
         """
         if ((not 'year' in kwargs)
             or (kwargs['year'] == None)):
-            kwargs['year'] = self.getYear()
+            kwargs['year'] = self.getYearString()
         if ((not 'month' in kwargs)
             or (kwargs['month'] == None)):
-            kwargs['month'] = self.getMonth()
+            kwargs['month'] = self.getMonthString()
         if ((not 'day' in kwargs)
             or (kwargs['day'] == None)):
-            kwargs['day'] = self.getDay()
+            kwargs['day'] = self.getDayString()
         return(super(OrganizationByDate, self).constructPathForSelf(**kwargs))
 
 

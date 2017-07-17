@@ -8,9 +8,11 @@
 import gettext
 import os.path
 import logging
+#import datetime
 ## contributed
 import wx.lib.scrolledpanel
-#import wx.lib.rcsizer
+import wx.calendar
+#from wxPython._misc import wxDateTime
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
@@ -46,6 +48,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     RowClear = 0  # row of "Clear" and "Apply" buttons
     RowSize = 1  # row of size sliders
     RowSingle = 2  # row of single/group condition
+    RowDate = RowSingle  # row for date range condition
     RowUnknown = 3  # row of unknown elements (regular elements follow)
     # 
     SingleConditionIndex = N_('single')  # string to access single/group condition
@@ -93,8 +96,10 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         if (self.imageModel):
             self.imageModel.removeObserver(self)
+            self.imageModel = None
         if (self.filterModel):
             self.filterModel.removeObserver(self)
+            self.filterModel = None
         self.DestroyChildren()
 
 
@@ -179,9 +184,6 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Getters    
-
-
-
 # Event Handlers
     def onClear(self, event):  # @UnusedVariable
         """User wants to clear the filter.
@@ -202,21 +204,12 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def onModeChanged(self, event):  # @UnusedVariable
         """User changed a mode in the filter. Update internal state. 
         """
+        kwargs = {}  # parameter set to pass to MediaFilter.setConditions()
         wx.BeginBusyCursor()
         # TODO: Check whether class definition requires (de)activation of other choices
-        # clear existing filters
         self.requiredElements = set()
         self.prohibitedElements = set()
-        # filter for single/group
-        if (not self.imageModel.organizedByDate):
-            modeName = self.filterModes[self.SingleConditionIndex].GetStringSelection()
-            if (modeName == self.FilterModeNameRequire):
-                self.singleCondition = True
-            elif (modeName == self.FilterModeNameExclude):
-                self.singleCondition = False
-            else:  # must be ignore
-                self.singleCondition = None
-        # set up value filter for unknown values
+        # filter for unknown values
         modeName = self.filterModes[self.UnknownElementsIndex].GetStringSelection()
         valueName = self.filterValues[self.UnknownElementsIndex].GetValue()
         if (modeName == self.FilterModeNameRequire):
@@ -231,6 +224,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 self.prohibitedElements.add(valueName)
         else:  # must be ignore
             self.unknownElementRequired = False
+        kwargs['unknownRequired'] = self.unknownElementRequired
         # for all classes, set up value filters
         for className in self.imageModel.getClassHandler().getClassNames():
             # TODO: make checkbox conditions work
@@ -248,16 +242,27 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                     self.prohibitedElements.add(valueName)
             else:  # must be 'ignore'
                 pass
-        # update filter model
-        self.filterModel.setConditions(required=self.requiredElements, 
-                                       prohibited=self.prohibitedElements, 
-                                       unknownRequired=self.unknownElementRequired,
-                                       single=self.singleCondition)
+        kwargs['required'] = self.requiredElements
+        kwargs['prohibited'] = self.prohibitedElements
+        if (self.imageModel.organizedByDate):
+            # filter for date range
+            pass
+        else:
+            # filter for single/group
+            modeName = self.filterModes[self.SingleConditionIndex].GetStringSelection()
+            if (modeName == self.FilterModeNameRequire):
+                self.singleCondition = True
+            elif (modeName == self.FilterModeNameExclude):
+                self.singleCondition = False
+            else:  # must be ignore
+                self.singleCondition = None
+            kwargs['single'] = self.singleCondition
+        self.filterModel.setConditions(**kwargs)
         wx.EndBusyCursor()
 
 
     def onValueChanged(self, event):
-        """User change an element value in filter. Update internal state.
+        """User changed an element value in filter. Update internal state.
         
         In addition to the regular update done in onModeChanged(), 
         the mode corresponding to the value is set to Require if it was Ignore.
@@ -273,7 +278,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """User changed the size slider.
         """
         wx.BeginBusyCursor()
-        print('Slider changed to %d' % event.GetEventObject().GetValue())
+        print('File size changed to %d' % event.GetEventObject().GetValue())
         if (event.EventObject == self.minimumSlider):
             self.maximumSliderMinimum = event.GetEventObject().GetValue()  # minimum slider position is new minimum for maximum slider
             self.maximumSlider.SetMin(self.maximumSliderMinimum)
@@ -288,11 +293,15 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def onDateChanged(self, event):
         """
         """
-        if (event.GetEventObject() == self.fromDate):
-            self.filterModel.setConditions(fromDate=self.fromDatePicker.GetValue())
+        if (event.GetEventObject() == self.fromDatePicker):
+            wxDate = self.fromDatePicker.GetValue()
+            dateTime = wx.calendar._wxdate2pydate(wxDate)
+            self.filterModel.setConditions(fromDate=dateTime)
             print('fromDate changed')
-        else:
-            self.filterModel.setConditions(toDate=self.toDatePicker.GetValue())
+        elif (event.GetEventObject() == self.toDatePicker):
+            wxDate = self.toDatePicker.GetValue()
+            dateTime = wx.calendar._wxdate2pydate(wxDate)
+            self.filterModel.setConditions(toDate=dateTime)
             print('toDate changed')
 
 
@@ -390,12 +399,10 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         Number row             the row to use in sizer
         """
         sizer.Add(wx.StaticText(self, -1, self.DateRangeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
-        self.fromDatePicker = wx.DatePickerCtrl(self, #size=(120,-1),
-                                                style = (wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
+        self.fromDatePicker = wx.DatePickerCtrl(self, style=(wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
         sizer.Add(self.fromDatePicker, (row, 1), (1, 1))
         self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.fromDatePicker)
-        self.toDatePicker = wx.DatePickerCtrl(self, #size=(120,-1),
-                                        style = (wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
+        self.toDatePicker = wx.DatePickerCtrl(self, style=(wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
         sizer.Add(self.toDatePicker, (row, 2), (1, 1))
         self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.toDatePicker)
         
@@ -450,12 +457,20 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # file sizes
         self.minimumSlider.SetValue(minimumFileSize)
         self.maximumSlider.SetValue(maximumFileSize)
-        # date range
         if (self.imageModel.organizedByDate):
-            self.fromDatePicker.SetValue(fromDate)
-            self.toDatePicker.SetValue(toDate)
+            # date range - need to map partial dates to real ones
+            if (not fromDate):
+                wxDate = wx.DateTime()
+            else:
+                wxDate = wx.calendar._pydate2wxdate(fromDate)
+            self.fromDatePicker.SetValue(wxDate)
+            if (not toDate):
+                wxDate = wx.DateTime()
+            else:
+                wxDate = wxDate = wx.calendar._pydate2wxdate(toDate)
+            self.toDatePicker.SetValue(wxDate)
+        else:
         # single/group condition
-        if (not self.imageModel.organizedByDate):
             if (singleCondition == None):
                 self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexIgnore)
             elif (singleCondition == True):
