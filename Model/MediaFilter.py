@@ -17,6 +17,7 @@ The following aspects of ImageFilter are observable:
 ## Imports
 # standard libraries
 import re
+import logging
 # public libraries 
 # nobi's libraries
 from nobi.ObserverPattern import Observable
@@ -92,25 +93,27 @@ class MediaFilter(Observable):
             self.minimumSize = minimum
         if (maximum <> None):
             self.maximumSize = maximum
-        if (self.model.organizedByDate):
-            print('Only images organized by name can be filtered by single/group!')
-        else:  # organized by name
-            self.singleCondition = single
+        if (single <> None):
+            if (self.model.organizedByDate):
+                logging.error('MediaFilter.setConditions(): Single/group filtering only allowed for media organized by name!')
+            else:  # organized by name
+                self.singleCondition = single
         if (fromDate <> None):
             if (self.model.organizedByDate):
                 self.fromDate = fromDate
             else:  # organized by name
-                print('Only images organized by date can be filtered by date!')
+                logging.error('MediaFilter.setConditions(): Only images organized by date can be filtered by date!')
         if (toDate <> None):
             if (self.model.organizedByDate):
                 self.toDate = toDate
             else:
-                print('Only images organized by date can be filtered by date!')
-        print('         final conditions: %s +%s, -%s, unknown %s, size %s - %s%s' 
-              % (self.active, self.requiredElements, self.prohibitedElements, self.unknownElementRequired, 
-                 self.minimumSize, self.maximumSize, (', single' if self.singleCondition else '')))
+                logging.error('MediaFilter.setConditions(): Only images organized by date can be filtered by date!')
+#         print('         final conditions: %s +%s, -%s, unknown %s, size %s - %s%s' 
+#               % (self.active, self.requiredElements, self.prohibitedElements, self.unknownElementRequired, 
+#                  self.minimumSize, self.maximumSize, (', single' if self.singleCondition else '')))
         if (changed): 
             self.changedAspect('changed')
+        print('MediaFilter.setCondition() finished as %s' % self)
 
 
     def clear(self):
@@ -126,6 +129,23 @@ class MediaFilter(Observable):
 
 
 # Getters
+    def __str__(self):
+        """Return a string representing self.
+        """
+        result = ('MediaFilter(' 
+                  + ('active ' if self.active else '')
+                  + (('requires %s ') if 0 < len(self.requiredElements) else '')
+                  + (('prohibits %s ') if 0 < len(self.prohibitedElements) else '')
+                  + ('requires unknown ' if self.unknownElementRequired else '')
+                  + (('larger %s ' % self.minimumSize) if self.minimumSize else '')
+                  + (('smaller %s ' % self.maximumSize) if self.maximumSize else '')  
+                  + (('from %s ' % self.fromDate) if self.fromDate else '')
+                  + (('to %s ' % self.toDate) if self.toDate else '')
+                  + ('single' if self.singleCondition else '')
+                  + ')')
+        return(result)
+
+
     def getFilterConditions(self):
         """ Return a list with all filter conditions.
         
@@ -215,6 +235,19 @@ class MediaFilter(Observable):
                 and (not entry.isGroup())
                 and (self.maximumSize < entry.getFileSize())):  # file larger than that
                 return(True)
+            # date range 
+            if ((self.fromDate)
+                and (entry.organizer.getDateTaken() <= self.fromDate)):
+                print('MediaFilter.isFiltered(): %s later than "%s"' % (self.fromDate, entry.getPath()))
+                return(True)
+            if ((self.toDate)
+                and (entry.organizer.getDateTaken() >= self.toDate)):
+                print('MediaFilter.isFiltered(): %s earlier than "%s"' % (self.fromDate, entry.getPath()))
+                return(True)
+            # single/group
+            if (self.singleCondition <> None):
+                if (self.singleCondition == entry.isGroup()):
+                    return(True)
         return(entryFiltered)
 
 
@@ -248,3 +281,4 @@ class MediaFilter(Observable):
                     return (True)
         # getting here means no constraint was violated
         return (False)         
+
