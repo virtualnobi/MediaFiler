@@ -173,19 +173,21 @@ class PartialDateTime(object):
 # Inheritance - Superclass
 # Other API Functions
     def __lt__(self, other):
-        """
-        """
         if (self.year == other.year):
             if (self.month == other.month):
                 if (self.day == other.day):
-                    if (self.time == other.time):
+                    if (isinstance(other, datetime.datetime)
+                        or isinstance(other, PartialDateTime)):
+                        if (self.time == other.time):
+                            return(False)
+                        elif (self.time == None):
+                            return(True)
+                        elif (other.time == None):
+                            return(False)
+                        else: 
+                            return(self.time < other.time)
+                    else:
                         return(False)
-                    elif (self.time == None):
-                        return(True)
-                    elif (other.time == None):
-                        return(False)
-                    else: 
-                        return(self.time < other.time)
                 elif (self.day == None):
                     return(True)
                 elif (other.day == None):
@@ -207,19 +209,21 @@ class PartialDateTime(object):
 
 
     def __le__(self, other):
-        """
-        """
         if (self.year == other.year):
             if (self.month == other.month):
                 if (self.day == other.day):
-                    if (self.time == other.time):
+                    if (isinstance(other, datetime.datetime)
+                        or isinstance(other, PartialDateTime)):
+                        if (self.time == other.time):
+                            return(True)
+                        elif (self.time == None):
+                            return(True)
+                        elif (other.time == None):
+                            return(False)
+                        else: 
+                            return(self.time <= other.time)
+                    else:
                         return(True)
-                    elif (self.time == None):
-                        return(True)
-                    elif (other.time == None):
-                        return(False)
-                    else: 
-                        return(self.time <= other.time)
                 elif (self.day == None):
                     return(True)
                 elif (other.day == None):
@@ -241,19 +245,21 @@ class PartialDateTime(object):
 
 
     def __gt__(self, other):
-        """
-        """
         if (self.year == other.year):
             if (self.month == other.month):
                 if (self.day == other.day):
-                    if (self.time == other.time):
+                    if (isinstance(other, datetime.datetime)
+                        or isinstance(other, PartialDateTime)):
+                        if (self.time == other.time):
+                            return(False)
+                        elif (self.time == None):
+                            return(True)
+                        elif (other.time == None):
+                            return(False)
+                        else: 
+                            return(self.time > other.time)
+                    else:
                         return(False)
-                    elif (self.time == None):
-                        return(True)
-                    elif (other.time == None):
-                        return(False)
-                    else: 
-                        return(self.time > other.time)
                 elif (self.day == None):
                     return(True)
                 elif (other.day == None):
@@ -275,19 +281,21 @@ class PartialDateTime(object):
 
 
     def __ge__(self, other):
-        """
-        """
         if (self.year == other.year):
             if (self.month == other.month):
                 if (self.day == other.day):
-                    if (self.time == other.time):
+                    if (isinstance(other, datetime.datetime)
+                        or isinstance(other, PartialDateTime)):
+                        if (self.time == other.time):
+                            return(True)
+                        elif (self.time == None):
+                            return(True)
+                        elif (other.time == None):
+                            return(False)
+                        else: 
+                            return(self.time >= other.time)
+                    else:
                         return(True)
-                    elif (self.time == None):
-                        return(True)
-                    elif (other.time == None):
-                        return(False)
-                    else: 
-                        return(self.time >= other.time)
                 elif (self.day == None):
                     return(True)
                 elif (other.day == None):
@@ -309,20 +317,17 @@ class PartialDateTime(object):
 
 
     def __eq__(self, other):
-        """
-        """
         if ((self.year == other.year)
             and (self.month == other.month)
             and (self.day == other.day)
-            and (self.time == other.time)): 
+            and ((isinstance(other, datetime.date)) 
+                 or (self.time == other.time))): 
             return(True)
         else:
             return(False)
 
 
     def __ne__(self, other):
-        """
-        """
         return(not (self == other))
 
 
@@ -345,10 +350,6 @@ class PartialDateTime(object):
 
 
 # Class Initialization
-pass
-
-
-
 # Executable Script
 if __name__ == "__main__":
     pass

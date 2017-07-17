@@ -73,13 +73,6 @@ class TestPartialDateTime(unittest.TestCase):
         self.assertFalse((PartialDateTime('') > PartialDateTime('')))
         self.assertFalse((PartialDateTime('') != PartialDateTime('')))
 
-        self.assertTrue(PartialDateTime(datetime.date.today()) < PartialDateTime(datetime.datetime.now()))
-        self.assertTrue(PartialDateTime(datetime.date.today()) <= PartialDateTime(datetime.datetime.now()))
-        self.assertFalse(PartialDateTime(datetime.date.today()) == PartialDateTime(datetime.datetime.now()))
-        self.assertTrue(PartialDateTime(datetime.date.today()) >= PartialDateTime(datetime.datetime.now()))
-        self.assertTrue(PartialDateTime(datetime.date.today()) > PartialDateTime(datetime.datetime.now()))
-        self.assertTrue(PartialDateTime(datetime.date.today()) != PartialDateTime(datetime.datetime.now()))
-
         self.assertFalse((PartialDateTime('') < PartialDateTime(None, None, None)))
         self.assertTrue((PartialDateTime('') <= PartialDateTime(None, None, None)))
         self.assertTrue((PartialDateTime('') == PartialDateTime(None, None, None)))
@@ -114,6 +107,27 @@ class TestPartialDateTime(unittest.TestCase):
         self.assertFalse((PartialDateTime('2000-01-24') >= PartialDateTime('2000-01')))
         self.assertFalse((PartialDateTime('2000-01-24') > PartialDateTime('2000-01')))
         self.assertTrue((PartialDateTime('2000-01-24') != PartialDateTime('2000-01')))
+
+        self.assertTrue(PartialDateTime(datetime.date.today()) < PartialDateTime(datetime.datetime.now()))
+        self.assertTrue(PartialDateTime(datetime.date.today()) <= PartialDateTime(datetime.datetime.now()))
+        self.assertFalse(PartialDateTime(datetime.date.today()) == PartialDateTime(datetime.datetime.now()))
+        self.assertTrue(PartialDateTime(datetime.date.today()) >= PartialDateTime(datetime.datetime.now()))
+        self.assertTrue(PartialDateTime(datetime.date.today()) > PartialDateTime(datetime.datetime.now()))
+        self.assertTrue(PartialDateTime(datetime.date.today()) != PartialDateTime(datetime.datetime.now()))
+
+        self.assertTrue(PartialDateTime(datetime.date.today()) < datetime.datetime.now())
+        self.assertTrue(PartialDateTime(datetime.date.today()) <= datetime.datetime.now())
+        self.assertTrue(PartialDateTime(datetime.date.today()) == datetime.datetime.now())
+        self.assertTrue(PartialDateTime(datetime.date.today()) >= datetime.datetime.now())
+        self.assertTrue(PartialDateTime(datetime.date.today()) > datetime.datetime.now())
+        self.assertFalse(PartialDateTime(datetime.date.today()) != datetime.datetime.now())
+
+        self.assertFalse(PartialDateTime(datetime.date.today()) < datetime.date.today())
+        self.assertTrue(PartialDateTime(datetime.date.today()) <= datetime.date.today())
+        self.assertTrue(PartialDateTime(datetime.date.today()) == datetime.date.today())
+        self.assertTrue(PartialDateTime(datetime.date.today()) >= datetime.date.today())
+        self.assertFalse(PartialDateTime(datetime.date.today()) > datetime.date.today())
+        self.assertFalse(PartialDateTime(datetime.date.today()) != datetime.date.today())
 
 
     def testConversionDateTime(self):
