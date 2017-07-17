@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2017-07-01 18:58+Mitteleuropäische Sommerzeit\n"
+"POT-Creation-Date: 2017-07-16 22:31+Mitteleuropäische Sommerzeit\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,7 +20,7 @@ msgid "Change Image Directory"
 msgstr ""
 
 #: UI\GUIId.py:76
-msgid "Reload Images\tCtrl+R"
+msgid "Reload Images"
 msgstr ""
 
 #: UI\GUIId.py:77
@@ -44,15 +44,15 @@ msgid "Remove Import Indicator"
 msgstr ""
 
 #: UI\GUIId.py:86
-msgid "Choose Random Name\tCtrl-R"
+msgid "Choose Random Name"
 msgstr ""
 
 #: UI\GUIId.py:87
-msgid "Choose Name Manually...\tCtrl-C"
+msgid "Choose Name Manually..."
 msgstr ""
 
 #: UI\GUIId.py:90
-msgid "Convert to Group\tCtrl-G"
+msgid "Convert to Group"
 msgstr ""
 
 #: UI\GUIId.py:91
@@ -60,15 +60,15 @@ msgid "Remove Illegal Elements"
 msgstr ""
 
 #: UI\GUIId.py:93
-msgid "Filter Identical\tCtrl+I"
+msgid "Filter Identical"
 msgstr ""
 
 #: UI\GUIId.py:94
-msgid "Filter Similar\tCtrl+F"
+msgid "Filter Similar"
 msgstr ""
 
 #: UI\GUIId.py:96
-msgid "View Fullscreen\tCtrl+V"
+msgid "View Fullscreen"
 msgstr ""
 
 #: UI\GUIId.py:97
@@ -227,47 +227,47 @@ msgstr ""
 msgid "Choose a directory to import from:"
 msgstr ""
 
-#: UI\MediaClassificationPane.py:46
+#: UI\MediaClassificationPane.py:47
 msgid "(n/a)"
 msgstr ""
 
-#: UI\MediaClassificationPane.py:48
+#: UI\MediaClassificationPane.py:49
 msgid "(none)"
 msgstr ""
 
-#: UI\MediaFilterPane.py:51 UI\MediaFilterPane.py:52
+#: UI\MediaFilterPane.py:53 UI\MediaFilterPane.py:54
 msgid "single"
 msgstr ""
 
-#: UI\MediaFilterPane.py:53
+#: UI\MediaFilterPane.py:55
 msgid "group"
 msgstr ""
 
-#: UI\MediaFilterPane.py:55
+#: UI\MediaFilterPane.py:57
 msgid "unknown"
 msgstr ""
 
-#: UI\MediaFilterPane.py:58
+#: UI\MediaFilterPane.py:60
 msgid "any"
 msgstr ""
 
-#: UI\MediaFilterPane.py:60
+#: UI\MediaFilterPane.py:62
 msgid "ignore"
 msgstr ""
 
-#: UI\MediaFilterPane.py:62
+#: UI\MediaFilterPane.py:64
 msgid "require"
 msgstr ""
 
-#: UI\MediaFilterPane.py:64
+#: UI\MediaFilterPane.py:66
 msgid "exclude"
 msgstr ""
 
-#: UI\MediaFilterPane.py:68
+#: UI\MediaFilterPane.py:70
 msgid "Size:"
 msgstr ""
 
-#: UI\MediaFilterPane.py:69
+#: UI\MediaFilterPane.py:71
 msgid "Date Range:"
 msgstr ""
 
