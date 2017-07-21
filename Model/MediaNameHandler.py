@@ -156,7 +156,7 @@ class MediaNameHandler(object):
         match = re.match('^([^\d]+)\d+$', name)
         if (match):  # digits exist
             nameWithoutDigits = match.group(1)
-            return (nameWithoutDigits)
+            return(nameWithoutDigits)
         else:  # no match
             return(None)
 

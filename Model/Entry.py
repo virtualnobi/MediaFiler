@@ -675,11 +675,11 @@ class Entry(PausableObservable):
         ok = True
         newName = None
         while (ok and 
-               (not self.model.nameIsLegal(newName))):
+               (not self.organizer.nameHandler.isNameLegal(newName))):
             ok = (dialog.ShowModal() == wx.ID_OK)
             if (ok):
                 newName = dialog.GetValue()
-                if (not self.model.nameIsLegal(newName)):
+                if (not self.organizer.nameHandler.isNameLegal(newName)):
                     dialog.SetValue('%s is not a legal name' % newName)
                     newName = None
         dialog.Destroy()

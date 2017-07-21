@@ -117,8 +117,10 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         return(node)
 
 
-    def setEntry(self, entry):
+    def setEntry(self, entry, expand=False):
         """Select the specified entry in the tree.
+        
+        Boolean expand indicates that the selected node shall be expanded.
         """
         logging.debug('MediaTreeCtrl.setEntry(%s)' % entry.getPath())
         if (entry == self.model.getRootEntry()):
@@ -126,6 +128,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         if (entry.getTreeItemID()):
             self.SelectItem(entry.getTreeItemID())
             self.EnsureVisible(entry.getTreeItemID())
+            if (expand):
+                self.Expand(entry.getTreeItemID())                
         else:
             logging.error('MediaTreeCtrl.setEntry(): no tree item ID for "%s"' % entry.getPath())
 
@@ -210,8 +214,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
-                self.SelectItem(self.model.getSelectedEntry().getTreeItemID())
-                self.Expand(self.model.getSelectedEntry().getTreeItemID())
+                self.setEntry(self.model.getSelectedEntry(), expand=True)
             logging.debug('MediaTreeCtrl.update(): Recreating tree finished')
         else:
             super(self, MediaTreeCtrl).update(observable, aspect)

@@ -31,8 +31,8 @@ from nobi.PartialDateTime import PartialDateTime
 from UI import GUIId
 from .Entry import Entry
 from .Group import Group
-#from wx.lib.pubsub.core import kwargs
-
+from .MediaNameHandler import MediaNameHandler
+import Installer
 
 
 class MediaOrganization(object):
@@ -307,11 +307,17 @@ class MediaOrganization(object):
         return(False)
     # OrganizationByDate only
     def getYear(self):
-        raise NotImplementedError
+        return(None)
     def getMonth(self):
-        raise NotImplementedError
+        return(None)
     def getDay(self):
-        raise NotImplementedError
+        return(None)
+    def getYearString(self):
+        return(None)
+    def getMonthString(self):
+        return(None)
+    def getDayString(self):
+        return(None)
     
 
 
@@ -364,14 +370,18 @@ class OrganizationByName(MediaOrganization):
     FormatScene = '%02d'  # format string for scene number
 
 
+
 # Class Methods
     @classmethod
     def setModel(self, model):
-        """Load legal names.
+        """Also load the legal names. 
+        
+        MediaCollection model
         """
         # inheritance
         super(self, self).setModel(model)
-        # TODO: create NameHandler class
+        # internal state
+        self.nameHandler = MediaNameHandler(Installer.getNamesFilePath())
 
 
     @classmethod
@@ -422,7 +432,7 @@ class OrganizationByName(MediaOrganization):
             except:
                 scene = self.NewIndicator
             folder = os.path.join(folder, scene)
-        else: # TODO markAsNew
+        else: # TODO: markAsNew
             pass
         return(folder)
 
@@ -470,7 +480,8 @@ class OrganizationByName(MediaOrganization):
                                                                    illegalElements)
         # add new indicator as needed
         if (singleton):
-            if (importParameters.getMarkAsNew()):
+            if (importParameters.getMarkAsNew()
+                and (not Entry.NameSeparator in pathInfo['elements'])):
                 pathInfo['elements'] = (pathInfo['elements'] + self.ElementSeparator + self.NewIndicator)
         else:  # in a Group, create new number
             pathInfo['makeUnique'] = True
@@ -521,7 +532,7 @@ class OrganizationByName(MediaOrganization):
         for word in words: 
             word = word.lower()
             #log.write(' checking "%s" for name-ness' % word)
-            if (self.ImageFilerModel.nameIsLegal(word)):  # name given
+            if (self.nameHandler.isNameLegal(word)):  # name given
                 if (newName == None):  # first name found
                     #log.write(', accepting it as first name\n')
                     newName = word
@@ -534,14 +545,14 @@ class OrganizationByName(MediaOrganization):
                 pass    
         # if none found, pick random one
         if (newName == None):  # no name found, randomly select unused one
-            newName = self.ImageFilerModel.getFreeName()
+            newName = self.nameHandler.getFreeName()
             if (newName == None):  # no more free names
                 log.write('No more free names.\n')
             else:
                 log.write('Choosing free name "%s" for file "%s"\n' % (newName, path))
-        elif (self.ImageFilerModel.nameHandler.isNameFree(newName)):  # old name exists and is still free
+        elif (self.nameHandler.isNameFree(newName)):  # old name exists and is still free
             log.write('Found free legal name "%s" in file "%s"\n' % (newName, path))
-            self.ImageFilerModel.nameHandler.registerNameAsUsed(newName) 
+            self.nameHandler.registerNameAsUsed(newName) 
         else: # old name exists but is occupied
             log.write('Existing name "%s" used in file "%s"\n' % (newName, path))
         return(newName)
@@ -568,7 +579,7 @@ class OrganizationByName(MediaOrganization):
                           path,
                           re.VERBOSE)
         if (match  # path is for an image in a group of images with the same name
-            and self.context.model.nameIsLegal(match.group(3))):  # and name is legal
+            and self.nameHandler.isNameLegal(match.group(3))):  # and name is legal
             self.name = match.group(2)
             self.scene = match.group(4)
             rest = match.group(6)
@@ -580,7 +591,7 @@ class OrganizationByName(MediaOrganization):
                               path, 
                               re.VERBOSE)
             if (match  # path is for an single named image 
-                and self.context.model.nameIsLegal(match.group(3))):  # and name is legal
+                and self.nameHandler.isNameLegal(match.group(3))):  # and name is legal
                 self.name = match.group(2)
                 rest = match.group(4)
             else:  # third try: '/letter' is a Group
@@ -833,7 +844,8 @@ class OrganizationByDate(MediaOrganization):
                                                           baseLength, 
                                                           True, 
                                                           illegalElements)
-        if (importParameters.getMarkAsNew()):
+        if (importParameters.getMarkAsNew()
+            and (not Entry.NameSeparator in newElements)):
             newElements = (newElements + Entry.NameSeparator + self.NewIndicator)
         # ensure uniqueness via number
         newPath = self.constructPath(rootDir=targetDir,
