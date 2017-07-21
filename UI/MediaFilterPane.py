@@ -50,6 +50,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     RowSingle = 2  # row of single/group condition
     RowDate = RowSingle  # row for date range condition
     RowUnknown = 3  # row of unknown elements (regular elements follow)
+    RowMediaTypes = 4  
     # 
     SingleConditionIndex = N_('single')  # string to access single/group condition
     SingleValueString = _('single')
@@ -69,7 +70,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     FilterModeNames = [FilterModeNameIgnore, FilterModeNameRequire, FilterModeNameExclude]
     # Labels
     FileSizeLabel = _('Size:')
-    DateRangeLabel= _('Date Range:')
+    DateRangeLabel = _('Date Range:')
+    MediaTypeLabel = _('Media Type:')
 
 
 
@@ -160,6 +162,10 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # add minimum/maximum size filter
         logging.debug('MediaFilterPane.setModel(): creating filter for media size')
         self.addSizeFilter(gridSizer, row)
+        gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
+        row = (row + 2)
+        # add media type filter
+        self.addMediaTypeFilter(gridSizer, row)
         gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
         row = (row + 2)
         # add date range
@@ -406,6 +412,28 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         sizer.Add(self.toDatePicker, (row, 2), (1, 1))
         self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.toDatePicker)
         
+
+    def addMediaTypeFilter(self, sizer, row):
+        """Add a multi-selection filter for the media types
+        
+        wx.GridBagSizer sizer for layouting
+        Number row            the row to use in sizer
+        """
+#                 sampleList = ['zero', 'one', 'two', 'three', 'four', 'five',
+#                       'six', 'seven', 'eight', 'nine', 'ten', 'eleven',
+#                       'twelve', 'thirteen', 'fourteen']
+# 
+#         wx.StaticText(self, -1, "This example uses the wxCheckListBox control.", (45, 15))
+# 
+#         lb = wx.CheckListBox(self, -1, (80, 50), wx.DefaultSize, sampleList)
+#         self.Bind(wx.EVT_LISTBOX, self.EvtListBox, lb)
+#         self.Bind(wx.EVT_CHECKLISTBOX, self.EvtCheckListBox, lb)
+#         lb.SetSelection(0)
+
+        
+        sizer.Add(wx.StaticText(self, -1, self.MediaTypeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
+        self.mediaTypePicker = wx.CheckListBox(self, -1, wx.DefaultPosition, wx.DefaultSize, ['Image', 'Movie'])
+        sizer.Add(self.mediaTypePicker, (row, 1), (1, 2))
 
 
     def importAndDisplayFilter(self):

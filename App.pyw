@@ -517,16 +517,25 @@ class MediaFiler (wx.Frame, Observer, Observable):
         if (dialog.ShowModal() == wx.ID_OK):
             wx.BeginBusyCursor()
             self.displayInfoMessage(statusText % dialog.getParameterObject().getImportDirectory())
-            log = self.model.importImages(importParameters)
             try:
-                logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, log, _('Import Report'), style=wx.RESIZE_BORDER)
-            except:
-                logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
-            # TODO: make dialog resizable
-            logDialog.SetSize(wx.Size(1000,600))
-            logDialog.Show()
-            self.onReload(None)
-            self.displayInfoMessage(_('%d media imported from %s') % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
+                log = self.model.importImages(importParameters)
+            except WindowsError as exc: 
+                if (exc.winerror == 3):
+                    dlg = wx.MessageDialog(self, _('No files to import!'), _('Empty Directory'), (wx.OK | wx.ICON_INFORMATION))
+                    dlg.ShowModal()
+                    dlg.Destroy()
+                else:
+                    raise exc
+            else:
+                try:
+                    logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, log, _('Import Report'), style=wx.RESIZE_BORDER)
+                except:
+                    logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
+                # TODO: make dialog resizable
+                logDialog.SetSize(wx.Size(1000,600))
+                logDialog.Show()
+                self.onReload(None)
+                self.displayInfoMessage(_('%d media imported from %s') % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
             wx.EndBusyCursor()
         dialog.Destroy()  # destroy after getting the user input
     
