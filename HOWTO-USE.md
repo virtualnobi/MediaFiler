@@ -53,7 +53,7 @@ The Dialog which appears when you press "Import" contains these options:
 
 ### MediaFiler folder structure and file names
 
-This section is of interest only if you want to fiddle with the media files manually. 
+This section is of interest only if you want to fiddle with the media files manually. If you like, you can also copy media files into the directory manually (when MediaFiler is not running). 
 
 #### images
 
@@ -64,6 +64,8 @@ Media pathnames begin with the date, followed by a three-digit number, followed 
 `2000/2000-04/2000-04-01/2000-04-01-001.some.media.new.jpg` is thus a JPG image (last component `.jpg`) taken on the 1st of April in 2000, which is tagged with `some` and `media`. It also has the special tag `new` which means it has been imported automatically (and the tag has not been manually removed). 
 
 #### lib
+
+Here are a few configuration files and images. See the "Advanced Settings" section for more details. 
 
 #### import
 
@@ -152,6 +154,8 @@ The last media shown.
 - `import-prefer-exif = True`
 - `import-path = N:\shared\import`
 The settings used during the last import. 
+
+### Standard Images
 
 The images used by the MediaFiler program can be tweaked as well. Just replace the images in the directory by ones you like better: 
 

@@ -700,10 +700,11 @@ class MediaFiler (wx.Frame, Observer, Observable):
                                          self.model.getCollectionSize())
         else:
             self.statusbar.SetStatusText(_('Organized by name'), GUIId.SB_Organization)
-            text = _('%s (%d media, %d used, %d free)') % (directory,
-                                                           self.model.getCollectionSize(), 
-                                                           self.model.nameHandler.getNumberUsedNames(), 
-                                                           self.model.nameHandler.getNumberFreeNames()) 
+            text = (_('%s (%d media, %d names used, %d names free)') 
+                    % (directory,
+                       self.model.getCollectionSize(), 
+                       self.model.organizationStrategy.nameHandler.getNumberUsedNames(), 
+                       self.model.organizationStrategy.nameHandler.getNumberFreeNames()))
         self.statusbar.SetStatusText(text, GUIId.SB_Root)           
         self.statusbar.Show()
         lastPerspective = self.model.getConfiguration(self.ConfigurationOptionLastPerspective)
