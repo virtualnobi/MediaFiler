@@ -39,13 +39,13 @@ If you want to add many media files at once to MediaFiler, use the "Import" func
 
 The Dialog which appears when you press "Import" contains these options: 
 * The first field shows the directory from which media files will be imported. It is prefilled, either with a standard directory or with the last directory used when importing. 
-* "Delete Originals" controls whether the original files will be deleted after import. Checking this will automatically clear your mobile's storage.
+* "Delete Originals" controls whether the original files will be deleted after import. Checking this will automatically clear the directory you specify in the first field. Only media files which are imported will be deleted; files which are too small or have an unknown type (see below) will not be deleted.
 * "Ignore Unhandled Files" controls whether to import all files found, or only those which MediaFiler knows how to display. Currently, many image and video formats are known. 
 * "Maximum Number..." specifies the maximum number of files to import. If there are more, you should check "Delete Originals" and import in several phases. This is a workaround because the log cannot be displayed for several thousands of imported media, and should be fixed. 
 * "Minimum File Size" specifies the minimum size (in bytes) a media file must have to be imported. If you have thumbnails and images, you can set this to ignore the thumbnails and only import the images. 
 * "Mark Imported Files..." will result in a "new" tag to be added to all imported files. After import, you may filter to see only the newly imported files, to change their classification, for example. 
 * "Report Illegal Tags" will include a list of unknown (illegal) tags found in the imported media's file names in the final log window. 
-* "Prefer Date..." defines which date to use if the imported media contains two dates. Images may contain (depending on the camera) their date of taking; the standard is called EXIF. The media's file name may also contain a date in the form of "year-month-day" which is recognized by MediaFiler. MediaFiler usually prefers the EXIF date, but you may prefer the date from the file name by checking this option. 
+* "Prefer Date..." defines which date to use if the imported media contains two dates. Images may contain their date of taking (depending on the camera); the standard is called EXIF. The media's file name may also contain a date in the form of "year-month-day" which is recognized by MediaFiler. MediaFiler usually prefers the EXIF date, but you may prefer the date from the file name by checking this option. 
 
 "Test Import" does the same as "Import", except it does not actually move any files. It will display the log as though it did, so you can check where the imported media files would be placed. 
 
@@ -57,22 +57,66 @@ This section is of interest only if you want to fiddle with the media files manu
 
 #### images
 
+This directory will contain subdirectories for years, which again have subdirectories for months, which again have subdirectories for days. All subdirectories on all levels may contain media files, whose pathnames begin with the same date. A year is a four-digit number, months and days are two-digit numbers, separated by a dash "-".
+
+Media pathnames begin with the date, followed by a three-digit number, followed by the tags, followed by the file type extension.
+
+`2000/2000-04/2000-04-01/2000-04-01-001.some.media.new.jpg` is thus a JPG image (last component `.jpg`) taken on the 1st of April in 2000, which is tagged with `some` and `media`. It also has the special tag `new` which means it has been imported automatically (and the tag has not been manually removed). 
+
 #### lib
 
 #### import
 
+You may put media to import into this directory. It is used as default in the "Import" functions. 
+
 #### trash
+
+All media which you delete in MediaFiler will be moved here instead of a real deletion. This is a safety measure and may change in future releases.
+
 
 ## Using tags
 
 "Tags" are labels assigned to the media files which allow you to find media more easily. Tags are grouped into "Classes" to formulate conditions on tag usage; for example, only one tag out of a class may be used, or a tag may only be used if a tag from another class is also used. 
 
+In the example from above, `2000/2000-04/2000-04-01/2000-04-01-001.some.media.new.jpg`, there are three tags, `some`, `media`, and `new`. Tags are separated with a dot ".", and `new` is a special tag created when importing new media.  
+
 ### Defining tags
+
+Currently, tags are defined in a tet file in `lib/classes.txt`. When running MediaFiler for the first time, a skeleton file with some explanations is generated at this location. Changes to this file determine how the MediaFiler window looks (see below), but they do not change any media file. Don't be afraid to experiment. 
+
+If the `editor-text`configuration option is set correctly for your computer, you can edit this file using the "Tool>Edit Classes" function. 
 
 ### Assigning tags to media
 
+There are three way how tags can be assigned to media: 
+- when importing media, parts of the filename are converted to tags,
+- in the "Classification Pane", you can assign the tags which are defined as described above, 
+- in the "Name Pane", you can enter any tag.
+
+#### Converting Pathnames into Tags during Import
+
+#### Assigning Defined Tags in the "Classification Pane"
+
+The tags and classes are shown in the "Classification" pane. For the media selected in the tree page, you will see the tags currently assigned, and can change this assignment by checking or unchecking tags. Changes you make here are executed immediately on the media pathname. 
+
+If a class is single-selection, the tags in this class are shown as a radio button group, i.e., only one of them can be checked. There is an additional `none` tag to signal none of the tags should be assigned. 
+
+If a class is multi-selection, the tags in this class are shown as a check box group, i.e., multiple of them can be checked.  
+
+For all classes, an additional `n/a` tag is active when a group is selected, which shows that the media in the group has differing assignments.  
+
+#### Assigning Tags in the "Name Pane"
+
+The "Name Pane" shows fields for year, month, day as well as a number and a text field. You can enter any text in the last field. Certain characters will be interpreted as separators, such as dot ".", dash "-", or space " ". When you hit ENTER in the text field, or click the "Rename" button, the tags will be alphabetically ordered and the media file renamed. 
+
 ### Searching for media with certain tags
  
+The reason to have media tagged is that you can search for them later. The "Filter Pane" shows many ways to search for media, among them all the tags defined, as well as unknown tags. 
+
+Each tag class is shown as one row, with a selection list for the tags in the class and a filter mode selection. The filter mode can be `required` (the tag must appear), `prohibited` (the tag may not appear), `ignore` (tag is irrelevant for filtering). 
+
+There's special entry `all` in the tags list, which will match any tag from the class. With this entry, you may search for media which has any of the tags in the class. 
+
 
 ## Advanced Settings
 
