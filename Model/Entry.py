@@ -10,7 +10,7 @@ import os.path
 import logging
 import datetime
 ## Contributed
-import wx
+#import wx
 ## nobi
 from nobi.PausableObservable import PausableObservable
 from nobi.wxExtensions.Menu import Menu
@@ -18,7 +18,6 @@ from nobi.ProductTraderPattern import SimpleProductTrader
 ## Project
 from UI import GUIId
 import Installer
-#from MediaFiler.MediaClassHandler import MediaClassHandler
 
 
 
@@ -46,11 +45,10 @@ class Entry(PausableObservable):
 
 
 # Constants
-    SpecificationGroup = 'directory'  # Specification for Product Trader, registering to handle directories
+    SpecificationGroup = 'directory'  # Specification for ProductTrader, registering to handle directories
     NameSeparator = '.'  # character separating image elements in file name
     IdentifierSeparator = '-'  # character separating scene, day, month, year, number in file name
     RESeparatorsRecognized = ('[, _' + NameSeparator + IdentifierSeparator + ']')
-#    TrashDirectory = os.path.join('..', 'trash')  # directory to move deleted entries to
 
 
 
@@ -246,53 +244,51 @@ class Entry(PausableObservable):
         String name, scene 
         String number 
         Boolean makeUnique 
-        elements Set of String
-        removeIllegalElements Boolean
+        set of String elements 
+        Boolean removeIllegalElements
         
         Return Boolean indicating success
         """
-        # determine elements
-        if (elements == None):  # no new elements, re-use existing ones
-            elements = self.getElements()
-        if (removeIllegalElements):  
-            elements = [e for e in elements if self.model.getClassHandler().isLegalElement(e)]
-        # determine new name from organizer
-        newPath = self.organizer.constructPathForSelf(rootDir=self.model.rootDirectory,
-                                                      year=year, 
-                                                      month=month,
-                                                      day=day,
-                                                      name=name,
-                                                      scene=scene,
-                                                      number=number,
-                                                      makeUnique=makeUnique,
-                                                      extension=self.getExtension(),
-                                                      elements=self.model.getClassHandler().elementsToString(elements))
-        # rename file
-        print('Renaming "%s"\n      to "%s"' % (self.getPath(), newPath))
-        result = self.renameToFilename(newPath)
-        if (result):
-            self.changedAspect('name')
-        return(result)
+        kwargs = {'rootDir': self.model.rootDirectory,
+                  'makeUnique': makeUnique,
+                  'extension': self.getExtension(),
+                  'removeIllegalElements': removeIllegalElements,
+                  'elements': self.model.getClassHandler().elementsToString(elements)}
+        if (year): 
+            kwargs['year'] = int(year)  # TODO: switch parameters to numbers
+        if (month):
+            kwargs['month'] = int(month)
+        if (day):
+            kwargs['day'] = int(day)
+        if (name):
+            kwargs['name'] = name
+        if (scene):
+            kwargs['scene'] = int(scene)
+        if (number): 
+            kwargs['number'] = int(number)
+        newPath = self.organizer.constructPathForSelf(**kwargs) 
+        return(self.renameToFilename(newPath))
 
 
     def renameToFilename(self, fname):
-        """Rename self's file to an absolute filename.
-
-        Does not call Observers via updateAspect() - the appropriate aspect must be determined by the caller.
+        """Rename self's file to an absolute filename, register self with new parent, 
+        and register new move-to-location.
         
         String fname is the new absolute filename
         Return Boolean indicating success
         """
+        print('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
         (newDirectory, dummy) = os.path.split(fname)  # @UnusedVariable
         try:
             if (not os.path.exists(newDirectory)):
                 os.makedirs(newDirectory)
             os.rename(self.getPath(), fname) 
         except Exception as e:
-            print('Renaming failed with exception "%s"!' % e)
+            print('Renaming failed (exception follows)!\n%s' % e)
             return(False)
         else:
             self.initFromPath(fname)
+            self.changedAspect('name')
             self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYearString(),
                                                             month=self.organizer.getMonthString(),
                                                             day=self.organizer.getDayString(),
@@ -590,17 +586,6 @@ class Entry(PausableObservable):
             self.filterImages(False)  # False = similar classification
         elif (menuId == GUIId.DeleteImage):
             self.remove()
-        # TODO: move clauses below to MediaOrganization
-        elif (menuId == GUIId.RandomName):
-            newName = self.model.getFreeName()
-            if (newName):
-                self.renameTo(name=newName)
-            # TODO: select this item with new name again
-        elif (menuId == GUIId.ChooseName):
-            newName = self.askNewName(parentWindow)
-            if (newName):
-                self.renameTo(name=newName)
-            # TODO: select this item with new name again
         elif (menuId == GUIId.RemoveNew):
             self.removeNewIndicator()
         else: 
@@ -661,28 +646,28 @@ class Entry(PausableObservable):
     def removeNewIndicator(self):
         """Remove the new indicator from self's filename.
         """
-        raise(BaseException('Subclass must implement "removeNewIndicator"'))
+        raise NotImplementedError
 
 
 
 # Internal
-    def askNewName(self, parentWindow):
-        """User wants to rename media (organized by name). Ask for new name. 
-        
-        Returns String containing new name, or None if user cancelled. 
-        """
-        dialog = wx.TextEntryDialog(parentWindow, 'Enter New Name', 'Choose Name', '')
-        ok = True
-        newName = None
-        while (ok and 
-               (not self.organizer.nameHandler.isNameLegal(newName))):
-            ok = (dialog.ShowModal() == wx.ID_OK)
-            if (ok):
-                newName = dialog.GetValue()
-                if (not self.organizer.nameHandler.isNameLegal(newName)):
-                    dialog.SetValue('%s is not a legal name' % newName)
-                    newName = None
-        dialog.Destroy()
-        return (newName)
+#     def askNewName(self, parentWindow):
+#         """User wants to rename media (organized by name). Ask for new name. 
+#         
+#         Returns String containing new name, or None if user cancelled. 
+#         """
+#         dialog = wx.TextEntryDialog(parentWindow, 'Enter New Name', 'Choose Name', '')
+#         ok = True
+#         newName = None
+#         while (ok and 
+#                (not self.organizer.nameHandler.isNameLegal(newName))):
+#             ok = (dialog.ShowModal() == wx.ID_OK)
+#             if (ok):
+#                 newName = dialog.GetValue()
+#                 if (not self.organizer.nameHandler.isNameLegal(newName)):
+#                     dialog.SetValue('%s is not a legal name' % newName)
+#                     newName = None
+#         dialog.Destroy()
+#         return (newName)
 
 

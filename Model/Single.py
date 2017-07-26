@@ -25,7 +25,8 @@ from MediaCollection import MediaCollection
 from .Entry import Entry
 from .Group import Group
 from collections import OrderedDict
-from .Organization import OrganizationByName, MediaOrganization
+from .Organization import OrganizationByName  # , MediaOrganization
+from Model.Organization import MediaOrganization
 
 
 
@@ -90,6 +91,13 @@ class Single(Entry):
 
 # Class Methods
     @classmethod
+    def getMediaTypeName(cls):
+        """Return a translatable name for the subclasses of Single, for filter creation.
+        """
+        raise NotImplementedError
+
+
+    @classmethod
     def getConfigurationOptionExternalViewer(self):
         """Return the configuration option to retrieve the command string for an external viewer of self.
         
@@ -138,35 +146,32 @@ class Single(Entry):
 
 # Setters
     def renameTo(self, 
-                 year=None, month=None, day=None, 
-                 name=None, scene=None, 
                  number=None, makeUnique=False, 
-                 elements=None, removeIllegalElements=False):
-        """Override of Entry.renameTo()
+                 elements=None, removeIllegalElements=False,
+                 **kwargs):
         """
-        if (self.model.organizedByDate):
-            pass
-        else:  # organized by name
-            if (self.organizer.isSingleton()
-                and name
-                and (name <> self.organizer.getName())):
-                newEntry = self.model.getEntry(name=name, group=True)
-                if (newEntry):
-                    scene = MediaOrganization.NewIndicator
-                    makeUnique = True
-                else:
-                    newEntry = self.model.getEntry(name=name, group=False)
-                    if (newEntry):
-                        print('Single.renameTo(): Merging of singletons into a group NYI!')  # TODO:
-                        return
-                    else:  # name does not yet exist
-                        pass
-            else:  # part of a named Group(); assume parameters are correctly set by invoking group
-                pass
-        return(super(Single, self).renameTo(year=year, month=month, day=day,
-                                            name=name, scene=scene, 
-                                            number=number, makeUnique=makeUnique, 
-                                            elements=elements, removeIllegalElements=removeIllegalElements))
+        rootDir=None
+        
+        year=None
+        month=None
+        day=None 
+        name=None
+        scene=None
+        """
+        # possibly remove unknown tags/elements
+        if (elements == None):  # no new elements, re-use existing ones
+            elements = self.getElements()
+        if (removeIllegalElements):  
+            elements = [e for e in elements if self.model.getClassHandler().isLegalElement(e)]
+        if (number): 
+            kwargs['number'] = number
+        kwargs['makeUnique'] = makeUnique
+        if (elements):
+            kwargs['elements'] = self.model.getClassHandler().elementsToString(elements)
+        kwargs['removeIllegalElements'] = removeIllegalElements
+        kwargs['extension'] = self.getExtension()
+        newPath = self.organizer.constructPath(**kwargs) 
+        return(self.renameToFilename(newPath))
 
 
 
@@ -258,8 +263,8 @@ class Single(Entry):
     def removeNewIndicator(self):
         """Remove the new indicator on self's filename
         """
-        if ('new' in self.unknownElements):
-            self.unknownElements.remove('new')
+        if (MediaOrganization.NewIndicator in self.unknownElements):
+            self.unknownElements.remove(MediaOrganization.NewIndicator)
             self.renameTo()
 
 
@@ -268,11 +273,13 @@ class Single(Entry):
         
         This function is only called on singletons organized by name.
         """
+        # TODO: move to OrganizationByName
         print('Single.convertToGroup() deprecated')
+        raise DeprecationWarning
         print('Converting "%s" to a group' % self.getPath())
         newGroup = Group.createFromName(self.model, self.getName())
         self.setParentGroup(newGroup)
-        self.renameTo(name=self.getName(), scene='01', number='001')
+        self.renameTo(scene='1', number='1')
 
     
     def changeScene (self, newScene):
@@ -281,6 +288,7 @@ class Single(Entry):
         Returns True if successful, or False if failed (i.e., illegal NEWSCENE)
         """
         print('Single.changeScene() deprecated')
+        raise DeprecationWarning
         pathNameOk = False
         if (self.model.organizedByDate):
             return(False)

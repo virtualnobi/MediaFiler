@@ -48,7 +48,7 @@ from .MediaClassHandler import MediaClassHandler
 from .Organization import OrganizationByDate
 from .Organization import OrganizationByName
 from UI import GUIId
-from .MediaNameHandler import MediaNameHandler
+#from .MediaNameHandler import MediaNameHandler
 
 
 
@@ -70,10 +70,6 @@ class MediaCollection(Observable, Observer):
     def __init__ (self, rootDir=None):
         """Create a new MediaCollection.
         
-        It may be more appropriate to create the MediaCollection without images first, 
-        to connect the observers, and finally to load the images via .setRootDirectory().
-        In this way, the initial image will be posted to the observers. 
-        
         String rootDir specifies the path to the image root directory.
         """
         logging.debug('MediaCollection.init()')
@@ -93,15 +89,15 @@ class MediaCollection(Observable, Observer):
         # clear all data
         self.selectedEntry = None
         self.initialEntry = None
-        self.names = []  # list of all legal names
-        self.freeNames = None  # list of all free names, lazily defined
+#        self.names = []  # list of all legal names
+#        self.freeNames = None  # list of all free names, lazily defined
         # set up the configuration persistence
         self.configuration = SecureConfigParser(Installer.getConfigurationFilePath())
         self.configuration.read(Installer.getConfigurationFilePath())
         if (not self.configuration.has_section(GUIId.AppTitle)):
             self.configuration.add_section(GUIId.AppTitle)
         # read legal names and class definitions
-        self.nameHandler = MediaNameHandler(Installer.getNamesFilePath())
+#        self.nameHandler = MediaNameHandler(Installer.getNamesFilePath())
         if (os.path.exists(Installer.getNamesFilePath())): 
             self.organizedByDate = False
             self.organizationStrategy = OrganizationByName
@@ -113,8 +109,8 @@ class MediaCollection(Observable, Observer):
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
         self.loadSubentries(self.root)
-        if (not self.organizedByDate):
-            self.organizationStrategy.nameHandler.registerAllNamesAsFree()
+#         if (not self.organizedByDate):
+#             self.organizationStrategy.nameHandler.registerAllNamesAsFree()
         self.cacheCollectionProperties()
         # initialize filter to no restrictions
         self.filter = MediaFilter(self)
@@ -222,7 +218,7 @@ class MediaCollection(Observable, Observer):
         """Return the (first) Entry (Single or Group) which fits the given criteria, or None if none exists.
         
         Boolean filtering determines whether the search is restricted to filtered Groups (True) or all Groups (False)
-        Boolean group limits the search to only Groups (True) or Singles (False)
+        Boolean group limits the search to only Groups (True) or Singles (False) or both (None)
         String path contains the pathname of the Entry to retrieve
         String year
         String month

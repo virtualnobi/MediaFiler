@@ -18,6 +18,7 @@ The following aspects of ImageFilter are observable:
 # standard libraries
 import re
 import logging
+import copy
 # public libraries 
 # nobi's libraries
 from nobi.ObserverPattern import Observable
@@ -44,9 +45,13 @@ class MediaFilter(Observable):
         self.unknownElementRequired = False
         self.minimumSize = self.model.getMinimumSize()  # TODO: make lazy-loadable
         self.maximumSize = self.model.getMaximumSize()  # TODO: make lazy-loadable
-        self.singleCondition = None
+        self.requiredMediaTypes = set()
+        self.prohibitedMediaTypes = set()
+        # special conditions for OrganizationByDate
         self.fromDate = None
         self.toDate = None
+        # special conditions for OrganzationByName
+        self.singleCondition = None
         return(None)
 
 
@@ -125,6 +130,29 @@ class MediaFilter(Observable):
                            minimum=self.model.getMinimumSize(), 
                            maximum=self.model.getMaximumSize(),
                            single=None)
+        self.setMediaTypes(set(), None)
+
+
+    def setMediaTypes(self, required=None, prohibited=None):
+        """Set a filter on media types. 
+
+        set or None required
+        set or None prohibited
+        """
+        changed = (((required <> None)
+                    and (required <> self.requiredMediaTypes))
+                   or ((prohibited <> None)
+                       and (prohibited <> self.prohibitedMediaTypes)))
+        if (required <> None):
+            self.requiredMediaTypes = required
+        else:
+            self.requiredMediaTypes = set()
+        if (prohibited <> None):
+            self.prohibitedMediaTypes = prohibited
+        else:
+            self.prohibitedMediaTypes = set()
+        if (changed):
+            self.changedAspect('changed')
 
 
 
@@ -134,11 +162,12 @@ class MediaFilter(Observable):
         """
         result = ('MediaFilter(' 
                   + ('active ' if self.active else '')
-                  + (('requires %s ') if 0 < len(self.requiredElements) else '')
-                  + (('prohibits %s ') if 0 < len(self.prohibitedElements) else '')
+                  + (('requires %s ' % self.requiredElements) if 0 < len(self.requiredElements) else '')
+                  + (('prohibits %s ' % self.prohibitedElements) if 0 < len(self.prohibitedElements) else '')
                   + ('requires unknown ' if self.unknownElementRequired else '')
                   + (('larger %s ' % self.minimumSize) if self.minimumSize else '')
-                  + (('smaller %s ' % self.maximumSize) if self.maximumSize else '')  
+                  + (('smaller %s ' % self.maximumSize) if self.maximumSize else '')
+                  + (('isa %s ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '') 
                   + (('from %s ' % self.fromDate) if self.fromDate else '')
                   + (('to %s ' % self.toDate) if self.toDate else '')
                   + ('single' if self.singleCondition else '')
@@ -171,6 +200,16 @@ class MediaFilter(Observable):
                self.toDate)
 
 
+    def getMediaTypes(self):
+        """
+        Returns (required, prohibited) where
+            set required
+            set prohibited
+        """
+        return(copy.copy(self.requiredMediaTypes), 
+               copy.copy(self.prohibitedMediaTypes))
+    
+
     def isEmpty(self):
         """Check whether the filter will reduce the set of media.
         
@@ -184,7 +223,9 @@ class MediaFilter(Observable):
                 or (self.maximumSize < self.model.getMaximumSize())
                 or (self.singleCondition <> None)
                 or (self.fromDate <> None)
-                or (self.toDate <> None)):
+                or (self.toDate <> None)
+                or (0 < len(self.requiredMediaTypes))
+                or (0 < len(self.prohibitedMediaTypes))):
                 return(False)
         return(True)
 
@@ -235,6 +276,13 @@ class MediaFilter(Observable):
                 and (not entry.isGroup())
                 and (self.maximumSize < entry.getFileSize())):  # file larger than that
                 return(True)
+            # media type
+            if (0 < len(self.requiredMediaTypes)):
+                for cls in self.requiredMediaTypes:
+                    if (isinstance(entry, cls)):
+                        break  # match!
+                else:  # no match in the loop
+                    return(True)
             # date range 
             if ((self.fromDate)
                 and (entry.organizer.getDateTaken() <= self.fromDate)):

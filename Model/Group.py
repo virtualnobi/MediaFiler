@@ -94,15 +94,15 @@ class Group(Entry):
         
         Return Boolean indicating success
         """
-        if (scene
-            and (scene <> '')):
-            print('Group.renameTo(): No scene allowed!')
-            return(False)
         if (number
             and (number <> '')):
             print('Group.renameTo(): No number allowed!')
             return(False)
         if (self.model.organizedByDate):
+            if (scene
+                and (scene <> '')):
+                print('Group.renameTo(): No scene allowed!')
+                return(False)
             if (((year == None)
                  or (year == u'')
                  or (year == self.organizer.getYear()))
@@ -114,7 +114,11 @@ class Group(Entry):
                      or (day == self.organizer.getDay()))):
                 for subEntry in self.subEntries:
                     newElements = subEntry.getElements().union(elements)
-                    subEntry.renameTo(year=year, month=month, day=day, elements=newElements, removeIllegalElements=removeIllegalElements)
+                    subEntry.renameTo(year=year, 
+                                      month=month, 
+                                      day=day, 
+                                      elements=newElements, 
+                                      removeIllegalElements=removeIllegalElements)
             else:
                 newGroup = self.model.getEntry(year=year, month=month, day=day)
                 if (newGroup):

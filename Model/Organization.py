@@ -24,6 +24,7 @@ from collections import OrderedDict
 import logging
 ## Contributed 
 import exifread
+import wx
 ## nobi
 from nobi.wxExtensions.Menu import Menu
 from nobi.PartialDateTime import PartialDateTime
@@ -58,7 +59,6 @@ class MediaOrganization(object):
     def setModel(self, model):
         """Set up the MediaOrganization for use with model.
         """
-        #print('MediaOrganization.setModel()')
         self.ImageFilerModel = model
 
 
@@ -93,57 +93,54 @@ class MediaOrganization(object):
 
 
     @classmethod
-    def constructPathHead(self, **kwargs):
-        """Construct the beginning of a pathname, excluding number and elements.
-        """
-        raise BaseException('Subclass must implement')
-
-
-    @classmethod
     def constructPath(self, **kwargs):
         """Construct a pathname, given the parameters from kwargs.
         
+        If a parameter is not contained in kwargs, it is derived from self's settings.
+        If a parameter is contained in kwargs, but None, it will not be used to construct a path (e.g., scene).
+        If a parameter is contained in kwargs, other than None, it will be used instead of self's setting.
+
         If either makeUnique or number is given, the resulting pathname contains a number. 
         makeUnique takes precedence over the number parameter.
-        
-        String or Number number contains the number of the media 
-        Boolean makeUnique indicates to ignore number, and use the smallest number resulting in a unique pathname
-        String elements contains a String of elements, starting with '.'
-        Return String containing the pathname
+
+        Number number contains the number of the media (in date or name group)
+        Boolean makeUnique requests to create a unique new pathname (takes precedence over number)
+        String elements as given by MediaClassHandler().getElementString()
+        String extension contains the media's extension
+
+        Return a String containing the path
         """
-        result = self.constructPathHead(**kwargs)
+        if (('rootDir' in kwargs)
+            and kwargs['rootDir']):
+            result = kwargs['rootDir']
+        else:
+            result = self.__class__.ImageFilerModel.getRootDirectory()
+        result = os.path.join(result, self.constructPathForOrganization(**kwargs))
+        number = None
         if (('makeUnique' in kwargs)
-            and (kwargs['makeUnique'])):
+            and kwargs['makeUnique']):
             number = 1
-            while (len(glob.glob(result + self.NameSeparator + (self.FormatNumber % number) + '*')) > 0):
+            while (0 < len(glob.glob(result + self.NameSeparator + (self.FormatNumber % number) + '*'))):
                 number = (number + 1)
         elif (('number' in kwargs)
-              and (kwargs['number'] <> None)
-              and (kwargs['number'] <> '')):
-            number = int(kwargs['number'])
-        else:
-            number = None
+              and kwargs['number']):
+            number = kwargs['number']
         if (number):
             result = (result + self.NameSeparator + (self.FormatNumber % number))
         if (('elements' in kwargs)
-            and (kwargs['elements'] <> None)):
+            and kwargs['elements']):
             result = (result + kwargs['elements'])
         if (('extension' in kwargs)
-            and (kwargs['extension'] <> None)):
+            and kwargs['extension']):
             result = (result + '.' + kwargs['extension'])
         return(result)
 
 
     @classmethod
-    def getGroupFromPath(cls, path):  # @UnusedVariable
-        """Retrieve the group into which media at path shall be included.
-        
-        Fallback implementation which returns the root node.
-        
-        String path contains the media's file path
-        Returns a MediaFiler.Group instance
+    def constructPathForOrganization(self, **kwargs):
+        """Construct the organization-specific part of a media pathname, between root directory and number.
         """
-        return(cls.ImageFilerModel.getRootEntry())
+        raise NotImplementedError
 
 
     @classmethod
@@ -163,6 +160,18 @@ class MediaOrganization(object):
 
 
     @classmethod
+    def getGroupFromPath(cls, path):  # @UnusedVariable
+        """Retrieve the group into which media at path shall be included.
+        
+        Fallback implementation which returns the root node.
+        
+        String path contains the media's file path
+        Returns a MediaFiler.Group instance
+        """
+        return(cls.ImageFilerModel.getRootEntry())
+
+
+    @classmethod
     def importImage(cls, importParameters, sourcePath, level, baseLength, targetDir, illegalElements):
         """Import image at sourcePath, i.e. move to new location in model's directory.
         
@@ -174,7 +183,7 @@ class MediaOrganization(object):
         Dictionary illegalElements collects a mapping of illegal elements to source pathnames
         """
         newPath = cls.constructPathFromImport(importParameters, sourcePath, level, baseLength, targetDir, illegalElements)
-        importParameters.logString('\tImporting "%s"\n\t       as "%s"\n' % (sourcePath, newPath))
+        importParameters.logString('Importing "%s"\n       as "%s"\n' % (sourcePath, newPath))
         if (not importParameters.getTestRun()):
             try:
                 (head, tail) = os.path.split(newPath)  # @UnusedVariable
@@ -248,40 +257,27 @@ class MediaOrganization(object):
             return(pathRest)
 
 
-    def deleteDouble(self, otherEntry, mergeElements=False):
-        """Remove otherEntry, but rename self to keep its information if needed. 
-        
-        If mergeElements is True, elements from otherEntry are added to self's elements.
-        If mergeElements is False, self is renamed to otherEntry if
-        - self contains "new", but otherEntry does not
-        - self has fewer elements than otherEntry does
+    def constructPathForSelf(self, **kwargs):
+        """Construct a path for self, incorporating changes as specified in kwargs.
 
-        MediaFiler.Entry otherEntry
-        Boolean mergeElements
+        If a parameter is not contained in kwargs, it is derived from self's settings.
+        If a parameter is contained in kwargs, but None, it will not be used to construct a path (e.g., scene).
+        If a parameter is contained in kwargs, other than None, it will be used instead of self's setting.
+
+        String number contains the number of the media (in date or name group)
+        Boolean makeUnique requests to create a unique new pathname (takes precedence over number)
+        String elements as given by MediaClassHandler().getElementString()
+        String extension contains the media's extension
+
+        Return a String containing the path for self's context
         """
-        newPath = None
-        if (mergeElements):
-            newElements = self.context.getElements().union(otherEntry.getElements())
-            print('From "%s"\n     adding elements %s\n  to "%s"' % (otherEntry.getPath(), newElements, self.context.getPath()))
-            self.context.renameTo(elements=newElements)
-        else:
-            if ((self.NewIndicator in self.context.getElements())
-                and (not self.NewIndicator in otherEntry.getElements())):
-                print('Keep   "%s"\nremove "%s"' % (otherEntry.getPath(), self.context.getPath()))
-                newPath = otherEntry.getPath()
-            elif ((not self.NewIndicator in self.context.getElements())
-                  and (self.NewIndicator in otherEntry.getElements())):
-                print('Keep   "%s"\nremove "%s"' % (self.context.getPath(), otherEntry.getPath()))
-            else:
-                if (len(self.context.getElements()) < len(otherEntry.getElements())):
-                    print('Keep   "%s"\nremove "%s"' % (otherEntry.getPath(), self.context.getPath()))
-                    newPath = otherEntry.getPath()
-                else:
-                    print('Keep   "%s"\nremove "%s"' % (self.context.getPath(), otherEntry.getPath()))
-        otherEntry.remove()
-        if (newPath):  
-            self.context.renameToFilename(newPath)
-            self.context.changedAspect('name')
+        if (not 'number' in kwargs):
+            kwargs['number'] = self.getNumber()
+        if (not 'elements' in kwargs):
+            kwargs['elements'] = self.context.getElementString()
+        if (not 'extension' in kwargs):
+            kwargs['extension'] = self.context.getExtension()
+        return(self.constructPath(**kwargs))
 
 
 # Getters
@@ -322,6 +318,41 @@ class MediaOrganization(object):
 
 
 # Other API Functions
+    def deleteDouble(self, otherEntry, mergeElements=False):
+        """Remove otherEntry, but rename self to keep its information if needed. 
+        
+        If mergeElements is True, elements from otherEntry are added to self's elements.
+        If mergeElements is False, self is renamed to otherEntry if
+        - self contains "new", but otherEntry does not
+        - self has fewer elements than otherEntry does
+
+        MediaFiler.Entry otherEntry
+        Boolean mergeElements
+        """
+        newPath = None
+        if (mergeElements):
+            newElements = self.context.getElements().union(otherEntry.getElements())
+            print('From "%s"\n     adding elements %s\n  to "%s"' % (otherEntry.getPath(), newElements, self.context.getPath()))
+            self.context.renameTo(elements=newElements)
+        else:
+            if ((self.NewIndicator in self.context.getElements())
+                and (not self.NewIndicator in otherEntry.getElements())):
+                print('Keep   "%s"\nremove "%s"' % (otherEntry.getPath(), self.context.getPath()))
+                newPath = otherEntry.getPath()
+            elif ((not self.NewIndicator in self.context.getElements())
+                  and (self.NewIndicator in otherEntry.getElements())):
+                print('Keep   "%s"\nremove "%s"' % (self.context.getPath(), otherEntry.getPath()))
+            else:
+                if (len(self.context.getElements()) < len(otherEntry.getElements())):
+                    print('Keep   "%s"\nremove "%s"' % (otherEntry.getPath(), self.context.getPath()))
+                    newPath = otherEntry.getPath()
+                else:
+                    print('Keep   "%s"\nremove "%s"' % (self.context.getPath(), otherEntry.getPath()))
+        otherEntry.remove()
+        if (newPath):  
+            self.context.renameToFilename(newPath)
+
+
     def fillNamePane(self, aMediaNamePane):
         """Set the fields of the MediaNamePane for self.
         """
@@ -330,31 +361,19 @@ class MediaOrganization(object):
         aMediaNamePane.numberInput.Enable(not self.context.isGroup())
 
 
+    def retrieveNamePane(self, aMediaNamePane):
+        """Return the organization-specific fields in aMediaNamePane as a dictionary
+        
+        UI.MediaNamePane aMediaNamePane
+        
+        Return Dictionary
+        """
+        result = {}
+        result['number'] = aMediaNamePane.number
+
+
 
 # Internal - to change without notice
-    def constructPathForSelf(self, **kwargs):
-        """Construct a path for self, incorporating changes as specified in kwargs.
-
-        String number contains the number of the media (in date or name group)
-        Boolean makeUnique requests to create a unique new pathname (takes precedence over number)
-        String elements as given by MediaClassHandler().getElementString()
-        String extension contains the media's extension
-        Return a String containing the path for self's context
-        """
-        if (((not 'number' in kwargs)
-             or (kwargs['number'] == None))
-            and (self.getNumber() <> '')):
-            kwargs['number'] = self.getNumber()
-        if ((not 'elements' in kwargs)
-            or (kwargs['elements'] == None)):
-            kwargs['elements'] = self.context.getElementString()
-        if ((not 'extension' in kwargs)
-            or (kwargs['extension'] == None)):
-            kwargs['extension'] = self.context.getExtension()
-        return(self.constructPath(**kwargs))
-
-
-
 class OrganizationByName(MediaOrganization):
     """A strategy to organize media by name.
     
@@ -385,56 +404,30 @@ class OrganizationByName(MediaOrganization):
 
 
     @classmethod
-    def getGroupFromPath(cls, path):
-        """Return the Group representing the name in path. Create it if it does not exist.
-        
-        String path filename of media (may be a folder or a file)
-        Returns a MediaFiler.Group
-        Raises ValueError 
+    def constructPathForOrganization(self, **kwargs):
         """
-        parent = None
-        name = cls.deriveName(StringIO.StringIO(), path)
-        if (os.path.join(name, '') in path):  # if name is a directory, path indicates a media group
-            group = cls.ImageFilerModel.getEntry(group=True, name=name)
-            if (not group):
-                group = Group.createFromName(cls.ImageFilerModel, name)
-                parent = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
-                if (parent == None):
-                    raise ValueError
-                group.setParentGroup(parent)
-        else:
-            group = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
-        if (not group):
-            raise ValueError
-        return(group)
-
-
-    @classmethod
-    def constructPathHead(self, **kwargs):
-        """Construct a media pathname up to the number and the elements.
-        
-        String rootDir
-        String name, if left out, rootDir will be used
-        String scene
-        Return String containing the beginning of the path
+        String name
+        Number scene
         """
-        folder = kwargs['rootDir']
+        result = None
         if (('name' in kwargs)
             and (kwargs['name'] <> None)
             and (kwargs['name'] <> '')):
             letter = kwargs['name'][0]
-            folder = os.path.join(folder, letter, kwargs['name'])
+            result = os.path.join(letter, kwargs['name'])
+        else:
+            logging.error('OrganizationByName.constructPathForOrganization(): No name given!')
+            return(None)
         if (('scene' in kwargs)
-            and (kwargs['scene'] <> None)
-            and (kwargs['scene'] <> '')):
-            try:
-                scene = (self.FormatScene % int(kwargs['scene']))
-            except:
+            and kwargs['scene']):
+            if (isinstance(kwargs['scene'], int)):
+                scene = (self.FormatScene % kwargs['scene'])
+            else:
                 scene = self.NewIndicator
-            folder = os.path.join(folder, scene)
-        else: # TODO: markAsNew
+            result = os.path.join(result, scene)
+        else:  # no scene given yields a singleton
             pass
-        return(folder)
+        return(result)
 
 
     @classmethod
@@ -449,8 +442,8 @@ class OrganizationByName(MediaOrganization):
             if (not pathInfo['name']):
                 importParameters.logString('Cannot determine new name for "%s", terminating import!' % sourcePath)
                 return
-            groupExists = os.path.isdir(self.constructPathHead(**pathInfo))
-            singleExists = (len(glob.glob(self.constructPathHead(**pathInfo) + MediaOrganization.NameSeparator + '*')) > 0)
+            groupExists = os.path.isdir(self.constructPathForOrganization(**pathInfo))
+            singleExists = (len(glob.glob(self.constructPathForOrganization(**pathInfo) + MediaOrganization.NameSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
                 importParameters.logString('OrganizationByName: Cannot merge two singles into group (NYI)!')
                 return
@@ -488,6 +481,31 @@ class OrganizationByName(MediaOrganization):
         # rename
         newPath = self.constructPath(**pathInfo)
         return(newPath)
+
+
+    @classmethod
+    def getGroupFromPath(cls, path):
+        """Return the Group representing the name in path. Create it if it does not exist.
+        
+        String path filename of media (may be a folder or a file)
+        Returns a MediaFiler.Group
+        Raises ValueError 
+        """
+        parent = None
+        name = cls.deriveName(StringIO.StringIO(), path)
+        if (os.path.join(name, '') in path):  # if name is a directory, path indicates a media group
+            group = cls.ImageFilerModel.getEntry(group=True, name=name)
+            if (not group):
+                group = Group.createFromName(cls.ImageFilerModel, name)
+                parent = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
+                if (parent == None):
+                    raise ValueError
+                group.setParentGroup(parent)
+        else:
+            group = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
+        if (not group):
+            raise ValueError
+        return(group)
 
 
     @classmethod
@@ -560,6 +578,17 @@ class OrganizationByName(MediaOrganization):
 
 
 # Lifecycle
+    def __init__(self, anEntry, aPath):
+        """Create a OrganizationByName instance to go with anEntry.
+        """
+        # inheritance
+        super(OrganizationByName, self).__init__(anEntry, aPath)
+        # internal state
+        self.__class__.nameHandler.registerNameAsUsed(self.getName())
+        return(None)
+
+
+
 # Setters
     def setIdentifiersFromPath(self, path):
         """Isolate name and scene (if any) from path, and return remaining part of path.
@@ -622,27 +651,26 @@ class OrganizationByName(MediaOrganization):
 
 
 # Getters
+    def constructPathForSelf(self, **kwargs):
+        """
+        """
+        if (not 'name' in kwargs):
+            kwargs['name'] = self.getName()
+        if (not 'scene' in kwargs):
+            kwargs['scene'] = self.getScene()
+        return(super(OrganizationByName, self).constructPathForSelf(**kwargs))
+
+
     def extendContextMenu(self, menu):
         """Extend the context menu to contain functions relevant for organization by name.
         
         MediaFiler.Entry.Menu menu 
         """
-        # functions applicable to all entries
-#        menu.insertAfterId(GUIId.FilterSimilar, 
-#                            newText=GUIId.FunctionNames[GUIId.ChooseName], 
-#                            newId=GUIId.ChooseName) 
-#         menu.insertAfterId(GUIId.FilterSimilar, 
-#                            newText=GUIId.FunctionNames[GUIId.RandomName], 
-#                            newId=GUIId.RandomName)
-#         menu.insertAfterId(GUIId.FilterSimilar)
         menu.Append(GUIId.RandomName, GUIId.FunctionNames[GUIId.RandomName])
         menu.Append(GUIId.ChooseName, GUIId.FunctionNames[GUIId.ChooseName])
         menu.AppendSeparator()
         # functions applicable to singletons, i.e. media outside groups
         if (self.context.isSingleton()):
-#             menu.insertAfterId(GUIId.ChooseName, 
-#                                newText=GUIId.FunctionNames[GUIId.ConvertToGroup], 
-#                                newId=GUIId.ConvertToGroup)
             menu.Append(GUIId.ConvertToGroup, GUIId.FunctionNames[GUIId.ConvertToGroup])
         # functions applicable to Singles inside named Groups
         if ((not self.context.isGroup())
@@ -668,17 +696,38 @@ class OrganizationByName(MediaOrganization):
     def runContextMenuItem(self, menuId, parentWindow):  # @UnusedVariable
         """Run the functions for the menu items added in extendContextMenu()
         """
-        if (menuId == GUIId.ChooseName):
-            pass
-        elif (menuId == GUIId.RandomName):
-            pass
+        if ((menuId == GUIId.ChooseName)
+            or (menuId == GUIId.RandomName)):
+            if (menuId == GUIId.ChooseName):
+                newName = self.askNewName(parentWindow)
+            else:
+                newName = self.nameHandler.getFreeName()
+            if (newName):
+                kwargs = {'name': newName}
+                if (self.isSingleton()
+                    or (not self.context.isGroup())):
+                    kwargs['elements'] = self.context.getElements()
+                    newEntry = self.context.model.getEntry(name=newName)
+                    if (newEntry): 
+                        if (newEntry.isGroup()):  # newName used by Group
+                            kwargs['scene'] = MediaOrganization.NewIndicator
+                            kwargs['makeUnique'] = True
+                        else:  # newName used by singleton
+                            print('Merging two singletons NYI!')
+                            return
+                    else:  # newName free, create a singleton
+                        kwargs['scene'] = None
+                else:  # self.context is a Group
+                    pass
+                self.context.renameTo(**kwargs)
+                self.context.model.setSelectedEntry(self.context)
         elif (menuId == GUIId.ConvertToGroup):
-            pass
+            print('Conversion of singleton to Group NYI!')
         elif (menuId == GUIId.RelabelScene):
-            pass
+            print('Relabelling scenes NYI!')
         elif ((GUIId.SelectScene <= menuId)
               and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
-            pass
+            pass  # handled where?
         else:
             super(OrganizationByName, self).runContextMenu(menuId, parentWindow)
 
@@ -727,22 +776,35 @@ class OrganizationByName(MediaOrganization):
         aMediaNamePane.sceneInput.Enable(not self.context.isGroup())
 
 
+    def retrieveNamePane(self, aMediaNamePane):
+        """
+        """
+        result = super(OrganizationByName, self).retrieveNamePane(self, aMediaNamePane)
+        result['name'] = aMediaNamePane.name
+        result['scene'] = aMediaNamePane.scene
+        return(result)
+
+
     
 # Internal - to change without notice
-    def constructPathForSelf(self, **kwargs):
-        """Construct a path for self, incorporating changes as specified in kwargs.
+    def askNewName(self, parentWindow):
+        """User wants to rename media. Ask for new name. 
         
-        String name
-        String scene
-        Return a String containing the path for self's context
+        Returns String containing new name, or None if user cancelled. 
         """
-        if ((not 'name' in kwargs)
-            or (kwargs['name'] == None)):
-            kwargs['name'] = self.getName()
-        if ((not 'scene' in kwargs)
-            or (kwargs['scene'] == None)):
-            kwargs['scene'] = self.getScene()
-        return(super(OrganizationByName, self).constructPathForSelf(**kwargs))
+        dialog = wx.TextEntryDialog(parentWindow, _('Enter New Name'), _('Choose Name'), '')
+        ok = True
+        newName = None
+        while (ok and 
+               (not self.nameHandler.isNameLegal(newName))):
+            ok = (dialog.ShowModal() == wx.ID_OK)
+            if (ok):
+                newName = dialog.GetValue()
+                if (not self.nameHandler.isNameLegal(newName)):
+                    dialog.SetValue('%s is not a legal name' % newName)
+                    newName = None
+        dialog.Destroy()
+        return(newName)
 
 
 
@@ -781,52 +843,34 @@ class OrganizationByDate(MediaOrganization):
 # Variables
 # Class Methods
     @classmethod
-    def getGroupFromPath(cls, path):
+    def constructPathForOrganization(self, **kwargs):
         """
-        """
-        (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
-        group = cls.ImageFilerModel.getEntry(group=True, year=year, month=month, day=day)
-        if (group):
-            return(group)
-        else:
-            return(super(OrganizationByDate, cls).getGroupFromPath(path))
-
-
-    @classmethod
-    def constructPathHead(self, **kwargs):
-        """Construct a media pathname up to the number and the elements.
-        
-        String rootDir
-        String year
-        String month
-        String day
-        Return String containing the beginning of the path
+        Number year
+        Number month
+        Number day
         """
         if (('year' in kwargs)
-            and (kwargs['year'] <> None)
-            and (kwargs['year'] <> '')):  
-            year = int(kwargs['year'])
+            and kwargs['year']):
+            year = kwargs['year']
         else:
             year = int(self.UnknownDateName)
-        newDir = os.path.join(kwargs['rootDir'], (self.FormatYear % year))
+        result = (self.FormatYear % year)
         if (('month' in kwargs)
-            and (kwargs['month'] <> None)
-            and (kwargs['month'] <> '')):
-            month = int(kwargs['month'])
-            newDir = os.path.join(newDir, (self.FormatYearMonth % (year, month)))
+            and kwargs['month']):
+            month = kwargs['month']
+            result = os.path.join(result, (self.FormatYearMonth % (year, month)))
             if (('day' in kwargs)
-                and (kwargs['day'] <> None)
-                and (kwargs['day'] <> '')):
-                newDir = os.path.join(newDir, 
-                                      (self.FormatYearMonthDay % (year, month, int(kwargs['day']))),
-                                      (self.FormatYearMonthDay % (year, month, int(kwargs['day']))))
+                and kwargs['day']):
+                result = os.path.join(result, 
+                                      (self.FormatYearMonthDay % (year, month, kwargs['day'])),
+                                      (self.FormatYearMonthDay % (year, month, kwargs['day'])))
             else:
-                newDir = os.path.join(newDir, 
+                result = os.path.join(result, 
                                       (self.FormatYearMonth % (year, month)))
         else:
-            newDir = os.path.join(newDir,
+            result = os.path.join(result,
                                   (self.FormatYear % year))
-        return(newDir)
+        return(result)
 
 
     @classmethod
@@ -849,14 +893,26 @@ class OrganizationByDate(MediaOrganization):
             newElements = (newElements + Entry.NameSeparator + self.NewIndicator)
         # ensure uniqueness via number
         newPath = self.constructPath(rootDir=targetDir,
-                                year=year,
-                                month=month,
-                                day=day,
+                                year=int(year),
+                                month=int(month),
+                                day=int(day),
                                 elements=newElements,
                                 extension=extension[1:],
                                 makeUnique=True)
         # rename
         return(newPath)
+
+
+    @classmethod
+    def getGroupFromPath(cls, path):
+        """
+        """
+        (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
+        group = cls.ImageFilerModel.getEntry(group=True, year=year, month=month, day=day)
+        if (group):
+            return(group)
+        else:
+            return(super(OrganizationByDate, cls).getGroupFromPath(path))
 
 
     @classmethod
@@ -952,33 +1008,37 @@ class OrganizationByDate(MediaOrganization):
         date = None
         if ((os.path.isfile(path))  # plain file
             and (path[-4:].lower() == '.jpg')):  # of type JPG
-            f = open(path, "rb")
-            exifTags = exifread.process_file(f)
-            if (('Model' in exifTags)
-                and (exifTags['Model'] == 'MS Scanner')):
-                return(None, None, None)
-            if (('Software' in exifTags)
-                and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
-                return (None, None, None)
-            if (exifTags):
-                for key in ['DateTimeOriginal',
-                            # 'Image DateTime',  # bad date, changed by imaging software
-                            'EXIF DateTimeOriginal', 
-                            'EXIF DateTimeDigitized'
-                            ]:
-                    if (key in exifTags):
-                        date = exifTags[key]
-                        break
-                if (date):
-                    match = self.DayPattern.search(str(date))
-                    year = match.group(1)
-                    month = match.group(3)
-                    day = match.group(4)
-                    if (year == self.UnknownDateName):
-                        month = None
-                        day = None
-                    #log.write('Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
-                    return(year, month, day)
+            with open(path, "rb") as f:
+                try:
+                    exifTags = exifread.process_file(f)
+                except:
+                    logging.warning('OrganizationByDate.deriveDateFromFile(): cannot read EXIF data from "%s"!' % path)
+                    return(None, None, None)
+                if (('Model' in exifTags)
+                    and (exifTags['Model'] == 'MS Scanner')):
+                    return(None, None, None)
+                if (('Software' in exifTags)
+                    and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
+                    return (None, None, None)
+                if (exifTags):
+                    for key in ['DateTimeOriginal',
+                                # 'Image DateTime',  # bad date, changed by imaging software
+                                'EXIF DateTimeOriginal', 
+                                'EXIF DateTimeDigitized'
+                                ]:
+                        if (key in exifTags):
+                            date = exifTags[key]
+                            break
+                    if (date):
+                        match = self.DayPattern.search(str(date))
+                        year = match.group(1)
+                        month = match.group(3)
+                        day = match.group(4)
+                        if (year == self.UnknownDateName):
+                            month = None
+                            day = None
+                        #log.write('Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
+                        return(year, month, day)
         return(None, None, None)
 
 
@@ -1124,7 +1184,7 @@ class OrganizationByDate(MediaOrganization):
             raise ValueError
         print('OrganizationByDate.registerMoveToLocation(): Registering (%s, %s, %s)' % (year, month, day))
         moveToLocation = {'year': year, 'month': month, 'day': day}
-        path = cls.constructPathHead(rootDir='', **moveToLocation)
+        path = cls.constructPathForOrganization(rootDir='', **moveToLocation)
         (dummy, menuText) = os.path.split(path)
         if (not menuText in cls.MoveToLocations):
             cls.MoveToLocations[menuText] = moveToLocation
@@ -1152,6 +1212,18 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Getters
+    def constructPathForSelf(self, **kwargs):
+        """
+        """
+        if (not 'year' in kwargs):
+            kwargs['year'] = self.getYear()
+        if (not 'month' in kwargs):
+            kwargs['month'] = self.getMonth()
+        if (not 'day' in kwargs):
+            kwargs['day'] = self.getDay()
+        return(super(OrganizationByDate, self).constructPathForSelf(**kwargs))
+
+
     def extendContextMenu(self, menu):
         """Extend the context menu to contain functions relevant for organization by date.
 
@@ -1261,26 +1333,16 @@ class OrganizationByDate(MediaOrganization):
         aMediaNamePane.day = self.getDayString()
 
 
+    def retrieveNamePane(self, aMediaNamePane):
+        """
+        """
+        result = super(OrganizationByDate, self).retrieveNamePane(self, aMediaNamePane)
+        result['year'] = aMediaNamePane.year
+        result['month'] = aMediaNamePane.month
+        result['day'] = aMediaNamePane.day
+        return(result)
+
+
 
 # Event Handlers
 # Internal - to change without notice
-    def constructPathForSelf(self, **kwargs):
-        """Construct a path for self, incorporating changes as specified in kwargs.
-        
-        String year
-        String month
-        String day
-        Return a String containing the path for self's context
-        """
-        if ((not 'year' in kwargs)
-            or (kwargs['year'] == None)):
-            kwargs['year'] = self.getYearString()
-        if ((not 'month' in kwargs)
-            or (kwargs['month'] == None)):
-            kwargs['month'] = self.getMonthString()
-        if ((not 'day' in kwargs)
-            or (kwargs['day'] == None)):
-            kwargs['day'] = self.getDayString()
-        return(super(OrganizationByDate, self).constructPathForSelf(**kwargs))
-
-

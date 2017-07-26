@@ -6,6 +6,7 @@
 # Imports
 ## standard
 import os.path
+import gettext
 ## contributed
 import wx
 ## nobi
@@ -13,6 +14,23 @@ import wx
 import Installer
 from .Entry import Entry
 from .Single import Single
+import UI  # to access UI.PackagePath
+
+
+
+# Internationalization
+# requires "PackagePath = __path__[0]" in _init_.py
+try:
+    LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
+    Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['en'])
+except BaseException as e:  # likely an IOError because no translation file found
+    print('%s: Cannot initialize translation engine from path %s; using original texts (error following).' % (__file__, LocalesPath))
+    print(e)
+    def _(message): return message
+else:
+    _ = Translation.ugettext
+def N_(message): return message
+
 
 
 
@@ -31,6 +49,13 @@ class Movie(Single):
 
 
 # Class Methods
+    @classmethod
+    def getMediaTypeName(cls):
+        """Return a translatable name for the subclasses of Single, for filter creation.
+        """
+        return(_('Movie'))
+
+    
     @classmethod
     def getLegalExtensions(cls):
         """Return a set of file extensions which clas can display.

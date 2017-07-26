@@ -215,6 +215,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
                 self.setEntry(self.model.getSelectedEntry(), expand=True)
+            else:
+                self.setEntry(self.model.getSelectedEntry())
             logging.debug('MediaTreeCtrl.update(): Recreating tree finished')
         else:
             super(self, MediaTreeCtrl).update(observable, aspect)

@@ -62,6 +62,10 @@ class MediaCanvas(wx.Panel, Observer):
         if (aspect == 'selection'):  # MediaCollection changes selection
             entry = observable.getSelectedEntry()
             self.setEntry(entry)
+        elif (aspect == 'stopFiltering'):  # after filtering, redisplay groups
+            entry = observable.getSelectedEntry()
+            if (entry.isGroup()):
+                self.setEntry(entry, forceUpdate=True)
         elif (aspect == 'children'):  # the currently selected Entry has changed children
             self.clear()
             self.setEntry(observable)
@@ -82,16 +86,20 @@ class MediaCanvas(wx.Panel, Observer):
             self.model.removeObserver(self)
         self.model = model
         self.model.addObserverForAspect(self, 'selection')
+        self.model.addObserverForAspect(self, 'stopFiltering')
         self.setEntry(self.model.getSelectedEntry())
 
 
-    def setEntry (self, entry):
+    def setEntry (self, entry, forceUpdate=False):
         """Set the entry to display.
+        
+        Boolean forceUpdate redisplays even if the same entry is already selected (after filtering)
         """
         logging.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
         if (entry == self.model.root):
             entry = self.model.initialEntry
-        if (self.entry <> entry):
+        if (forceUpdate 
+            or (self.entry <> entry)):
             wx.BeginBusyCursor()
             column = 1  # count columns when placing images in grid
             (x, y) = (0, 0)  # position of image

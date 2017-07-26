@@ -19,6 +19,8 @@ from nobi.ObserverPattern import Observer
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
+from Model.Entry import Entry
+from Model.Single import Single
 
 
 
@@ -86,6 +88,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.SetupScrolling ()
         # init variables
         self.imageModel = None  # ImageFilerModel, to derive filter from
+        self.mediaTypes = sorted(Single.__subclasses__(), key=lambda c:c.__name__)
         self.filterModel = None  # MediaFilter, to manage filter conditions
         self.filterModes = {}  # Dictionary mapping class name to filter mode wx.Choice
         self.filterValues = {}  # Dictionary mapping class name to filter value wx.Choice
@@ -311,6 +314,25 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             print('toDate changed')
 
 
+    def onMediaTypesChanged(self, event):
+        """
+        """
+        wx.BeginBusyCursor()
+        idx = event.GetSelection()
+        mediaType = self.mediaTypes[idx]
+        (required, prohibited) = self.filterModel.getMediaTypes()  # @UnusedVariable
+        if (self.mediaTypePicker.IsChecked(idx)):
+            required.add(mediaType)
+        else:
+            if (mediaType in required):
+                required.remove(mediaType)
+            else:
+                logging.error('MediaFilterPane.onMediaTypesChanged(): media type %s not in filter!' % mediaType.__name__)
+        self.filterModel.setMediaTypes(required=required)            
+        self.mediaTypePicker.SetSelection(idx)  # put focus on (un)checked type
+        wx.EndBusyCursor()
+
+
 
 # Inheritance - Observer
     def updateAspect(self, observable, aspect):  # @UnusedVariable
@@ -419,21 +441,11 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         wx.GridBagSizer sizer for layouting
         Number row            the row to use in sizer
         """
-#                 sampleList = ['zero', 'one', 'two', 'three', 'four', 'five',
-#                       'six', 'seven', 'eight', 'nine', 'ten', 'eleven',
-#                       'twelve', 'thirteen', 'fourteen']
-# 
-#         wx.StaticText(self, -1, "This example uses the wxCheckListBox control.", (45, 15))
-# 
-#         lb = wx.CheckListBox(self, -1, (80, 50), wx.DefaultSize, sampleList)
-#         self.Bind(wx.EVT_LISTBOX, self.EvtListBox, lb)
-#         self.Bind(wx.EVT_CHECKLISTBOX, self.EvtCheckListBox, lb)
-#         lb.SetSelection(0)
-
-        
+        mediaTypes = [cls.getMediaTypeName() for cls in self.mediaTypes]        
         sizer.Add(wx.StaticText(self, -1, self.MediaTypeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
-        self.mediaTypePicker = wx.CheckListBox(self, -1, wx.DefaultPosition, wx.DefaultSize, ['Image', 'Movie'])
+        self.mediaTypePicker = wx.CheckListBox(self, -1, wx.DefaultPosition, wx.DefaultSize, mediaTypes)
         sizer.Add(self.mediaTypePicker, (row, 1), (1, 2))
+        self.Bind(wx.EVT_CHECKLISTBOX, self.onMediaTypesChanged, self.mediaTypePicker)
 
 
     def importAndDisplayFilter(self):
