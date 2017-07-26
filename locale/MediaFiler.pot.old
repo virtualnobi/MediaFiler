@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2017-07-16 22:31+Mitteleuropäische Sommerzeit\n"
+"POT-Creation-Date: 2017-07-26 18:57+Mitteleuropäische Sommerzeit\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -28,7 +28,7 @@ msgid "Export (Filtered) Images"
 msgstr ""
 
 #: UI\GUIId.py:78
-msgid "E&xit"
+msgid "Exit"
 msgstr ""
 
 #: UI\GUIId.py:82
@@ -235,40 +235,44 @@ msgstr ""
 msgid "(none)"
 msgstr ""
 
-#: UI\MediaFilterPane.py:53 UI\MediaFilterPane.py:54
+#: UI\MediaFilterPane.py:57 UI\MediaFilterPane.py:58
 msgid "single"
 msgstr ""
 
-#: UI\MediaFilterPane.py:55
+#: UI\MediaFilterPane.py:59
 msgid "group"
 msgstr ""
 
-#: UI\MediaFilterPane.py:57
+#: UI\MediaFilterPane.py:61
 msgid "unknown"
 msgstr ""
 
-#: UI\MediaFilterPane.py:60
+#: UI\MediaFilterPane.py:64
 msgid "any"
 msgstr ""
 
-#: UI\MediaFilterPane.py:62
+#: UI\MediaFilterPane.py:66
 msgid "ignore"
 msgstr ""
 
-#: UI\MediaFilterPane.py:64
+#: UI\MediaFilterPane.py:68
 msgid "require"
 msgstr ""
 
-#: UI\MediaFilterPane.py:66
+#: UI\MediaFilterPane.py:70
 msgid "exclude"
 msgstr ""
 
-#: UI\MediaFilterPane.py:70
+#: UI\MediaFilterPane.py:74
 msgid "Size:"
 msgstr ""
 
-#: UI\MediaFilterPane.py:71
+#: UI\MediaFilterPane.py:75
 msgid "Date Range:"
+msgstr ""
+
+#: UI\MediaFilterPane.py:76
+msgid "Media Type:"
 msgstr ""
 
 #: UI\PresentationControlPane.py:50

@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2017-07-16 22:35+0200\n"
-"PO-Revision-Date: 2017-07-16 22:35+0200\n"
+"POT-Creation-Date: 2017-07-26 19:02+0200\n"
+"PO-Revision-Date: 2017-07-26 19:09+0200\n"
 "Last-Translator: nobi <virtualnobi@gmx.de>\n"
 "Language-Team: nobisoft <virtualnobi@gmx.de>\n"
 "Language: de_DE\n"
@@ -14,12 +14,37 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
-"X-Generator: Poedit 1.8.11\n"
-"X-Poedit-Basepath: .\n"
+"X-Generator: Poedit 2.0.1\n"
+"X-Poedit-Basepath: ../..\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-SearchPath-0: MediaFiler.pot\n"
-"X-Poedit-SearchPath-1: de_DE/LC_MESSAGES\n"
+"X-Poedit-SearchPath-1: .\n"
+
+#: Model\Image.py:56
+msgid "Image"
+msgstr "Bild"
+
+#: Model\Installer.py:192
+msgid ""
+"The current working directory for this program is not a valid media "
+"directory. Choose a media directory:"
+msgstr ""
+"Das Verzeichnis, in dem das Program gestartet wurde, enthält keine "
+"Mediendaten. Wählen Sie ein Verzeichnis, in dem die Mediendaten "
+"gespeichert werden sollen:"
+
+#: Model\Movie.py:56
+msgid "Movie"
+msgstr "Film"
+
+#: Model\Organization.py:795
+msgid "Choose Name"
+msgstr "Name"
+
+#: Model\Organization.py:795
+msgid "Enter New Name"
+msgstr "Neuen Namen eingeben"
 
 #: UI\GUIId.py:75
 msgid "Change Image Directory"
@@ -55,7 +80,7 @@ msgstr "Zufälliger Name"
 
 #: UI\GUIId.py:87
 msgid "Choose Name Manually..."
-msgstr "Namen auswählen"
+msgstr "Namen auswählen..."
 
 #: UI\GUIId.py:90
 msgid "Convert to Group"
@@ -241,41 +266,45 @@ msgstr "(n/a)"
 msgid "(none)"
 msgstr "(keine)"
 
-#: UI\MediaFilterPane.py:53 UI\MediaFilterPane.py:54
+#: UI\MediaFilterPane.py:57 UI\MediaFilterPane.py:58
 msgid "single"
 msgstr "einzeln"
 
-#: UI\MediaFilterPane.py:55
+#: UI\MediaFilterPane.py:59
 msgid "group"
 msgstr "Gruppe"
 
-#: UI\MediaFilterPane.py:57
+#: UI\MediaFilterPane.py:61
 msgid "unknown"
 msgstr "unbekannt"
 
-#: UI\MediaFilterPane.py:60
+#: UI\MediaFilterPane.py:64
 msgid "any"
 msgstr "alle"
 
-#: UI\MediaFilterPane.py:62
+#: UI\MediaFilterPane.py:66
 msgid "ignore"
 msgstr "egal"
 
-#: UI\MediaFilterPane.py:64
+#: UI\MediaFilterPane.py:68
 msgid "require"
 msgstr "erforderlich"
 
-#: UI\MediaFilterPane.py:66
+#: UI\MediaFilterPane.py:70
 msgid "exclude"
 msgstr "ausgeschlossen"
 
-#: UI\MediaFilterPane.py:70
+#: UI\MediaFilterPane.py:74
 msgid "Size:"
 msgstr "Größe:"
 
-#: UI\MediaFilterPane.py:71
+#: UI\MediaFilterPane.py:75
 msgid "Date Range:"
 msgstr "Datumsbereich:"
+
+#: UI\MediaFilterPane.py:76
+msgid "Media Type:"
+msgstr "Medientyp"
 
 #: UI\PresentationControlPane.py:50
 msgid "Name"
@@ -316,9 +345,6 @@ msgstr "Name"
 
 #~ msgid "Filter"
 #~ msgstr "Filter"
-
-#~ msgid "Image"
-#~ msgstr "Bild"
 
 #~ msgid "Classification"
 #~ msgstr "Klassifikation"
