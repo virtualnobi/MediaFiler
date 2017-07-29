@@ -271,14 +271,14 @@ class MediaNamePane(wx.Panel, Observer):
         """Set input fields from internal state.
         """
         if (self.model.organizedByDate):
-            self.yearInput.ChangeValue(self.year)
-            self.monthInput.ChangeValue(self.month)
-            self.dayInput.ChangeValue(self.day)
+            self.yearInput.ChangeValue(unicode(self.year))
+            self.monthInput.ChangeValue(unicode(self.month))
+            self.dayInput.ChangeValue(unicode(self.day))
         else:
             self.identifierString.SetLabel(self.name)
-            self.sceneInput.ChangeValue(self.scene)
+            self.sceneInput.ChangeValue(unicode(self.scene))
         # number applies to both organizations
-        self.numberInput.ChangeValue(self.number)
+        self.numberInput.ChangeValue(unicode(self.number))
         # elements apply to both organizations
         elementString = self.model.getClassHandler().elementsToString(self.knownElements.union(self.unknownElements))
         self.elementInput.ChangeValue(elementString)
@@ -295,14 +295,29 @@ class MediaNamePane(wx.Panel, Observer):
         This is used to combine a change from another function with changes in the input fields.
         """
         if (self.model.organizedByDate):
-            self.year = self.yearInput.GetValue()
-            self.month = self.monthInput.GetValue()
-            self.day = self.dayInput.GetValue()
+            try:
+                self.year = int(self.yearInput.GetValue())
+            except: 
+                self.year = None
+            try:
+                self.month = int(self.monthInput.GetValue())
+            except:
+                self.month = None
+            try:
+                self.day = int(self.dayInput.GetValue())
+            except: 
+                self.day = None
         else:
             self.identifierString.SetLabel(self.name)
-            self.scene = self.sceneInput.GetValue()
+            try:
+                self.scene = int(self.sceneInput.GetValue())
+            except:
+                self.scene = None
         # number applies to both organizations
-        self.number = self.numberInput.GetValue()
+        try:
+            self.number = int(self.numberInput.GetValue())
+        except: 
+            self.number = None
         # elements apply to both organizations
         self.knownElements = set()
         self.unknownElements = set()
@@ -321,7 +336,7 @@ class MediaNamePane(wx.Panel, Observer):
         pathInfo = self.entry.organizer.retrieveNamePane(self)
         pathInfo['elements'] = (self.knownElements.union(self.unknownElements))
         pathInfo['removeIllegalElements'] = removeUnkownTags
-        success = self.entry.renameTo(pathInfo)
+        success = self.entry.renameTo(**pathInfo)
 #         if (self.model.organizedByDate):  # TODO: move to self.entry.organizer()
 #             result = self.entry.renameTo(year=self.year, 
 #                                          month=self.month, 

@@ -254,7 +254,7 @@ class MediaFilter(Observable):
                     pass
             # check for unknown requirement
             if (self.unknownElementRequired): 
-                if (self.model.organizedByDate):  
+                if (self.model.organizedByDate):  # TODO: move to Organization
                     entryFiltered = (entry.getYear() <> entry.organizer.__class__.UnknownDateName)
                 else: # organized by name, illegal name will satisfy unknown element requirement
                     match = re.match(r'([^\d]+)\d*', entry.getName())  # isolate name in name+number identifiers

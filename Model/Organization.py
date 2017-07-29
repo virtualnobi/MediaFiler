@@ -114,7 +114,7 @@ class MediaOrganization(object):
             and kwargs['rootDir']):
             result = kwargs['rootDir']
         else:
-            result = self.__class__.ImageFilerModel.getRootDirectory()
+            result = self.ImageFilerModel.getRootDirectory()
         result = os.path.join(result, self.constructPathForOrganization(**kwargs))
         number = None
         if (('makeUnique' in kwargs)
@@ -126,6 +126,7 @@ class MediaOrganization(object):
               and kwargs['number']):
             number = kwargs['number']
         if (number):
+            number = int(number)
             result = (result + self.NameSeparator + (self.FormatNumber % number))
         if (('elements' in kwargs)
             and kwargs['elements']):
@@ -286,7 +287,15 @@ class MediaOrganization(object):
 
 
     def getNumber(self):
+        if (self.number):
+            return(int(self.number))
+        else:
+            return(None)
+
+
+    def getNumberString(self):
         return(self.number)
+
 
 
     # These getters must be defined in the respective subclasses
@@ -357,7 +366,7 @@ class MediaOrganization(object):
         """Set the fields of the MediaNamePane for self.
         """
         if (self.getNumber()):
-            aMediaNamePane.number = self.getNumber()
+            aMediaNamePane.number = self.getNumberString()
         aMediaNamePane.numberInput.Enable(not self.context.isGroup())
 
 
@@ -370,6 +379,7 @@ class MediaOrganization(object):
         """
         result = {}
         result['number'] = aMediaNamePane.number
+        return(result)
 
 
 
@@ -779,7 +789,7 @@ class OrganizationByName(MediaOrganization):
     def retrieveNamePane(self, aMediaNamePane):
         """
         """
-        result = super(OrganizationByName, self).retrieveNamePane(self, aMediaNamePane)
+        result = super(OrganizationByName, self).retrieveNamePane(aMediaNamePane)
         result['name'] = aMediaNamePane.name
         result['scene'] = aMediaNamePane.scene
         return(result)
@@ -875,7 +885,7 @@ class OrganizationByDate(MediaOrganization):
 
     @classmethod
     def constructPathFromImport(self, importParameters, sourcePath, level, baseLength, targetDir, illegalElements):  # @UnusedVariable
-        """Import image at sourcePath. Implementation of MediaOrganization class method.
+        """
         """
         # determine date of image
         (year, month, day) = self.deriveDate(importParameters.log, sourcePath, importParameters.getPreferPathDateOverExifDate())
@@ -889,13 +899,13 @@ class OrganizationByDate(MediaOrganization):
                                                           True, 
                                                           illegalElements)
         if (importParameters.getMarkAsNew()
-            and (not Entry.NameSeparator in newElements)):
+            and (not self.NewIndicator in newElements)):
             newElements = (newElements + Entry.NameSeparator + self.NewIndicator)
         # ensure uniqueness via number
         newPath = self.constructPath(rootDir=targetDir,
-                                year=int(year),
-                                month=int(month),
-                                day=int(day),
+                                year=year,
+                                month=month,
+                                day=day,
                                 elements=newElements,
                                 extension=extension[1:],
                                 makeUnique=True)
@@ -950,10 +960,10 @@ class OrganizationByDate(MediaOrganization):
         String path contains the file path.
         Boolean preferPathDate indicates that a date derived from path takes precedence over a date derived from EXIF data
         
-        Returns a tuple (year, month, day) which either are a String or None (if not defined). 
+        Returns a tuple (year, month, day) which either are a Number or None (if not defined). 
         """
         # default values
-        year = self.UnknownDateName
+        year = int(self.UnknownDateName)
         month = None
         day = None
         datesDiffer = False
@@ -991,6 +1001,12 @@ class OrganizationByDate(MediaOrganization):
             log.write('EXIF (%s) more specific than path (%s) in file "%s"\n' % (exifDate, pathDate, path))
         elif (datesDiffer):
             log.write('EXIF (%s) and path (%s) differ in file "%s"\n' % (exifDate, pathDate, path))
+        if (year):
+            year = int(year)
+        if (month):
+            month = int(month)
+        if (day):
+            day = int(day)
         return(year, month, day)
 
 
@@ -1272,9 +1288,9 @@ class OrganizationByDate(MediaOrganization):
                 and self.dateTaken.getYear())):
             print('OrganizationByDate.getYear(): explicit and PartialDateTime year do not match')
         if (self.year == None):
-            return(u'')
+            return(None)
         else:
-            return(self.year)
+            return(int(self.year))
 
     
     def getYearString(self):
@@ -1291,9 +1307,9 @@ class OrganizationByDate(MediaOrganization):
                 and self.dateTaken.getMonth())):
             print('OrganizationByDate.getMonth(): explicit and PartialDateTime month do not match')
         if (self.month == None):
-            return(u'')
+            return(None)
         else:
-            return(self.month)
+            return(int(self.month))
     
 
     def getMonthString(self):
@@ -1310,9 +1326,9 @@ class OrganizationByDate(MediaOrganization):
                 and self.dateTaken.getDay())):
             print('OrganizationByDate.getDay(): explicit and PartialDateTime day do not match')
         if (self.day == None):
-            return(u'')
+            return(None)
         else:
-            return(self.day)    
+            return(int(self.day))    
 
 
     def getDayString(self):
@@ -1336,7 +1352,7 @@ class OrganizationByDate(MediaOrganization):
     def retrieveNamePane(self, aMediaNamePane):
         """
         """
-        result = super(OrganizationByDate, self).retrieveNamePane(self, aMediaNamePane)
+        result = super(OrganizationByDate, self).retrieveNamePane(aMediaNamePane)
         result['year'] = aMediaNamePane.year
         result['month'] = aMediaNamePane.month
         result['day'] = aMediaNamePane.day

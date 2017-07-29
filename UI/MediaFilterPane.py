@@ -221,19 +221,14 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # filter for unknown values
         modeName = self.filterModes[self.UnknownElementsIndex].GetStringSelection()
         valueName = self.filterValues[self.UnknownElementsIndex].GetValue()
+        unknownElementRequired = False
         if (modeName == self.FilterModeNameRequire):
             if (valueName == ''):
-                self.unknownElementRequired = True
-            else:
-                self.requiredElements.add(valueName)
+                unknownElementRequired = True
         elif (modeName == self.FilterModeNameExclude):
-            if (valueName == ''):
-                self.unknownElementRequired = False
-            else:
+            if (valueName <> ''):
                 self.prohibitedElements.add(valueName)
-        else:  # must be ignore
-            self.unknownElementRequired = False
-        kwargs['unknownRequired'] = self.unknownElementRequired
+        kwargs['unknownRequired'] = unknownElementRequired
         # for all classes, set up value filters
         for className in self.imageModel.getClassHandler().getClassNames():
             # TODO: make checkbox conditions work

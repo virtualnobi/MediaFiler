@@ -289,11 +289,11 @@ class Entry(PausableObservable):
         else:
             self.initFromPath(fname)
             self.changedAspect('name')
-            self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYearString(),
-                                                            month=self.organizer.getMonthString(),
-                                                            day=self.organizer.getDayString(),
-                                                            name=self.getName(),
-                                                            scene=self.getScene())
+#             self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYear(),
+#                                                             month=self.organizer.getMonth(),
+#                                                             day=self.organizer.getDay(),
+#                                                             name=self.getName(),
+#                                                             scene=self.getScene())
             # remove from current group, and add to new group
             newGroup = self.organizer.__class__.getGroupFromPath(fname)
             if ((newGroup <> None)

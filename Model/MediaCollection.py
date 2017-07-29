@@ -473,7 +473,7 @@ class MediaCollection(Observable, Observer):
         illegalElements = {}  # mapping illegal element strings to file names
         # import files
         if (self.organizedByDate):
-            importParameters.logString('Importing by date from "%s" into "%s"' % (importParameters.getImportDirectory(), self.rootDirectory))
+            importParameters.logString('Importing by date from "%s" into "%s"\n' % (importParameters.getImportDirectory(), self.rootDirectory))
             try:
                 self.importImagesRecursively(importParameters,
                                              importParameters.getImportDirectory(), 
@@ -484,7 +484,7 @@ class MediaCollection(Observable, Observer):
             except StopIteration:
                 pass
         else:  # organized by name
-            importParameters.logString('Importing by name from "%s" into "%s"' % (importParameters.getImportDirectory(), self.rootDirectory))
+            importParameters.logString('Importing by name from "%s" into "%s"\n' % (importParameters.getImportDirectory(), self.rootDirectory))
             try:
                 self.importImagesRecursively(importParameters, 
                                              importParameters.getImportDirectory(),
@@ -559,12 +559,12 @@ class MediaCollection(Observable, Observer):
                                                                   targetDir, 
                                                                   illegalElements)
                         else:
-                            importParameters.logString('\tIgnoring small %sb file "%s"' % (fileSize, oldPath))
+                            importParameters.logString('Ignoring small %sb file "%s"\n' % (fileSize, oldPath))
                     else:
-                        importParameters.logString('\nMaximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
+                        importParameters.logString('Maximum number of %s files for import reached!\n' % importParameters.getMaxFilesToImport())
                         raise StopIteration
                 else:
-                    importParameters.logString('\tIgnoring unhandled file "%s"' % oldPath)
+                    importParameters.logString('Ignoring unhandled file "%s"\n' % oldPath)
 
 
     def fixPathWhileImporting(self, parameters, oldPath):

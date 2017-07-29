@@ -72,38 +72,51 @@ class ImportParameterObject(object):
         # inheritance
         super(ImportParameterObject, self).__init__()
         # internal state
+        self.model = model
         self.log = StringIO.StringIO()
         self.illegalElements = {}
         self.testRun = True
         self.numberOfImportedFiles = 0
         # the following are options on the UI, which are defaulted to last used values
-        self.importDirectory = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportPath)
+        self.importDirectory = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportPath)
         if (self.importDirectory == None):
-            self.importDirectory = os.path.normpath(os.path.join(model.getRootDirectory(), '..', 'import'))
-        self.ignoreUnhandledTypes = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportIgnoreUnhandled)
-        if (self.ignoreUnhandledTypes == None):
-            self.ignoreUnhandledTypes = (model.organizationStrategy == OrganizationByName)
-        self.minimumFileSize = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMinimumSize)
-        if (self.minimumFileSize == None):
+            self.importDirectory = os.path.normpath(os.path.join(self.model.getRootDirectory(), '..', 'import'))
+        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportIgnoreUnhandled)
+        if (stringValue == None):
+            self.ignoreUnhandledTypes = (self.model.organizationStrategy == OrganizationByName)
+        else: 
+            self.ignoreUnhandledTypes = (stringValue == 'True')
+        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMinimumSize)
+        if (stringValue == None):
             self.minimumFileSize = 10000
-        self.deleteOriginals = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportDeleteOriginals)
-        if (self.deleteOriginals == None):
+        else:
+            self.minimumFileSize = int(stringValue)
+        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportDeleteOriginals)
+        if (stringValue == None):
             self.deleteOriginals = True
-        self.markAsNew = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMarkAsNew)
-        if (self.markAsNew == None):
+        else: 
+            self.deleteOriginals = (stringValue == 'True')
+        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMarkAsNew)
+        if (stringValue == None):
             self.markAsNew = True
-        self.maxFilesToImport = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMaximumFiles)
-        if (self.maxFilesToImport == None):
+        else: 
+            self.markAsNew = (stringValue == 'True')
+        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMaximumFiles)
+        if (stringValue == None):
             self.maxFilesToImport = 1000
-        self.reportIllegalElements = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportReportIllegals)
-        if (self.reportIllegalElements == None):
+        else:
+            self.maxFilesToImport = int(stringValue)
+        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportReportIllegals)
+        if (stringValue == None):
             self.reportIllegalElements = False
+        else: 
+            self.reportIllegalElements = (stringValue == 'True')            
         # parameters for OrganizationByDate
-        self.preferPathDateOverExifDate = model.getConfiguration(ImportParameterObject.ConfigurationOptionImportPreferExif)
-        if (self.preferPathDateOverExifDate == None):
+        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportPreferExif)
+        if (stringValue == None):
             self.preferPathDateOverExifDate = True
         else: 
-            self.preferPathDateOverExifDate = (not self.preferPathDateOverExifDate)
+            self.preferPathDateOverExifDate = (stringValue == 'True')
         # parameters for OrganizationByName
         return(None)
 
@@ -206,6 +219,30 @@ class ImportParameterObject(object):
         return(self.numberOfImportedFiles <= self.maxFilesToImport)
 
 
+# Other API functions
+    def storeSettings(self):
+        """User has accepted the settings to import media. Store them for next use.
+        """
+        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportPath, 
+                                    self.importDirectory)
+        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportIgnoreUnhandled,
+                                    self.ignoreUnhandledTypes)
+        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportMinimumSize,
+                                    self.minimumFileSize)
+        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportDeleteOriginals,
+                                    self.deleteOriginals)
+        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportMarkAsNew,
+                                    self.markAsNew)
+        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportMaximumFiles,
+                                    self.maxFilesToImport)
+        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportReportIllegals,
+                                    self.reportIllegalElements)
+        # parameters for OrganizationByDate
+        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportPreferExif,
+                                    self.preferPathDateOverExifDate)
+        # parameters for OrganizationByName
+
+
 
 # Event Handlers
 # Internal - to change without notice
@@ -238,11 +275,11 @@ class ImportDialog(wx.Dialog):
 
 # Class Variables
 # Class Methods
-    @classmethod
-    def classMethod(clas):
-        """
-        """
-        pass
+#     @classmethod
+#     def classMethod(clas):
+#         """
+#         """
+#         pass
 
 
 
@@ -394,10 +431,10 @@ class ImportDialog(wx.Dialog):
 
 
 # Setters
-    def setAttribute(self, value):
-        """
-        """
-        pass
+#     def setAttribute(self, value):
+#         """
+#         """
+#         pass
     
     
 
@@ -496,6 +533,17 @@ class ImportDialog(wx.Dialog):
         """
         self.parameters.setPreferPathDateOverExifDate(event.GetEventObject().GetValue())
         print('PreferPathDate=%s' % self.parameters.getPreferPathDateOverExifDate())
+
+
+
+# Other API Functions
+    def ShowModal(self):
+        """In addition to superclass, store parameter settings if user hits OK.
+        """
+        result = super(ImportDialog, self).ShowModal()
+        if (result == wx.ID_OK):
+            self.parameters.storeSettings()
+        return(result)
 
 
 
