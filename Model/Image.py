@@ -7,6 +7,7 @@
 ## standard
 import os.path
 import gettext
+import logging
 ## contributed
 import wx
 ## nobi
@@ -117,31 +118,28 @@ class Image(Single):
             return(False)
 
 
-    def getRawImage(self, debug=False):
+    def getRawImage(self):
         """Retrieve raw data (JPG or PNG or GIF) for image.
         """
         if (not self.rawImage):  # lazily load raw image
             #print('Image.getRawImage(%s)' % self.getPath())
+            imageType = None
             if ((self.getExtension() == 'jpg')
                 or (self.getExtension() == 'jpeg')):
-                self.rawImage = wx.Image(self.getPath(), wx.BITMAP_TYPE_JPEG)
-                if (debug and not self.rawImage):
-                    print('Failed to load JPG "%s"' % self.getPath())
+                imageType = wx.BITMAP_TYPE_JPEG
             elif (self.getExtension() == 'png'):
-                self.rawImage = wx.Image(self.getPath(), wx.BITMAP_TYPE_PNG)
-                if (debug and not self.rawImage):
-                    print('Failed to load JPG "%s"' % self.getPath())
+                imageType = wx.BITMAP_TYPE_PNG
             elif (self.getExtension() == 'gif'):
-                self.rawImage = wx.Image(self.getPath(), wx.BITMAP_TYPE_GIF)
-                if (debug and not self.rawImage):
-                    print('Failed to load JPG "%s"' % self.getPath())
+                imageType = wx.BITMAP_TYPE_GIF
             elif (self.getExtension() == 'tif'):
-                self.rawImage = wx.Image(self.getPath(), wx.BITMAP_TYPE_TIF)
-                if (debug and not self.rawImage):
-                    print('Failed to load JPG "%s"' % self.getPath())
+                imageType = wx.BITMAP_TYPE_TIF
+            if (imageType):
+                self.rawImage = wx.Image(self.getPath(), imageType)
+                if (not self.rawImage):
+                    logging.debug('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
             else: 
-                print('Image: Illegal extension in file "%s", using preview image' % self.getPath())
-            if (self.rawImage == None):
+                print('Image.getRawImage(): Illegal type in "%s", using preview image' % self.getPath())
+            if (not self.rawImage):
                 self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
                                          wx.BITMAP_TYPE_JPEG)
             assert (self.rawImage <> None), ('Cannot load "%s"' % self.getPath())

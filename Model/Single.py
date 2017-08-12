@@ -246,10 +246,11 @@ class Single(Entry):
         """Remove self's bitmap because it must be resized.
         """
         if (self.bitmap):
+            logging.debug('Single.removeBitmap(): Discarding %dx%d bitmap' % (self.bitmapWidth, self.bitmapHeight))
             self.registerMemoryConsumption(self, -self.getBitmapMemoryUsage())
             self.bitmap = None 
-            self.bitmapWidth = None
-            self.bitmapHeight = None
+            self.bitmapWidth = 0
+            self.bitmapHeight = 0
 
 
     def releaseMemory(self):
@@ -257,7 +258,7 @@ class Single(Entry):
         
         Return a Number of bytes freed.
         """
-        raise(NotImplementedError)
+        raise NotImplementedError
 
 
     def removeNewIndicator(self):
@@ -324,14 +325,6 @@ class Single(Entry):
         return(False)
 
 
-    def isSingleton(self):
-        """Indicate whether self is the only media for its name. 
-        
-        If organized by date, return False.
-        """
-        return(self.organizer.isSingleton())
-
-
     def isIdentical(self, anEntry):
         """Check whether self and anEntry have the same content.
         
@@ -358,7 +351,7 @@ class Single(Entry):
         rawImage = self.getRawImage()  # get image in original size
         if (rawImage == None):
             print('Raw image of "%s" doesn\'t exist' % self.getPath())
-            rawImage = self.getRawImage(True)
+            rawImage = self.getRawImage()
         if ((width == None) 
             and (height == None)):  # return original size
             return(rawImage.Width, rawImage.Height)
@@ -405,17 +398,16 @@ class Single(Entry):
         """
         # determine final size
         (w, h) = self.getSize(width, height)
-        logging.debug('Single.getBitmap(%dx%d) calculated size %dx%d for "%s"' % (width, height, w, h, self.getPath()))
+        logging.debug('Single.getBitmap(%dx%d): Calculated size %dx%d for "%s"' % (width, height, w, h, self.getPath()))
         if (not ((0 < w) and (0 < h))):
             pass  # this will violate an assertion in Rescale()
         # load and resize bitmap if needed 
         if ((self.bitmap == None)  # no bitmap loaded
             or (self.bitmapWidth <> w)  # width differs
             or (self.bitmapHeight <> h)):  # height differs
-            logging.debug('Single.getBitmap(): creating %dx%d bitmap for "%s"' % (w, h, self.getPath()))
-            if (self.bitmap):
-                self.registerMemoryConsumption(self, -self.getBitmapMemoryUsage())
+            self.removeBitmap()
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
+            logging.debug('Single.getBitmap(): Creating %dx%d bitmap' % (self.bitmapWidth, self.bitmapHeight))
             self.bitmap = self.getRawImage().Copy().Rescale(self.bitmapWidth, self.bitmapHeight).ConvertToBitmap()
             self.registerMemoryConsumption(self, self.getBitmapMemoryUsage())
         return(self.bitmap)

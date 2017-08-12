@@ -139,13 +139,12 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
     def onSelectionChanged (self, event):
         """User changed the selection in the tree.
         """
-        #print('MediaTreeCtrl onSelectionChanged')
         if (self.ignoreSelectionChanges): 
             pass
         else:
-            print('MediaTreeCtrl.onSelectionChanged(): Received event %s with item %s' % (event, event.GetItem()))
+            logging.debug('MediaTreeCtrl.onSelectionChanged(): Received event %s with item %s' % (event, event.GetItem()))
             entry = self.GetItemData(event.GetItem()).GetData()
-            print('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry.getPath())
+            logging.debug('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry.getPath())
             self.ignoreSelectionChanges = True
             self.model.setSelectedEntry(entry)
             self.ignoreSelectionChanges = False

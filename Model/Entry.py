@@ -499,7 +499,7 @@ class Entry(PausableObservable):
 
 
     def getScene(self):
-        """Return the scene number.
+        """Return the scene, either a number or the new indicator.
         
         Return a String
         """
@@ -596,11 +596,9 @@ class Entry(PausableObservable):
 
 ##### messy
     def getSize(self):
-        """Return the image size of self.
-        
-        Returns (0, 0) unless it's called on an Image
+        """Return the image size (w, h) of self.
         """
-        return((0,0))
+        raise NotImplementedError
     
     
     def getSizeString(self):
@@ -608,7 +606,7 @@ class Entry(PausableObservable):
         
         Return a String
         """
-        return('unknown size')
+        raise NotImplementedError
 
 
 

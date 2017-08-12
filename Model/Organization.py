@@ -208,6 +208,17 @@ class MediaOrganization(object):
         pass
 
 
+    @classmethod
+    def initNamePane(cls, aMediaNamePane):
+        """Add controls to MediaNamePane to represent the organization's identifiers.
+        """
+        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.NameSeparator), 
+                                      flag=(wx.ALIGN_CENTER_VERTICAL))
+        aMediaNamePane.numberInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(60,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.numberInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
+        aMediaNamePane.GetSizer().Add(aMediaNamePane.numberInput, flag=(wx.ALIGN_CENTER_VERTICAL))
+
+
 
 # Lifecycle
     def __init__(self, anEntry, aPath):
@@ -362,15 +373,14 @@ class MediaOrganization(object):
             self.context.renameToFilename(newPath)
 
 
-    def fillNamePane(self, aMediaNamePane):
+    def setValuesInNamePane(self, aMediaNamePane):
         """Set the fields of the MediaNamePane for self.
         """
-        if (self.getNumber()):
-            aMediaNamePane.number = self.getNumberString()
+        aMediaNamePane.numberInput.SetValue(self.getNumberString())
         aMediaNamePane.numberInput.Enable(not self.context.isGroup())
 
 
-    def retrieveNamePane(self, aMediaNamePane):
+    def getValuesFromNamePane(self, aMediaNamePane):
         """Return the organization-specific fields in aMediaNamePane as a dictionary
         
         UI.MediaNamePane aMediaNamePane
@@ -378,7 +388,14 @@ class MediaOrganization(object):
         Return Dictionary
         """
         result = {}
-        result['number'] = aMediaNamePane.number
+        number = aMediaNamePane.numberInput.GetValue()
+        if (number == ''):
+            result['number'] = None
+        else:
+            try:
+                result['number'] = int(number)
+            except:
+                return(None)
         return(result)
 
 
@@ -430,9 +447,9 @@ class OrganizationByName(MediaOrganization):
             return(None)
         if (('scene' in kwargs)
             and kwargs['scene']):
-            if (isinstance(kwargs['scene'], int)):
-                scene = (self.FormatScene % kwargs['scene'])
-            else:
+            try:
+                scene = (self.FormatScene % (int(kwargs['scene'])))
+            except: 
                 scene = self.NewIndicator
             result = os.path.join(result, scene)
         else:  # no scene given yields a singleton
@@ -584,6 +601,24 @@ class OrganizationByName(MediaOrganization):
         else: # old name exists but is occupied
             log.write('Existing name "%s" used in file "%s"\n' % (newName, path))
         return(newName)
+
+
+    @classmethod
+    def initNamePane(cls, aMediaNamePane):
+        """Add controls to MediaNamePane to represent the organization's identifiers.
+        """
+        # name
+        aMediaNamePane.identifierString = wx.StaticText(aMediaNamePane, -1, '--')
+        aMediaNamePane.GetSizer().Add(aMediaNamePane.identifierString, flag = (wx.ALIGN_CENTER_VERTICAL))
+        # separator
+        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, '/'), flag=(wx.ALIGN_CENTER_VERTICAL))
+        #scene
+        aMediaNamePane.sceneInput = wx.TextCtrl (aMediaNamePane, size=wx.Size(40,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.sceneInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
+        aMediaNamePane.GetSizer().Add(aMediaNamePane.sceneInput, flag=(wx.ALIGN_CENTER_VERTICAL))
+        # number
+        # TODO: super(OrganizationByName, cls).initNamePane(aMediaNamePane)
+        MediaOrganization.initNamePane(aMediaNamePane)
 
 
 
@@ -747,8 +782,12 @@ class OrganizationByName(MediaOrganization):
         
         Returns a Boolean
         """
-        return((not self.context.isGroup())
-               and (not self.getScene()))
+        if (self.context.isGroup()):
+            return(False)
+        elif (self.getScene()
+              and (self.getScene() <> '')):
+            return(False)
+        return(True)
 
 
     def getName(self):
@@ -756,8 +795,9 @@ class OrganizationByName(MediaOrganization):
     
     
     def getScene(self):
+        # TODO: make getScene() return None if no scene defined, add getSceneString for this semantics
         return(self.scene)
-    
+
     
     def getScenes(self):
         """Return a sorted list of scenes contained in self, if self is a Group.
@@ -776,22 +816,26 @@ class OrganizationByName(MediaOrganization):
     
 
 # Other API Funcions
-    def fillNamePane(self, aMediaNamePane):
+    def setValuesInNamePane(self, aMediaNamePane):
         """Set the fields of the MediaNamePane for self.
         """
-        super(OrganizationByName, self).fillNamePane(aMediaNamePane)
-        aMediaNamePane.name = self.getName() 
-        if (self.getScene()):
-            aMediaNamePane.scene = self.getScene()
-        aMediaNamePane.sceneInput.Enable(not self.context.isGroup())
+        super(OrganizationByName, self).setValuesInNamePane(aMediaNamePane)
+        aMediaNamePane.identifierString.SetLabel(self.getName())
+        aMediaNamePane.sceneInput.SetValue(self.getScene())
+        aMediaNamePane.sceneInput.Enable(not (self.context.isGroup()
+                                              or self.isSingleton()))  # TODO: wrong for singletons
 
 
-    def retrieveNamePane(self, aMediaNamePane):
+    def getValuesFromNamePane(self, aMediaNamePane):
         """
         """
-        result = super(OrganizationByName, self).retrieveNamePane(aMediaNamePane)
-        result['name'] = aMediaNamePane.name
-        result['scene'] = aMediaNamePane.scene
+        result = super(OrganizationByName, self).getValuesFromNamePane(aMediaNamePane)
+        # result['name'] = aMediaNamePane.identifierString.GetLabel()  TODO: make interactive?
+        scene = aMediaNamePane.sceneInput.GetValue()
+        if (scene == ''):
+            result['scene'] = None
+        else: 
+            result['scene'] = scene
         return(result)
 
 
@@ -1208,6 +1252,32 @@ class OrganizationByDate(MediaOrganization):
                 cls.MoveToLocations.popitem(last=False)
 
 
+    @classmethod
+    def initNamePane(cls, aMediaNamePane):
+        """Add controls to MediaNamePane to represent the organization's identifiers.
+        """
+        # year
+        aMediaNamePane.yearInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(80,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.yearInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
+        aMediaNamePane.GetSizer().Add(aMediaNamePane.yearInput, flag=(wx.ALIGN_CENTER_VERTICAL))
+        # separator
+        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.NameSeparator), flag=(wx.ALIGN_CENTER_VERTICAL))
+        # month
+        aMediaNamePane.monthInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(40,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.monthInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
+        aMediaNamePane.GetSizer().Add(aMediaNamePane.monthInput, flag=(wx.ALIGN_CENTER_VERTICAL))
+        # separator
+        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.NameSeparator), flag=(wx.ALIGN_CENTER_VERTICAL))
+        # day
+        aMediaNamePane.dayInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(40,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.dayInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
+        aMediaNamePane.GetSizer().Add(aMediaNamePane.dayInput, flag=(wx.ALIGN_CENTER_VERTICAL))
+        # generic 
+        # TODO: super(OrganizationByName, cls).initNamePane(aMediaNamePane)
+        MediaOrganization.initNamePane(aMediaNamePane)
+
+
+
 # Lifecycle
 # Setters
     def setIdentifiersFromPath(self, path):
@@ -1231,12 +1301,22 @@ class OrganizationByDate(MediaOrganization):
     def constructPathForSelf(self, **kwargs):
         """
         """
+        checkMakeUnique = False
         if (not 'year' in kwargs):
             kwargs['year'] = self.getYear()
+        elif (kwargs['year'] <> self.getYear()):
+            checkMakeUnique = True
         if (not 'month' in kwargs):
             kwargs['month'] = self.getMonth()
+        elif(kwargs['month'] <> self.getMonth()):
+            checkMakeUnique = True
         if (not 'day' in kwargs):
             kwargs['day'] = self.getDay()
+        elif (kwargs['day'] <> self.getDay()):
+            checkMakeUnique = True
+        if (checkMakeUnique
+            and (not 'number' in kwargs)):
+            kwargs['makeUnique'] = True
         return(super(OrganizationByDate, self).constructPathForSelf(**kwargs))
 
 
@@ -1340,22 +1420,46 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Other API Funcions
-    def fillNamePane(self, aMediaNamePane):
+    def setValuesInNamePane(self, aMediaNamePane):
         """Set the fields of the MediaNamePane for self.
         """
-        super(OrganizationByDate, self).fillNamePane(aMediaNamePane)
-        aMediaNamePane.year = self.getYearString()
-        aMediaNamePane.month = self.getMonthString()
-        aMediaNamePane.day = self.getDayString()
+        super(OrganizationByDate, self).setValuesInNamePane(aMediaNamePane)
+        aMediaNamePane.yearInput.SetValue(self.getYearString())
+        aMediaNamePane.monthInput.SetValue(self.getMonthString())
+        aMediaNamePane.dayInput.SetValue(self.getDayString())
 
 
-    def retrieveNamePane(self, aMediaNamePane):
+    def getValuesFromNamePane(self, aMediaNamePane):
         """
+        
+        Return Dictionary mapping String to values
+            or None if field values are illegal
         """
-        result = super(OrganizationByDate, self).retrieveNamePane(aMediaNamePane)
-        result['year'] = aMediaNamePane.year
-        result['month'] = aMediaNamePane.month
-        result['day'] = aMediaNamePane.day
+        result = super(OrganizationByDate, self).getValuesFromNamePane(aMediaNamePane)
+        year = aMediaNamePane.yearInput.GetValue()
+        if (year == ''):
+            result['year'] = None
+        else:
+            try:
+                result['year'] = int(year)
+            except:
+                return(None)
+        month = aMediaNamePane.monthInput.GetValue()
+        if (month == ''):
+            result['month'] = None
+        else:
+            try:
+                result['month'] = int(month)
+            except:
+                return(None)
+        day = aMediaNamePane.dayInput.GetValue()
+        if (day == ''):
+            result['day'] = None
+        else:
+            try:
+                result['day'] = int(day)
+            except: 
+                return(None)
         return(result)
 
 

@@ -8,6 +8,7 @@
 ## standard
 import copy
 import os.path
+import logging
 ## contributed
 import wx
 ## nobi
@@ -29,7 +30,6 @@ class Group(Entry):
 
 
 # Constants
-    MessageDuplicatesDeleted = ('%d duplicate entries deleted')
     PreviewImageFilename = 'Group.jpg'
 
 
@@ -87,22 +87,28 @@ class Group(Entry):
         self.changedAspect('children')        
 
 
-    def renameTo(self, year=None, month=None, day=None,  # @UnusedVariables
-                       name=None, scene=None, 
-                       number=None, elements=None, removeIllegalElements=False):
-        """Rename self.
+    def renameTo(self, **kwargs):
+        """Rename self according to the changes listed in kwargs
+        
+        Dictionary kwargs
+            <organization-specific identifiers>
+            Number number 
+            Set of Strings elements
+            Boolean removeIllegalElements
         
         Return Boolean indicating success
         """
-        if (number
-            and (number <> '')):
-            print('Group.renameTo(): No number allowed!')
+        result = True
+        if (('number' in kwargs)
+            and kwargs['number']):
+            logging.error('Group.renameTo(): No number allowed!')
             return(False)
+        elements = (kwargs['elements'] if 'elements' in kwargs else None)
+        removeIllegalElements = (kwargs['removeIllegalElements'] if 'removeIllegalElements' in kwargs else None)
         if (self.model.organizedByDate):
-            if (scene
-                and (scene <> '')):
-                print('Group.renameTo(): No scene allowed!')
-                return(False)
+            year = (kwargs['year'] if 'year' in kwargs else None)
+            month = (kwargs['month'] if 'month' in kwargs else None)
+            day = (kwargs['day'] if 'day' in kwargs else None)
             if (((year == None)
                  or (year == u'')
                  or (year == self.organizer.getYear()))
@@ -114,11 +120,8 @@ class Group(Entry):
                      or (day == self.organizer.getDay()))):
                 for subEntry in self.subEntries:
                     newElements = subEntry.getElements().union(elements)
-                    subEntry.renameTo(year=year, 
-                                      month=month, 
-                                      day=day, 
-                                      elements=newElements, 
-                                      removeIllegalElements=removeIllegalElements)
+                    kwargs['elements'] = newElements
+                    result = (result and subEntry.renameTo(**kwargs))
             else:
                 newGroup = self.model.getEntry(year=year, month=month, day=day)
                 if (newGroup):
@@ -128,6 +131,8 @@ class Group(Entry):
                     print('NYI: Group.renameTo() cannot create new groups')
                     return(False)
         else:  # organized by name
+            name = (kwargs['name'] if 'name' in kwargs else None)
+            scene = (kwargs['scene'] if 'scene' in kwargs else None)
             existingEntryToBeDeleted = False
             if (name == None):
                 print('Renaming subentries of "%s"' % self.getPath())
@@ -176,7 +181,7 @@ class Group(Entry):
                 existingEntry.remove()
                 self.model.setSelectedEntry(newGroup)
             #PausableObservable.resumeUpdates(Entry, None, None)
-        return(True)
+        return(result)
 
 
 # Getters
@@ -248,12 +253,12 @@ class Group(Entry):
         return(self.organizer.getScenes())
 
 
-    def getSizeString(self):  # inherited from Entry
+    def getSizeString(self):
         """Return a String describing the size of self.
         
         Return a String
         """
-        return('%d images' % len(self.subEntries))
+        return(GUIId.TextGroupSizeString % len(self.subEntries))
 
 
     def getFirstEntry(self):
@@ -381,7 +386,7 @@ class Group(Entry):
             wx.BeginBusyCursor()
             deleted = self.deleteDoubles()
             wx.EndBusyCursor()
-            return(self.MessageDuplicatesDeleted % deleted)
+            return(GUIId.MessageDuplicatesDeleted % deleted)
         else:
             return(super(Group, self).runContextMenuItem(menuId, parentWindow))
 

@@ -6,6 +6,7 @@ encoding//Model/Single.py=latin1
 encoding//UI/GUIId.py=UTF-8
 encoding//UI/MediaCanvasPane.py=latin1
 encoding//UI/MediaClassificationPane.py=latin1
+encoding//UI/MediaNamePane.py=latin1
 encoding//UI/MediaTreePane.py=latin1
 encoding//nobi/PartialDateTime.py=latin1
 encoding//nobi/PausableObservable.py=latin1

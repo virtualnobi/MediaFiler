@@ -34,6 +34,8 @@ def N_(message): return message
 
 # Constant Strings
 AppTitle = 'MediaFiler'
+MessageDuplicatesDeleted = _('%d duplicate entries deleted')
+TextGroupSizeString = _('%d images')
 
 
 
