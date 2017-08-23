@@ -16,6 +16,7 @@ import Installer
 from .Entry import Entry
 from .Single import Single
 import UI  # to access UI.PackagePath
+from Model.CachingController import CachingController
 
 
 
@@ -81,17 +82,16 @@ class Image(Single):
 
 
 # Lifecycle
-    def __init__ (self, model, path):
+    def __init__(self, model, path):
         """Create an Image from the file at PATH, based on imageFilerModel MODEL. 
         """
         # inheritance
-        Single.__init__(self, model, path)
+        super(Image, self).__init__(model, path) 
         # internal state
         self.width = 0  # image size
         self.height = 0
         self.rawImage = None
         self.bitmap = None
-        return(None)
 
 
 ## Inheritance - Entry
@@ -122,7 +122,6 @@ class Image(Single):
         """Retrieve raw data (JPG or PNG or GIF) for image.
         """
         if (not self.rawImage):  # lazily load raw image
-            #print('Image.getRawImage(%s)' % self.getPath())
             imageType = None
             if ((self.getExtension() == 'jpg')
                 or (self.getExtension() == 'jpeg')):
@@ -153,18 +152,27 @@ class Image(Single):
                                          wx.BITMAP_TYPE_JPEG)
                 self.rawWidth = self.rawImage.GetWidth()
                 self.rawHeight = self.rawImage.GetHeight()                
-            #print ("Image %s has size %sx%s" % (self.pathname, self.rawWidth, self.rawHeight))
-            self.__class__.registerMemoryConsumption(self, self.getRawImageMemoryUsage())
-            # invalidate bitmap
-            self.removeBitmap()
+            CachingController.allocateMemory(self, self.getRawDataMemoryUsage(), bitmap=False)
+            self.releaseBitmapCache()
+        if (self.rawImage == None):
+            pass
         assert (self.rawImage <> None), ('Raw Image empty in "%s"' % self.getPath())
         return(self.rawImage)
 
 
-    def releaseMemory(self):
+    def getRawDataMemoryUsage(self):
+        """Return self's current memory usage for the raw image, in Bytes.
+        """
+        if (self.rawImage <> None):
+            return(self.rawWidth * self.rawHeight * 3)  # taken from wx.Image.setData() documentation
+        else:
+            return(0)
+
+
+    def releaseRawDataCache(self):
         """Release memory used for self's raw image.
         """
-        result = self.getRawImageMemoryUsage()
+        result = self.getRawDataMemoryUsage()
         self.rawImage = None
         return(result)
 
@@ -174,13 +182,13 @@ class Image(Single):
 
 
 # Getters
-    def getRawImageMemoryUsage(self):
-        """Return self's current memory usage for the raw image, in Bytes.
-        """
-        if (self.rawImage <> None):
-            return(self.rawWidth * self.rawHeight * 3)  # taken from wx.Image.setData() documentation
-        else:
-            return(0)
+#     def getRawImageMemoryUsage(self):
+#         """Return self's current memory usage for the raw image, in Bytes.
+#         """
+#         if (self.rawImage <> None):
+#             return(self.rawWidth * self.rawHeight * 3)  # taken from wx.Image.setData() documentation
+#         else:
+#             return(0)
 
 
 #     def getBitmapMemoryUsage(self):

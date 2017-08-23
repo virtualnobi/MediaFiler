@@ -1,13 +1,5 @@
 # -*- coding: latin-1 -*-
-"""Defines two organizations for media, by name and by date.
-
-A variation of the Strategy pattern: The two organization classes define different behavior 
-as Strategy does, but they are instantiated to carry data specific to each media. 
-
-For example, the OrganizationByName instances keep name and scene, while OrganizationByDate 
-instances keep year, month, day for their media context. 
-
-(c) by nobisoft 2015-
+"""(c) by nobisoft 2015-
 """
 
 
@@ -22,6 +14,7 @@ import shutil
 import StringIO
 from collections import OrderedDict
 import logging
+import gettext
 ## Contributed 
 import exifread
 import wx
@@ -29,6 +22,7 @@ import wx
 from nobi.wxExtensions.Menu import Menu
 from nobi.PartialDateTime import PartialDateTime
 ## Project
+import UI  # to access UI.PackagePath
 from UI import GUIId
 from .Entry import Entry
 from .Group import Group
@@ -36,8 +30,30 @@ from .MediaNameHandler import MediaNameHandler
 import Installer
 
 
+
+# Internationalization
+# requires "PackagePath = __path__[0]" in _init_.py
+try:
+    LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
+    Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['en'])
+except BaseException as e:  # likely an IOError because no translation file found
+    print('%s: Cannot initialize translation engine from path %s; using original texts (error following).' % (__file__, LocalesPath))
+    print(e)
+    def _(message): return message
+else:
+    _ = Translation.ugettext
+def N_(message): return message
+
+
+
 class MediaOrganization(object):
-    """
+    """Defines two organizations for media, by name and by date.
+
+    A variation of the Strategy pattern: The two organization classes define different behavior 
+    as Strategy does, but they are instantiated to carry data specific to each media. 
+
+    For example, the OrganizationByName instances keep name and scene, while OrganizationByDate 
+    instances keep year, month, day for their media context. 
     """
 
 

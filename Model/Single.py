@@ -15,18 +15,20 @@ import shlex
 import sys
 import subprocess
 import logging
+#from collections import OrderedDict
 ## contributed
 import wx
 #from oset import oset 
 ## nobi
 ## project
 from UI import GUIId
-from MediaCollection import MediaCollection
+from .MediaCollection import MediaCollection
 from .Entry import Entry
 from .Group import Group
-from collections import OrderedDict
 from .Organization import OrganizationByName  # , MediaOrganization
-from Model.Organization import MediaOrganization
+from .Organization import MediaOrganization
+# from .CachingController import MRUOrderedDict
+# from Model.CachingController import CachingController
 
 
 
@@ -55,20 +57,6 @@ class ImageBitmap (wx.StaticBitmap):
 
 
 
-# Class
-class MRUOrderedDict(OrderedDict):
-    """Stores items in the order the keys were last added
-    
-    This class is used to register the memory consumption of Single media. 
-    If too much memory is used, the least recently used Singles are requested to free memory. 
-    """
-    def __setitem__(self, key, value):
-        if key in self:
-            del self[key]
-        OrderedDict.__setitem__(self, key, value)
-
-
-
 # Class 
 class Single(Entry):
     """An Entry representing a single media file.
@@ -77,15 +65,15 @@ class Single(Entry):
 
 
 # Constants
-    MemoryMaximum = 1000000000  # fictional memory maximum to be used for Singles
-    MBFactor = (1024 * 1024)
+#     MemoryMaximum = 10000000000  # fictional memory maximum to be used for Singles
+#     MBFactor = (1024 * 1024)
     ConfigurationOptionEmailClient = 'editor-email'
 
 
 
 # Class Variables
-    MemoryUsed = 0  # current memory consumption in subclasses
-    MemoryUsageList = MRUOrderedDict()
+#     MemoryUsed = 0  # current memory consumption in subclasses
+#     MemoryUsageList = MRUOrderedDict()
 
 
 
@@ -108,39 +96,37 @@ class Single(Entry):
         return(None)
 
 
-    @classmethod
-    def registerMemoryConsumption(cls, entry, imageSize):
-        """Stores the memory consumed by entry, and releases memory of other images if overall consumption is too high.
-        
-        MediaFiler.Entry entry is the media being displayed
-        Number imageSize is the number of bytes consumed by entry
-        """
-        logging.debug('Single.registerMemoryConsumption(): %3dMB free, consuming %3dMB for "%s"' 
-                      % (((cls.MemoryMaximum - cls.MemoryUsed) / cls.MBFactor), 
-                         (imageSize / cls.MBFactor), 
-                         entry.getPath()))
-        cls.MemoryUsed = (cls.MemoryUsed + imageSize)
-        cls.MemoryUsageList[entry] = imageSize
-        while (cls.MemoryMaximum < cls.MemoryUsed):
-            (oldEntry, oldSize) = cls.MemoryUsageList.popitem(last=False)
-            if (oldEntry == entry): 
-                logging.error('Single.registerMemoryConsumption(): not enough memory to add "%s"' % entry.getPath())
-                sys.exit()
-            oldSize = oldEntry.releaseMemory()
-            cls.MemoryUsed = (cls.MemoryUsed - oldSize)
-            logging.debug('Single.registerMemoryConsumption(): releasing %3dMB from "%s"' % ((oldSize / cls.MBFactor), oldEntry.getPath()))
+#     @classmethod
+#     def registerMemoryConsumption(cls, entry, imageSize):
+#         """Stores the memory consumed by entry, and releases memory of other images if overall consumption is too high.
+#         
+#         MediaFiler.Entry entry is the media being displayed
+#         Number imageSize is the number of bytes consumed by entry
+#         """
+#         logging.debug('Single.registerMemoryConsumption(): %3dMB free, consuming %3dMB for "%s"' 
+#                       % (((cls.MemoryMaximum - cls.MemoryUsed) / cls.MBFactor), 
+#                          (imageSize / cls.MBFactor), 
+#                          entry.getPath()))
+#         cls.MemoryUsed = (cls.MemoryUsed + imageSize)
+#         cls.MemoryUsageList[entry] = imageSize
+#         while (cls.MemoryMaximum < cls.MemoryUsed):
+#             (oldEntry, oldSize) = cls.MemoryUsageList.popitem(last=False)
+#             if (oldEntry == entry): 
+#                 logging.error('Single.registerMemoryConsumption(): not enough memory to add "%s"' % entry.getPath())
+#                 sys.exit()
+#             oldSize = oldEntry.releaseMemory()
+#             cls.MemoryUsed = (cls.MemoryUsed - oldSize)
+#             logging.debug('Single.registerMemoryConsumption(): releasing %3dMB from "%s"' % ((oldSize / cls.MBFactor), oldEntry.getPath()))
 
 
 
 # Lifecycle
-    def __init__ (self, model, path):
+    def __init__(self, model, path):
         """Create an Image from the file at PATH, based on imageFilerModel MODEL. 
         """
         # inheritance
-        Entry.__init__(self, model, path)
+        super(Single, self).__init__(model, path)
         # internal state
-        self.fileSize = None
-        return(None)
 
 
 
@@ -242,23 +228,24 @@ class Single(Entry):
 
 
 ## Setters
-    def removeBitmap(self):
-        """Remove self's bitmap because it must be resized.
-        """
-        if (self.bitmap):
-            logging.debug('Single.removeBitmap(): Discarding %dx%d bitmap' % (self.bitmapWidth, self.bitmapHeight))
-            self.registerMemoryConsumption(self, -self.getBitmapMemoryUsage())
-            self.bitmap = None 
-            self.bitmapWidth = 0
-            self.bitmapHeight = 0
+#     def removeBitmap(self):
+#         """Remove self's bitmap because it must be resized.
+#         """
+#         if (self.bitmap):
+#             logging.debug('Single.removeBitmap(): Discarding %dx%d bitmap' % (self.bitmapWidth, self.bitmapHeight))
+#             CachingController.deallocateMemory(self, bitmap=True)
+#             self.registerMemoryConsumption(self, -self.getBitmapMemoryUsage())
+#             self.bitmap = None 
+#             self.bitmapWidth = 0
+#             self.bitmapHeight = 0
 
 
-    def releaseMemory(self):
-        """Release memory used for self's raw image.
-        
-        Return a Number of bytes freed.
-        """
-        raise NotImplementedError
+#     def releaseMemory(self):
+#         """Release memory used for self's raw image.
+#         
+#         Return Number of bytes freed.
+#         """
+#         raise NotImplementedError
 
 
     def removeNewIndicator(self):
@@ -384,7 +371,9 @@ class Single(Entry):
         
         Do not load the image. 
         """
-        if (self.fileSize == None):
+        try: 
+            int(self.fileSize)  # check whether self.fileSize is an integer value
+        except: 
             self.fileSize = (int(os.stat(self.getPath()).st_size / 1024) + 1)
         return(self.fileSize)
         
@@ -405,24 +394,15 @@ class Single(Entry):
         if ((self.bitmap == None)  # no bitmap loaded
             or (self.bitmapWidth <> w)  # width differs
             or (self.bitmapHeight <> h)):  # height differs
-            self.removeBitmap()
+            self.releaseBitmapCache()
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
             logging.debug('Single.getBitmap(): Creating %dx%d bitmap' % (self.bitmapWidth, self.bitmapHeight))
             self.bitmap = self.getRawImage().Copy().Rescale(self.bitmapWidth, self.bitmapHeight).ConvertToBitmap()
-            self.registerMemoryConsumption(self, self.getBitmapMemoryUsage())
-        return(self.bitmap)
-
-
-    def getBitmapMemoryUsage(self):
-        """Return self's current memory usage for the bitmap, in Bytes.
-        """
-        if (self.bitmap <> None):
-            return(self.bitmapWidth * self.bitmapHeight * 3)  # assumption
-        else:
-            return(0)
+        return(super(Single, self).getBitmap(width, height))
 
 
 
+# Other API Functions
 # Internal
     def askNewScene(self, parentWindow):
         """User wants to relabel a scene (organized by name). Ask for new scene. 

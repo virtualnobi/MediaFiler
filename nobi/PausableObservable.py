@@ -72,39 +72,13 @@ class PausableObservable(ObserverPattern.Observable):
         if (toRemove):
             clas.PausedTriples.remove(toRemove)
         else: 
-            raise ValueError
+            raise ValueError, 'Trying to resume an observer specification which has not been paused!'
 
 
 
 # Lifecycle
-#     def __init__(self, allAspects):
-#         """
-#         """
-#         # inheritance
-#         super(PausableObservable, self).__init__(allAspects)
-#         # internal state
-#         return(None)
-
-
-
 # Setters
-#     def changedAspect (self, aspect):
-#         """Notify observers that aspect of self has changed.
-# 
-#         Check whether this update is paused, and if so, stop it.
-#         """
-#         stop = False
-#         for triple in self.__class__.PausedTriples: 
-#             if (self.matches(triple[0], self)
-#                 and ((triple[1] == None)
-#                      or (triple[1] == aspect))):
-#                 print('PausableObservable: Update paused for aspect "%s" on %s' % (aspect, self))
-#                 stop = True
-#                 break
-#         if (not stop):
-#             super(PausableObservable, self).changedAspect(aspect)
-
-
+# Other API Functions
     def doUpdateAspect(self, observer, aspect):
         """Call the updateAspect method of an observer, if updates are not paused.
         """
@@ -121,9 +95,6 @@ class PausableObservable(ObserverPattern.Observable):
             observer.updateAspect(self, aspect)
 
 
-
-# Inheritance - Superclass
-# Other API Functions
 # Internal - to change without notice
     def matches(self, matchingSpec, matchingObject):
         """Check whether an object matches the specification given. 

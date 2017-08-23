@@ -4,28 +4,25 @@ The steps you need to do are similar on all operating systems (i.e. whether you 
 
 ## Install Python and Python Libraries
 
-Python is the programming language I use to develop the MediaFiler program. 
-
-* Install Python 2.7.10 from [python.org](http://python.org/download): 
-Be sure to check the 'Add to Path' option in the installer. 
-I recommend 2.7.10 because it includes 'pip' (2.7.13 seems not to).
+* Install Python 2.7.10 from [python.org](http://python.org/download):
+Python is the programming language I use to develop the MediaFiler program.  
+I recommend version 2.7.10 because it includes 'pip' (2.7.13 seems not to). Be sure to check the 'Add to Path' option in the installer. 
 
 * Upgrade pip:
-Pip is a program to download additional Python programs. 
+Pip is a program to download additional Python libraries. 
 Type `cmd` into the Windows search field and run the command interpreter. Type `pip install --ugrade pip` into its window. If you run into permissions errors on Windows, type `cmd` into the search field, and press Ctrl+Shift+Enter (instead of only Enter) to execute the command interpreter in administrator mode, then try the pip command again.
 
 * Install the exifread module:
-The exifread Python module can read the date when a photo was taken from the image metadata.  
+The exifread Python module reads the date when a photo was taken from the image metadata.  
 In the command interpreter, type the command `pip install exifread`. 
 
 * Install wxPython for Python 2.7 from [wxpython.org](http://wxpython.org/download.php): 
-wxPython is the GUI toolkit used by MediaFiler.  
+wxPython is the GUI toolkit used by MediaFiler.
 
 ## Install the MediaFiler program
 
-I use Github to publish the MediaFiler program. Github is a virtual place where people can store, download, and collaborate on all kinds of digital artifacts. 
-
 There are two options for you: Either you use a Github account to download updates, or you download the sources as a ZIP file. Using a Github account will make upgrading to a new version much easier, and will allow you to participate in further developing MediaFiler. If you use a ZIP file, you need to repeat this procedure every time you want to upgrade to a new version. 
+
 
 ### Use Github account
 
@@ -36,7 +33,8 @@ There are two options for you: Either you use a Github account to download updat
 * Start Github Desktop.
 
 * Clone the MediaFiler repository from [github.com/virtualnobi/MediaFiler](https://github.com/virtualnobi/MediaFiler):
-Note the this installation directory into for later. 
+Note this as your installation directory into for later. 
+
 
 ### Stand-alone Installation
 
@@ -46,7 +44,8 @@ Note the this installation directory into for later.
 
 * Choose 'Download ZIP'.
 
-* Extract the ZIP archive into a directory of your choice. Note this installation directory for later. 
+* Extract the ZIP archive into a directory of your choice. Note this as your installation directory for later use. 
+
 
 ## Set up the MediaFiler program on your computer
 
@@ -66,3 +65,4 @@ In the installation directory, there is an 'App.pyw' file. Create a shortcut to 
 * Start the shortcut:
 The MediaFiler window should come up, and you're ready to import your images from somewhere. Continue with the HOWTO-USE description. 
 
+Continue with [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md).

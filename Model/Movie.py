@@ -106,12 +106,6 @@ class Movie(Single):
 
 
 ## Inheritance - Single
-    def releaseMemory(self):
-        """
-        """
-        return(0)  # TODO: if using a frame of the video, it must be freed
-
-
     def getRawImage (self):
         """Retrieve raw data (JPG or PNG or GIF) for image.
 

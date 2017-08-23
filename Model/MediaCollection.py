@@ -48,6 +48,7 @@ from .MediaClassHandler import MediaClassHandler
 from .Organization import OrganizationByDate
 from .Organization import OrganizationByName
 from UI import GUIId
+from Model.CachingController import CachingController
 #from .MediaNameHandler import MediaNameHandler
 
 
@@ -89,15 +90,13 @@ class MediaCollection(Observable, Observer):
         # clear all data
         self.selectedEntry = None
         self.initialEntry = None
-#        self.names = []  # list of all legal names
-#        self.freeNames = None  # list of all free names, lazily defined
+        CachingController.clear()
         # set up the configuration persistence
         self.configuration = SecureConfigParser(Installer.getConfigurationFilePath())
         self.configuration.read(Installer.getConfigurationFilePath())
         if (not self.configuration.has_section(GUIId.AppTitle)):
             self.configuration.add_section(GUIId.AppTitle)
-        # read legal names and class definitions
-#        self.nameHandler = MediaNameHandler(Installer.getNamesFilePath())
+        #
         if (os.path.exists(Installer.getNamesFilePath())): 
             self.organizedByDate = False
             self.organizationStrategy = OrganizationByName
@@ -361,63 +360,6 @@ class MediaCollection(Observable, Observer):
                     self.setSelectedEntry(observable.getParentGroup())
                     break
                 entry = entry.getParentGroup()
-
-
-
-# ## Name Handling
-#     def readNamesFromFile (self, nameFileName):
-#         """Read valid names from nameFileName and store the list in self.names.
-# 
-#         Set self.organizedByDate accordingly.
-#         """
-#         print('MediaCollection.readNamesFromFile() deprecated')
-#         self.names = []
-#         self.freeNames = None  # wait for use, and instantiate lazily when needed
-#         try:
-#             nameFile = open(nameFileName)
-#         except:  # no names file exists
-#             self.organizedByDate = True  # image collection organized by date, not by name
-#             return()
-#         self.organizedByDate = False  # image collection organized by name
-#         for line in nameFile:
-#             line = line.strip()  # trim white space
-#             if (len (line) > 0):  # non-empty line must be a name
-#                 self.names.append(line)
-#         nameFile.close()
-#     
-# 
-#     def nameIsLegal (self, name):
-#         """Return True if model organized by name and name is a legal name, False otherwise.
-#         """
-#         print('MediaCollection.nameIsLegal() deprecated')
-#         if ((name == None)  # illegal input 
-#             or (self.organizedByDate)):  # names are irrelevant
-#             return (False)
-#         else:
-#             return(self.nameHandler.isNameLegal(name))
-# 
-# 
-#     def setFreeNames (self):
-#         """Collect free names.
-#         """
-#         print('MediaCollection.setFreeNames() deprecated')
-#         if (self.organizedByDate):
-#             self.freeNames = None
-#         else:
-#             self.nameHandler.registerAllNamesAsFree()
-#             for entry in self:
-#                 self.nameHandler.registerNameAsUsed(entry.getName())
-# 
-#         
-#     def getFreeName(self):
-#         """Return a free name. Return None if images are organized by date, or if all names are used.
-#            Removes the name from the list of free names.
-#         """
-#         print('MediaCollection.getFreeName() deprecated')
-#         if (self.organizedByDate):
-#             return(None)
-#         else:
-#             return(self.nameHandler.getFreeName())
 
 
 

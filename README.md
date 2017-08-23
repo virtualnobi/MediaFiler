@@ -2,19 +2,19 @@
 
 A Python 2.7 GUI app to organize media files. 
 
-This app helps you to organize your images (and, somewhat, videos). It puts the images into a date-based hierarchy of directories, based on their capture date (as recorded in the image EXIF data). It helps you to organize your media with your own tags.
+This app helps you to organize your images (and, somewhat, videos). It puts the images into a date-based hierarchy of directories, based on their capture date (as recorded in the image EXIF data). It also helps you to organize your media with your own tags.
 
-"Howls of protest cheefully accepted and occasionally acted upon."
+"Howls of protest cheerfully accepted and occasionally acted upon."
 
 
 # How to install? 
 
-Read the HOWTO-INSTALL file. 
+Read the [HOWTO-INSTALL file](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-INSTALL.md). 
 
 
 # How to use? 
 
-Read the HOWTO-USE file. 
+Read the [HOWTO-USE file](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md). 
 
 
 # How to help?

@@ -62,7 +62,6 @@ class ClassName(object):
         # inheritance
         super(ClassName, self).__init__()
         # internal state
-        return(None)
 
 
 

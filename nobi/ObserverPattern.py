@@ -41,16 +41,6 @@ class Observable(object):
         self.observersAllAspects = []
         self.observersSpecificAspects = {}
         
-                
-# section: Observer handling
-#     def addObserver(self, observer):
-#         """Register observer for self.
-#         
-#         Ensure no observer is registered twice.
-#         """
-#         self.removeObserver(observer)  # ensure no registration exists
-#         self.observersAllAspects.append(observer)  # now add a single registration
-
 
     def addObserverForAspect (self, observer, aspect):
         """Register observer for an aspect of self.
@@ -76,13 +66,6 @@ class Observable(object):
         for aspect in self.observersSpecificAspects.keys():
             if (observer in self.observersSpecificAspects[aspect]):
                 self.observersSpecificAspects[aspect].remove(observer) 
-
-
-#     def changed(self):
-#         """Notify all observers that self has changed.
-#         """
-#         for aspect in self.allAspects:
-#             self.changedAspect(aspect)
 
 
     def changedAspect(self, aspect):
@@ -115,7 +98,7 @@ class Observable(object):
 
 
 
-class Observer (object):
+class Observer(object):
     """ An Observer can register to be notified of changes of an Observable. 
     
     Part of the Observer pattern. 
@@ -125,7 +108,7 @@ class Observer (object):
 
 
 ## Observer handling
-    def updateAspect (self, observable, aspect):
+    def updateAspect(self, observable, aspect):
         """Aspect of observable has changed.
         """
         pass

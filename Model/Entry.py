@@ -18,6 +18,7 @@ from nobi.ProductTraderPattern import SimpleProductTrader
 ## Project
 from UI import GUIId
 import Installer
+from Model.CachingController import CachingController
 
 
 
@@ -93,7 +94,7 @@ class Entry(PausableObservable):
             try:
                 clas = self.ProductTrader.getClassFor(extension)
             except:  # probably extension has no class registered to handle it
-                logging.error('Entry.createInstance(): no class registered to instantiate "%s" media "%s".' % (extension, path))
+                logging.error('Entry.createInstance(): No class registered to instantiate "%s" media "%s"!' % (extension, path))
                 return(None)
         # instantiate
         return(clas(model, path))
@@ -101,7 +102,7 @@ class Entry(PausableObservable):
 
 
 # Lifecycle
-    def __init__ (self, model, path):
+    def __init__(self, model, path):
         """Create new Entry from path.
         
         If model is None, the Image's identifiers are not initialized.
@@ -114,10 +115,9 @@ class Entry(PausableObservable):
         self.parentGroup = None  # not known yet
         self.filteredFlag = False  # initially, no entry is filtered
         self.treeItemID = None  # not inserted into MediaTreePane yet
-        self.fileSize = None
         self.initFromPath(path)
         self.fileSize = self.getFileSize()
-        return(None)
+        self.bitmap = None
 
 
     def initFromPath(self, path):
@@ -213,10 +213,11 @@ class Entry(PausableObservable):
         """
         self.changedAspect('remove')
         self.setParentGroup(None, notifyObserversOfRemoval=False)
+        self.releaseBitmapCache()
         # move to trash
         oldName = self.getPath()
         newName = os.path.join(self.model.rootDirectory, 
-                               Installer.getTrashPath(),  # self.TrashDirectory, 
+                               Installer.getTrashPath(), 
                                (self.getFilename() + '.' + self.getExtension()))
         count = 1  # TODO: re-use MediaOrganization function?
         while (os.path.exists(newName)):
@@ -449,7 +450,7 @@ class Entry(PausableObservable):
         
         Returns Array of Entry. 
         """
-        raise('Subclass of "Entry" must implement "getEntriesForDisplay"')
+        raise NotImplementedError
 
 
     def getParentGroup(self):
@@ -486,6 +487,36 @@ class Entry(PausableObservable):
             return(self.getParentGroup().getPreviousEntry(self))
         else:
             return(None)
+
+
+
+    def getBitmap(self, width, height):  # @UnusedVariable
+        """
+        """
+        CachingController.allocateMemory(self, self.getBitmapMemoryUsage(), bitmap=True)
+        return(self.bitmap)
+
+
+    def getBitmapMemoryUsage(self):
+        """Return self's current memory usage for the bitmap.
+        
+        Return Number of bytes used
+        """
+        if (self.bitmap <> None):
+            return(self.bitmapWidth * self.bitmapHeight * 3)  # assumption
+        else:
+            return(0)
+
+
+    def releaseBitmapCache(self):
+        """Release the memory alllocated for self's bitmap.
+        """
+        if (self.bitmap):
+            logging.debug('Entry.releaseBitmapCache(): Discarding %dx%d bitmap' % (self.bitmapWidth, self.bitmapHeight))
+            self.bitmap = None 
+            self.bitmapWidth = 0
+            self.bitmapHeight = 0
+            CachingController.deallocateMemory(self, bitmap=True)
 
 
 
@@ -645,27 +676,5 @@ class Entry(PausableObservable):
         """Remove the new indicator from self's filename.
         """
         raise NotImplementedError
-
-
-
-# Internal
-#     def askNewName(self, parentWindow):
-#         """User wants to rename media (organized by name). Ask for new name. 
-#         
-#         Returns String containing new name, or None if user cancelled. 
-#         """
-#         dialog = wx.TextEntryDialog(parentWindow, 'Enter New Name', 'Choose Name', '')
-#         ok = True
-#         newName = None
-#         while (ok and 
-#                (not self.organizer.nameHandler.isNameLegal(newName))):
-#             ok = (dialog.ShowModal() == wx.ID_OK)
-#             if (ok):
-#                 newName = dialog.GetValue()
-#                 if (not self.organizer.nameHandler.isNameLegal(newName)):
-#                     dialog.SetValue('%s is not a legal name' % newName)
-#                     newName = None
-#         dialog.Destroy()
-#         return (newName)
 
 

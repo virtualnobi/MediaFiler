@@ -142,7 +142,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         if (self.ignoreSelectionChanges): 
             pass
         else:
-            logging.debug('MediaTreeCtrl.onSelectionChanged(): Received event %s with item %s' % (event, event.GetItem()))
+            #logging.debug('MediaTreeCtrl.onSelectionChanged(): Received event %s with item %s' % (event, event.GetItem()))
             entry = self.GetItemData(event.GetItem()).GetData()
             logging.debug('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry.getPath())
             self.ignoreSelectionChanges = True
