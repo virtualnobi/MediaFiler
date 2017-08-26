@@ -19,7 +19,7 @@ from nobi.ObserverPattern import Observer
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
-from Model.Entry import Entry
+# from Model.Entry import Entry
 from Model.Single import Single
 
 

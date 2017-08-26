@@ -23,6 +23,7 @@ import wx.lib.dialogs
 ## nobi
 from nobi.ObserverPattern import Observable, Observer
 ## project
+from Model import GlobalConfigurationOptions
 from Model import Installer
 from Model.MediaCollection import MediaCollection
 from Model import Image  # @UnusedImport import even if "unused", otherwise it's never registered with Entry.ProductTrader
@@ -83,9 +84,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
     MenuTitlePerspective = _('Perspectiv&e')
     MenuTitleImport = _('&Import')
     MenuTitleTool = _('&Tool')
-    ConfigurationOptionLastPerspective = 'last-perspective'
-    ConfigurationOptionMaximizeOnStart = 'maximize-on-start'
-    ConfigurationOptionTextEditor = 'editor-text'
+#    ConfigurationOptionLastPerspective = 'last-perspective'
+#    ConfigurationOptionMaximizeOnStart = 'maximize-on-start'
+#    ConfigurationOptionTextEditor = 'editor-text'
 
 
 
@@ -475,7 +476,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         perspectiveNumber = (event.GetId() - GUIId.LoadPerspective)
         print('Loading perspective %s = %s' % (perspectiveNumber, self.perspectives[perspectiveNumber]))
         self._mgr.LoadPerspective(self.perspectives[perspectiveNumber])
-        self.model.setConfiguration(self.ConfigurationOptionLastPerspective, str(perspectiveNumber))
+        self.model.setConfiguration(GlobalConfigurationOptions.LastPerspective, str(perspectiveNumber))
 
 
     def onDeletePerspective (self, event):
@@ -571,9 +572,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Start external editor on class file.
         """
         classFile = Installer.getClassFilePath()
-        editorName = self.model.getConfiguration(MediaFiler.ConfigurationOptionTextEditor)
+        editorName = self.model.getConfiguration(GlobalConfigurationOptions.TextEditor)
         if (editorName):
-            editorName = editorName.replace(MediaCollection.ConfigurationOptionParameter, classFile)
+            editorName = editorName.replace(GlobalConfigurationOptions.Parameter, classFile)
             commandArgs = shlex.split(editorName)  # editorName.split() does not respect quotes
             logging.debug('App.onEditClasses(): Calling %s' % commandArgs)
             retCode = subprocess.call(commandArgs, shell=False)
@@ -588,7 +589,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
                 dlg.Destroy()
             self.onReload(event)
         else:
-            print(_('No editor defined with "%s" configuration option!') % MediaFiler.ConfigurationOptionTextEditor)
+            print(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
             # TODO: error message, but on which window?
             pass
     
@@ -598,9 +599,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """
         if (not self.model.organizedByDate):
             namesFile = Installer.getNamesFilePath()
-            editorName = self.model.getConfiguration(MediaFiler.ConfigurationOptionTextEditor)
+            editorName = self.model.getConfiguration(GlobalConfigurationOptions.TextEditor)
             if (editorName):
-                editorName = editorName.replace(MediaCollection.ConfigurationOptionParameter, namesFile)
+                editorName = editorName.replace(GlobalConfigurationOptions.Parameter, namesFile)
                 commandArgs = shlex.split(editorName)
                 logging.debug('App.onEditNames(): Calling %s' % commandArgs)
                 retCode = subprocess.call(commandArgs, shell=False)
@@ -614,7 +615,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
                 dlg.ShowModal()
                 dlg.Destroy()
             else:
-                print(_('No editor defined with "%s" configuration option!') % MediaFiler.ConfigurationOptionTextEditor)
+                print(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
                 # TODO: error message, but on which window?
         else:
             print('Not supported!')
@@ -725,7 +726,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
                        self.model.organizationStrategy.nameHandler.getNumberFreeNames()))
         self.statusbar.SetStatusText(text, GUIId.SB_Root)           
         self.statusbar.Show()
-        lastPerspective = self.model.getConfiguration(self.ConfigurationOptionLastPerspective)
+        lastPerspective = self.model.getConfiguration(GlobalConfigurationOptions.LastPerspective)
         if (lastPerspective):
             self._mgr.LoadPerspective(self.perspectives[int(lastPerspective)])
         self.displayInfoMessage(_('Ready'))
@@ -742,7 +743,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
                 menuItem.Enable(False)
         else:  # organized by name
             pass
-        if (not mediaCollection.getConfiguration(MediaFiler.ConfigurationOptionTextEditor)):
+        if (not mediaCollection.getConfiguration(GlobalConfigurationOptions.TextEditor)):
             self.GetMenuBar().Enable(GUIId.EditClasses, enable=False)
             self.GetMenuBar().Enable(GUIId.EditNames, enable=False)
 
@@ -762,7 +763,7 @@ if __name__ == "__main__":
         logging.info('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getImagePath()))
         frame.Show()
         frame.setModel(Installer.getImagePath())
-        if (frame.model.getConfiguration(MediaFiler.ConfigurationOptionMaximizeOnStart)):
+        if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
             logging.info('App maximizing window')
             frame.Maximize(True)            
         app.MainLoop()

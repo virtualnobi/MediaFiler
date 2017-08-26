@@ -21,11 +21,12 @@ import wx
 #from oset import oset 
 ## nobi
 ## project
+import GlobalConfigurationOptions
 from UI import GUIId
-from .MediaCollection import MediaCollection
+#from .MediaCollection import MediaCollection
 from .Entry import Entry
 from .Group import Group
-from .Organization import OrganizationByName  # , MediaOrganization
+#from .Organization import OrganizationByName  # , MediaOrganization
 from .Organization import MediaOrganization
 # from .CachingController import MRUOrderedDict
 # from Model.CachingController import CachingController
@@ -489,7 +490,7 @@ class Single(Entry):
             dlg.ShowModal()
             dlg.Destroy()
             return
-        viewerName = viewerName.replace(MediaCollection.ConfigurationOptionParameter, self.getPath())
+        viewerName = viewerName.replace(GlobalConfigurationOptions.Parameter, self.getPath())
         viewerName = viewerName.encode(sys.getfilesystemencoding())
         commandArgs = shlex.split(viewerName)  # viewerName.split() will not respect quoting (for whitespace in file names)
         print('Calling %s' % commandArgs)
@@ -508,6 +509,6 @@ class Single(Entry):
         """
         emailClient = self.model.getConfiguration(Single.ConfigurationOptionEmailClient)        
         if (emailClient):
-            emailClient = emailClient.replace(MediaCollection.ConfigurationOptionParameter, self.getPath())
+            emailClient = emailClient.replace(GlobalConfigurationOptions.Parameter, self.getPath())
             commandArgs = shlex.split(emailClient)
             subprocess.call(commandArgs, shell=False)

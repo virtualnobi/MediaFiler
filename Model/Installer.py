@@ -14,12 +14,11 @@ import wx
 ## nobi
 from nobi import SecureConfigParser
 ## Project
-import App
+import GlobalConfigurationOptions
 from Entry import Entry
 from MediaClassHandler import MediaClassHandler
 import UI
 from UI import GUIId
-from Model.MediaCollection import MediaCollection
 
 
 
@@ -160,7 +159,9 @@ def install():
         if (not os.path.exists(getConfigurationFilePath())):
             config = SecureConfigParser(getConfigurationFilePath())
             config.add_section(GUIId.AppTitle)
-            config.set(GUIId.AppTitle, App.ConfigurationOptionTextEditor, ('notepad /W "%s"' % MediaCollection.ConfigurationOptionParameter))
+            config.set(GUIId.AppTitle, 
+                       GlobalConfigurationOptions.TextEditor, 
+                       ('notepad /W "%s"' % GlobalConfigurationOptions.Parameter))
         for c in Entry.ProductTrader.getClasses():
             if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
                 shutil.copyfile(os.path.join(InstallationPath, ImageFolder, c.PreviewImageFilename),

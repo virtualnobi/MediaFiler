@@ -40,6 +40,7 @@ import cProfile, pstats, StringIO
 from nobi.ObserverPattern import Observable, Observer
 from nobi.SecureConfigParser import SecureConfigParser
 # Project 
+import GlobalConfigurationOptions
 from . import Installer
 from .MediaFilter import MediaFilter
 from .Entry import Entry
@@ -59,8 +60,8 @@ class MediaCollection(Observable, Observer):
 
 # Constants
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
-    ConfigurationOptionParameter = '%1'
-    ConfigurationOptionLastMedia = 'last-media'
+#    ConfigurationOptionParameter = '%1'
+#    ConfigurationOptionLastMedia = 'last-media'
 
 
 
@@ -115,7 +116,7 @@ class MediaCollection(Observable, Observer):
         # select initial entry
         if (os.path.exists(Installer.getInitialFilePath())):
             self.initialEntry = Entry.createInstance(self, Installer.getInitialFilePath())
-        path = self.getConfiguration(self.ConfigurationOptionLastMedia)
+        path = self.getConfiguration(GlobalConfigurationOptions.LastMedia)
         if (path):
             entry = self.getEntry(path=path)
             if (entry):
@@ -155,7 +156,7 @@ class MediaCollection(Observable, Observer):
         logging.debug('MediaCollection.setSelectedEntry(%s)' % (entry.getPath() if entry else entry))
         self.selectedEntry = entry
         if (self.selectedEntry):
-            self.setConfiguration(self.ConfigurationOptionLastMedia, entry.getPath())
+            self.setConfiguration(GlobalConfigurationOptions.LastMedia, entry.getPath())
         self.changedAspect('selection')
 
 

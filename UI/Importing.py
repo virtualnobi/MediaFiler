@@ -14,6 +14,7 @@ import StringIO
 import wx
 ## nobi
 ## Project
+from Model import GlobalConfigurationOptions
 from Model.MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
@@ -44,14 +45,14 @@ class ImportParameterObject(object):
 
 
 # Constants
-    ConfigurationOptionImportPath = 'import-path'
-    ConfigurationOptionImportIgnoreUnhandled = 'import-ignore-unhandled'
-    ConfigurationOptionImportMinimumSize = 'import-minimum-size'
-    ConfigurationOptionImportMaximumFiles = 'import-maximum-files'
-    ConfigurationOptionImportDeleteOriginals = 'import-delete-originals'
-    ConfigurationOptionImportMarkAsNew = 'import-mark-as-new'
-    ConfigurationOptionImportReportIllegals = 'import-report-illegals'
-    ConfigurationOptionImportPreferExif = 'import-prefer-exif'
+#     ConfigurationOptionImportPath = 'import-path'
+#     ConfigurationOptionImportIgnoreUnhandled = 'import-ignore-unhandled'
+#     ConfigurationOptionImportMinimumSize = 'import-minimum-size'
+#     ConfigurationOptionImportMaximumFiles = 'import-maximum-files'
+#     ConfigurationOptionImportDeleteOriginals = 'import-delete-originals'
+#     ConfigurationOptionImportMarkAsNew = 'import-mark-as-new'
+#     ConfigurationOptionImportReportIllegals = 'import-report-illegals'
+#     ConfigurationOptionImportPreferExif = 'import-prefer-exif'
 
 
 
@@ -78,41 +79,41 @@ class ImportParameterObject(object):
         self.testRun = True
         self.numberOfImportedFiles = 0
         # the following are options on the UI, which are defaulted to last used values
-        self.importDirectory = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportPath)
+        self.importDirectory = self.model.getConfiguration(GlobalConfigurationOptions.ImportPath)
         if (self.importDirectory == None):
             self.importDirectory = os.path.normpath(os.path.join(self.model.getRootDirectory(), '..', 'import'))
-        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportIgnoreUnhandled)
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportIgnoreUnhandled)
         if (stringValue == None):
             self.ignoreUnhandledTypes = (self.model.organizationStrategy == OrganizationByName)
         else: 
             self.ignoreUnhandledTypes = (stringValue == 'True')
-        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMinimumSize)
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportMinimumSize)
         if (stringValue == None):
             self.minimumFileSize = 10000
         else:
             self.minimumFileSize = int(stringValue)
-        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportDeleteOriginals)
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportDeleteOriginals)
         if (stringValue == None):
             self.deleteOriginals = True
         else: 
             self.deleteOriginals = (stringValue == 'True')
-        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMarkAsNew)
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportMarkAsNew)
         if (stringValue == None):
             self.markAsNew = True
         else: 
             self.markAsNew = (stringValue == 'True')
-        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportMaximumFiles)
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportMaximumFiles)
         if (stringValue == None):
             self.maxFilesToImport = 1000
         else:
             self.maxFilesToImport = int(stringValue)
-        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportReportIllegals)
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportReportIllegals)
         if (stringValue == None):
             self.reportIllegalElements = False
         else: 
             self.reportIllegalElements = (stringValue == 'True')            
         # parameters for OrganizationByDate
-        stringValue = self.model.getConfiguration(ImportParameterObject.ConfigurationOptionImportPreferExif)
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportPreferExif)
         if (stringValue == None):
             self.preferPathDateOverExifDate = True
         else: 
@@ -223,22 +224,22 @@ class ImportParameterObject(object):
     def storeSettings(self):
         """User has accepted the settings to import media. Store them for next use.
         """
-        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportPath, 
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportPath, 
                                     self.importDirectory)
-        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportIgnoreUnhandled,
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportIgnoreUnhandled,
                                     self.ignoreUnhandledTypes)
-        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportMinimumSize,
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportMinimumSize,
                                     self.minimumFileSize)
-        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportDeleteOriginals,
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportDeleteOriginals,
                                     self.deleteOriginals)
-        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportMarkAsNew,
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportMarkAsNew,
                                     self.markAsNew)
-        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportMaximumFiles,
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportMaximumFiles,
                                     self.maxFilesToImport)
-        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportReportIllegals,
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportReportIllegals,
                                     self.reportIllegalElements)
         # parameters for OrganizationByDate
-        self.model.setConfiguration(ImportParameterObject.ConfigurationOptionImportPreferExif,
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportPreferExif,
                                     self.preferPathDateOverExifDate)
         # parameters for OrganizationByName
 
