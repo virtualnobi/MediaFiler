@@ -34,7 +34,6 @@ class MediaNameHandler(object):
         super(MediaNameHandler, self).__init__()
         # internal state
         self.legalNames = self.readNamesFromFile(path)
-        self.freeNames = copy.copy(self.legalNames)
         self.registerAllNamesAsFree()
 
 
@@ -52,7 +51,7 @@ class MediaNameHandler(object):
         if (self.isNameLegal(name)
             and (not name in self.freeNames)):
             self.freeNames.append(name)
-    
+
 
     def registerNameAsUsed(self, name):
         """Register a name as being used.
@@ -67,7 +66,7 @@ class MediaNameHandler(object):
     def isValid(self): 
         """Return True if self contains a list of names.
         """
-        if ((self.legalNames) 
+        if (self.legalNames 
             and (0 < len(self.legalNames))):
             return(True)
         else:
@@ -83,12 +82,6 @@ class MediaNameHandler(object):
             return (True)
         else:  # check whether name suffixed by digits
             return(self.trimNumberFromName(name) in self.legalNames) 
-#             match = re.match('^([^\d]+)\d+$', name)
-#             if (match):  # digits exist
-#                 nameWithoutDigits = match.group(1)
-#                 return (nameWithoutDigits in self.legalNames)
-#             else:  # no match
-#                 return(False)
 
 
     def isNameFree(self, name):
@@ -130,8 +123,7 @@ class MediaNameHandler(object):
         """Read valid names from path.
         
         String path
-        
-        Return Boolean indicating success
+        Return a set() of String
         """
         try:
             nameFile = open(path)
@@ -159,6 +151,7 @@ class MediaNameHandler(object):
             return(nameWithoutDigits)
         else:  # no match
             return(None)
+
 
 
 # Class Initialization
