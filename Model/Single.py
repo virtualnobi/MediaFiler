@@ -43,7 +43,7 @@ class ImageBitmap (wx.StaticBitmap):
         """Create bitmap and store entry for reference
         """
         # correct position (x, y) to place image in middle of frame
-        (w, h) = entry.getSize(width, height)
+        (w, h) = entry.getSizeFittedTo(width, height)
         x = x + ((width - w) / 2)
         y = y + ((height - h) / 2)
         # inheritance
@@ -127,6 +127,9 @@ class Single(Entry):
         # inheritance
         super(Single, self).__init__(model, path)
         # internal state
+        self.rawImage = None
+        self.rawWidth = None
+        self.rawHeight = None
 
 
 
@@ -209,10 +212,10 @@ class Single(Entry):
             newScene = self.getParentGroup().getScenes()[menuId - GUIId.SelectScene]
             #print('Changing scene of "%s" to %s' % (self.organizer.getPath(), newScene))
             self.renameTo(makeUnique=True, scene=newScene)
-        elif (menuId == GUIId.RelabelScene):
-            newScene = self.askNewScene(parentWindow)
-            if (newScene):
-                self.organizer.relabelToScene(newScene)
+#         elif (menuId == GUIId.RelabelScene):
+#             newScene = self.askNewScene(parentWindow)
+#             if (newScene):
+#                 self.organizer.relabelToScene(newScene)
         elif (menuId == GUIId.RandomConvertToSingle):
             pass
         elif (menuId == GUIId.ChooseConvertToSingle):
@@ -330,25 +333,27 @@ class Single(Entry):
         raise NotImplementedError
 
 
-    def getSize(self, width=None, height=None):
-        """Return the size of self. If width and height are given, return the size after fitting self to the parameters.
+    def getSizeFittedTo(self, width=None, height=None):
+        """Return the size of self fitted into the dimensions specified. 
         
-        Returns (w, h)
+        If neither width nor height are given, return the image's original size.
+
+        Returns (Number, Number)
         """
-        rawImage = self.getRawImage()  # get image in original size
-        if (rawImage == None):
-            print('Raw image of "%s" doesn\'t exist' % self.getPath())
-            rawImage = self.getRawImage()
+        if ((self.rawWidth == None)
+            or (self.rawHeight == None)):
+            self.getRawImage()
+            assert (self.rawImage <> None), ('Raw image of "%s" doesn\'t exist' % self.getPath())
         if ((width == None) 
             and (height == None)):  # return original size
-            return(rawImage.Width, rawImage.Height)
+            return(self.rawImageWidth, self.rawImageHeight)
         elif ((width <> None) 
               and (height <> None)):  # fit to size given
             if (width < 1): 
                 width = 1
             if (height < 1): 
                 height = 1
-            imageRatio = (Decimal(rawImage.Width) / Decimal(rawImage.Height))  # aspect of image
+            imageRatio = (Decimal(self.rawWidth) / Decimal(self.rawHeight))  # aspect of image
             paneRatio = (Decimal(width) / Decimal(height))  # aspect of frame
             #print ("Image %sx%s (ratio %s), Pane %sx%s (ratio %s)" % (self.rawWidth, self.rawHeight, imageRatio, width, height, paneRatio))
             if (paneRatio < imageRatio): # image wider than pane, use full pane width
@@ -357,13 +362,50 @@ class Single(Entry):
             else: # image taller than pane, use full pane height
                 width = int(height * imageRatio)
                 #print ("    changed width to %s" % width)
-            if ((width > rawImage.Width) 
-                and (height > rawImage.Height)):  # pane larger than image, don't enlarge image
-                width = rawImage.Width
-                height = rawImage.Height
+            if ((width > self.rawWidth) 
+                and (height > self.rawHeight)):  # pane larger than image, don't enlarge image
+                width = self.rawWidth
+                height = self.rawHeight
             return(width, height)
         else:  # illegal parameters
-            raise('Illegal Parameters to Single.getSize() - only one of width and height are given')
+            raise ValueError, 'Single.getSizeFittedTo(): Only one of width and height are given!'
+
+    
+#     def getSize(self, width=None, height=None):
+#         """Return the size of self. If width and height are given, return the size after fitting self to the parameters.
+#         
+#         Returns (w, h)
+#         """
+#         print('Single.getSize() deprecated!')
+#         rawImage = self.getRawImage()  # get image in original size
+#         if (rawImage == None):
+#             print('Raw image of "%s" doesn\'t exist' % self.getPath())
+#             rawImage = self.getRawImage()
+#         if ((width == None) 
+#             and (height == None)):  # return original size
+#             return(rawImage.Width, rawImage.Height)
+#         elif ((width <> None) 
+#               and (height <> None)):  # fit to size given
+#             if (width < 1): 
+#                 width = 1
+#             if (height < 1): 
+#                 height = 1
+#             imageRatio = (Decimal(rawImage.Width) / Decimal(rawImage.Height))  # aspect of image
+#             paneRatio = (Decimal(width) / Decimal(height))  # aspect of frame
+#             #print ("Image %sx%s (ratio %s), Pane %sx%s (ratio %s)" % (self.rawWidth, self.rawHeight, imageRatio, width, height, paneRatio))
+#             if (paneRatio < imageRatio): # image wider than pane, use full pane width
+#                 height = int(width / imageRatio)
+#                 #print ("    changed height to %s" % height)
+#             else: # image taller than pane, use full pane height
+#                 width = int(height * imageRatio)
+#                 #print ("    changed width to %s" % width)
+#             if ((width > rawImage.Width) 
+#                 and (height > rawImage.Height)):  # pane larger than image, don't enlarge image
+#                 width = rawImage.Width
+#                 height = rawImage.Height
+#             return(width, height)
+#         else:  # illegal parameters
+#             raise('Illegal Parameters to Single.getSize() - only one of width and height are given')
         
 
     def getFileSize(self):
@@ -383,10 +425,10 @@ class Single(Entry):
         
         Number width
         Number height
-        Returns a MediaFiler.Single.ImageBitmap fitted into (width x height)
+        Returns MediaFiler.Single.ImageBitmap fitted into (width x height)
         """
         # determine final size
-        (w, h) = self.getSize(width, height)
+        (w, h) = self.getSizeFittedTo(width, height)
         logging.debug('Single.getBitmap(%dx%d): Calculated size %dx%d for "%s"' % (width, height, w, h, self.getPath()))
         if (not ((0 < w) and (0 < h))):
             pass  # this will violate an assertion in Rescale()
@@ -404,32 +446,32 @@ class Single(Entry):
 
 # Other API Functions
 # Internal
-    def askNewScene(self, parentWindow):
-        """User wants to relabel a scene (organized by name). Ask for new scene. 
-        
-        Returns String containing new name, or None if user cancelled. 
-        """
-        dialog = wx.TextEntryDialog(parentWindow, 'Enter New Scene', 'Relabel Scene', '')
-        ok = True
-        newScene = -1
-        newSceneString = None
-        while (ok 
-               and ((newScene < 0) or (99 < newScene))):
-            ok = (dialog.ShowModal() == wx.ID_OK)
-            if (ok):
-                newSceneString = dialog.GetValue()
-                try: 
-                    newScene = int(newSceneString)
-                except: 
-                    newScene = -1
-                if ((newScene < 0) or (999 < newScene)):
-                    dialog.SetValue('%s is not a legal name' % newSceneString)
-                else:
-                    newSceneString = (OrganizationByName.FormatScene % newScene)
-            else:
-                newSceneString = None
-        dialog.Destroy()
-        return (newSceneString)
+#     def askNewScene(self, parentWindow):
+#         """User wants to relabel a scene (organized by name). Ask for new scene. 
+#         
+#         Returns String containing new name, or None if user cancelled. 
+#         """
+#         dialog = wx.TextEntryDialog(parentWindow, 'Enter New Scene', 'Relabel Scene', '')
+#         ok = True
+#         newScene = -1
+#         newSceneString = None
+#         while (ok 
+#                and ((newScene < 0) or (99 < newScene))):
+#             ok = (dialog.ShowModal() == wx.ID_OK)
+#             if (ok):
+#                 newSceneString = dialog.GetValue()
+#                 try: 
+#                     newScene = int(newSceneString)
+#                 except: 
+#                     newScene = -1
+#                 if ((newScene < 0) or (999 < newScene)):
+#                     dialog.SetValue('%s is not a legal name' % newSceneString)
+#                 else:
+#                     newSceneString = (OrganizationByName.FormatScene % newScene)
+#             else:
+#                 newSceneString = None
+#         dialog.Destroy()
+#         return (newSceneString)
 
 
     def runExternalViewer(self, parentWindow):

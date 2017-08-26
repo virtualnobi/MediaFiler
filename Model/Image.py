@@ -172,9 +172,9 @@ class Image(Single):
     def releaseRawDataCache(self):
         """Release memory used for self's raw image.
         """
-        result = self.getRawDataMemoryUsage()
         self.rawImage = None
-        return(result)
+        CachingController.deallocateMemory(self, bitmap=False)
+
 
 
 

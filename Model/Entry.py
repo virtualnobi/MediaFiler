@@ -592,9 +592,11 @@ class Entry(PausableObservable):
         menu.Append(GUIId.FilterSimilar, GUIId.FunctionNames[GUIId.FilterSimilar])
         # second group of functions related to organization
         menu.AppendSeparator()
+        entries = menu.GetMenuItemCount()
         self.organizer.extendContextMenu(menu)
         # third group of functions is delete
-        menu.AppendSeparator()
+        if (entries < menu.GetMenuItemCount()):
+            menu.AppendSeparator()
         menu.Append(GUIId.DeleteImage, ('Delete "%s"\tCtrl+D' % self.getIdentifier()))  # group for change functions 
         return(menu)
 
@@ -626,10 +628,10 @@ class Entry(PausableObservable):
 
 
 ##### messy
-    def getSize(self):
-        """Return the image size (w, h) of self.
-        """
-        raise NotImplementedError
+#     def getSize(self):
+#         """Return the image size (w, h) of self.
+#         """
+#         raise NotImplementedError
     
     
     def getSizeString(self):

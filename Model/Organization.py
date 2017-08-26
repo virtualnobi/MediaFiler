@@ -703,10 +703,10 @@ class OrganizationByName(MediaOrganization):
         
         String newScene contains the number of the new scene 
         """
-        #print('Relabelling scene %s to %s' % (self.getScene(), newScene))
+        logging.debug('OrganizationByName.relabelToScene(): Moving entries from scene %s to scene %s (from "%s")' % (self.getScene(), newScene), self.context.getPath())
         parentGroup = self.context.getParentGroup()
         for entry in parentGroup.getSubEntries():
-            if (entry.getScene() == self.getScene()):
+            if (entry.organizer.getScene() == self.getScene()):
                 entry.renameTo(makeUnique=True, scene=newScene)
 
 
@@ -785,7 +785,9 @@ class OrganizationByName(MediaOrganization):
         elif (menuId == GUIId.ConvertToGroup):
             print('Conversion of singleton to Group NYI!')
         elif (menuId == GUIId.RelabelScene):
-            print('Relabelling scenes NYI!')
+            newScene = self.askNewScene(parentWindow)
+            if (newScene):
+                self.relabelToScene(newScene)
         elif ((GUIId.SelectScene <= menuId)
               and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
             pass  # handled where?
@@ -875,6 +877,34 @@ class OrganizationByName(MediaOrganization):
                     newName = None
         dialog.Destroy()
         return(newName)
+
+
+    def askNewScene(self, parentWindow):
+        """User wants to relabel a scene (organized by name). Ask for new scene. 
+        
+        Returns String containing new name, or None if user cancelled. 
+        """
+        dialog = wx.TextEntryDialog(parentWindow, 'Enter New Scene', 'Relabel Scene', '')
+        ok = True
+        newScene = -1
+        newSceneString = None
+        while (ok 
+               and ((newScene < 0) or (99 < newScene))):
+            ok = (dialog.ShowModal() == wx.ID_OK)
+            if (ok):
+                newSceneString = dialog.GetValue()
+                try: 
+                    newScene = int(newSceneString)
+                except: 
+                    newScene = -1
+                if ((newScene < 0) or (999 < newScene)):
+                    dialog.SetValue('%s is not a legal name' % newSceneString)
+                else:
+                    newSceneString = (OrganizationByName.FormatScene % newScene)
+            else:
+                newSceneString = None
+        dialog.Destroy()
+        return (newSceneString)
 
 
 

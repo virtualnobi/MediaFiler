@@ -21,10 +21,7 @@ from __builtin__ import classmethod
 
 # Class
 class MRUOrderedDict(OrderedDict):
-    """Stores items in the order the keys were last added
-    
-    This class is used to register the memory consumption of Single media. 
-    If too much memory is used, the least recently used Singles are requested to free memory. 
+    """Stores dictionary items in the order the keys were last added
     """
     def __setitem__(self, key, value):
         if key in self:
@@ -32,15 +29,22 @@ class MRUOrderedDict(OrderedDict):
         OrderedDict.__setitem__(self, key, value)
 
 
+    def getOldestItem(self):
+        """Return the oldest item of self, i.e., the one added first.
+        """
+        return(self.items()[0])
+
 
 
 class CachingController(object): 
     """This class keeps track of memory usage. 
+
+    If too much memory is used, the least recently used Singles are requested to free memory. 
     """
     
 
 # Constants
-    MemoryMaximum = 10000000000
+    MemoryMaximum = 1000000000
     MBFactor = (1024 * 1024)
 
 
@@ -85,11 +89,11 @@ class CachingController(object):
         cls.MemoryUsed = (cls.MemoryUsed + imageSize)
         while ((cls.MemoryMaximum < cls.MemoryUsed)
                and (0 < len(cls.CachedRawData))):
-            (oldEntry, oldSize) = cls.CachedRawData.popitem(last=False)  # @UnusedVariable  # TODO:
+            (oldEntry, oldSize) = cls.CachedRawData.getOldestItem()  # @UnusedVariable
             oldEntry.releaseRawDataCache()
         while ((cls.MemoryMaximum < cls.MemoryUsed)
                and (0 < len(cls.CachedBitmaps))):
-            (oldEntry, oldSize) = cls.CachedBitmaps.popitem(last=False)  # @UnusedVariable  # TODO:
+            (oldEntry, oldSize) = cls.CachedBitmaps.getOldestItem()  # @UnusedVariable
             if (oldEntry <> entry):
                 oldEntry.releaseBitmapCache()
             elif (1 == len(cls.CachedBitmaps)):  # only entry cached
