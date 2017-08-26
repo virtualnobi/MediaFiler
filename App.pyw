@@ -575,8 +575,17 @@ class MediaFiler (wx.Frame, Observer, Observable):
         if (editorName):
             editorName = editorName.replace(MediaCollection.ConfigurationOptionParameter, classFile)
             commandArgs = shlex.split(editorName)  # editorName.split() does not respect quotes
-            print('Calling %s' % commandArgs)
-            subprocess.call(commandArgs, shell=False)
+            logging.debug('App.onEditClasses(): Calling %s' % commandArgs)
+            retCode = subprocess.call(commandArgs, shell=False)
+            if (retCode <> 0):
+                logging.warning('App.onEditClasses(): Call failed with return code %s!' % retCode)
+                dlg = wx.MessageDialog(self, 
+                                       (_('The external program failed with return code %s.') % retCode),
+                                       _('Warning'),
+                                       wx.OK | wx.ICON_WARNING
+                                       )
+                dlg.ShowModal()
+                dlg.Destroy()
             self.onReload(event)
         else:
             print(_('No editor defined with "%s" configuration option!') % MediaFiler.ConfigurationOptionTextEditor)
@@ -593,8 +602,17 @@ class MediaFiler (wx.Frame, Observer, Observable):
             if (editorName):
                 editorName = editorName.replace(MediaCollection.ConfigurationOptionParameter, namesFile)
                 commandArgs = shlex.split(editorName)
-                print('Calling %s' % commandArgs)
-                subprocess.call(commandArgs, shell=False)
+                logging.debug('App.onEditNames(): Calling %s' % commandArgs)
+                retCode = subprocess.call(commandArgs, shell=False)
+            if (retCode <> 0):
+                logging.warning('App.onEditClasses(): Call failed with return code %s!' % retCode)
+                dlg = wx.MessageDialog(self, 
+                                       (_('The external program failed with return code %s.') % retCode),
+                                       _('Warning'),
+                                       wx.OK | wx.ICON_WARNING
+                                       )
+                dlg.ShowModal()
+                dlg.Destroy()
             else:
                 print(_('No editor defined with "%s" configuration option!') % MediaFiler.ConfigurationOptionTextEditor)
                 # TODO: error message, but on which window?
