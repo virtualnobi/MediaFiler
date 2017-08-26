@@ -31,11 +31,10 @@ The following aspects of ImageFilerModel are observable:
 from __future__ import print_function
 # Standard
 import types
-#import os
 import os.path
 import re
 import logging
-#import datetime
+import cProfile, pstats, StringIO
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer
@@ -49,7 +48,6 @@ from .Organization import OrganizationByDate
 from .Organization import OrganizationByName
 from UI import GUIId
 from Model.CachingController import CachingController
-#from .MediaNameHandler import MediaNameHandler
 
 
 
@@ -78,7 +76,7 @@ class MediaCollection(Observable, Observer):
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection'])
         # internal state
         if (rootDir):
-            self.setRootDirectory(rootDir)
+            self.setRootDirectoryProfiled(rootDir)
         logging.debug('MediaCollection.init() finished')
         return(None)
 
@@ -129,6 +127,22 @@ class MediaCollection(Observable, Observer):
         else: 
             logging.info('MediaCollection.setRootDirectory(): last viewed media not saved')
             self.setSelectedEntry(self.root)
+
+
+    def setRootDirectoryProfiled(self, rootDir):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        self.setRootDirectory(rootDir)
+        profiler.disable()
+        resultStream = StringIO.StringIO()
+        ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
+        ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
+        ps.sort_stats('time')  # sort according to time per function call, excluding called functions
+        ps.print_stats(20)  # print top 20 
+        print('Profiling Results for MediaCollection.setRootDirectory()')
+        print(resultStream.getvalue())
+        print('---')
+
 
 
 
