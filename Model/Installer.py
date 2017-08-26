@@ -12,11 +12,14 @@ import gettext
 ## Contributed
 import wx
 ## nobi
+from nobi import SecureConfigParser
 ## Project
+import App
 from Entry import Entry
 from MediaClassHandler import MediaClassHandler
 import UI
 from UI import GUIId
+from Model.MediaCollection import MediaCollection
 
 
 
@@ -155,8 +158,9 @@ def install():
             shutil.copyfile(os.path.join(InstallationPath, ImageFolder, LogoFilename), 
                             getLogoPath())
         if (not os.path.exists(getConfigurationFilePath())):
-            with open(getConfigurationFilePath(), 'w') as outfile:
-                outfile.write('[%s]\n' % GUIId.AppTitle)
+            config = SecureConfigParser(getConfigurationFilePath())
+            config.add_section(GUIId.AppTitle)
+            config.set(GUIId.AppTitle, App.ConfigurationOptionTextEditor, ('notepad /W "%s"' % MediaCollection.ConfigurationOptionParameter))
         for c in Entry.ProductTrader.getClasses():
             if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
                 shutil.copyfile(os.path.join(InstallationPath, ImageFolder, c.PreviewImageFilename),
