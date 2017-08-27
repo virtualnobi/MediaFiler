@@ -313,7 +313,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         """
         wx.BeginBusyCursor()
-        idx = event.GetSelection()
+        idx = event.GetSelection()  # TODO: assemble condition across all types, and interpret "all unselected" as "all selected"
         mediaType = self.mediaTypes[idx]
         (required, prohibited) = self.filterModel.getMediaTypes()  # @UnusedVariable
         if (self.mediaTypePicker.IsChecked(idx)):
@@ -323,7 +323,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 required.remove(mediaType)
             else:
                 logging.error('MediaFilterPane.onMediaTypesChanged(): media type %s not in filter!' % mediaType.__name__)
-        self.filterModel.setMediaTypes(required=required)            
+        self.filterModel.setConditions(requiredMediaTypes=required)            
         self.mediaTypePicker.SetSelection(idx)  # put focus on (un)checked type
         wx.EndBusyCursor()
 

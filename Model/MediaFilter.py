@@ -57,7 +57,8 @@ class MediaFilter(Observable):
 
 # Setters
     def setConditions(self, active=None, 
-                      required=None, prohibited=None, unknownRequired=None, minimum=None, maximum=None, 
+                      required=None, prohibited=None, unknownRequired=None, minimum=None, maximum=None,
+                      requiredMediaTypes=None, prohibitedMediaTypes=None, 
                       single=None,
                       fromDate=None, toDate=None):
         """Set conditions as specified. Not passing an argument does not change conditions.
@@ -83,6 +84,8 @@ class MediaFilter(Observable):
                        or ((unknownRequired <> None) and (self.unknownElementRequired <> unknownRequired))
                        or ((minimum <> None) and (self.minimumSize <> minimum))
                        or ((maximum <> None) and (self.maximumSize <> maximum))
+                       or ((requiredMediaTypes <> None) and (self.requiredMediaTypes <> requiredMediaTypes))
+                       or ((prohibitedMediaTypes <> None) and (self.prohibitedMediaTypes <> prohibitedMediaTypes))
                        or ((single <> None) and (self.singleCondition <> single))
                        or ((fromDate <> None) and (self.fromDate <> fromDate))
                        or ((toDate <> None) and (self.toDate <> toDate)))
@@ -98,6 +101,10 @@ class MediaFilter(Observable):
             self.minimumSize = minimum
         if (maximum <> None):
             self.maximumSize = maximum
+        if (requiredMediaTypes <> None):
+            self.requiredMediaTypes = requiredMediaTypes
+        if (prohibitedMediaTypes <> None):
+            self.prohibitedMediaTypes = prohibitedMediaTypes
         if (single <> None):
             if (self.model.organizedByDate):
                 logging.error('MediaFilter.setConditions(): Single/group filtering only allowed for media organized by name!')
@@ -129,8 +136,9 @@ class MediaFilter(Observable):
                            unknownRequired=False, 
                            minimum=self.model.getMinimumSize(), 
                            maximum=self.model.getMaximumSize(),
+                           requiredMediaTypes=set(),
+                           prohibitedMediaTypes=set(),
                            single=None)
-        self.setMediaTypes(set(), None)
 
 
     def setMediaTypes(self, required=None, prohibited=None):
@@ -139,6 +147,7 @@ class MediaFilter(Observable):
         set or None required
         set or None prohibited
         """
+        print('MediaFilter.setMediaTypes() deprecated!')
         changed = (((required <> None)
                     and (required <> self.requiredMediaTypes))
                    or ((prohibited <> None)

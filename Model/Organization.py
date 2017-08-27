@@ -645,7 +645,10 @@ class OrganizationByName(MediaOrganization):
         # inheritance
         super(OrganizationByName, self).__init__(anEntry, aPath)
         # internal state
-        self.__class__.nameHandler.registerNameAsUsed(self.getName())
+        try:
+            self.__class__.nameHandler.registerNameAsUsed(self.getName())
+        except: 
+            logging.warning('OrganizationByName(): "%s" is not a legal name in "%s"' % (self.getName(), anEntry.getPath()))
         return(None)
 
 

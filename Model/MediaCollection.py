@@ -77,7 +77,7 @@ class MediaCollection(Observable, Observer):
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection'])
         # internal state
         if (rootDir):
-            self.setRootDirectoryProfiled(rootDir)
+            self.setRootDirectory(rootDir)
         logging.debug('MediaCollection.init() finished')
         return(None)
 

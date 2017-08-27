@@ -639,8 +639,8 @@ class Entry(PausableObservable):
         
         Return a String
         """
-        raise NotImplementedError
-
+#        raise NotImplementedError
+        return('')
 
 
 ## Context Menu Functions

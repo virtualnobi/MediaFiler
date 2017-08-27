@@ -88,6 +88,8 @@ class Movie(Single):
         # internal state
         self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
                                  wx.BITMAP_TYPE_JPEG)
+        self.rawWidth = self.rawImage.Width
+        self.rawHeight = self.rawImage.Height
         return(None)
 
 

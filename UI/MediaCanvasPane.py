@@ -8,6 +8,7 @@
 ## standard
 import math
 import logging
+import cProfile, pstats, StringIO
 ## contributed
 import wx
 ## nobi
@@ -90,7 +91,22 @@ class MediaCanvas(wx.Panel, Observer):
         self.setEntry(self.model.getSelectedEntry())
 
 
-    def setEntry (self, entry, forceUpdate=False):
+    def setEntry(self, entry, forceUpdate=False):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        self.setEntryProfiled(entry, forceUpdate)
+        profiler.disable()
+        resultStream = StringIO.StringIO()
+        ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
+        ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
+        ps.sort_stats('time')  # sort according to time per function call, excluding called functions
+        ps.print_stats(20)  # print top 20 
+        print('Profiling Results for MediaCanvasPane.setEntry()')
+        print(resultStream.getvalue())
+        print('---')
+
+
+    def setEntryProfiled(self, entry, forceUpdate=False):
         """Set the entry to display.
         
         Boolean forceUpdate redisplays even if the same entry is already selected (after filtering)
