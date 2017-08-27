@@ -7,9 +7,9 @@
 
 # Imports
 ## Standard
-import random
+#import random
 import re
-import copy
+#import copy
 ## Contributed
 ## nobi
 ## Project
@@ -42,23 +42,25 @@ class MediaNameHandler(object):
     def registerAllNamesAsFree(self):
         """Reset to initial state where all names are considered unused.
         """
-        self.freeNames = copy.copy(self.legalNames)
+        self.freeNames = self.legalNames.copy()
 
         
     def registerNameAsFree(self, name):
         """Register a name as not being used.
         """
-        if (self.isNameLegal(name)
-            and (not name in self.freeNames)):
-            self.freeNames.append(name)
+        if (self.isNameLegal(name)):
+            self.freeNames.add(name)
+        else:
+            raise ValueError, ('"%s" is not a legal name!' % name)
 
 
     def registerNameAsUsed(self, name):
         """Register a name as being used.
         """
-        if (self.isNameLegal(name)
-            and (name in self.freeNames)):
-            self.freeNames.remove(name)  
+        if (self.isNameLegal(name)):
+            self.freeNames.remove(name)
+        else:
+            raise ValueError, ('"%s" is not a legal name!' % name)  
 
 
 
@@ -88,7 +90,8 @@ class MediaNameHandler(object):
         """Return True if name is legal and unused.
         """
         return(self.isNameLegal(name)
-               and (self.trimNumberFromName(name) in self.freeNames))
+               and ((name in self.freeNames)
+                    or (self.trimNumberFromName(name) in self.freeNames)))
 
 
     def getFreeName(self):
@@ -96,9 +99,9 @@ class MediaNameHandler(object):
         
         Return String containing the free name, or None if all names are used.
         """
-        if (0 < len(self.freeNames)): # free names exist
-            return(self.freeNames.pop(random.randint(0,(len(self.freeNames) - 1)))) # pick one randomly
-        else:  # no free names left
+        try: 
+            return(self.freeNames.pop()) 
+        except: 
             return(None)
 
 
@@ -129,11 +132,11 @@ class MediaNameHandler(object):
             nameFile = open(path)
         except:  # no names file exists
             return(None)
-        result = []
+        result = set()
         for line in nameFile:
             line = line.strip()  # trim white space
-            if (0 < len (line)):  # non-empty line must be a name
-                result.append(line)
+            if (0 < len(line)):  # non-empty line must be a name
+                result.add(line)
         nameFile.close()
         return(result)
 
@@ -142,7 +145,6 @@ class MediaNameHandler(object):
         """Remove a trailing number from name. 
         
         String name 
-        
         Return String containing name without trailing number, or None
         """
         match = re.match('^([^\d]+)\d+$', name)
