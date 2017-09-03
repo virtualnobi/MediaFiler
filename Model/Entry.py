@@ -297,8 +297,9 @@ class Entry(PausableObservable):
 #                                                             scene=self.getScene())
             # remove from current group, and add to new group
             newGroup = self.organizer.__class__.getGroupFromPath(fname)
-            if ((newGroup <> None)
-                and (newGroup <> self.getParentGroup())):
+            if (newGroup == None):
+                pass  # TODO: create newGroup
+            elif (newGroup <> self.getParentGroup()):
                 self.setParentGroup(newGroup)
             return(True)
 

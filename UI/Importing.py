@@ -18,7 +18,7 @@ from Model import GlobalConfigurationOptions
 from Model.MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from Model.Organization import OrganizationByName
+from Model.MediaOrganization import OrganizationByName
 
 
 

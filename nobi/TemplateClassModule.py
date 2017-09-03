@@ -17,18 +17,17 @@ import UI  # to access UI.PackagePath
 
 
 
-# Internationalization
-# requires "PackagePath = __path__[0]" in _init_.py
+# Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
-    Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['en'])
+    Translation = gettext.translation('MediaFiler', LocalesPath)
 except BaseException as e:  # likely an IOError because no translation file found
     try:
         language = os.environ['LANGUAGE']
     except:
         print('%s: No LANGUAGE environment variable found!' % (__file__))
     else:
-        print('%s: No translation found at %s; using originals instead of %s. Complete error:' % (__file__, LocalesPath, language))
+        print('%s: No translation found at "%s"; using originals instead of locale %s. Complete error:' % (__file__, LocalesPath, language))
         print(e)
     def _(message): return message
 else:

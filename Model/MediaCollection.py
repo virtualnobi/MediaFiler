@@ -31,6 +31,7 @@ The following aspects of ImageFilerModel are observable:
 from __future__ import print_function
 # Standard
 import types
+import copy
 import os.path
 import re
 import logging
@@ -41,12 +42,17 @@ from nobi.ObserverPattern import Observable, Observer
 from nobi.SecureConfigParser import SecureConfigParser
 # Project 
 import GlobalConfigurationOptions
-from . import Installer
-from .MediaFilter import MediaFilter
-from .Entry import Entry
-from .MediaClassHandler import MediaClassHandler 
-from .Organization import OrganizationByDate
-from .Organization import OrganizationByName
+from Model import Installer
+from Model.MediaClassHandler import MediaClassHandler 
+from Model.MediaFilter import MediaFilter
+from Model.Entry import Entry
+
+#from Model.MediaOrganization import MediaOrganization
+from Model.MediaOrganization.OrganizationByDate import OrganizationByDate
+from Model.MediaOrganization.OrganizationByName import OrganizationByName
+# from Model.Organization import OrganizationByDate
+# from Model.Organization import OrganizationByName
+
 from UI import GUIId
 from Model.CachingController import CachingController
 
@@ -425,33 +431,26 @@ class MediaCollection(Observable, Observer):
         
         Return a String containing the log.
         """
-        # prepare logging
-        #log = StringIO.StringIO()
         illegalElements = {}  # mapping illegal element strings to file names
-        # import files
-        if (self.organizedByDate):
-            importParameters.logString('Importing by date from "%s" into "%s"\n' % (importParameters.getImportDirectory(), self.rootDirectory))
-            try:
-                self.importImagesRecursively(importParameters,
-                                             importParameters.getImportDirectory(), 
-                                             0, 
-                                             len(importParameters.getImportDirectory()), 
-                                             self.rootDirectory, 
-                                             illegalElements)
-            except StopIteration:
-                pass
-        else:  # organized by name
-            importParameters.logString('Importing by name from "%s" into "%s"\n' % (importParameters.getImportDirectory(), self.rootDirectory))
-            try:
-                self.importImagesRecursively(importParameters, 
-                                             importParameters.getImportDirectory(),
-                                             0, 
-                                             len(importParameters.getImportDirectory()), 
-                                             self.rootDirectory, 
-                                             illegalElements)
-            except StopIteration:
-                pass
-        # log illegal elements
+        importParameters.logString('Importing by %s from "%s" into "%s"\n' 
+                                   % (('date' if (self.organizationStrategy == OrganizationByDate) else 'name'),
+                                      importParameters.getImportDirectory(), 
+                                      self.rootDirectory))
+#         # import files
+#         if (self.organizedByDate):
+#             importParameters.logString('Importing by date from "%s" into "%s"\n' % (importParameters.getImportDirectory(), self.rootDirectory))
+#         else:  # organized by name
+#             importParameters.logString('Importing by name from "%s" into "%s"\n' % (importParameters.getImportDirectory(), self.rootDirectory))
+        try:
+            self.importImagesRecursively(importParameters,
+                                         importParameters.getImportDirectory(), 
+                                         0, 
+                                         len(importParameters.getImportDirectory()), 
+                                         self.rootDirectory, 
+                                         {},
+                                         illegalElements)
+        except StopIteration:
+            pass
         if (importParameters.getReportIllegalElements()):
             for key in illegalElements:  
                 count = len(illegalElements[key])
@@ -459,13 +458,10 @@ class MediaCollection(Observable, Observer):
                 #for path in illegalElements[key]:
                 #    log.write('\t%s\n' % path)
                 importParameters.logString('\t%s' % illegalElements[key][0])
-        # reload images if needed
-#         if (not importParameters.getTestRun()): 
-#             self.setRootDirectory(self.rootDirectory)  
         return(importParameters.getLog())
 
 
-    def importImagesRecursively(self, importParameters, sourceDir, level, baseLength, targetDir, illegalElements):
+    def importImagesRecursively(self, importParameters, sourceDir, level, baseLength, targetDir, targetPathInfo, illegalElements):
         """Import a directory with all files, recursively.
 
         If the number of files in the import directory exceeds the maximum number of files to import,
@@ -476,26 +472,34 @@ class MediaCollection(Observable, Observer):
         Number level counts the recursion level
         Number baseLength gives the length of the constant prefix in sourceDir, to be ignored for name determination
         String targetDir
+        Dictionary targetPathInfo describes the target path
         Dictionary illegalElements 
         """
         allFiles = os.listdir(sourceDir)
         allFiles.sort()  # ensure that existing numbers are respected in new numbering
         for oldName in allFiles:
             oldPath = os.path.join(sourceDir, oldName)
+            newTargetPathInfo = copy.copy(targetPathInfo)
             if (os.path.isdir(oldPath)):  # import a directory
                 if (self.organizedByDate):
                     newPath = targetDir
+                    if (not 'rootDir' in newTargetPathInfo):
+                        newTargetPathInfo['rootDir'] = targetDir
                 else:  # organized by name
                     if (0 < level):
                         importParameters.logString('\nCannot import embedded folder "%s"!' % oldPath)
                         return
+                    if (not 'rootDir' in newTargetPathInfo):
+                        newTargetPathInfo['rootDir'] = targetDir
                     newName = self.organizationStrategy.deriveName(importParameters.log, oldPath[baseLength:])
+                    newTargetPathInfo['name'] = newName
                     newPath = self.organizationStrategy.constructPath(rootDir=targetDir, name=newName)  
                 self.importImagesRecursively(importParameters,
                                              oldPath, 
                                              (level + 1), 
                                              baseLength, 
                                              newPath, 
+                                             newTargetPathInfo,
                                              illegalElements)
                 if ((not importParameters.getTestRun())
                     and (importParameters.getDeleteOriginals())
@@ -513,7 +517,8 @@ class MediaCollection(Observable, Observer):
                                                                   oldPath, 
                                                                   level, 
                                                                   baseLength, 
-                                                                  targetDir, 
+                                                                  targetDir,
+                                                                  newTargetPathInfo,
                                                                   illegalElements)
                         else:
                             importParameters.logString('Ignoring small %sb file "%s"\n' % (fileSize, oldPath))

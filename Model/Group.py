@@ -109,27 +109,19 @@ class Group(Entry):
             year = (kwargs['year'] if 'year' in kwargs else None)
             month = (kwargs['month'] if 'month' in kwargs else None)
             day = (kwargs['day'] if 'day' in kwargs else None)
-            if (((year == None)
-                 or (year == u'')
-                 or (year == self.organizer.getYear()))
-                and ((month == None)
-                     or (month == u'')
-                     or (month == self.organizer.getMonth()))
-                and ((day == None)
-                     or (day == u'')
-                     or (day == self.organizer.getDay()))):
-                for subEntry in self.subEntries:
-                    newElements = subEntry.getElements().union(elements)
-                    kwargs['elements'] = newElements
-                    result = (result and subEntry.renameTo(**kwargs))
-            else:
-                newGroup = self.model.getEntry(year=year, month=month, day=day)
-                if (newGroup):
-                    print('NYI: Group.renameTo() cannot move from date group to date group')
-                    return(False)
-                else:
-                    print('NYI: Group.renameTo() cannot create new groups')
-                    return(False)
+            if ((year <> self.organizer.getYear())
+                or (month <> self.organizer.getMonth())
+                or (day <> self.organizer.getDay())):
+                if (not self.model.getEntry(year=year, month=month, day=day)):
+                    newPath = self.model.organizationStrategy.constructPath(**kwargs)
+                    newParent = Group(self.model, newPath)
+                    if (not newParent):
+                        logging.error('Group.renameTo(): Cannot create new Group "%s"' % newPath)
+                        return(False)
+            for subEntry in self.getSubEntries(filtering=True):
+                newElements = subEntry.getElements().union(elements)
+                kwargs['elements'] = newElements
+                result = (result and subEntry.renameTo(**kwargs))
         else:  # organized by name
             name = (kwargs['name'] if 'name' in kwargs else None)
             scene = (kwargs['scene'] if 'scene' in kwargs else None)

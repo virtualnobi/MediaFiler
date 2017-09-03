@@ -24,10 +24,9 @@ import wx
 import GlobalConfigurationOptions
 from UI import GUIId
 #from .MediaCollection import MediaCollection
-from .Entry import Entry
-from .Group import Group
-#from .Organization import OrganizationByName  # , MediaOrganization
-from .Organization import MediaOrganization
+from Model.Entry import Entry
+from Model.Group import Group
+from Model.MediaOrganization import MediaOrganization
 # from .CachingController import MRUOrderedDict
 # from Model.CachingController import CachingController
 

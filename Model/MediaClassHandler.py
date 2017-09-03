@@ -14,7 +14,6 @@ import codecs
 ## nobi
 ## Project
 from .Entry import Entry
-from .Organization import MediaOrganization
 
 
 
@@ -30,6 +29,7 @@ class MediaClassHandler(object):
     KeyRequired = u'required'  # key in class dictionary mapping to list of required elements
     KeyProhibited = u'prohibited'  # key in class dictionary mapping to list of prohibited elements
     ElementIllegal = u'illegal'  # special element signalling that a combination of elements is not legal
+    TagSeparator = u'.'  # character to introduce a tag/element
     ElementNew = u'new'  # special element signalling that the entry is new, i.e., just imported
     InitialFileContent = (u'# Classname Element+  # for classes with single-choice elements\n' +
                           u'# Classname [] Element+  # for classes with multiple-choice elements\n' +
@@ -42,11 +42,11 @@ class MediaClassHandler(object):
 
 
 # Class Methods
-    @classmethod
-    def classMethod(clas):
-        """
-        """
-        pass
+#     @classmethod
+#     def classMethod(clas):
+#         """
+#         """
+#         pass
 
 
 
@@ -225,10 +225,10 @@ class MediaClassHandler(object):
     def elementsToString(self, elementSet):
         """Return a String containing all elements in ELEMENTSET in canonical order.
         
-        Elements are introduced by ELEMENTSEPARATOR (meaning the result is either empty or starts with a ELEMENTSEPARATOR).
+        Elements are introduced by TagSeparator (meaning the result is either empty or starts with a TagSeparator).
         """
         elements = self.orderElements(elementSet)
-        result = (MediaOrganization.ElementSeparator.join(elements))
+        result = (self.__class__.TagSeparator.join(elements))
         if (not (result == '')):
             result = (Entry.NameSeparator + result)
         return (result)
@@ -281,10 +281,7 @@ class MediaClassHandler(object):
         self.knownElements = []
         try:
             classFile = codecs.open(pathname, encoding=sys.getfilesystemencoding())
-        except: # file cannot be opened, create an empty file
-#             (folder, fname) = os.path.split(pathname)
-#             os.makedir(folder)
-#             
+        except: # file cannot be opened
             return() 
         #print ("Opened class file %s" % pathname)
         for line in classFile:

@@ -46,36 +46,9 @@ class MediaCanvas(wx.Panel, Observer):
         # internal state
         self.model = None
         self.entry = None
-        self.lastLeftDownImage = None  # last Image on which left mouse button went down, for selection
-        self.lastRightDownImage = None  # last Image on which right mouse button went down, for context menu
         self.SetBackgroundColour('white')
         self.ClearBackground()
         (self.width, self.height) = self.GetSizeTuple()
-        self.rows = 1
-        self.cols = 1
-
-
-# ObserverPattern
-    def updateAspect(self, observable, aspect):
-        """ ASPECT of OBSERVABLE has changed. 
-        """
-        super(MediaCanvas, self).updateAspect(observable, aspect)
-        if (aspect == 'selection'):  # MediaCollection changes selection
-            entry = observable.getSelectedEntry()
-            self.setEntry(entry)
-        elif (aspect == 'stopFiltering'):  # after filtering, redisplay groups
-            entry = observable.getSelectedEntry()
-            if (entry.isGroup()):
-                self.setEntry(entry, forceUpdate=True)
-        elif (aspect == 'children'):  # the currently selected Entry has changed children
-            self.clear()
-            self.setEntry(observable)
-        elif (aspect == 'name'):  # an Entry changed its name
-            if (observable <> self.entry):  # child of currently selected Entry changed, redisplay to keep order correct
-                parent = self.entry
-                self.clear()
-                self.setEntry(parent)
-
 
 
 # Getters
@@ -88,6 +61,10 @@ class MediaCanvas(wx.Panel, Observer):
         self.model = model
         self.model.addObserverForAspect(self, 'selection')
         self.model.addObserverForAspect(self, 'stopFiltering')
+        self.lastLeftDownImage = None  # last Image on which left mouse button went down, for selection
+        self.lastRightDownImage = None  # last Image on which right mouse button went down, for context menu
+        self.rows = 1
+        self.cols = 1
         self.setEntry(self.model.getSelectedEntry())
 
 
@@ -189,6 +166,29 @@ class MediaCanvas(wx.Panel, Observer):
         wx.EndBusyCursor()
 
     
+
+# Inheritance - ObserverPattern
+    def updateAspect(self, observable, aspect):
+        """ ASPECT of OBSERVABLE has changed. 
+        """
+        super(MediaCanvas, self).updateAspect(observable, aspect)
+        if (aspect == 'selection'):  # MediaCollection changes selection
+            entry = observable.getSelectedEntry()
+            self.setEntry(entry)
+        elif (aspect == 'stopFiltering'):  # after filtering, redisplay groups
+            entry = observable.getSelectedEntry()
+            if (entry.isGroup()):
+                self.setEntry(entry, forceUpdate=True)
+        elif (aspect == 'children'):  # the currently selected Entry has changed children
+            self.clear()
+            self.setEntry(observable)
+        elif (aspect == 'name'):  # an Entry changed its name
+            if (observable <> self.entry):  # child of currently selected Entry changed, redisplay to keep order correct
+                parent = self.entry
+                self.clear()
+                self.setEntry(parent)
+
+
     
 # Internal    
     def clear (self):
