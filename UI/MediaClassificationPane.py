@@ -14,10 +14,11 @@ import wx.lib.scrolledpanel
 import wx.lib.rcsizer
 ## nobi
 from nobi.ObserverPattern import Observer
-#from wxExtensions.CheckBoxGroup import CheckBoxGroup
+# from wxExtensions.CheckBoxGroup import CheckBoxGroup
 ## project
 import UI
-from Model.Entry import Entry
+# from Model.Entry import Entry
+from Model.MediaClassHandler import MediaClassHandler
 
 
 
@@ -65,17 +66,17 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         wx.Window parent is the embedding window
         """
         # inheritance
-        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, id=-1, size=wx.Size (450, 0), style=(style | wx.FULL_REPAINT_ON_RESIZE))
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, id=-1, size=wx.Size(450, 0), style=(style | wx.FULL_REPAINT_ON_RESIZE))
         Observer.__init__(self)
-        # 
-        self.SetAutoLayout(1)
-        self.SetupScrolling()
         # init variables
         self.model = None  # for definition of selectionBoxes
         self.entry = None  # for selecting selectionBoxes
         self.selectionBoxes = {}  # selectionBoxes (as className->RadioBox mapping)
         # vertical sizer for entire pane
         self.SetSizer(wx.BoxSizer(wx.VERTICAL))
+        # 
+        self.SetAutoLayout(1)
+        self.SetupScrolling()
 
 
 
@@ -169,13 +170,13 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 # add new CheckBoxGroup
 # TODO:                self.GetSizer().Add(CheckBoxGroup(self, label=className, choices=choices))
             else:  # single selection, use selectionBoxes
-                radioBox = wx.RadioBox (self, 
-                                        -1, 
-                                        label=className, 
-                                        choices=choices, 
-                                        majorDimension=columns,
-                                        style=(wx.RA_HORIZONTAL | wx.RA_SPECIFY_COLS))
-                self.Bind (wx.EVT_RADIOBOX, self.onSelect, radioBox)  # attach event
+                radioBox = wx.RadioBox(self, 
+                                       -1, 
+                                       label=className, 
+                                       choices=choices, 
+                                       majorDimension=columns,
+                                       style=(wx.RA_HORIZONTAL | wx.RA_SPECIFY_COLS))
+                self.Bind(wx.EVT_RADIOBOX, self.onSelect, radioBox)  # attach event
                 # store radiobox 
                 self.selectionBoxes[className] = radioBox
                 # put radiobox into layout
@@ -256,24 +257,30 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         # remove all selectionBoxes if there are any
         for className in self.selectionBoxes.keys():
-            # TODO: self.Unbind(event, source, id, id2, handler)
             container = self.selectionBoxes[className]
             if (self.model.getClassHandler().isMultipleClassByName(className)):
                 self.GetSizer().Remove(container['sizer'])
             else:
-                self.GetSizer().Remove(container) # not self.RemoveChild(container)
+                self.GetSizer().Remove(container)  # not self.RemoveChild(container)
+        self.selectionBoxes = {}
+        while (len(self.GetSizer().GetChildren()) > 0):
+            self.GetSizer().Remove(0)
+        self.DestroyChildren()
 
     
     def currentFilename (self):
-        # Return the file name of entry as defined by current radiobox selections
+        """Return the file name of entry as defined by current selection.
+        
+        Return String
+        """
         result = ''
         classification = self.getClassification()
         for className in self.model.getClassHandler().getClassNames():
             if className in classification.keys():
                 for element in classification[className]:
-                    result = (result + Entry.NameSeparator + element)
+                    result = (result + MediaClassHandler.TagSeparator + element)
         for element in self.entry.getUnknownElements ():
-            result = (result + '.' + element)
+            result = (result + MediaClassHandler.TagSeparator + element)
         return (result)
 
 
