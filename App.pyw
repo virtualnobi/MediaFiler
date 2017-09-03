@@ -532,10 +532,12 @@ class MediaFiler (wx.Frame, Observer, Observable):
                     logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, log, _('Import Report'), style=wx.RESIZE_BORDER)
                 except:
                     logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
-                # TODO: make dialog resizable
-                logDialog.SetSize(wx.Size(1000,600))
-                logDialog.Show()
                 self.onReload(None)
+                # TODO: make dialog resizable
+#                logDialog.SetSize(wx.Size(1000,600))
+                logDialog.Maximize(True)
+                logDialog.ShowModal()
+                logDialog.Destroy()
                 self.displayInfoMessage(_('%d media imported from %s') % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
             wx.EndBusyCursor()
         dialog.Destroy()  # destroy after getting the user input
@@ -764,7 +766,7 @@ if __name__ == "__main__":
         frame.Show()
         frame.setModel(Installer.getImagePath())
         if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
-            logging.info('App maximizing window')
+            logging.info('App.__main__(): Maximizing window')
             frame.Maximize(True)            
         app.MainLoop()
     
