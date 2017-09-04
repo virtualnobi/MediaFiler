@@ -212,7 +212,7 @@ class Entry(PausableObservable):
         Move the image file into the trash directory.
         """
         self.changedAspect('remove')
-        self.setParentGroup(None, notifyObserversOfRemoval=False)
+        self.setParentGroup(None)
         self.releaseBitmapCache()
         # move to trash
         oldName = self.getPath()
