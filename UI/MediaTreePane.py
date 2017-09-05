@@ -213,6 +213,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             logging.debug('MediaTreeCtrl.update(): selected entry "%s"' % entry.getPath())
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.selectionBeforeFiltering = self.model.getSelectedEntry()
+            self.storeExpansionState()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
             logging.debug('MediaTreeCtrl.update(): Recreating tree...')
             self.DeleteAllItems()
@@ -221,6 +222,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
                 self.setEntry(self.model.getSelectedEntry(), expand=True)
             else:
                 self.setEntry(self.model.getSelectedEntry())
+            self.restoreExpansionState()
             logging.debug('MediaTreeCtrl.update(): Recreating tree finished')
         else:
             super(self, MediaTreeCtrl).update(observable, aspect)
@@ -260,3 +262,25 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 
 
 # Internal
+    def storeExpansionState(self):
+        """Store the expansion state of all Groups, to restore after filtering.
+        """
+        for itemID in self.GetDescendants(self.GetRootItem()):
+            entry = self.GetItemData(itemID).GetData()
+            if (entry <> self.model.getRootEntry()):
+                entry.isExpanded = (entry.isGroup()
+                                    and self.IsExpanded(itemID))
+
+
+    def restoreExpansionState(self):
+        """Restore the expansion state of all unfiltered Groups after filtering.
+        """
+        for itemID in self.GetDescendants(self.GetRootItem()):
+            entry = self.GetItemData(itemID).GetData()
+            if (entry <> self.model.getRootEntry()):
+                if (entry.isExpanded):
+                    self.Expand(itemID)
+                else:
+                    self.Collapse(itemID)
+
+
