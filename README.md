@@ -8,6 +8,8 @@ Please remember that this is a side project, with the priority on learning bette
 
 "Howls of protest cheerfully accepted and occasionally acted upon."
 
+virtualnobi(you-know-the-character)gmx.de
+
 
 # How to install? 
 
