@@ -92,10 +92,9 @@ class Group(Entry):
         
         Dictionary kwargs
             <organization-specific identifiers>
-            Number number 
-            Set of Strings elements
+            Number number not allowed
+            Set of String elements
             Boolean removeIllegalElements
-        
         Return Boolean indicating success
         """
         result = True
@@ -105,7 +104,7 @@ class Group(Entry):
             return(False)
         elements = (kwargs['elements'] if 'elements' in kwargs else None)
         removeIllegalElements = (kwargs['removeIllegalElements'] if 'removeIllegalElements' in kwargs else None)
-        if (self.model.organizedByDate):
+        if (self.model.organizedByDate):  # TODO:
             year = (kwargs['year'] if 'year' in kwargs else None)
             month = (kwargs['month'] if 'month' in kwargs else None)
             day = (kwargs['day'] if 'day' in kwargs else None)
@@ -122,7 +121,7 @@ class Group(Entry):
                 newElements = subEntry.getElements().union(elements)
                 kwargs['elements'] = newElements
                 result = (result and subEntry.renameTo(**kwargs))
-        else:  # organized by name
+        else:  # organized by name  TODO:
             name = (kwargs['name'] if 'name' in kwargs else None)
             scene = (kwargs['scene'] if 'scene' in kwargs else None)
             existingEntryToBeDeleted = False
@@ -373,7 +372,7 @@ class Group(Entry):
         Return String to display as status
             or None
         """
-        print('Group.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
+        print('Group.runContextMenu(): %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.DeleteDoubles):
             wx.BeginBusyCursor()
             deleted = self.deleteDoubles()

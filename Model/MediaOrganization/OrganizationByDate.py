@@ -22,7 +22,7 @@ from nobi.PartialDateTime import PartialDateTime
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from ..Entry import Entry
-#from ..Group import Group
+from ..Group import Group
 #from ..MediaNameHandler import MediaNameHandler
 #from ..MediaClassHandler import MediaClassHandler
 from Model.MediaOrganization import MediaOrganization
@@ -145,14 +145,41 @@ class OrganizationByDate(MediaOrganization):
 
     @classmethod
     def getGroupFromPath(cls, path):
-        """
+        """Return the Group representing the given path. Create it if it does not exist.
+
+        String path filename of a media folder
+        Returns a MediaFiler.Group
+        Raises KeyError 
         """
         (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
         group = cls.ImageFilerModel.getEntry(group=True, year=year, month=month, day=day)
         if (group):
             return(group)
         else:
-            return(super(OrganizationByDate, cls).getGroupFromPath(path))
+            # find or create parent group
+            if (day <> None):
+                day = None
+                month = int(month)
+                year = int(year)
+            elif (month <> None):
+                month = None
+                year = int(year)
+            elif (year <> None):
+                year = None
+            else: 
+                logging.error('OrganizationByDate.getGroupFromPath(): No valid date recognized in "%s"' % path)
+                raise KeyError, ('OrganizationByDate.getGroupFromPath(): No valid date recognized in "%s"' % path)
+            parentPath = cls.constructPath(rootDir=cls.ImageFilerModel.getRootDirectory(),
+                                           day=day,
+                                           month=month,
+                                           year=year)
+            parentGroup = cls.getGroupFromPath(parentPath)
+            if (not parentGroup):
+                logging.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % parentPath)
+                raise KeyError, ('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % parentPath)
+            group = Group(cls.ImageFilerModel, path)
+            group.setParentGroup(parentGroup)
+            return(group)
 
 
     @classmethod

@@ -151,7 +151,7 @@ class Entry(PausableObservable):
 
 # Setters
     def setPath(self, path):
-        self.filePath = path
+        self.filePath = unicode(path)
 
 
     def setDirectory(self, directory):
@@ -290,16 +290,15 @@ class Entry(PausableObservable):
         else:
             self.initFromPath(fname)
             self.changedAspect('name')
-#             self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYear(),
+#             self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYear(),  # TODO:
 #                                                             month=self.organizer.getMonth(),
 #                                                             day=self.organizer.getDay(),
 #                                                             name=self.getName(),
 #                                                             scene=self.getScene())
             # remove from current group, and add to new group
-            newGroup = self.organizer.__class__.getGroupFromPath(fname)
-            if (newGroup == None):
-                pass  # TODO: create newGroup
-            elif (newGroup <> self.getParentGroup()):
+            (head, tail) = os.path.split(fname)  # @UnusedVariable
+            newGroup = self.organizer.__class__.getGroupFromPath(head)
+            if (newGroup <> self.getParentGroup()):
                 self.setParentGroup(newGroup)
             return(True)
 

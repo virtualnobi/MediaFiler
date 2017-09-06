@@ -175,7 +175,8 @@ class OrganizationByName(MediaOrganization):
                 group = Group.createFromName(cls.ImageFilerModel, name)
                 parent = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
                 if (parent == None):
-                    raise ValueError
+                    logging.error('OrganizationByName.getGroupFromPath(): Cannot find parent Group for "%s"' % name)
+                    raise KeyError, ('OrganizationByName.getGroupFromPath(): Cannot find parent Group for "%s"' % name)
                 group.setParentGroup(parent)
         else:
             group = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
