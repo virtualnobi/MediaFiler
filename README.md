@@ -24,5 +24,5 @@ Read the [HOWTO-USE file](https://github.com/virtualnobi/MediaFiler/blob/master/
 # How to help?
 
 * Translate if you need another language: 
-This project uses the standard PO/MO translation files. You'll find them in the 'locale' folder. Just send me translated versions. 
+This project uses the standard PO/MO translation files. You'll find them in the 'locale' folder, and you can edit them as text if you don't want to use the 'poedit' program. Just send updated files or pull requests.  
 
