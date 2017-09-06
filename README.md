@@ -2,7 +2,9 @@
 
 A Python 2.7 GUI app to organize media files. 
 
-This app helps you to organize your images (and, somewhat, videos). It puts the images into a date-based hierarchy of directories, based on their capture date (as recorded in the image EXIF data). It also helps you to organize your media with your own tags.
+This app helps you to organize your images (and, somewhat, videos). It puts the images into a date-based hierarchy of directories, based on their capture date (as recorded in the image EXIF data or the filename). It also helps you to organize your media with your own tags.
+
+Please remember that this is a side project, with the priority on learning better coding. 
 
 "Howls of protest cheerfully accepted and occasionally acted upon."
 
