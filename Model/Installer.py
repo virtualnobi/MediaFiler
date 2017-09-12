@@ -9,13 +9,15 @@
 import os.path
 import shutil
 import gettext
+import logging
 ## Contributed
 import wx
 ## nobi
 from nobi import SecureConfigParser
+from nobi import ProductTraderPattern
 ## Project
 import GlobalConfigurationOptions
-from Entry import Entry
+# from Entry import Entry
 from MediaClassHandler import MediaClassHandler
 import UI
 from UI import GUIId
@@ -53,6 +55,13 @@ ImportFolder = u'import'
 
 
 
+# Variables
+ProductTrader = ProductTraderPattern.SimpleProductTrader()
+
+
+
+# Setters
+# Getters
 def getImagePath():
     """Return the path to the image directory.
     """
@@ -115,30 +124,45 @@ def getImportFolder():
     return(os.path.join(CurrentPath, ImportFolder))
 
 
+def getProductTrader():
+    """Return the ProductTrader which associates subclasses of Entry with file types.
+    """ 
+    return(ProductTrader)
+
+
+
+# Other API Functions
 def checkInstallation():
     """Determine whether the specified path contains all required files.
 
     Returns Boolean indicating whether the installation is ok
     """
-    print('Checking "%s"...' % CurrentPath)
+    logging.debug('Installer.checkInstallation(): Checking folders at "%s"...' % CurrentPath)
     if (not os.path.isdir(getImagePath())):
-        print('Image directory missing')
+        logging.debug('Installer.checkInstallation(): Image directory does not exist')
         return(False)
     if (not os.path.isdir(getLibraryPath())):
+        logging.debug('Installer.checkInstallation(): Library directory does not exist')
         return(False)
     if (not os.path.exists(getLogoPath())):
+        logging.debug('Installer.checkInstallation(): Logo image does not exist')
         return(False)
     if (not os.path.exists(getConfigurationFilePath())):
+        logging.debug('Installer.checkInstallation(): Configuration file does not exist')
         return(False)
-    for c in Entry.ProductTrader.getClasses():
+#     for c in Entry.ProductTrader.getClasses():
+    for c in getProductTrader().getClasses():
         if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
+            logging.debug('Installer.checkInstallation(): No preview image for class %s exists.' % c)
             print('No preview image for class %s exists.' % c)
             return(False)
     if (not os.path.exists(getClassFilePath())):
+        logging.debug('Installer.checkInstallation(): Tag name file does not exist')
         return(False)
     if (not os.path.isdir(getTrashPath())):
+        logging.debug('Installer.checkInstallation(): Trash directory does not exist')
         return(False)
-    print('Check passed')
+    logging.debug('Installer.checkInstallation(): Folders at "%s" are ok' % CurrentPath)
     return(True)
 
 
@@ -147,36 +171,44 @@ def install():
 
     Return Boolean indicating installation succeeded
     """
-    print('Installing MediaFiler at "%s"' % CurrentPath)
+    logging.debug('Installer.install(): Preparing folders at "%s"' % CurrentPath)
     try:
         if (not os.path.isdir(getImagePath())):
             os.makedirs(getImagePath())
+            logging.debug('Installer.install(): Image folder created')
         if (not os.path.isdir(getLibraryPath())):
             os.makedirs(getLibraryPath())
+            logging.debug('Installer.install(): Library folder created')
         if (not os.path.exists(getLogoPath())):
             shutil.copyfile(os.path.join(InstallationPath, ImageFolder, LogoFilename), 
                             getLogoPath())
+            logging.debug('Installer.install(): Logo file copied')
         if (not os.path.exists(getConfigurationFilePath())):
-            config = SecureConfigParser(getConfigurationFilePath())
+            config = SecureConfigParser.SecureConfigParser(getConfigurationFilePath())
             config.add_section(GUIId.AppTitle)
             config.set(GUIId.AppTitle, 
                        GlobalConfigurationOptions.TextEditor, 
                        ('notepad /W "%s"' % GlobalConfigurationOptions.Parameter))
-        for c in Entry.ProductTrader.getClasses():
+            logging.debug('Installer.install(): Configuration file created')
+        for c in getProductTrader().getClasses():
             if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
                 shutil.copyfile(os.path.join(InstallationPath, ImageFolder, c.PreviewImageFilename),
                                 os.path.join(getLibraryPath(), c.PreviewImageFilename))
+                logging.debug('Installer.install(): Preview image %s copied' % c.PreviewImageFilename)
         if (not os.path.exists(getClassFilePath())):
             with open(getClassFilePath(), 'w') as cfile:
                 cfile.write(MediaClassHandler.InitialFileContent)
+            logging.debug('Installer.install(): Tag file created')
         if (not os.path.isdir(getTrashPath())):
             os.makedirs(getTrashPath())
+            logging.debug('Installer.install(): Trash folder created')
         if (not os.path.isdir(getImportFolder())):
             os.makedirs(getImportFolder())
-    except:
-        print('Installation failed')
+            logging.debug('Installer.install(): Import folder created')
+    except Exception as e:
+        logging.critical('Installer.install(): Installation failed with exception:\n%s' % e)
         return(False)
-    print('Installation ok')
+    logging.debug('Installer.install(): Folders at "%s" are ok' % CurrentPath)
     return(True)
 
 
@@ -194,21 +226,23 @@ def ensureInstallationOk(window):
     CurrentPath = os.getcwdu()
     if (not checkInstallation()):
         dlg = wx.DirDialog(window, 
-                           _("The current working directory for this program is not a valid media directory. Choose a media directory:"), 
+                           _('The current working directory for this program is not a valid media directory. Choose a media directory:'), 
                            style=wx.DD_DEFAULT_STYLE)
         dlg.SetPath(CurrentPath)
         CurrentPath = None
         if (dlg.ShowModal() == wx.ID_OK):
             CurrentPath = dlg.GetPath()
-            print('User selected "%s"' % CurrentPath)
             if (not checkInstallation()
                 and not install()):
+                dlg = wx.MessageDialog(window, _('Creation of required folders and files failed.'), _('Error'), wx.CANCEL)
+                dlg.ShowModal()
+                dlg.Destroy()
                 CurrentPath = None
         else:
-            print('Cancelled by user')
+            logging.debug('Installer.ensureInstallationOk(): Cancelled by user')
         dlg.Destroy()
     if (CurrentPath):
-        print('Changing working directory to "%s"' % CurrentPath)
+        logging.debug('Installer.ensureInstallationOk(): Changing working directory to "%s"' % CurrentPath)
         os.chdir(CurrentPath)
         return(True)
     else:

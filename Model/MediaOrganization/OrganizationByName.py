@@ -117,8 +117,8 @@ class OrganizationByName(MediaOrganization):
             if (not pathInfo['name']):
                 importParameters.logString('Cannot determine new name for "%s", terminating import!' % sourcePath)
                 return
-            groupExists = os.path.isdir(self.constructPathForOrganization(**pathInfo))
-            singleExists = (len(glob.glob(self.constructPathForOrganization(**pathInfo) + MediaOrganization.NameSeparator + '*')) > 0)
+            groupExists = os.path.isdir(self.constructPath(**pathInfo))
+            singleExists = (len(glob.glob(self.constructPath(**pathInfo) + MediaOrganization.NameSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
                 importParameters.logString('OrganizationByName: Cannot merge two singles into group (NYI)!')
                 return
@@ -167,22 +167,35 @@ class OrganizationByName(MediaOrganization):
         Returns a MediaFiler.Group
         Raises ValueError 
         """
-        parent = None
-        name = cls.deriveName(StringIO.StringIO(), path)
-        if (os.path.join(name, '') in path):  # if name is a directory, path indicates a media group
-            group = cls.ImageFilerModel.getEntry(group=True, name=name)
-            if (not group):
-                group = Group.createFromName(cls.ImageFilerModel, name)
-                parent = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
+        group = cls.ImageFilerModel.getEntry(group=True, path=path)
+        if (group == None):
+            group = Group(cls.ImageFilerModel, path)
+            groupPathPattern = os.path.join(cls.ImageFilerModel.getRootDirectory(), '[a-z]')
+            match = re.match(groupPathPattern, path)
+            if (match):
+                parent = cls.ImageFilerModel.getRootEntry()
+            else: 
+                (parentPath, name) = os.path.split(path)  # @UnusedVariable
+                parent = cls.getGroupFromPath(parentPath)
                 if (parent == None):
-                    logging.error('OrganizationByName.getGroupFromPath(): Cannot find parent Group for "%s"' % name)
-                    raise KeyError, ('OrganizationByName.getGroupFromPath(): Cannot find parent Group for "%s"' % name)
-                group.setParentGroup(parent)
-        else:
-            group = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
-        if (not group):
-            raise ValueError
+                    raise ValueError, ('OrganizationByName.getGroupFromPath(): Cannnot find parent Group for "%s"' % path)
+            group.setParentGroup(parent)
         return(group)
+#         parent = None
+#         if (os.path.join(name, '') in path):  # if name is a directory, path indicates a media group
+#             group = cls.ImageFilerModel.getEntry(group=True, name=name)
+#             if (not group):
+#                 group = Group.createFromName(cls.ImageFilerModel, name)
+#                 parent = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
+#                 if (parent == None):
+#                     logging.error('OrganizationByName.getGroupFromPath(): Cannot find parent Group for "%s"' % name)
+#                     raise KeyError, ('OrganizationByName.getGroupFromPath(): Cannot find parent Group for "%s"' % name)
+#                 group.setParentGroup(parent)
+#         else:
+#             group = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
+#         if (not group):
+#             raise ValueError
+#         return(group)
 
 
     @classmethod
@@ -282,7 +295,8 @@ class OrganizationByName(MediaOrganization):
         try:
             self.__class__.nameHandler.registerNameAsUsed(self.getName())
         except: 
-            logging.warning('OrganizationByName(): "%s" is not a legal name in "%s"' % (self.getName(), anEntry.getPath()))
+            if (not self.context.isGroup()):
+                logging.warning('OrganizationByName(): "%s" is not a legal name in "%s"' % (self.getName(), anEntry.getPath()))
         return(None)
 
 
@@ -305,7 +319,7 @@ class OrganizationByName(MediaOrganization):
                            """, 
                           path,
                           re.VERBOSE)
-        if (match  # path is for an image in a group of images with the same name
+        if (match
             and self.nameHandler.isNameLegal(match.group(3))):  # and name is legal
             self.name = match.group(2)
             self.scene = match.group(4)
@@ -317,7 +331,7 @@ class OrganizationByName(MediaOrganization):
                                """, 
                               path, 
                               re.VERBOSE)
-            if (match  # path is for an single named image 
+            if (match 
                 and self.nameHandler.isNameLegal(match.group(3))):  # and name is legal
                 self.name = match.group(2)
                 rest = match.group(4)
@@ -328,6 +342,9 @@ class OrganizationByName(MediaOrganization):
                                    re.VERBOSE)
                 if (match):
                     self.name = match.group(1)
+                    rest = ''
+                elif (path == ''):  # fourth try: '' is the root node
+                    self.name = ''
                     rest = ''
                 else:  # no match, or illegal name
                     logging.info('OrganizationByName.setIdentifiersFromPath(): Cannot extract identifiers from "%s"' % path)

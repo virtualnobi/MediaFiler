@@ -193,7 +193,8 @@ class MediaOrganization(object):
         String path contains the media's file path
         Returns a MediaFiler.Group instance
         """
-        return(cls.ImageFilerModel.getRootEntry())
+        raise NotImplementedError
+#         return(cls.ImageFilerModel.getRootEntry())
 
 
     @classmethod
@@ -257,6 +258,8 @@ class MediaOrganization(object):
         self.path = os.path.normpath(aPath)
         self.number = ''
         unconsumed = self.setIdentifiersFromPath(self.context.getOrganizationIdentifier())
+        if (unconsumed == self.context.getOrganizationIdentifier()):
+            logging.warning('MediaOrganization(): "%s" may contain illegal identifier' % aPath)
         unconsumed = self.setNumberFromPath(unconsumed)
         return(None)
 
@@ -270,7 +273,7 @@ class MediaOrganization(object):
         
         Return String
         """
-        raise BaseException('Subclass must implement')
+        raise NotImplementedError
 
 
     def setNumberFromPath(self, pathRest):

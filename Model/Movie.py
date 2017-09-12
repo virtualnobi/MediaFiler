@@ -12,7 +12,7 @@ import wx
 ## nobi
 ## project
 import Installer
-from .Entry import Entry
+# from .Entry import Entry
 from .Single import Single
 import UI  # to access UI.PackagePath
 
@@ -132,7 +132,8 @@ class Movie(Single):
 # Internal - to change without notice
 # Class Initialization
 for extension in Movie.LegalExtensions: 
-    Entry.ProductTrader.registerClassFor(Movie, extension)  # register Movie to handle extension
+#     Entry.ProductTrader.registerClassFor(Movie, extension)  # register Movie to handle extension
+    Installer.getProductTrader().registerClassFor(Movie, extension)  # register Movie to handle extension
 
 
 

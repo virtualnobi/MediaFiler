@@ -89,7 +89,7 @@ class PartialDateTime(object):
                             if (match.group(3)):
                                 self.day = int(match.group(3))
                 else:
-                    raise ValueError
+                    raise ValueError, ('String "%s" does not contain a valid date to create PartialDateTime' % arg)
             else:
                 raise ValueError
         elif (len(args) == 3):
@@ -100,32 +100,32 @@ class PartialDateTime(object):
                     if (isinstance(args[2], Number)):
                         self.day = args[2]
                     elif (args[2] != None):
-                        raise ValueError
+                        raise ValueError, ('Day Number (or None) required instead of "%s" to create PartialDateTime' % args[2])
                 elif (args[1] == None):
                     if (args[2] != None):
-                        raise ValueError
+                        raise ValueError, 'Month must be given if day is given when creating PartialDateTime'
                 else:
-                    raise ValueError 
+                    raise ValueError, ('Month Number (or None) required instead of "%s" to create PartialDateTime' % args[1]) 
             elif (args[0] == None):
                 if ((args[1] != None)
                     or (args[2] != None)):
-                    raise ValueError
+                    raise ValueError, 'Year must be given if month or day are given when creation PartialDateTime'
             else:
-                raise ValueError 
+                raise ValueError, ('Year Number required instead of "%s" to create PartialDateTime' % args[0])
         else:
-            raise ValueError
-        if (self.year
+            raise ValueError, ('Illegal arguments given to create PartialDateTime')
+        if ((self.year <> None)
             and ((self.year < datetime.MINYEAR)
                  or (datetime.MAXYEAR < self.year))):
-            raise ValueError
-        if (self.month
+            raise ValueError, ('Illegal year %s given when creating PartialDateTime' % self.year)
+        if ((self.month <> None) 
             and ((self.month < 1)
                  or (12 < self.month))):
-            raise ValueError
-        if (self.day):
-            if ((self.day < 1)
-                or (self.lastDayOfMonth(self.year, self.month) < self.day)):
-                raise ValueError
+            raise ValueError, ('Illegal month %s given when creating PartialDateTime' % self.month)
+        if ((self.day <> None)
+            and ((self.day < 1)
+                 or (self.lastDayOfMonth(self.year, self.month) < self.day))):
+                raise ValueError, ('Illegal day %s given when creating PartialDateTime' % self.day)
         return(None)
 
 
@@ -344,7 +344,7 @@ class PartialDateTime(object):
             except Exception as exc:
                 raise exc
             else: 
-                return (day)
+                return(day)
         raise ValueError, ('Cannot determine latest day of month %d in year %d' % (month, year))
 
 

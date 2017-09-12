@@ -63,6 +63,7 @@ class TestPartialDateTime(unittest.TestCase):
             PartialDateTime(2000, 1, 40)
             PartialDateTime(2000, 1, -2)
             PartialDateTime(2000, None, 24)
+            PartialDateTime(2000, 0, 1)
 
 
     def testComparison(self):

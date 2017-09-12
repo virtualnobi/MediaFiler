@@ -11,11 +11,14 @@ import os.path
 import logging
 ## contributed
 import wx
+from nobi.SortedCollection import SortedCollection 
 ## nobi
 from nobi.PausableObservable import PausableObservable
 ## project
+import Installer
 from .Entry import Entry
 from UI import GUIId
+from Model.MediaClassHandler import MediaClassHandler
 #import MediaFiler.Organization  
 
 
@@ -24,7 +27,7 @@ from UI import GUIId
 class Group(Entry):
     """A Group is an Observable representing an image folder.
     
-    Group registers with Entry.ProductTrader to handle directories.
+    Group registers with Installer.getProductTrader() to handle directories.
     """
 
 
@@ -61,7 +64,8 @@ class Group(Entry):
         # inheritance
         super(Group, self).__init__(model, path)
         # internal state
-        self.subEntries = []
+        #self.subEntries = []
+        self.subEntriesSorted = SortedCollection(key=Entry.getPath)
 
 
 
@@ -75,7 +79,12 @@ class Group(Entry):
         MediaFiler.Entry entry the subentry of self to remove. 
         Boolean notifyObservers indicates whether to notify self's Observers.
         """
-        self.subEntries.remove(entry)
+        #self.subEntries.remove(entry)
+        try:
+            self.subEntriesSorted.remove(entry)
+        except BaseException as e:
+            logging.error('Group.removeEntryFromGroup(): Cannot find "%s" in subentries of "%s"' % (entry.getPath(), self.getPath()))
+            raise e
         if (notifyObservers):
             self.changedAspect('children')
     
@@ -83,7 +92,8 @@ class Group(Entry):
     def addEntryToGroup (self, entry):
         """Add photoFilerEntry entry to self's collection.
         """
-        self.subEntries.append(entry)
+        #self.subEntries.append(entry)
+        self.subEntriesSorted.insert(entry)
         self.changedAspect('children')        
 
 
@@ -104,7 +114,7 @@ class Group(Entry):
             return(False)
         elements = (kwargs['elements'] if 'elements' in kwargs else None)
         removeIllegalElements = (kwargs['removeIllegalElements'] if 'removeIllegalElements' in kwargs else None)
-        if (self.model.organizedByDate):  # TODO:
+        if (self.model.organizedByDate):  # TODO: move to OrganizationByDate
             year = (kwargs['year'] if 'year' in kwargs else None)
             month = (kwargs['month'] if 'month' in kwargs else None)
             day = (kwargs['day'] if 'day' in kwargs else None)
@@ -121,17 +131,11 @@ class Group(Entry):
                 newElements = subEntry.getElements().union(elements)
                 kwargs['elements'] = newElements
                 result = (result and subEntry.renameTo(**kwargs))
-        else:  # organized by name  TODO:
-            name = (kwargs['name'] if 'name' in kwargs else None)
-            scene = (kwargs['scene'] if 'scene' in kwargs else None)
-            existingEntryToBeDeleted = False
-            if (name == None):
-                print('Renaming subentries of "%s"' % self.getPath())
-                # construct an identity scene map
-                sceneMap = {}
-                for scene in self.getScenes():
-                    sceneMap[scene] = scene
-            else:
+        else:  # organized by name  TODO: move to OrganizationByName
+            selfToBeDeleted = False
+            if (('name' in kwargs)
+                and (kwargs['name'] <> self.organizer.getName())):
+                name = kwargs['name']
                 existingEntry = self.model.getEntry(name=name)
                 if (existingEntry == None):
                     print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.getName(), elements))
@@ -141,37 +145,53 @@ class Group(Entry):
                 elif (existingEntry.isGroup()):
                     print('Group "%s" exists' % name)
                     newGroup = existingEntry
-                    existingEntryToBeDeleted = True
+                    selfToBeDeleted = True
                 else:  # existingEntry is a Single
                     print('Single "%s" exists' % name)
                     newGroup = Group.createFromName(self.model, name)
-                    existingEntry.renameTo(name=name, scene='1')
+                    newGroup.setParent(self.model.getEntry(group=True, name=name[0:1]))
+                    existingEntry.renameTo(name=name, scene='1', makeUnique=True)
+                    selfToBeDeleted = True
                 print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newGroup.getPath()))
                 # construct mapping from scenes in current group to scenes in existing target group
                 sceneMap = {}
-                nextFreeScene = (len(newGroup.getScenes()) + 1)  # TODO: ignore special '99' scene
+                nextFreeScene = (len(newGroup.getScenes()) + 1)
+                if ('99' in newGroup.getScenes()):
+                    nextFreeScene = (nextFreeScene - 1)
+                if (MediaClassHandler.ElementNew in newGroup.getScenes()):
+                    nextFreeScene = (nextFreeScene - 1)
                 for scene in self.getScenes():
-                    sceneMap[scene] = ('%02d' % nextFreeScene)  # TODO: refer to Organization 
-                    nextFreeScene = (nextFreeScene + 1)
+                    if (scene == MediaClassHandler.ElementNew):
+                        sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
+                    else:
+                        sceneMap[scene] = ('%02d' % nextFreeScene) 
+                        nextFreeScene = (nextFreeScene + 1)
+            else:
+                print('Renaming subentries of "%s"' % self.getPath())
+                if ('name' in kwargs):
+                    del kwargs['name']
+                # construct an identity scene map
+                sceneMap = {}
+                for scene in self.getScenes():
+                    sceneMap[scene] = scene
             print('   with scene mapping %s' % sceneMap)
             # move each subEntry
-            print('   %d subentries' % len(self.subEntries))
-            #PausableObservable.pauseUpdates(Entry, None, None)
+            print('   %d subentries' % len(self.subEntriesSorted))
             for subEntry in self.getSubEntries(False):  
                 newElements = subEntry.getElements()
                 if (elements):
                     newElements = (newElements.union(elements))
                 if (removeIllegalElements):
                     newElements.remove(subEntry.getUnknownElements())
-                subEntry.renameTo(name=name, 
-                                  scene=sceneMap[subEntry.getScene()], 
-                                  number=subEntry.getNumber(), 
-                                  elements=newElements, 
-                                  removeIllegalElements=removeIllegalElements)
-            if (existingEntryToBeDeleted):
-                existingEntry.remove()
+                kwargs2 = kwargs.copy()
+                kwargs2['elements'] = newElements
+                kwargs2['scene'] = sceneMap[subEntry.getScene()]
+                subEntry.renameTo(number=subEntry.getNumber(), 
+                                  removeIllegalElements=removeIllegalElements,
+                                  **kwargs2)
+            if (selfToBeDeleted):
+                self.remove()
                 self.model.setSelectedEntry(newGroup)
-            #PausableObservable.resumeUpdates(Entry, None, None)
         return(result)
 
 
@@ -188,18 +208,24 @@ class Group(Entry):
         Boolean filtering if True, no filtered subentry is returned        
         Return List of Entry
         """
+#         if (filtering):
+#             result = []
+#             for entry in self.subEntries: 
+#                 if (entry.filteredFlag):
+#                     #print "%s filtered out" % entry.pathname
+#                     pass
+#                 else:
+#                     result.append(entry)
+#         else:
+#             result = copy.copy(self.subEntries)
+#         result.sort(key=Entry.getPath)
         if (filtering):
-            result = []
-            for entry in self.subEntries: 
-                if (entry.filteredFlag):
-                    #print "%s filtered out" % entry.pathname
-                    pass
-                else:
-                    result.append(entry)
+            result2 = [entry for entry in self.subEntriesSorted if (not entry.filteredFlag)]
         else:
-            result = copy.copy(self.subEntries)
-        result.sort(key=Entry.getPath)
-        return(result)
+            result2 = [entry for entry in self.subEntriesSorted]
+#         if (result <> result2):
+#             print 'Group.getSubEntries(): SortedCollection failed'
+        return(result2)
 
 
     def getKnownElements (self):
@@ -208,7 +234,7 @@ class Group(Entry):
         Return Set of String.
         """
         result = None
-        for subEntry in self.subEntries:
+        for subEntry in self.getSubEntries(filtering=False):
             if (result == None):  # first iteration
                 result = set(subEntry.getKnownElements())
             else:
@@ -225,7 +251,7 @@ class Group(Entry):
         Return Set of String
         """
         result = None
-        for subEntry in self.subEntries:
+        for subEntry in self.getSubEntries(filtering=False):
             if (result == None):  # first iteration
                 result = set(subEntry.getUnknownElements())
             else:
@@ -249,7 +275,7 @@ class Group(Entry):
         
         Return a String
         """
-        return(GUIId.TextGroupSizeString % len(self.subEntries))
+        return(GUIId.TextGroupSizeString % len(self.subEntriesSorted))
 
 
     def getFirstEntry(self):
@@ -290,9 +316,9 @@ class Group(Entry):
         
         Return MediaFiler.Entry or None
         """
-        index = self.subEntries.index(entry)
-        if (index < (len(self.subEntries) - 1)):
-            nextEntry = self.subEntries[index + 1]
+        index = self.subEntriesSorted.index(entry)
+        if (index < (len(self.subEntriesSorted) - 1)):
+            nextEntry = self.subEntriesSorted[index + 1]
             if (nextEntry.isGroup()):
                 nextEntry = nextEntry.getFirstEntry()
             return(nextEntry)
@@ -305,9 +331,9 @@ class Group(Entry):
         
         Return MediaFiler.Entry or None
         """
-        index = self.subEntries.index(entry)
+        index = self.subEntriesSorted.index(entry)
         if (0 < index):
-            prevEntry = self.subEntries[index - 1]
+            prevEntry = self.subEntriesSorted[index - 1]
             if (prevEntry.isGroup()):
                 prevEntry = prevEntry.getLastEntry()
             return(prevEntry)
@@ -392,11 +418,11 @@ class Group(Entry):
         """
         PausableObservable.pauseUpdates(Entry, 'name', None)
         doubles = 0
-        for entry1 in self.subEntries[:]:
+        for entry1 in self.subEntriesSorted[:]:
             if (entry1.isGroup()):
                 doubles = (doubles + entry1.deleteDoubles())
             else:
-                for entry2 in self.subEntries[:]:
+                for entry2 in self.subEntriesSorted[:]:
                     if (entry2.isGroup()):
                         pass
                     elif (entry1 == entry2):
@@ -413,11 +439,11 @@ class Group(Entry):
     def removeNewIndicator(self):
         """Remove the new indicator on all subentries
         """
-        for entry in self.subEntries:
+        for entry in self.subEntriesSorted:
             entry.removeNewIndicator()
 
     
     
 # Class Initialization
-Entry.ProductTrader.registerClassFor(Group, Entry.SpecificationGroup)  # register Group to handle directories
+Installer.getProductTrader().registerClassFor(Group, Entry.SpecificationGroup)  # register Group to handle directories
     

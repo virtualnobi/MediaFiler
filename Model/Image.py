@@ -13,7 +13,7 @@ import wx
 ## nobi
 ## project
 import Installer
-from .Entry import Entry
+# from .Entry import Entry
 from .Single import Single
 import UI  # to access UI.PackagePath
 from Model.CachingController import CachingController
@@ -212,4 +212,4 @@ class Image(Single):
 # Internal - to change without notice
 # Class Initialization
 for extension in Image.LegalExtensions: 
-    Entry.ProductTrader.registerClassFor(Image, extension)
+    Installer.getProductTrader().registerClassFor(Image, extension)

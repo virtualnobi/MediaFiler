@@ -83,7 +83,7 @@ class MediaCollection(Observable, Observer):
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection'])
         # internal state
         if (rootDir):
-            self.setRootDirectory(rootDir)
+            self.setRootDirectoryProfiled(rootDir)
         logging.debug('MediaCollection.init() finished')
         return(None)
 
@@ -113,10 +113,7 @@ class MediaCollection(Observable, Observer):
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
         self.loadSubentries(self.root)
-#         if (not self.organizedByDate):
-#             self.organizationStrategy.nameHandler.registerAllNamesAsFree()
         self.cacheCollectionProperties()
-        # initialize filter to no restrictions
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'changed')
         # select initial entry
@@ -143,7 +140,7 @@ class MediaCollection(Observable, Observer):
         profiler.disable()
         resultStream = StringIO.StringIO()
         ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
-        ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
+        #ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
         ps.sort_stats('time')  # sort according to time per function call, excluding called functions
         ps.print_stats(20)  # print top 20 
         print('Profiling Results for MediaCollection.setRootDirectory()')
@@ -660,12 +657,13 @@ class MediaCollection(Observable, Observer):
                 self.cachedMaximumSize = fsize
             if (self.organizedByDate):
                 entryDate = entry.organizer.dateTaken
-                if ((not self.cachedEarliestDate)
-                    or (entryDate.getEarliestDateTime() < self.cachedEarliestDate)):
-                    self.cachedEarliestDate = entryDate.getEarliestDateTime()
-                if ((not self.cachedLatestDate)
-                    or (self.cachedLatestDate < entryDate.getLatestDateTime())):
-                    self.cachedLatestDate = entryDate.getLatestDateTime()
+                if (entryDate):
+                    if ((not self.cachedEarliestDate)
+                        or (entryDate.getEarliestDateTime() < self.cachedEarliestDate)):
+                        self.cachedEarliestDate = entryDate.getEarliestDateTime()
+                    if ((not self.cachedLatestDate)
+                        or (self.cachedLatestDate < entryDate.getLatestDateTime())):
+                        self.cachedLatestDate = entryDate.getLatestDateTime()
         logging.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
                       % (self.cachedEarliestDate, self.cachedLatestDate))
         logging.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 

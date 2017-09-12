@@ -14,7 +14,7 @@ import datetime
 ## nobi
 from nobi.PausableObservable import PausableObservable
 from nobi.wxExtensions.Menu import Menu
-from nobi.ProductTraderPattern import SimpleProductTrader
+# from nobi.ProductTraderPattern import SimpleProductTrader
 ## Project
 from UI import GUIId
 import Installer
@@ -54,7 +54,7 @@ class Entry(PausableObservable):
 
 
 # Class Variables
-    ProductTrader = SimpleProductTrader()
+#     ProductTrader = SimpleProductTrader()
     
     
     
@@ -68,7 +68,8 @@ class Entry(PausableObservable):
         Return a Boolean indicating whether extension is handled by Entry
         """
         try:
-            self.ProductTrader.getClassFor(extension.lower())
+#             self.ProductTrader.getClassFor(extension.lower())
+            Installer.getProductTrader().getClassFor(extension.lower())
         except:  # no class registered for this extension
             return(False)
         return(True)
@@ -87,12 +88,14 @@ class Entry(PausableObservable):
         clas = None
         # determine which class to instantiate
         if (os.path.isdir(path)):
-            clas = self.ProductTrader.getClassFor(self.SpecificationGroup)
+#             clas = self.ProductTrader.getClassFor(self.SpecificationGroup)
+            clas = Installer.getProductTrader().getClassFor(self.SpecificationGroup)
         else:
             (dummy, extension) = os.path.splitext(path) 
             extension = extension[1:].lower()  # remove leading '.'
             try:
-                clas = self.ProductTrader.getClassFor(extension)
+#                 clas = self.ProductTrader.getClassFor(extension)
+                clas = Installer.getProductTrader().getClassFor(extension)
             except:  # probably extension has no class registered to handle it
                 logging.error('Entry.createInstance(): No class registered to instantiate "%s" media "%s"!' % (extension, path))
                 return(None)
@@ -288,6 +291,12 @@ class Entry(PausableObservable):
             print('Renaming failed (exception follows)!\n%s' % e)
             return(False)
         else:
+            # remove from current group, and add to new group
+            (head, tail) = os.path.split(fname)  # @UnusedVariable
+            newGroup = self.organizer.__class__.getGroupFromPath(head)
+            if (newGroup <> self.getParentGroup()):
+                self.setParentGroup(newGroup)
+            # name must be changed last, otherwise the Group will not find its subentry
             self.initFromPath(fname)
             self.changedAspect('name')
 #             self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYear(),  # TODO:
@@ -295,11 +304,6 @@ class Entry(PausableObservable):
 #                                                             day=self.organizer.getDay(),
 #                                                             name=self.getName(),
 #                                                             scene=self.getScene())
-            # remove from current group, and add to new group
-            (head, tail) = os.path.split(fname)  # @UnusedVariable
-            newGroup = self.organizer.__class__.getGroupFromPath(head)
-            if (newGroup <> self.getParentGroup()):
-                self.setParentGroup(newGroup)
             return(True)
 
 

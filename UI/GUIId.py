@@ -89,7 +89,7 @@ DeleteImage = generateWxIdForLabel(_('Delete Image'))  # TODO: add name of selec
 DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
 
 RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
-RandomName = generateWxIdForLabel(_('Choose Random Name'))  # TODO: add random free name here
+RandomName = generateWxIdForLabel(_('Choose Random Name'))
 ChooseName = generateWxIdForLabel(_('Choose Name Manually...'))
 RandomConvertToSingle = wx.NewId()  # for a Single inside a Group, choose a random (free) name
 ChooseConvertToSingle = wx.NewId()  # for a Single inside a Group, ask user for an (existing) name

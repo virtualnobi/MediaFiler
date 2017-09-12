@@ -21,8 +21,8 @@ from nobi.PartialDateTime import PartialDateTime
 ## Project
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from ..Entry import Entry
-from ..Group import Group
+from Model.Entry import Entry
+from Model.Group import Group
 #from ..MediaNameHandler import MediaNameHandler
 #from ..MediaClassHandler import MediaClassHandler
 from Model.MediaOrganization import MediaOrganization
@@ -57,6 +57,7 @@ class OrganizationByDate(MediaOrganization):
     """
 
 
+
 # Constants
     # format strings for date output
     FormatYear = '%04d'
@@ -67,16 +68,24 @@ class OrganizationByDate(MediaOrganization):
     UnknownDateName = (FormatYear % 0)
     # RE patterns to recognize dates
     YearString = '((?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d))'  # 4-digit year
-    ReducedYearString = r'[/\\](\d\d)'  # 2-digit year, only allowed at beginning of path component
+    YearString2 = '(?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d)'  # 4-digit year
     MonthString = '[01]\d'  # 2-digit month
     DayString = '[0123]\d'  # 2-digit day
     SeparatorString = r'[-_:/\.\\]'  # separator characters
-    YearPattern = re.compile('%s(?!\d)' % YearString)
-    ReducedYearPattern = re.compile('%s(?!\d)' % ReducedYearString)
+    YearPattern = re.compile(r'[/\\]%s(?!\d)' % YearString)
     MonthPattern = re.compile('%s%s(%s)(?!\d)' % (YearString, SeparatorString, MonthString))
-    ReducedMonthPattern = re.compile(r'%s%s(%s)(?!\d)' % (ReducedYearString, SeparatorString, MonthString))
     DayPattern = re.compile('%s(%s)(%s)\\2(%s)(?!\d)' % (YearString, SeparatorString, MonthString, DayString))
+    # Reduced patterns with 2-digit year
+    ReducedYearString = r'[/\\](\d\d)'  # 2-digit year, only allowed at beginning of path component
+    ReducedYearString2 = r'\d\d'  # 2-digit year, only allowed at beginning of path component
+    ReducedYearPattern = re.compile('%s(?!\d)' % ReducedYearString)
+    ReducedMonthPattern = re.compile(r'%s%s(%s)(?!\d)' % (ReducedYearString, SeparatorString, MonthString))
     ReducedDayPattern = re.compile('%s(%s)(%s)\\2(%s)(?!\d)' % (ReducedYearString, SeparatorString, MonthString, DayString))
+    # German Date
+    GermanDayPattern2 = re.compile(r'(%s)(\.)(%s)\2(%s)' % (DayString, MonthString, YearString2))
+    ReducedGermanDayPattern2 = re.compile(r'(%s)(\.)(%s)\2(%s)' % (DayString, MonthString, ReducedYearString2))
+    # Simplified pattern without separators
+    SimpleDayPattern = re.compile(r'%s%s%s' % (YearString, MonthString, DayString))
 
 
 
@@ -85,9 +94,10 @@ class OrganizationByDate(MediaOrganization):
     @classmethod
     def constructPathForOrganization(self, **kwargs):
         """
-        Number year
-        Number month
-        Number day
+        Dictionary kwargs
+            Number year
+            Number month
+            Number day
         """
         if (('year' in kwargs)
             and kwargs['year']):
@@ -151,12 +161,11 @@ class OrganizationByDate(MediaOrganization):
         Returns a MediaFiler.Group
         Raises KeyError 
         """
-        (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
-        group = cls.ImageFilerModel.getEntry(group=True, year=year, month=month, day=day)
+        group = cls.ImageFilerModel.getEntry(group=True, path=path)
         if (group):
             return(group)
         else:
-            # find or create parent group
+            (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
             if (day <> None):
                 day = None
                 month = int(month)
@@ -397,6 +406,92 @@ class OrganizationByDate(MediaOrganization):
 
 
     @classmethod
+    def deriveDateFromPath2(cls, log, path):  # @UnusedVariable
+        """Determine the date of a file from its path. 
+        
+        StringIO log is used to report progress. 
+        String path contains the absolute filename.  
+        Return a triple (year, month, day, rest) where 
+            year, month, and day are either String or None 
+            String rest contains the rest of path not consumed by the match
+        """
+        year = None
+        month = None
+        day = None
+        usingReducedPattern = False
+        # search for date
+        match = cls.DayPattern.search(path)
+        if (match == None):
+            usingReducedPattern = True
+            match = cls.ReducedDayPattern.search(path)
+        if (match):
+            year = match.group(1)
+            month = match.group(3)
+            day = match.group(4)
+            if (usingReducedPattern):
+                if (len(year) <> 2):
+                    logging.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
+                    return(cls.UnknownDateName, None, None, path)
+                year = cls.expandReducedYear(year)
+            matched = path[match.start():match.end()]
+            matchIndex = match.start()
+        else:
+            usingReducedPattern = False
+            match = cls.GermanDayPattern2.search(path)
+            if (match == None):
+                usingReducedPattern = True
+                match = cls.ReducedGermanDayPattern2.search(path)
+            if (match): 
+                day = match.group(1)
+                month = match.group(3)
+                year = match.group(4)
+                if (usingReducedPattern):
+                    if (len(year) <> 2):
+                        logging.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
+                        return(cls.UnknownDateName, None, None, path)
+                    year = cls.expandReducedYear(year)
+                matched = path[match.start():match.end()]
+                matchIndex = match.start()
+            else:
+                usingReducedPattern = False
+                match = cls.MonthPattern.search(path)
+                if (match == None):
+                    usingReducedPattern = True
+                    match = cls.ReducedMonthPattern.search(path)
+                if (match):
+                    year = match.group(1)
+                    month = match.group(2)
+                    if (usingReducedPattern):
+                        if (len(year) <> 2):
+                            logging.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
+                            return(cls.UnknownDateName, None, None, path)
+                        year = cls.expandReducedYear(year)
+                    matched = path[match.start():match.end()]
+                    matchIndex = match.start()
+                else: 
+                    match = cls.YearPattern.search(path)
+                    if (match):
+                        year = match.group(1)
+                        matched = path[match.start():match.end()]
+                        matchIndex = match.start()
+                    else:
+                        (year, month, day) = cls.deriveDateWithMonthFromPath(log, path)
+                        if (year):
+                            matched = ''
+                            matchIndex = -1
+                        else:
+                            year = cls.UnknownDateName
+                            matched = ''
+                            matchIndex = -1
+        # skip to last occurrence of match
+        rest = path
+        while (matchIndex >= 0):  
+            rest = rest[(matchIndex + len(matched)):]
+            matchIndex = rest.find(matched)
+        return (year, month, day, rest)
+
+
+    @classmethod
     def deriveDateWithMonthFromPath(cls, log, path):  # @UnusedVariable
         """Determine the date of a media file from its path. 
         
@@ -504,7 +599,13 @@ class OrganizationByDate(MediaOrganization):
         year = (int(year) if year else None)
         month = (int(month) if month else None)
         day = (int(day) if day else None)
-        self.dateTaken = PartialDateTime(year, month, day)
+        if (0 < year):
+            try:
+                self.dateTaken = PartialDateTime(year, month, day)
+            except Exception as e:
+                raise ValueError, ('OrganizationByDate.setIdentifiersFromPath(): Illegal date in "%s"' % path)  # TODO: make more robust
+        else: 
+            self.dateTaken = None
         return(rest)
 
 
@@ -586,7 +687,8 @@ class OrganizationByDate(MediaOrganization):
 
     
     def getYearString(self):
-        if (self.dateTaken.getYear()):
+        if (self.dateTaken
+            and self.dateTaken.getYear()):
             return(self.__class__.FormatYear % self.dateTaken.getYear())
         else:
             return(self.__class__.UnknownDateName)
@@ -605,7 +707,8 @@ class OrganizationByDate(MediaOrganization):
     
 
     def getMonthString(self):
-        if (self.dateTaken.getMonth()):
+        if (self.dateTaken
+            and self.dateTaken.getMonth()):
             return(self.__class__.FormatMonth % self.dateTaken.getMonth())
         else:
             return(u'')
@@ -624,7 +727,8 @@ class OrganizationByDate(MediaOrganization):
 
 
     def getDayString(self):
-        if (self.dateTaken.getDay()):
+        if (self.dateTaken
+            and self.dateTaken.getDay()):
             return(self.__class__.FormatDay % self.dateTaken.getDay())
         else:
             return(u'')

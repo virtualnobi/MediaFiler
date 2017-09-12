@@ -200,7 +200,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             node = observable.getTreeItemID()
             self.ignoreSelectionChanges = True
             self.DeleteChildren(node)
-            for subEntry in observable.subEntries:
+            for subEntry in observable.getSubEntries():
                 self.addSubTree(subEntry, node)
             self.SortChildren(node)
             self.ignoreSelectionChanges = False

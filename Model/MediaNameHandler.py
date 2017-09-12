@@ -58,7 +58,8 @@ class MediaNameHandler(object):
         """Register a name as being used.
         """
         if (self.isNameLegal(name)):
-            self.freeNames.remove(name)
+            if (name in self.freeNames):
+                self.freeNames.remove(name)
         else:
             raise ValueError, ('"%s" is not a legal name!' % name)  
 

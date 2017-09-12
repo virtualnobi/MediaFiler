@@ -26,8 +26,8 @@ from nobi.ObserverPattern import Observable, Observer
 from Model import GlobalConfigurationOptions
 from Model import Installer
 from Model.MediaCollection import MediaCollection
-from Model import Image  # @UnusedImport import even if "unused", otherwise it's never registered with Entry.ProductTrader
-from Model import Movie  # @UnusedImport import even if "unused", otherwise it's never registered with Entry.ProductTrader  
+from Model import Image  # @UnusedImport import even if "unused", otherwise it's never registered with Installer.ProductTrader
+from Model import Movie  # @UnusedImport import even if "unused", otherwise it's never registered with Installer.ProductTrader  
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from UI.Importing import ImportDialog, ImportParameterObject
@@ -534,8 +534,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
                     logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
                 self.onReload(None)
                 # TODO: make dialog resizable
-#                logDialog.SetSize(wx.Size(1000,600))
-                logDialog.Maximize(True)
+                logDialog.Maximize(True)  # logDialog.SetSize(wx.Size(1000,600))
                 logDialog.ShowModal()
                 logDialog.Destroy()
                 self.displayInfoMessage(_('%d media imported from %s') % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
@@ -754,10 +753,15 @@ class MediaFiler (wx.Frame, Observer, Observable):
 # Functions
 # section: Executable script
 if __name__ == "__main__":
+    logging.basicConfig(# filename=(os.path.join(Installer.InstallationPath, Installer.LogFilename) % 1),
+                        filemode='w',
+                        level=logging.DEBUG,
+                        datefmt='%H:%M:%S',
+                        format='%(asctime)s| %(message)s')
     app = wx.App(False)    
     frame = MediaFiler(None, title=GUIId.AppTitle)
     if (Installer.ensureInstallationOk(frame)):
-        logging.basicConfig(filename=(Installer.getLogFilePath() % 1),
+        logging.basicConfig(# filename=(Installer.getLogFilePath() % 1),
                             filemode='w',
                             level=logging.DEBUG,
                             datefmt='%H:%M:%S',
