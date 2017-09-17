@@ -317,7 +317,8 @@ class PartialDateTime(object):
 
 
     def __eq__(self, other):
-        if ((self.year == other.year)
+        if ((other <> None)
+            and (self.year == other.year)
             and (self.month == other.month)
             and (self.day == other.day)
             and ((isinstance(other, datetime.date)) 

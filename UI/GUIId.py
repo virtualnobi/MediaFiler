@@ -85,7 +85,7 @@ FunctionNames[wx.ID_EXIT] = _('Exit')
 
 ## Image
 EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
-DeleteImage = generateWxIdForLabel(_('Delete Image'))  # TODO: add name of selected image here; consolidate with MediaTree
+DeleteImage = generateWxIdForLabel(_('Delete Image "%s"'))
 DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
 
 RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))

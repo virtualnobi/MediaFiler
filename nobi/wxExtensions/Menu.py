@@ -13,7 +13,9 @@ import wx
 
 # Class 
 class Menu(wx.Menu):
-    """An extension of wx.Menu which allows to insert a menu item after another one identified by ID.
+    """An extension of wx.Menu 
+    - it allows to insert a menu item after another one identified by ID
+    - it (shall sometime) reduce subsequent separators to one automatically
     """
 
 

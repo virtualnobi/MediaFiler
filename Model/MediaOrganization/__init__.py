@@ -340,7 +340,7 @@ class MediaOrganization(object):
     def extendContextMenu(self, menu):
         pass
     def runContextMenuItem(self, menuId, parentWindow):  # @UnusedVariable
-        raise NotImplementedError
+        logging.error('MediaOrganization.runContextMenu(): Unhandled function %d on "%s"!' % (menuId, self.context.getPath()))
     # OrganizationByName only
     def getName(self):
         return(None)

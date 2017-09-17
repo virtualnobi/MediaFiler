@@ -185,8 +185,7 @@ class MediaCanvas(wx.Panel, Observer):
         elif (aspect == 'name'):  # an Entry changed its name
             if (observable <> self.entry):  # child of currently selected Entry changed, redisplay to keep order correct
                 parent = self.entry
-                self.clear()
-                self.setEntry(parent)
+                self.setEntry(parent, forceUpdate=True)
 
 
     
