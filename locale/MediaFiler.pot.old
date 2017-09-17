@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2017-07-26 18:57+Mitteleuropäische Sommerzeit\n"
+"POT-Creation-Date: 2017-07-26 19:01+Mitteleuropäische Sommerzeit\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,6 +14,26 @@ msgstr ""
 "Content-Transfer-Encoding: ENCODING\n"
 "Generated-By: pygettext.py 1.5\n"
 
+
+#: Model\Image.py:56
+msgid "Image"
+msgstr ""
+
+#: Model\Installer.py:192
+msgid "The current working directory for this program is not a valid media directory. Choose a media directory:"
+msgstr ""
+
+#: Model\Movie.py:56
+msgid "Movie"
+msgstr ""
+
+#: Model\Organization.py:795
+msgid "Choose Name"
+msgstr ""
+
+#: Model\Organization.py:795
+msgid "Enter New Name"
+msgstr ""
 
 #: UI\GUIId.py:75
 msgid "Change Image Directory"

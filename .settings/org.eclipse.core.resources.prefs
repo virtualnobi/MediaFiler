@@ -7,7 +7,6 @@ encoding//Model/MediaOrganization/OrganizationByDate.py=latin1
 encoding//Model/MediaOrganization/OrganizationByName.py=latin1
 encoding//Model/MediaOrganization/__init__.py=latin1
 encoding//Model/MediaOrganization/testOrganizationByDate.py=latin1
-encoding//Model/ObsoleteOrganization.py=latin1
 encoding//Model/Single.py=latin1
 encoding//UI/GUIId.py=UTF-8
 encoding//UI/MediaCanvasPane.py=latin1

@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2017-07-26 19:02+0200\n"
-"PO-Revision-Date: 2017-07-26 19:09+0200\n"
+"POT-Creation-Date: 2017-09-16 22:22+0200\n"
+"PO-Revision-Date: 2017-09-16 22:37+0200\n"
 "Last-Translator: nobi <virtualnobi@gmx.de>\n"
 "Language-Team: nobisoft <virtualnobi@gmx.de>\n"
 "Language: de_DE\n"
@@ -21,294 +21,460 @@ msgstr ""
 "X-Poedit-SearchPath-0: MediaFiler.pot\n"
 "X-Poedit-SearchPath-1: .\n"
 
-#: Model\Image.py:56
+#: AppDebug.py:67
+msgid "Filter"
+msgstr "Filter"
+
+#: AppDebug.py:68
+msgid "Media"
+msgstr "Medien"
+
+#: AppDebug.py:69 UI\PresentationControlPane.py:55
+msgid "Name"
+msgstr "Name"
+
+#: AppDebug.py:70
+msgid "Classification"
+msgstr "Klassifikation"
+
+#: AppDebug.py:71
+msgid "Log"
+msgstr "Protokoll"
+
+#: AppDebug.py:73
+msgid "Classify"
+msgstr "Klassifizieren"
+
+#: AppDebug.py:75
+msgid "Search"
+msgstr "Suchen"
+
+#: AppDebug.py:77
+msgid "Present"
+msgstr "Präsentieren"
+
+#: AppDebug.py:79
+msgid "All Views"
+msgstr "Alle Ansichten"
+
+#: AppDebug.py:80
+msgid "Last Used"
+msgstr "Zuletzt benutzt"
+
+#: AppDebug.py:81
+msgid "&Program"
+msgstr "&Programm"
+
+#: AppDebug.py:82
+msgid "&Media"
+msgstr "&Medien"
+
+#: AppDebug.py:83
+msgid "&View"
+msgstr "&Ansicht"
+
+#: AppDebug.py:84
+msgid "Perspectiv&e"
+msgstr "Perspektiv&e"
+
+#: AppDebug.py:85
+msgid "&Import"
+msgstr "&Importieren"
+
+#: AppDebug.py:86
+msgid "&Tool"
+msgstr "&Werkzeug"
+
+#: AppDebug.py:358
+msgid "Select New Image Directory:"
+msgstr "Neues Bilderverzeichnis auswählen:"
+
+#: AppDebug.py:375
+msgid "Select Directory to Export into:"
+msgstr "Exportverzeichnis auswählen:"
+
+#: AppDebug.py:388
+msgid "%d media exported to \"%s\""
+msgstr "%d Medien nach \"%s\" exportiert"
+
+#: AppDebug.py:396
+msgid "Closing..."
+msgstr "Aufräumen..."
+
+#: AppDebug.py:509
+msgid "Testing import from %s"
+msgstr "Import von \"%s\" wird getestet"
+
+#: AppDebug.py:512
+msgid "Importing from %s"
+msgstr "Importieren aus \"%s\""
+
+#: AppDebug.py:525
+msgid "Empty Directory"
+msgstr "Leeres Verzeichnis"
+
+#: AppDebug.py:525
+msgid "No files to import!"
+msgstr ""
+
+#: AppDebug.py:532 AppDebug.py:534
+msgid "Import Report"
+msgstr "Importprotokoll"
+
+#: AppDebug.py:534
+msgid ""
+"Import log too large to display.\n"
+"\n"
+"Import has succeeded."
+msgstr ""
+"Das Importprotokoll ist zu lang, um angezeigt zu werden. \n"
+"\n"
+"Der Import was erfolgreich."
+
+#: AppDebug.py:541
+msgid "%d media imported from %s"
+msgstr "%s Medien von \"%s\" importiert"
+
+#: AppDebug.py:586 AppDebug.py:613
+msgid "The external program failed with return code %s."
+msgstr "Das Programm wurde mit Fehlercode %s abgebrochen."
+
+#: AppDebug.py:587 AppDebug.py:614
+msgid "Warning"
+msgstr "Warnung"
+
+#: AppDebug.py:594 AppDebug.py:620
+msgid "No editor defined with \"%s\" configuration option!"
+msgstr "Es wurde mit der Konfigurationsoption \"%s\" kein Programm angegeben!"
+
+#: AppDebug.py:699
+msgid "Loading..."
+msgstr "Laden..."
+
+#: AppDebug.py:719
+msgid "Organized by date"
+msgstr "Nach Datum organisiert"
+
+#: AppDebug.py:720
+msgid "%s (%d media)"
+msgstr "%s (%d Medien)"
+
+#: AppDebug.py:723
+msgid "Organized by name"
+msgstr "Nach Namen organisiert"
+
+#: AppDebug.py:724
+msgid "%s (%d media, %d names used, %d names free)"
+msgstr "%s (%d Medien, %d Namen benutzt, %d Namen frei)"
+
+#: AppDebug.py:734
+msgid "Ready"
+msgstr "Fertig"
+
+#: Model\Image.py:58
 msgid "Image"
 msgstr "Bild"
 
-#: Model\Installer.py:192
+#: Model\Installer.py:229
 msgid ""
 "The current working directory for this program is not a valid media "
 "directory. Choose a media directory:"
 msgstr ""
 "Das Verzeichnis, in dem das Program gestartet wurde, enthält keine "
-"Mediendaten. Wählen Sie ein Verzeichnis, in dem die Mediendaten "
-"gespeichert werden sollen:"
+"Mediendaten. Wählen Sie ein Verzeichnis, in dem die Mediendaten gespeichert "
+"werden sollen:"
+
+#: Model\Installer.py:237
+msgid "Creation of required folders and files failed."
+msgstr ""
+"Die notwendigen Verzeichnisse und Dateien konnten nicht angelegt werden."
+
+#: Model\Installer.py:237
+msgid "Error"
+msgstr "Fehler"
 
 #: Model\Movie.py:56
 msgid "Movie"
 msgstr "Film"
 
-#: Model\Organization.py:795
+#: Model\ObsoleteOrganization.py:880
 msgid "Choose Name"
 msgstr "Name"
 
-#: Model\Organization.py:795
+#: Model\ObsoleteOrganization.py:880
 msgid "Enter New Name"
 msgstr "Neuen Namen eingeben"
 
-#: UI\GUIId.py:75
+#: UI\GUIId.py:41
+msgid "%d duplicate entries deleted"
+msgstr "%d doppelte Medien gelöscht"
+
+#: UI\GUIId.py:42
+msgid "%d images"
+msgstr "%d Bilder"
+
+#: UI\GUIId.py:81
 msgid "Change Image Directory"
 msgstr "Bilderverzeichnis wechseln"
 
-#: UI\GUIId.py:76
+#: UI\GUIId.py:82
 msgid "Reload Images"
 msgstr "Medien erneut laden"
 
-#: UI\GUIId.py:77
+#: UI\GUIId.py:83
 msgid "Export (Filtered) Images"
 msgstr "(Gefilterte) Bilder exportieren"
 
-#: UI\GUIId.py:78
+#: UI\GUIId.py:84
 msgid "Exit"
 msgstr "Beenden"
 
-#: UI\GUIId.py:82
-msgid "Delete Image"
-msgstr "Bild löschen"
+#: UI\GUIId.py:88
+msgid "Delete Image %s"
+msgstr "Bild %s löschen"
 
-#: UI\GUIId.py:83
+#: UI\GUIId.py:89
 msgid "Delete Doubles"
 msgstr "Doppelte löschen"
 
-#: UI\GUIId.py:85
+#: UI\GUIId.py:91
 msgid "Remove Import Indicator"
 msgstr "Importindikator löschen"
 
-#: UI\GUIId.py:86
+#: UI\GUIId.py:92
 msgid "Choose Random Name"
 msgstr "Zufälliger Name"
 
-#: UI\GUIId.py:87
+#: UI\GUIId.py:93
 msgid "Choose Name Manually..."
 msgstr "Namen auswählen..."
 
-#: UI\GUIId.py:90
+#: UI\GUIId.py:96
 msgid "Convert to Group"
 msgstr "Umwandeln in Gruppe"
 
-#: UI\GUIId.py:91
+#: UI\GUIId.py:97
 msgid "Remove Illegal Elements"
 msgstr "Unbekannte Elemente löschen"
 
-#: UI\GUIId.py:93
+#: UI\GUIId.py:99
 msgid "Filter Identical"
 msgstr "Identische Bilder"
 
-#: UI\GUIId.py:94
+#: UI\GUIId.py:100
 msgid "Filter Similar"
 msgstr "Ähnliche Bilder"
 
-#: UI\GUIId.py:96
+#: UI\GUIId.py:102
 msgid "View Fullscreen"
 msgstr "Vollbild zeigen"
 
-#: UI\GUIId.py:97
+#: UI\GUIId.py:103
 msgid "Send Email"
 msgstr "Als Email verschicken"
 
-#: UI\GUIId.py:99
+#: UI\GUIId.py:105
 msgid "Move to scene..."
 msgstr "Verschieben zu Szene..."
 
-#: UI\GUIId.py:102
+#: UI\GUIId.py:108
 msgid "Rename scene to..."
 msgstr "Szene umbenennen..."
 
-#: UI\GUIId.py:104
+#: UI\GUIId.py:110
 msgid "Move to date..."
 msgstr "Verschieben zu Datum..."
 
-#: UI\GUIId.py:110
+#: UI\GUIId.py:116
 msgid "Toggle Filter Pane"
 msgstr "Filter zeigen/verbergen"
 
-#: UI\GUIId.py:111
+#: UI\GUIId.py:117
 msgid "Toggle Filter"
 msgstr "Filter an/aus"
 
-#: UI\GUIId.py:112
+#: UI\GUIId.py:118
 msgid "Apply Filter"
 msgstr "Filter anwenden"
 
-#: UI\GUIId.py:113
+#: UI\GUIId.py:119
 msgid "Clear Filter"
 msgstr "Filter löschen"
 
-#: UI\GUIId.py:114
+#: UI\GUIId.py:120
 msgid "Toggle Tree Pane"
 msgstr "Dateibaum zeigen/verbergen"
 
-#: UI\GUIId.py:115
+#: UI\GUIId.py:121
 msgid "Toggle Classification Pane"
 msgstr "Klassifizierung zeigen/verbergen"
 
-#: UI\GUIId.py:116
+#: UI\GUIId.py:122
 msgid "Toggle Log Pane"
 msgstr "Protokoll zeigen/verbergen"
 
-#: UI\GUIId.py:117
+#: UI\GUIId.py:123
 msgid "Previous Image"
 msgstr "Voriges Bild"
 
-#: UI\GUIId.py:118
+#: UI\GUIId.py:124
 msgid "Next Image"
 msgstr "Nächstes Bild"
 
-#: UI\GUIId.py:119
+#: UI\GUIId.py:125
 msgid "Stop Slideshow"
 msgstr "Präsentation anhalten"
 
-#: UI\GUIId.py:120
+#: UI\GUIId.py:126
 msgid "Resume Slideshow"
 msgstr "Präsentation zeigen"
 
-#: UI\GUIId.py:121
+#: UI\GUIId.py:127
 msgid "Present Quickly"
 msgstr "Schnell wechseln"
 
-#: UI\GUIId.py:122
+#: UI\GUIId.py:128
 msgid "Present Slowly"
 msgstr "Langsam wechseln"
 
-#: UI\GUIId.py:133 UI\Importing.py:225
+#: UI\GUIId.py:139 UI\Importing.py:268
 msgid "Test Import"
 msgstr "Import testen"
 
-#: UI\GUIId.py:134 UI\Importing.py:226
+#: UI\GUIId.py:140 UI\Importing.py:269
 msgid "Import"
 msgstr "Importieren"
 
-#: UI\GUIId.py:137
+#: UI\GUIId.py:143
 msgid "Generate Link Directory"
 msgstr "Linkverzeichnis erzeugen"
 
-#: UI\GUIId.py:138
+#: UI\GUIId.py:144
 msgid "Generate Thumbnail Directory"
 msgstr "Minibilderverzeichnis erzeugen"
 
-#: UI\GUIId.py:139
+#: UI\GUIId.py:145
 msgid "Rename Element"
 msgstr "Element umbenennen"
 
-#: UI\GUIId.py:140
+#: UI\GUIId.py:146
 msgid "Edit Classes"
 msgstr "Klassen ändern"
 
-#: UI\GUIId.py:141
+#: UI\GUIId.py:147
 msgid "Edit Names"
 msgstr "Namen ändern"
 
-#: UI\GUIId.py:142
+#: UI\GUIId.py:148
 msgid "Harvest from URL..."
 msgstr "Bilder von URL importieren..."
 
-#: UI\GUIId.py:145
+#: UI\GUIId.py:151
 msgid "Browse"
 msgstr "Auswählen"
 
-#: UI\GUIId.py:148
+#: UI\GUIId.py:154
 msgid "Rename"
 msgstr "Umbennen"
 
-#: UI\GUIId.py:149
+#: UI\GUIId.py:155
 msgid "Reuse Last"
 msgstr "Zuletzt benutzt"
 
-#: UI\Importing.py:227
+#: UI\Importing.py:270
 msgid "Directory"
 msgstr "Verzeichnis"
 
-#: UI\Importing.py:228
+#: UI\Importing.py:271
 msgid "Test Only"
 msgstr "Nur testen"
 
-#: UI\Importing.py:229
+#: UI\Importing.py:272
 msgid "Delete Originals"
 msgstr "Originale löschen"
 
-#: UI\Importing.py:230
+#: UI\Importing.py:273
 msgid "Maximum Number of Files to Import"
 msgstr "Nicht mehr Dateien importieren als"
 
-#: UI\Importing.py:231
+#: UI\Importing.py:274
 msgid "Ignore Files of Unknown Type"
 msgstr "Dateien unbekannten Typs ignorieren"
 
-#: UI\Importing.py:232
+#: UI\Importing.py:275
 msgid "Minimum File Size"
 msgstr "Mindestgröße zu importierender Dateien"
 
-#: UI\Importing.py:233
+#: UI\Importing.py:276
 msgid "Mark Imported Files as \"%s\""
 msgstr "Importierte Dateien mit \"%s\" markieren"
 
-#: UI\Importing.py:234
+#: UI\Importing.py:277
 msgid "Report Illegal Elements"
 msgstr "Report Illegal Elements"
 
-#: UI\Importing.py:235
+#: UI\Importing.py:278
 msgid "Prefer Date in Pathname over EXIF Date"
 msgstr "Aufnahmedatum im Dateipfad bevorzugen (ggn. EXIF)"
 
-#: UI\Importing.py:430
+#: UI\Importing.py:473
 msgid "Choose a directory to test import:"
 msgstr "Verzeichnis zum Import-Test auswählen:"
 
-#: UI\Importing.py:432
+#: UI\Importing.py:475
 msgid "Choose a directory to import from:"
 msgstr "Verzeichnis zum Import auswählen:"
 
-#: UI\MediaClassificationPane.py:47
+#: UI\MediaClassificationPane.py:53
 msgid "(n/a)"
 msgstr "(n/a)"
 
-#: UI\MediaClassificationPane.py:49
+#: UI\MediaClassificationPane.py:55
 msgid "(none)"
 msgstr "(keine)"
 
-#: UI\MediaFilterPane.py:57 UI\MediaFilterPane.py:58
+#: UI\MediaFilterPane.py:62 UI\MediaFilterPane.py:63
 msgid "single"
 msgstr "einzeln"
 
-#: UI\MediaFilterPane.py:59
+#: UI\MediaFilterPane.py:64
 msgid "group"
 msgstr "Gruppe"
 
-#: UI\MediaFilterPane.py:61
+#: UI\MediaFilterPane.py:66
 msgid "unknown"
 msgstr "unbekannt"
 
-#: UI\MediaFilterPane.py:64
+#: UI\MediaFilterPane.py:69
 msgid "any"
 msgstr "alle"
 
-#: UI\MediaFilterPane.py:66
+#: UI\MediaFilterPane.py:71
 msgid "ignore"
 msgstr "egal"
 
-#: UI\MediaFilterPane.py:68
+#: UI\MediaFilterPane.py:73
 msgid "require"
 msgstr "erforderlich"
 
-#: UI\MediaFilterPane.py:70
+#: UI\MediaFilterPane.py:75
 msgid "exclude"
 msgstr "ausgeschlossen"
 
-#: UI\MediaFilterPane.py:74
+#: UI\MediaFilterPane.py:79
 msgid "Size:"
 msgstr "Größe:"
 
-#: UI\MediaFilterPane.py:75
+#: UI\MediaFilterPane.py:80
 msgid "Date Range:"
 msgstr "Datumsbereich:"
 
-#: UI\MediaFilterPane.py:76
+#: UI\MediaFilterPane.py:81
 msgid "Media Type:"
-msgstr "Medientyp"
+msgstr "Medientyp:"
 
-#: UI\PresentationControlPane.py:50
-msgid "Name"
-msgstr "Name"
+#~ msgid "Delete Image"
+#~ msgstr "Bild löschen"
 
 #~ msgid "E&xit"
 #~ msgstr "Beenden"
@@ -343,30 +509,6 @@ msgstr "Name"
 #~ msgid "Relabel scene to..."
 #~ msgstr "Szene umbenennen zu..."
 
-#~ msgid "Filter"
-#~ msgstr "Filter"
-
-#~ msgid "Classification"
-#~ msgstr "Klassifikation"
-
-#~ msgid "Log"
-#~ msgstr "Protokoll"
-
-#~ msgid "Classify"
-#~ msgstr "Klassifizieren"
-
-#~ msgid "Search"
-#~ msgstr "Suchen"
-
-#~ msgid "Present"
-#~ msgstr "Präsentieren"
-
-#~ msgid "All Views"
-#~ msgstr "Alle Ansichten"
-
-#~ msgid "Last Used"
-#~ msgstr "Zuletzt benutzt"
-
 #~ msgid "Program"
 #~ msgstr "Programm"
 
@@ -379,26 +521,8 @@ msgstr "Name"
 #~ msgid "Tool"
 #~ msgstr "Werkzeug"
 
-#~ msgid "Select New Image Directory:"
-#~ msgstr "Neues Bilderverzeichnis auswählen:"
-
-#~ msgid "Select Directory to Export into:"
-#~ msgstr "Exportverzeichnis auswählen:"
-
-#~ msgid "Closing..."
-#~ msgstr "Aufräumen..."
-
-#~ msgid "Loading..."
-#~ msgstr "Laden..."
-
-#~ msgid "Organized by date"
-#~ msgstr "Nach Datum organisiert"
-
 #~ msgid "%s (%d used, %d free)"
 #~ msgstr "%s (%d verwendet, %d frei)"
-
-#~ msgid "Organized by name"
-#~ msgstr "Nach Namen organisiert"
 
 #~ msgid "Ready."
 #~ msgstr "Fertig."
