@@ -117,9 +117,6 @@ class OrganizationByDate(MediaOrganization):
             else:
                 result = os.path.join(result, 
                                       (self.FormatYearMonth % (year, month)))
-        else:
-            result = os.path.join(result,
-                                  (self.FormatYear % year))
         return(result)
 
 
@@ -676,6 +673,7 @@ class OrganizationByDate(MediaOrganization):
 
     def getYear(self):
         if (((self.year <> None)
+             and (self.dateTaken <> None)
              and (int(self.year) <> self.dateTaken.getYear()))
             or ((self.year == None)
                 and self.dateTaken.getYear())):
@@ -696,8 +694,10 @@ class OrganizationByDate(MediaOrganization):
 
     def getMonth(self):
         if (((self.month <> None)
+             and (self.dateTaken <> None)
              and (int(self.month) <> self.dateTaken.getMonth()))
             or ((self.month == None)
+                and (self.dateTaken <> None)
                 and self.dateTaken.getMonth())):
             print('OrganizationByDate.getMonth(): explicit and PartialDateTime month do not match')
         if (self.month == None):
@@ -716,8 +716,10 @@ class OrganizationByDate(MediaOrganization):
     
     def getDay(self):
         if (((self.day <> None)
+             and (self.dateTaken <> None)
              and (int(self.day) <> self.dateTaken.getDay()))
             or ((self.day == None)
+                and (self.dateTaken <> None)
                 and self.dateTaken.getDay())):
             print('OrganizationByDate.getDay(): explicit and PartialDateTime day do not match')
         if (self.day == None):

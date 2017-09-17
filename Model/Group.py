@@ -6,7 +6,7 @@
 
 # Imports
 ## standard
-import copy
+# import copy
 import os.path
 import logging
 ## contributed
@@ -14,6 +14,7 @@ import wx
 from nobi.SortedCollection import SortedCollection 
 ## nobi
 from nobi.PausableObservable import PausableObservable
+from nobi.ObserverPattern import Observer
 ## project
 import Installer
 from .Entry import Entry
@@ -24,9 +25,10 @@ from Model.MediaClassHandler import MediaClassHandler
 
 
 # Class 
-class Group(Entry):
-    """A Group is an Observable representing an image folder.
+class Group(Entry, Observer):
+    """A Group is an Observable representing an image folder. 
     
+    It also observes its children for name changes.
     Group registers with Installer.getProductTrader() to handle directories.
     """
 
@@ -63,14 +65,14 @@ class Group(Entry):
     def __init__(self, model, path):
         # inheritance
         super(Group, self).__init__(model, path)
+        super(Observer, self).__init__()
         # internal state
-        #self.subEntries = []
         self.subEntriesSorted = SortedCollection(key=Entry.getPath)
 
 
 
 # Setters
-    def removeEntryFromGroup (self, entry, notifyObservers=True):
+    def removeEntryFromGroup(self, entry, notifyObservers=True):
         """Remove an Entry from self.
         
         When removing an Entry, its parent Group will also change its children. 
@@ -79,22 +81,26 @@ class Group(Entry):
         MediaFiler.Entry entry the subentry of self to remove. 
         Boolean notifyObservers indicates whether to notify self's Observers.
         """
-        #self.subEntries.remove(entry)
         try:
             self.subEntriesSorted.remove(entry)
-        except BaseException as e:
-            logging.error('Group.removeEntryFromGroup(): Cannot find "%s" in subentries of "%s"' % (entry.getPath(), self.getPath()))
-            raise e
+        except:
+            # catch the case when entry has changed its path:
+            # subEntriesSorted._keys is not updated and entry is not found
+            logging.warning('Group.removeEntryFromGroup(): Cannot find "%s" in subentries of "%s"' % (entry.getPath(), self.getPath()))
+            index = self.subEntriesSorted._items.index(entry)
+            del self.subEntriesSorted._items[index]
+            del self.subEntriesSorted._keys[index]
+        entry.removeObserver(self)
         if (notifyObservers):
             self.changedAspect('children')
     
     
-    def addEntryToGroup (self, entry):
+    def addEntryToGroup(self, entry):
         """Add photoFilerEntry entry to self's collection.
         """
-        #self.subEntries.append(entry)
         self.subEntriesSorted.insert(entry)
-        self.changedAspect('children')        
+        entry.addObserverForAspect(self, 'name')
+        self.changedAspect('children')
 
 
     def renameTo(self, **kwargs):
@@ -208,24 +214,11 @@ class Group(Entry):
         Boolean filtering if True, no filtered subentry is returned        
         Return List of Entry
         """
-#         if (filtering):
-#             result = []
-#             for entry in self.subEntries: 
-#                 if (entry.filteredFlag):
-#                     #print "%s filtered out" % entry.pathname
-#                     pass
-#                 else:
-#                     result.append(entry)
-#         else:
-#             result = copy.copy(self.subEntries)
-#         result.sort(key=Entry.getPath)
         if (filtering):
-            result2 = [entry for entry in self.subEntriesSorted if (not entry.filteredFlag)]
+            result = [entry for entry in self.subEntriesSorted if (not entry.filteredFlag)]
         else:
-            result2 = [entry for entry in self.subEntriesSorted]
-#         if (result <> result2):
-#             print 'Group.getSubEntries(): SortedCollection failed'
-        return(result2)
+            result = [entry for entry in self.subEntriesSorted]
+        return(result)
 
 
     def getKnownElements (self):
@@ -384,8 +377,9 @@ class Group(Entry):
         """Return a MediaFiler.Menu containing all context menu functions for Singles.
         """
         menu = super(Group, self).getContextMenu()
-        menu.insertAfterId(GUIId.FilterSimilar, newText=GUIId.FunctionNames[GUIId.RemoveNew], newId=GUIId.RemoveNew)
-        menu.insertAfterId(GUIId.FilterSimilar)
+        # media functions
+        menu.Insert(4, GUIId.RemoveNew, GUIId.FunctionNames[GUIId.RemoveNew])
+        # delete functions
         menu.insertAfterId(GUIId.DeleteImage, newText=GUIId.FunctionNames[GUIId.DeleteDoubles], newId=GUIId.DeleteDoubles)
         return(menu)
 
@@ -406,6 +400,15 @@ class Group(Entry):
             return(GUIId.MessageDuplicatesDeleted % deleted)
         else:
             return(super(Group, self).runContextMenuItem(menuId, parentWindow))
+
+
+
+# Inheritance: Observer
+    def updateAspect(self, observable, aspect):  # @UnusedVariable
+        """
+        """
+        if (aspect == 'name'):
+            self.subEntriesSorted = SortedCollection(self.subEntriesSorted, key=Entry.getPath)
 
 
 

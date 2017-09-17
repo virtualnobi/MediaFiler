@@ -95,19 +95,6 @@ class Image(Single):
 
 
 ## Inheritance - Entry
-#     def runContextMenuItem(self, menuId, parentWindow):
-#         """User selected menuId from context menu on self. Execute this function.
-#         
-#         menuId Number from GUIId function numbers
-#         parentWindow wx.Window to open dialogs on
-#         Return String to display as status
-#             or None
-#         """
-#         print('Image.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
-#         return(super(Image, self).runContextMenuItem(menuId, parentWindow))
-
-    
-
 ## Inheritance - Single
     def isIdentical(self, anEntry):
         """Check whether self and anEntry have the same content.
@@ -177,29 +164,8 @@ class Image(Single):
 
 
 
-
 # Setters
-
-
 # Getters
-#     def getRawImageMemoryUsage(self):
-#         """Return self's current memory usage for the raw image, in Bytes.
-#         """
-#         if (self.rawImage <> None):
-#             return(self.rawWidth * self.rawHeight * 3)  # taken from wx.Image.setData() documentation
-#         else:
-#             return(0)
-
-
-#     def getBitmapMemoryUsage(self):
-#         """Return self's current memory usage for the bitmap, in Bytes.
-#         """
-#         if (self.bitmap <> None):
-#             return(self.bitmapWidth * self.bitmapHeight * 3)  # assumption
-#         else:
-#             return(0)
-
-
     def getSizeString(self):
         """Return a String describing the size of self.
         

@@ -410,43 +410,32 @@ class OrganizationByName(MediaOrganization):
 
     def runContextMenuItem(self, menuId, parentWindow):  # @UnusedVariable
         """Run the functions for the menu items added in extendContextMenu()
+        
+        Return String to display a message to the user
+            or None
         """
+        message = None
         if ((menuId == GUIId.ChooseName)
             or (menuId == GUIId.RandomName)):
             if (menuId == GUIId.ChooseName):
                 newName = self.askNewName(parentWindow)
             else:
                 newName = self.nameHandler.getFreeName()
-            if (newName):
-                kwargs = {'name': newName}
-                if (self.isSingleton()
-                    or (not self.context.isGroup())):
-                    kwargs['elements'] = self.context.getElements()
-                    newEntry = self.context.model.getEntry(name=newName)
-                    if (newEntry): 
-                        if (newEntry.isGroup()):  # newName used by Group
-                            kwargs['scene'] = MediaOrganization.NewIndicator
-                            kwargs['makeUnique'] = True
-                        else:  # newName used by singleton
-                            print('Merging two singletons NYI!')
-                            return
-                    else:  # newName free, create a singleton
-                        kwargs['scene'] = None
-                else:  # self.context is a Group
-                    pass
-                self.context.renameTo(**kwargs)
-                self.context.model.setSelectedEntry(self.context)
+            message = self.renameMedia(newName)
         elif (menuId == GUIId.ConvertToGroup):
-            print('Conversion of singleton to Group NYI!')
+            message = self.convertToGroup()
         elif (menuId == GUIId.RelabelScene):
             newScene = self.askNewScene(parentWindow)
             if (newScene):
                 self.relabelToScene(newScene)
         elif ((GUIId.SelectScene <= menuId)
               and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
-            pass  # handled where?
+            newScene = self.context.getParentGroup().getScenes()[menuId - GUIId.SelectScene]
+            logging.debug('OrganizationByName.runContextMenu(): Changing scene of "%s" to %s' % (self.getPath(), newScene))
+            message = self.context.renameTo(makeUnique=True, scene=newScene)
         else:
             super(OrganizationByName, self).runContextMenu(menuId, parentWindow)
+        return(message)
 
 
     def isSingleton(self):
@@ -513,6 +502,53 @@ class OrganizationByName(MediaOrganization):
 
     
 # Internal - to change without notice
+    def convertToGroup(self):
+        """Convert the current singleton Single to a Group with the same name.
+        
+        This is probably not needed as the rename function will handle conversion to a Group automatically.
+        #TODO: remove
+        """
+        print('Converting "%s" to a group' % self.getPath())
+        newGroup = Group.createFromName(self.model, self.getName())
+        self.setParentGroup(newGroup)
+        self.renameTo(scene='1', number='1')
+
+    
+
+    def renameMedia(self, name):
+        """Rename self's context media to name specified. 
+        
+        String name
+        Return
+        """
+        kwargs = {'name': name}
+        if (not self.context.isGroup()):
+            kwargs['elements'] = self.context.getElements()
+            newEntry = self.context.model.getEntry(name=name)
+            if (newEntry): 
+                kwargs['makeUnique'] = True
+                if (newEntry.isGroup()):  # name used by Group
+                    kwargs['scene'] = MediaOrganization.NewIndicator
+                else:  # name used by singleton
+                    newGroup = Group.createFromName(self.context.model, name)
+                    parent = self.context.model.getEntry(group=True, name=name[0:1])
+                    assert (parent <> None), ('No Group for "%s" found!' % name[0:1]) 
+                    newGroup.setParentGroup(parent)
+                    newEntry.renameTo(name=name,
+                                      scene=1,
+                                      makeUnique=True)
+                    kwargs['scene'] = MediaClassHandler.ElementNew
+            else:  # name free, create a singleton
+                kwargs['scene'] = None
+        self.context.renameTo(**kwargs)
+        if (self.context.isGroup
+            and (self.context.getParentGroup() == None)):
+            targetGroup = self.context.model.getEntry(group=True, name=name)
+            assert (targetGroup <> None), ('Group "%s" not found after merging two groups!' % name)
+            self.context.model.setSelectedEntry(targetGroup)
+        
+
+
     def askNewName(self, parentWindow):
         """User wants to rename media. Ask for new name. 
         

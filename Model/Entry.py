@@ -14,6 +14,7 @@ import datetime
 ## nobi
 from nobi.PausableObservable import PausableObservable
 from nobi.wxExtensions.Menu import Menu
+# from nobi.SortedCollection import SortedCollection
 # from nobi.ProductTraderPattern import SimpleProductTrader
 ## Project
 from UI import GUIId
@@ -298,6 +299,10 @@ class Entry(PausableObservable):
                 self.setParentGroup(newGroup)
             # name must be changed last, otherwise the Group will not find its subentry
             self.initFromPath(fname)
+#             parent = self.getParentGroup()
+# #             parent.removeEntryFromGroup(self)
+# #             parent.addEntryToGroup(self)
+#             parent.subEntriesSorted = SortedCollection(parent.subEntriesSorted, key=Entry.getPath)
             self.changedAspect('name')
 #             self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYear(),  # TODO:
 #                                                             month=self.organizer.getMonth(),
@@ -587,21 +592,23 @@ class Entry(PausableObservable):
 
 
     def getContextMenu(self):
-        """Return a MediaFiler.Menu containing all context menu functions.
+        """Create a menu containing all context menu functions.
+        
+        Return wx.Menu
         """
         menu = Menu()
         menu.currentEntry = self  # store current entry on menu, for access in menu event handlers
-        # first group of functions related to view
+        # organization functions
+        self.organizer.extendContextMenu(menu)
+        # media functions
+        menu.AppendSeparator()
+        # view functions
+        menu.AppendSeparator()
         menu.Append(GUIId.FilterIdentical, GUIId.FunctionNames[GUIId.FilterIdentical])
         menu.Append(GUIId.FilterSimilar, GUIId.FunctionNames[GUIId.FilterSimilar])
-        # second group of functions related to organization
+        # delete function
         menu.AppendSeparator()
-        entries = menu.GetMenuItemCount()
-        self.organizer.extendContextMenu(menu)
-        # third group of functions is delete
-        if (entries < menu.GetMenuItemCount()):
-            menu.AppendSeparator()
-        menu.Append(GUIId.DeleteImage, ('Delete "%s"\tCtrl+D' % self.getIdentifier()))  # group for change functions 
+        menu.Append(GUIId.DeleteImage, (GUIId.FunctionNames[GUIId.DeleteImage] % self.getIdentifier())) 
         return(menu)
 
 
@@ -616,7 +623,7 @@ class Entry(PausableObservable):
             or None
         """
         message = None
-        print('Entry.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
+        logging.debug('Entry.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.FilterIdentical):
             self.filterImages(True)  # True = identical classification
         elif (menuId == GUIId.FilterSimilar):
@@ -626,18 +633,11 @@ class Entry(PausableObservable):
         elif (menuId == GUIId.RemoveNew):
             self.removeNewIndicator()
         else: 
-            self.organizer.runContextMenuItem(menuId, parentWindow)
-            print('Unknown function id %d in Entry.runContextMenuItem()' % menuId)
+            message = self.organizer.runContextMenuItem(menuId, parentWindow)
         return(message)
 
 
 ##### messy
-#     def getSize(self):
-#         """Return the image size (w, h) of self.
-#         """
-#         raise NotImplementedError
-    
-    
     def getSizeString(self):
         """Return a String describing the size of self.
         
