@@ -182,14 +182,16 @@ class Single(Entry):
     def getContextMenu(self):
         """Return a MediaFiler.Menu containing all context menu functions for Singles.
 
-        GUIId.StartExternalViewer is handled in subclasses Image and Movie.
+        Return wx.Menu
         """
         menu = super(Single, self).getContextMenu()
-        menu.Insert(0, GUIId.StartExternalViewer, GUIId.FunctionNames[GUIId.StartExternalViewer])
+        # external viewer
+        menu.insertAfterId(GUIId.FilterSimilar, newText=GUIId.FunctionNames[GUIId.StartExternalViewer], newId=GUIId.StartExternalViewer)
         if ((not self.__class__.getConfigurationOptionExternalViewer()) 
             or (not self.model.getConfiguration(self.__class__.getConfigurationOptionExternalViewer()))):
             menu.Enable(GUIId.StartExternalViewer, enable=False)
-        menu.Append(GUIId.SendMail, GUIId.FunctionNames[GUIId.SendMail])
+        # send email
+        menu.Insert(0, GUIId.SendMail, GUIId.FunctionNames[GUIId.SendMail])
         if (not self.model.getConfiguration(Single.ConfigurationOptionEmailClient)):
             menu.Enable(GUIId.SendMail, enable=False)
         return(menu)
@@ -198,59 +200,33 @@ class Single(Entry):
     def runContextMenuItem(self, menuId, parentWindow):
         """Run functions from the context menu.
         
-        GUIId.StartExternalViewer is handled in subclasses Image and Movie.
-        
         menuId Number from GUIId function numbers
         parentWindow wx.Window to open dialogs on
         Return String to display as status
             or None
         """
-        #print('Single.runContextMenu: %d on "%s"' % (menuId, self.getPath()))
+        message = None
+        logging.debug('Single.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
         # TODO: move scene functions to OrganizationByName
-        if ((GUIId.SelectScene <= menuId)
-            and (menuId < (GUIId.SelectScene + GUIId.MaxNumberScenes))):  # function "change to scene..."
-            newScene = self.getParentGroup().getScenes()[menuId - GUIId.SelectScene]
-            #print('Changing scene of "%s" to %s' % (self.organizer.getPath(), newScene))
-            self.renameTo(makeUnique=True, scene=newScene)
-#         elif (menuId == GUIId.RelabelScene):
-#             newScene = self.askNewScene(parentWindow)
-#             if (newScene):
-#                 self.organizer.relabelToScene(newScene)
+        if (menuId == GUIId.StartExternalViewer):
+            message = self.runExternalViewer(parentWindow)
+        elif (menuId == GUIId.SendMail):
+            message = self.sendMail()
+#         if ((GUIId.SelectScene <= menuId)
+#             and (menuId < (GUIId.SelectScene + GUIId.MaxNumberScenes))):  # function "change to scene..."
+#             newScene = self.getParentGroup().getScenes()[menuId - GUIId.SelectScene]
+#             #print('Changing scene of "%s" to %s' % (self.organizer.getPath(), newScene))
+#             message = self.renameTo(makeUnique=True, scene=newScene)
         elif (menuId == GUIId.RandomConvertToSingle):
             pass
         elif (menuId == GUIId.ChooseConvertToSingle):
             pass
-        elif (menuId == GUIId.ConvertToGroup):  # turn single media into a group
-            self.convertToGroup()
-        elif (menuId == GUIId.StartExternalViewer):
-            self.runExternalViewer(parentWindow)
-        elif (menuId == GUIId.SendMail):
-            return(self.sendMail())
         else:
-            return(super(Single, self).runContextMenuItem(menuId, parentWindow))
+            message = super(Single, self).runContextMenuItem(menuId, parentWindow)
+        return(message)
 
 
 ## Setters
-#     def removeBitmap(self):
-#         """Remove self's bitmap because it must be resized.
-#         """
-#         if (self.bitmap):
-#             logging.debug('Single.removeBitmap(): Discarding %dx%d bitmap' % (self.bitmapWidth, self.bitmapHeight))
-#             CachingController.deallocateMemory(self, bitmap=True)
-#             self.registerMemoryConsumption(self, -self.getBitmapMemoryUsage())
-#             self.bitmap = None 
-#             self.bitmapWidth = 0
-#             self.bitmapHeight = 0
-
-
-#     def releaseMemory(self):
-#         """Release memory used for self's raw image.
-#         
-#         Return Number of bytes freed.
-#         """
-#         raise NotImplementedError
-
-
     def removeNewIndicator(self):
         """Remove the new indicator on self's filename
         """
@@ -259,20 +235,20 @@ class Single(Entry):
             self.renameTo()
 
 
-    def convertToGroup(self):
-        """Convert the current Single to a Group with the same name.
-        
-        This function is only called on singletons organized by name.
-        """
-        # TODO: move to OrganizationByName
-        print('Single.convertToGroup() deprecated')
-        raise DeprecationWarning
-        print('Converting "%s" to a group' % self.getPath())
-        newGroup = Group.createFromName(self.model, self.getName())
-        self.setParentGroup(newGroup)
-        self.renameTo(scene='1', number='1')
-
-    
+#     def convertToGroup(self):
+#         """Convert the current Single to a Group with the same name.
+#          
+#         This function is only called on singletons organized by name.
+#         """
+#         # TODO: move to OrganizationByName
+#         print('Single.convertToGroup() deprecated')
+#         raise DeprecationWarning
+#         print('Converting "%s" to a group' % self.getPath())
+#         newGroup = Group.createFromName(self.model, self.getName())
+#         self.setParentGroup(newGroup)
+#         self.renameTo(scene='1', number='1')
+#  
+#      
     def changeScene (self, newScene):
         """Change the scene number of self.
         
