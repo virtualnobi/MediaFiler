@@ -69,7 +69,7 @@ class MediaOrganization(object):
 
 # Class Variables
     ImageFilerModel = None  # to access legal names 
-    MoveToLocations = OrderedDict()  # last move-to locations for repeating; no concurrent usage of subclasses!
+    MoveToLocations = {}  # last move-to locations for repeated moving; no concurrent usage of subclasses!
     
     
 # Class Methods
@@ -224,13 +224,14 @@ class MediaOrganization(object):
 
 
     @classmethod
-    def registerMoveToLocation(cls, year, month, day, name, scene):
+    def registerMoveToLocation(cls, path):
         """Store information where media was moved to, for retrieval as targets for subsequent moves.
         
         Subclasses must pick appropriate parameters.
         """
-        #raise NotImplementedError
-        pass
+        cls.MoveToLocations.append(path)
+        if (GUIId.MaxNumberMoveToLocations < len(cls.MoveToLocations)):
+            del cls.MoveToLocations[0]
 
 
     @classmethod

@@ -158,7 +158,6 @@ class Single(Entry):
         if (elements):
             kwargs['elements'] = self.model.getClassHandler().elementsToString(elements)
         kwargs['removeIllegalElements'] = removeIllegalElements
-        kwargs['extension'] = self.getExtension()
         newPath = self.organizer.constructPathForSelf(**kwargs) 
         return(self.renameToFilename(newPath))
 

@@ -102,12 +102,12 @@ FilterSimilar = generateWxIdForLabel(_('Filter Similar'))
 StartExternalViewer = generateWxIdForLabel(_('View Fullscreen'))
 SendMail = generateWxIdForLabel(_('Send Email'))
 # Functions specific to OrganizationByName
-SelectScene = generateWxIdForLabel(_('Move to scene...'))
+SelectScene = generateWxIdForLabel(_('Move to scene...'))  # TODO: merge with SelectMoveTo
 for i in xrange(MaxNumberScenes - 1):  # reserve additional menu items for more scene numbers
     wx.NewId()
 RelabelScene = generateWxIdForLabel(_('Rename scene to...'))
 # Functions Specific to OrganizationByDate
-SelectMoveToLocation = generateWxIdForLabel(_('Move to date...'))
+SelectMoveTo = generateWxIdForLabel(_('Move to...'))
 for i in xrange(MaxNumberMoveToLocations - 1):
     wx.NewId()
 EntryFunctionLast = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl

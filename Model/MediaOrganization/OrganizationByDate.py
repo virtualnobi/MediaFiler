@@ -117,6 +117,8 @@ class OrganizationByDate(MediaOrganization):
             else:
                 result = os.path.join(result, 
                                       (self.FormatYearMonth % (year, month)))
+        else:
+            result = os.path.join(result, (self.FormatYear % year))
         return(result)
 
 
@@ -159,33 +161,39 @@ class OrganizationByDate(MediaOrganization):
         Raises KeyError 
         """
         group = cls.ImageFilerModel.getEntry(group=True, path=path)
-        if (group):
-            return(group)
-        else:
-            (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
-            if (day <> None):
-                day = None
-                month = int(month)
-                year = int(year)
-            elif (month <> None):
-                month = None
-                year = int(year)
-            elif (year <> None):
-                year = None
-            else: 
-                logging.error('OrganizationByDate.getGroupFromPath(): No valid date recognized in "%s"' % path)
-                raise KeyError, ('OrganizationByDate.getGroupFromPath(): No valid date recognized in "%s"' % path)
-            parentPath = cls.constructPath(rootDir=cls.ImageFilerModel.getRootDirectory(),
-                                           day=day,
-                                           month=month,
-                                           year=year)
-            parentGroup = cls.getGroupFromPath(parentPath)
+        if (not group):
+            (head, tail) = os.path.split(path)  # @UnusedVariable
+            parentGroup = cls.getGroupFromPath(head)
             if (not parentGroup):
-                logging.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % parentPath)
-                raise KeyError, ('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % parentPath)
+                logging.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
+                raise KeyError, ('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
             group = Group(cls.ImageFilerModel, path)
             group.setParentGroup(parentGroup)
-            return(group)
+#             (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
+#             if (day <> None):
+#                 day = None
+#                 month = int(month)
+#                 year = int(year)
+#             elif (month <> None):
+#                 month = None
+#                 year = int(year)
+#             elif (year <> None):
+#                 year = None
+#             else: 
+#                 logging.error('OrganizationByDate.getGroupFromPath(): No valid date recognized in "%s"' % path)
+#                 raise KeyError, ('OrganizationByDate.getGroupFromPath(): No valid date recognized in "%s"' % path)
+#             parentPath = cls.constructPath(rootDir=cls.ImageFilerModel.getRootDirectory(),
+#                                            day=day,
+#                                            month=month,
+#                                            year=year)
+#             parentGroup = cls.getGroupFromPath(parentPath)
+#             if (not parentGroup):
+#                 logging.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % parentPath)
+#                 raise KeyError, ('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % parentPath)
+#             group = Group(cls.ImageFilerModel, path)
+#             group.setParentGroup(parentGroup)
+#             return(group)
+        return(group)
 
 
     @classmethod
@@ -355,7 +363,7 @@ class OrganizationByDate(MediaOrganization):
                 assert (len(year) == 2), ('Reduced year "%s" too long in "%s"' % (year, path)) 
                 year = cls.expandReducedYear(year)
             matched = (cls.FormatYearMonthDay % (int(year), int(month), int(day)))
-            matchIndex = match.start()
+            matchEnd = match.end()
         else:
             match = cls.MonthPattern.search(path)
             usingReducedPattern = False
@@ -370,7 +378,7 @@ class OrganizationByDate(MediaOrganization):
                     year = cls.expandReducedYear(year)
                 month = match.group(2)
                 matched = (cls.FormatYearMonth % (int(year), int(month)))
-                matchIndex = match.start()
+                matchEnd = match.end()
             else: 
                 match = cls.YearPattern.search(path)
                 usingReducedPattern = False
@@ -383,22 +391,26 @@ class OrganizationByDate(MediaOrganization):
                     if (usingReducedPattern):
                         year = cls.expandReducedYear(year)
                     matched = (cls.FormatYear % int(year))
-                    matchIndex = match.start()
+                    matchEnd = match.end()
                 else:
                     (year, month, day) = cls.deriveDateWithMonthFromPath(log, path)
                     if (year):
                         matched = ''
-                        matchIndex = -1
+                        matchEnd = -1
                     else:
                         year = cls.UnknownDateName
                         matched = ''
-                        matchIndex = -1
+                        matchEnd = -1
         #log.write('Recognized (%s, %s, %s) in path "%s"\n' % (year, month, day, path)) 
         # skip to last occurrence of match
         rest = path
-        while (matchIndex >= 0):  
-            rest = rest[(matchIndex + len(matched)):]
-            matchIndex = rest.find(matched)
+        while (0 <= matchEnd):  
+            rest = rest[matchEnd:]
+            matchBegin = rest.find(matched)
+            if (0 <= matchBegin):
+                matchEnd = (matchBegin + len(matched))
+            else: 
+                matchEnd = -1
         return (year, month, day, rest)
 
 
@@ -537,24 +549,17 @@ class OrganizationByDate(MediaOrganization):
 
 
     @classmethod
-    def registerMoveToLocation(cls, year=None, month=None, day=None, name=None, scene=None):
-        """Store information where media was moved to, for retrieval as targets for subsequent moves.
-        
-        String year
-        String month
-        String day
+    def registerMoveToLocation(cls, path):
         """
-        if ((name <> None)
-            or (scene <> None)):
-            raise ValueError
-        print('OrganizationByDate.registerMoveToLocation(): Registering (%s, %s, %s)' % (year, month, day))
-        moveToLocation = {'year': year, 'month': month, 'day': day}
-        path = cls.constructPathForOrganization(rootDir='', **moveToLocation)
+        """
+        print('OrganizationByDate.registerMoveToLocation(): Registering "%s"' % path)
+        (year, month, day, dummy) = cls.deriveDateFromPath(StringIO.StringIO(), path)
         (dummy, menuText) = os.path.split(path)
         if (not menuText in cls.MoveToLocations):
-            cls.MoveToLocations[menuText] = moveToLocation
+            cls.MoveToLocations[menuText] = {'year': year, 'month': month, 'day': day}
             if (GUIId.MaxNumberMoveToLocations < len(cls.MoveToLocations)):
                 cls.MoveToLocations.popitem(last=False)
+        
 
 
     @classmethod
@@ -637,32 +642,36 @@ class OrganizationByDate(MediaOrganization):
         Return nobi.wxExtensions.Menu (which is a wx.Menu)
         """
         moveToMenu = Menu()
-        moveToId = GUIId.SelectMoveToLocation
-        for menuText in sorted(self.__class__.MoveToLocations.keys()):
-            if (moveToId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations)):
-                mtl = self.__class__.MoveToLocations[menuText]
-                print('Adding move-to location "%s" into menu entry %s with id %d' % (mtl, menuText, moveToId))
-                moveToMenu.Append(moveToId, menuText)
-                if ((mtl['year'] == self.getYearString())
-                    and (mtl['month'] == self.getMonthString())
-                    and (mtl['day'] == self.getDayString())):
-                    moveToMenu.Enable(moveToId, False)
-                moveToId = (moveToId + 1)
-        if (GUIId.SelectMoveToLocation < moveToId):  
-            menu.AppendMenu(0, GUIId.FunctionNames[GUIId.SelectMoveToLocation], moveToMenu)
+        moveToId = GUIId.SelectMoveTo
+        for mtl in sorted(self.__class__.MoveToLocations):
+#             menuText = mtl
+#             if (moveToId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations)):
+#                 mtl = self.__class__.MoveToLocations[menuText]
+#                 print('Adding move-to location "%s" into menu entry %s with id %d' % (mtl, menuText, moveToId))
+#                 moveToMenu.Append(moveToId, menuText)
+#                 if ((mtl['year'] == self.getYearString())
+#                     and (mtl['month'] == self.getMonthString())
+#                     and (mtl['day'] == self.getDayString())):
+#                     moveToMenu.Enable(moveToId, False)
+            moveToMenu.Append(moveToId, mtl)
+            moveToId = (moveToId + 1)
+        menu.PrependMenu(0, GUIId.FunctionNames[GUIId.SelectMoveTo], moveToMenu)
+        if (GUIId.SelectMoveTo == moveToId):  
+            menu.Enable(0, False)
         return(menu)
 
 
     def runContextMenuItem(self, menuId, parentWindow):
         """Run functions to handle the menu items added in extendContextMenu()
         """
-        if ((GUIId.SelectMoveToLocation <= menuId)
-            and (menuId <= (GUIId.SelectMoveToLocation + GUIId.MaxNumberMoveToLocations))):
-            mtlIndex = (menuId - GUIId.SelectMoveToLocation)
-            mtlText = sorted(self.__class__.MoveToLocations.keys())[mtlIndex]
-            mtl = self.__class__.MoveToLocations[mtlText]
-            print('Moving "%s" to %s' % (self.getPath(), mtl))
-            self.context.renameTo(makeUnique=True, **mtl)
+        if ((GUIId.SelectMoveTo <= menuId)
+            and (menuId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations))):
+            mtlIndex = (menuId - GUIId.SelectMoveTo)
+            print('NYI: Moving "%s" to "%s"' % (self.context.getPath(), self.__class__.MoveToLocations[mtlIndex]))
+#             mtlText = sorted(self.__class__.MoveToLocations.keys())[mtlIndex]
+#             mtl = self.__class__.MoveToLocations[mtlText]
+#             print('Moving "%s" to %s' % (self.getPath(), mtl))
+#             self.context.renameTo(makeUnique=True, **mtl)
         else:
             super(OrganizationByDate, self).runContextMenuItem(self, menuId, parentWindow)
 

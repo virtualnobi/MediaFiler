@@ -297,18 +297,9 @@ class Entry(PausableObservable):
             newGroup = self.organizer.__class__.getGroupFromPath(head)
             if (newGroup <> self.getParentGroup()):
                 self.setParentGroup(newGroup)
-            # name must be changed last, otherwise the Group will not find its subentry
-            self.initFromPath(fname)
-#             parent = self.getParentGroup()
-# #             parent.removeEntryFromGroup(self)
-# #             parent.addEntryToGroup(self)
-#             parent.subEntriesSorted = SortedCollection(parent.subEntriesSorted, key=Entry.getPath)
+            self.initFromPath(fname)  # name must be changed last, otherwise the Group will not find its subentry
             self.changedAspect('name')
-#             self.organizer.__class__.registerMoveToLocation(year=self.organizer.getYear(),  # TODO:
-#                                                             month=self.organizer.getMonth(),
-#                                                             day=self.organizer.getDay(),
-#                                                             name=self.getName(),
-#                                                             scene=self.getScene())
+            self.organizer.__class__.registerMoveToLocation(fname)
             return(True)
 
 

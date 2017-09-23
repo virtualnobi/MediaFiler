@@ -194,17 +194,19 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             observable.removeObserver(self)
             node = observable.getTreeItemID()
             self.Delete(node)
-            print('MediaTreeCtrl.update(): entry "%s" removed' % observable.getPath())
+            logging.debug('MediaTreeCtrl.update(): entry "%s" removed' % observable.getPath())
         elif (aspect == 'children'):  # Group changes its children
-            #print('MediaTreeCtrl: entry "%s" changing children...' % observable.getPath())
             node = observable.getTreeItemID()
+            currentSelection = self.model.getSelectedEntry()
             self.ignoreSelectionChanges = True
             self.DeleteChildren(node)
             for subEntry in observable.getSubEntries():
                 self.addSubTree(subEntry, node)
             self.SortChildren(node)
             self.ignoreSelectionChanges = False
+            self.setEntry(currentSelection)
             logging.debug('MediaTreeCtrl.update(): children of "%s" changed' % observable.getPath())
+            logging.debug('MediaTreeCtrl.update(): selection "%s" restored' % currentSelection.getPath())
         elif (aspect == 'selection'):  # model changed selection
             entry = observable.getSelectedEntry()
             self.ignoreSelectionChanges = True
