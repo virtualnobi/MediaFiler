@@ -24,6 +24,8 @@ MaximizeOnStart = 'maximize-on-start'
 LastPerspective = 'last-perspective'
 LastMedia = 'last-media'
 
+ShowParentAfterRemove = 'show-parent-after-remove'
+
 ImportPath = 'import-path'
 ImportIgnoreUnhandled = 'import-ignore-unhandled'
 ImportMinimumSize = 'import-minimum-size'

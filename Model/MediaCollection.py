@@ -66,8 +66,6 @@ class MediaCollection(Observable, Observer):
 
 # Constants
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
-#    ConfigurationOptionParameter = '%1'
-#    ConfigurationOptionLastMedia = 'last-media'
 
 
 
@@ -375,7 +373,10 @@ class MediaCollection(Observable, Observer):
             entry = self.selectedEntry
             while (entry <> None):
                 if (entry == observable):
-                    self.setSelectedEntry(observable.getParentGroup())
+                    if ('True' == self.getConfiguration(GlobalConfigurationOptions.ShowParentAfterRemove)):
+                        self.setSelectedEntry(observable.getParentGroup())
+                    else:
+                        self.setSelectedEntry(observable.getPreviousEntry())
                     break
                 entry = entry.getParentGroup()
 
