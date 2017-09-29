@@ -140,8 +140,14 @@ There's a "fullscreen" action in the MediaFiler program which will run the progr
 - `viewer-movie = "C:\Program Files\VideoLAN\VLC\vlc.exe" -f "%1"`
 This is the program to use for the "fullscreen" action for movies. Currently, that's the only way to view movies.  
 
+- `ffmpeg = "C:\Program Files\ffmpeg\bin\ffmpeg.exe"`
+This is the program which derives a still image from a movie. If you do not install ffmpeg, only a generic image will be shown for all videos. If you install ffmpeg, the frame at 20% of the video duration is shown for a video.
+
 - `editor-email = "C:\Program Files (x86)\Mozilla\Thunderbird\thunderbird.exe" -compose "attachment='%1'"`
 If you want to email a selected media to somebody, you can put your email program here. Don't forget the `%1` for the filename of the image (most likely, to be used as an attachment to the email). 
+
+- `show-parent-after-remove = True`
+Controls which item is selected in the tree view after deleting media. If `True`, the parent group is shown. As this might cause a long delay to display all entries in the group, and you might loose the orientation which media is the next or previous, you can leave this option out or set it to "False" to show the previous media after deleting one. 
 
 There are more options in this file, especially if you have used the MediaFiler program already. It's probably best to leave them unchanged, but here they are for completeness: 
 
@@ -152,8 +158,10 @@ The last perpective shown. "Perspective" is wxPython term to describe the layout
 The last media shown. 
 
 - `import-prefer-exif = True`
-- `import-path = N:\shared\import`
+- `import-path = N:\shared\import` plus many more...
 The settings used during the last import. 
+
+- 
 
 ### Standard Images
 

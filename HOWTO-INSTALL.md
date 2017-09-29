@@ -61,6 +61,22 @@ In the installation directory, there is an `App.pyw` file. Create a shortcut to 
 * Start the shortcut:
 Clicking the shortcut should run the MediaFiler program. When started for the first time, it will ask your for the image directory. If erverything is working correctly, the directory shown by default is correct, but you can still choose another one. Mediafiler will create subdirectories called `images` (all your images), `lib` (some configuration files), `trash` (all media you delete, for easy recovery), and `import` (the default directory from which media is imported).
 
+
+## Install External Viewers And Players
+
+### Images
+
+If you want to be able to view (and edit) images with an external program, you can tell MediaFiler how to invoke this program. I use IrfanView, which can be downloaded from [http://www.irfanview.com/](http://www.irfanview.com/), but you may use any other image viewer or editor. The command line to run the image viewer (with '%1' as a placeholder for the actual image filename) must be added to the 'MediaFiler.ini' configuration file under the 'image-viewer' option. 
+
+### Videos
+
+If you want to include videos in your media collection, they will display a generic video image. 
+
+In case you want to see a frame from the video instead, you have to install the ffmpeg program and tell MediaFiler where to find it. You can install ffmpeg from [https://ffmpeg.org/](https://ffmpeg.org/). The complete pathname of the 'ffmpeg.exe' program (usually in 'bin/ffmpeg.exe' in its installation directory) must be added to the 'MediaFiler.ini' configuration file under the 'ffmpeg' option. 
+
+In case you want to be able to view the entire video in a separate window, you have to install a video player (or use a built-in player) and tell MediaFiler where to find it. I use VLC, which can be downloaded from [https://www.videolan.org/vlc/](https://www.videolan.org/vlc/). The command line to run the video player (with '%1' as a placeholder for the actual video filename) must be added to the 'MediaFiler.ini' configuration file under the 'movie-viewer' option. 
+
+
 ## Congratulations! You're done with the setup. 
 
 Continue with [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md).
