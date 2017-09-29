@@ -5,14 +5,18 @@
 
 # Imports
 ## standard
+import datetime
+import re
 import os.path
 import gettext
+import subprocess
+import logging
+import cStringIO
 ## contributed
 import wx
 ## nobi
 ## project
 import Installer
-# from .Entry import Entry
 from .Single import Single
 import UI  # to access UI.PackagePath
 
@@ -44,6 +48,7 @@ class Movie(Single):
 # Constants
     LegalExtensions = ['mov', 'mp4', '3gp', 'mpg']  # all file formats handled by Movie
     ConfigurationOptionViewer = 'viewer-movie'
+    ConfigurationOptionFfmpeg = 'ffmpeg'
     PreviewImageFilename = 'Movie.jpg'  # image shown as placeholder for movie
 
 
@@ -58,7 +63,7 @@ class Movie(Single):
     
     @classmethod
     def getLegalExtensions(cls):
-        """Return a set of file extensions which clas can display.
+        """Return a set of file extensions which cls can display.
         
         File extensions are lower-case, not including the preceeding dot.
         
@@ -81,15 +86,14 @@ class Movie(Single):
 
 # Lifecycle
     def __init__ (self, model, path):
-        """Create a Movie from the file at PATH, based on imageFilerModel MODEL. 
+        """Create a Movie from the file at PATH, based on MediaCollection MODEL. 
         """
         # inheritance
         Single.__init__(self, model, path)
         # internal state
-        self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
-                                 wx.BITMAP_TYPE_JPEG)
-        self.rawWidth = self.rawImage.Width
-        self.rawHeight = self.rawImage.Height
+        self.rawImage = None
+        self.rawWidth = None
+        self.rawHeight = None
         return(None)
 
 
@@ -110,12 +114,56 @@ class Movie(Single):
 ## Inheritance - Single
     def getRawImage (self):
         """Retrieve raw data (JPG or PNG or GIF) for image.
-
-        TODO: Extract first frame of movie to display
-        
-        See https://tobilehman.com/blog/2013/01/20/extract-array-of-frames-from-mp4-using-python-opencv-bindings/
-        or https://stackoverflow.com/questions/10672578/extract-video-frames-in-python
         """
+        if (self.rawImage <> None):
+            return(self.rawImage)
+        ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
+        position = 0.1
+        if (ffmpeg):
+            try:
+                logging.debug('Movie.getRawImage(): Using "%s"' % ffmpeg)
+                proc = subprocess.Popen([ffmpeg, "-i", self.getPath()], stderr=subprocess.PIPE)
+                (dummy, result) = proc.communicate()
+                m = re.search(r"Duration:\s*(\d+):(\d+):(\d+)\.(\d+)", result)
+                if (m == None):
+                    target = '20'
+                    logging.warning('Movie.getRawImage(): Cannot determine duration, using %s secs as offset for "%s"' % (target, self.getPath()))
+                else:
+                    # Avoiding strptime here because it has some issues handling milliseconds.
+                    m = [int(m.group(i)) for i in range(1, 5)]
+                    duration = datetime.timedelta(hours=m[0],
+                                                  minutes=m[1],
+                                                  seconds=m[2],
+                                                  # * 10 because truncated to 2 decimal places
+                                                  milliseconds=m[3] * 10
+                                                  ).total_seconds()
+                    target = max(0, min(duration * position, duration - 0.1))
+                    target = "{:.3f}".format(target)
+                logging.debug('Movie.getRawImage(): Duration is %s, target frame is %s' % (duration, target))
+            
+                args = [ffmpeg,
+                        "-ss", target,
+                        "-i", self.getPath(),
+                        "-map", "v:0",     # first video stream
+                        "-frames:v", "1",  # 1 frame
+                        "-f", "mjpeg",     # motion jpeg (aka. jpeg since 1 frame) output
+                        "pipe:"            # pipe output to stdout
+                        ]
+                proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                (output, _) = proc.communicate()
+                if (proc.returncode):
+                    raise subprocess.CalledProcessError(proc.returncode, args)
+                if (not output):
+                    raise subprocess.CalledProcessError(-2, args)
+                stream = cStringIO.StringIO(output)
+                self.rawImage = wx.ImageFromStream(stream)
+            except Exception as e:
+                logging.error('Movie.getRawImage(): Cannot retrieve frame from "%s"; error follows:\n%s' % (self.getPath(), e))
+        if (self.rawImage == None):
+            self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
+                                     wx.BITMAP_TYPE_JPEG)
+        self.rawWidth = self.rawImage.GetWidth()
+        self.rawHeight = self.rawImage.GetHeight()
         return(self.rawImage)
 
 
@@ -137,122 +185,3 @@ for extension in Movie.LegalExtensions:
 
 
 
-
-# script using ffmpeg to extract middle frame of video
-# !/usr/bin/env python
-# 
-# # Any copyright is dedicated to the Public Domain.
-# # http://creativecommons.org/publicdomain/zero/1.0/
-# # Written in 2013 - Nils Maier
-# 
-# import datetime
-# import os
-# import re
-# import subprocess
-# import sys
-# 
-# 
-# def which(program):
-#     """ Somewhat equivalent to which(1) """
-# 
-#     def is_executable(fpath):
-#         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-# 
-#     if is_executable(program):
-#         return program
-#     path, program = os.path.split(program)
-#     if path:
-#         return None
-#     for path in os.environ["PATH"].split(os.pathsep):
-#         path = path.strip('"')
-#         exe = os.path.join(path, program)
-#         if is_executable(exe):
-#             return exe
-#         # Windows-style
-#         exe = os.path.join(path, "{}.exe".format(program))
-#         if is_executable(exe):
-#             return exe
-#     return None
-# 
-# 
-# def thumb_with_ffmpeg(infile, position=0.5, executable=None):
-#     """
-#     Extract a thumbnail using ffmpeg
-# 
-#     :param infile: File to thumbnail.
-#     :param position: Position at which to take the thumbnail. Default: 0.5
-#     :param executable: Executable to use. Default: first "ffmpeg" in $PATH
-#     :returns: The thumbnail data (binary string)
-#     """
-# 
-#     ffmpeg = which(executable or "ffmpeg")
-#     if not ffmpeg:
-#         raise RuntimeError(
-#             "Failed to find ffmpeg executable: {}".format(executable))
-#     if position < 0 or position >= 1.0:
-#         raise ValueError(
-#             "Position {} is not between 0.0 and 1.0".format(position))
-# 
-#     proc = subprocess.Popen([ffmpeg, "-i", infile], stderr=subprocess.PIPE)
-#     _, result = proc.communicate()
-#     m = re.search(r"Duration:\s*(\d+):(\d+):(\d+)\.(\d+)", result)
-#     if not m:
-#         raise KeyError("Cannot determine duration")
-#     # Avoiding strptime here because it has some issues handling milliseconds.
-#     m = [int(m.group(i)) for i in range(1, 5)]
-#     duration = datetime.timedelta(hours=m[0],
-#                                   minutes=m[1],
-#                                   seconds=m[2],
-#                                   # * 10 because truncated to 2 decimal places
-#                                   milliseconds=m[3] * 10
-#                                   ).total_seconds()
-#     target = max(0, min(duration * position, duration - 0.1))
-#     target = "{:.3f}".format(target)
-#     args = [ffmpeg,
-#             "-ss", target,
-#             "-i", infile,
-#             "-map", "v:0",     # first video stream
-#             "-frames:v", "1",  # 1 frame
-#             "-f", "mjpeg",     # motion jpeg (aka. jpeg since 1 frame) output
-#             "pipe:"            # pipe output to stdout
-#             ]
-#     proc = subprocess.Popen(args, stdout=subprocess.PIPE,
-#                             stderr=subprocess.PIPE)
-#     output, _ = proc.communicate()
-#     if proc.returncode:
-#         raise subprocess.CalledProcessError(proc.returncode, args)
-#     if not output:
-#         raise subprocess.CalledProcessError(-2, args)
-#     return output
-# 
-# 
-# if __name__ == "__main__":
-#     from argparse import ArgumentParser, ArgumentTypeError
-# 
-#     def percentage(x):
-#         x = float(x)
-#         if x < 0.0 or x >= 1.0:
-#             raise ArgumentTypeError(
-#                 "{} not in percentage range [0.0, 1.0)".format(x))
-#         return x
-# 
-#     parser = ArgumentParser(
-#         description="Extract a thumbnail from a media file using ffmpeg")
-#     parser.add_argument("infile", type=str, help="Input file")
-#     parser.add_argument("outfile", type=str, help="Output file")
-#     parser.add_argument("-f", "--ffmpeg", type=str, default=None,
-#                         help="use this ffmpeg binary, "
-#                              "default: check $PATH for ffmpeg")
-#     parser.add_argument("-p", "--position", type=percentage, default=0.5,
-#                         help="thumbnail at this position (percentage), "
-#                              "default: 0.5")
-#     args = parser.parse_args()
-# 
-#     try:
-#         output = thumb_with_ffmpeg(args.infile, args.position, args.ffmpeg)
-#         with open(args.outfile, "wb") as op:
-#             op.write(output)
-#     except Exception as ex:
-#         print >>sys.stderr, "Error:", ex
-#         sys.exit(ex.returncode or 1)
-#         
