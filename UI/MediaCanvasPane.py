@@ -68,7 +68,7 @@ class MediaCanvas(wx.Panel, Observer):
         self.setEntry(self.model.getSelectedEntry())
 
 
-    def setEntry(self, entry, forceUpdate=False):
+    def setEntryProfiler(self, entry, forceUpdate=False):
         profiler = cProfile.Profile()
         profiler.enable()
         self.setEntryProfiled(entry, forceUpdate)
@@ -83,7 +83,7 @@ class MediaCanvas(wx.Panel, Observer):
         print('---')
 
 
-    def setEntryProfiled(self, entry, forceUpdate=False):
+    def setEntry(self, entry, forceUpdate=False):
         """Set the entry to display.
         
         Boolean forceUpdate redisplays even if the same entry is already selected (after filtering)

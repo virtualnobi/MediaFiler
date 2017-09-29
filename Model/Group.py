@@ -319,17 +319,20 @@ class Group(Entry, Observer):
             return(super(Group, self).getNextEntry(self))
 
 
-    def getPreviousEntry(self, entry):
+    def getPreviousEntry(self, entry=None):
         """Return the previous entry preceeding entry.
         
         Return MediaFiler.Entry or None
         """
-        index = self.subEntriesSorted.index(entry)
-        if (0 < index):
-            prevEntry = self.subEntriesSorted[index - 1]
-            if (prevEntry.isGroup()):
-                prevEntry = prevEntry.getLastEntry()
-            return(prevEntry)
+        if (entry):
+            index = self.subEntriesSorted.index(entry)
+            if (0 < index):
+                prevEntry = self.subEntriesSorted[index - 1]
+                if (prevEntry.isGroup()):
+                    prevEntry = prevEntry.getLastEntry()
+                return(prevEntry)
+            else:
+                return(super(Group, self).getPreviousEntry(self))
         else:
             return(super(Group, self).getPreviousEntry(self))
 

@@ -162,7 +162,7 @@ class OrganizationByDate(MediaOrganization):
         """
         group = cls.ImageFilerModel.getEntry(group=True, path=path)
         if (not group):
-            (head, tail) = os.path.split(path)  # @UnusedVariable
+            (head, _) = os.path.split(path)  # @UnusedVariable
             parentGroup = cls.getGroupFromPath(head)
             if (not parentGroup):
                 logging.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
@@ -553,12 +553,12 @@ class OrganizationByDate(MediaOrganization):
         """
         """
         print('OrganizationByDate.registerMoveToLocation(): Registering "%s"' % path)
-        (year, month, day, dummy) = cls.deriveDateFromPath(StringIO.StringIO(), path)
-        (dummy, menuText) = os.path.split(path)
-        if (not menuText in cls.MoveToLocations):
-            cls.MoveToLocations[menuText] = {'year': year, 'month': month, 'day': day}
-            if (GUIId.MaxNumberMoveToLocations < len(cls.MoveToLocations)):
-                cls.MoveToLocations.popitem(last=False)
+#         (year, month, day, dummy) = cls.deriveDateFromPath(StringIO.StringIO(), path)
+#         (dummy, menuText) = os.path.split(path)
+#         if (not menuText in cls.MoveToLocations):
+#             cls.MoveToLocations[menuText] = {'year': year, 'month': month, 'day': day}
+#             if (GUIId.MaxNumberMoveToLocations < len(cls.MoveToLocations)):
+#                 cls.MoveToLocations.popitem(last=False)
         
 
 

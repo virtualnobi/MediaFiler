@@ -267,7 +267,7 @@ class MediaCollection(Observable, Observer):
         """
         if ((self.selectedEntry == None)
             or (self.selectedEntry == self.root)):
-            return(self.root)  # self.initialEntry)
+            return(self.getInitialEntry())
         else:
             return(self.selectedEntry)
 
@@ -320,8 +320,7 @@ class MediaCollection(Observable, Observer):
         """
         if ((entry == None)
             or (entry == self.getRootEntry())
-            or (entry.getPath() == self.initialEntry)
-            ):
+            or (entry == self.initialEntry)):
             return(self.root.getFirstEntry())
         else:
             return(entry.getNextEntry(entry))
@@ -334,8 +333,7 @@ class MediaCollection(Observable, Observer):
         """
         if ((entry == None)
             or (entry == self.getRootEntry())
-            or (entry.getPath() == self.initialEntry)
-            ):
+            or (entry == self.initialEntry)):
             return(self.root.getLastEntry())
         else:
             return(entry.getPreviousEntry(entry))

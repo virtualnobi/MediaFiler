@@ -69,7 +69,7 @@ class MediaOrganization(object):
 
 # Class Variables
     ImageFilerModel = None  # to access legal names 
-    MoveToLocations = {}  # last move-to locations for repeated moving; no concurrent usage of subclasses!
+    MoveToLocations = []  # last move-to locations for repeated moving; no concurrent usage of subclasses!
     
     
 # Class Methods

@@ -472,19 +472,23 @@ class Entry(PausableObservable):
         
         Return MediaFiler.Entry or None
         """
+        if (entry == None):
+            entry = self
         if (self.getParentGroup()):
-            return(self.getParentGroup().getNextEntry(self))
+            return(self.getParentGroup().getNextEntry(entry))
         else:
             return(None)
 
 
-    def getPreviousEntry(self, entry=None):  # @UnusedVariable
+    def getPreviousEntry(self, entry=None): 
         """Return the previous entry preceeding self.
         
         Return MediaFiler.Entry or None
         """
+        if (entry == None):
+            entry = self
         if (self.getParentGroup()):
-            return(self.getParentGroup().getPreviousEntry(self))
+            return(self.getParentGroup().getPreviousEntry(entry))
         else:
             return(None)
 

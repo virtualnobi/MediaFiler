@@ -132,7 +132,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             entry = self.model.getInitialEntry()
         if (entry.getTreeItemID()):
             self.SelectItem(entry.getTreeItemID())
-            self.EnsureVisible(entry.getTreeItemID())
+            result = self.EnsureVisible(entry.getTreeItemID())
+            logging.debug('MediaTreeCtrl.setEntry(): EnsureVisible() returns %s' % result)
             if (expand):
                 self.Expand(entry.getTreeItemID())                
         else:
@@ -179,10 +180,11 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 
 
 # Inheritance - Observer
-    def updateAspect (self, observable, aspect):
+    def updateAspect(self, observable, aspect):
         """ASPECT of OBSERVABLE changed. 
         """
         super(MediaTreeCtrl, self).updateAspect(observable, aspect)
+        logging.debug('MediaTreeCtrl.updateAspect(%s)' % aspect)
         if (aspect == 'name'):  # name of an Entry changed
             #print('MediaTreeCtrl: name change of %s' % observable)
             node = observable.getTreeItemID()
@@ -205,19 +207,19 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.SortChildren(node)
             self.ignoreSelectionChanges = False
             self.setEntry(currentSelection)
-            logging.debug('MediaTreeCtrl.update(): children of "%s" changed' % observable.getPath())
-            logging.debug('MediaTreeCtrl.update(): selection "%s" restored' % currentSelection.getPath())
+            logging.debug('MediaTreeCtrl.updateAspect(): children of "%s" changed' % observable.getPath())
+            logging.debug('MediaTreeCtrl.updateAspect(): selection "%s" restored' % currentSelection.getPath())
         elif (aspect == 'selection'):  # model changed selection
             entry = observable.getSelectedEntry()
             self.ignoreSelectionChanges = True
             self.setEntry(entry)
             self.ignoreSelectionChanges = False
-            logging.debug('MediaTreeCtrl.update(): selected entry "%s"' % entry.getPath())
+            logging.debug('MediaTreeCtrl.updateAspect(): selected entry "%s"' % entry.getPath())
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.selectionBeforeFiltering = self.model.getSelectedEntry()
             self.storeExpansionState()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
-            logging.debug('MediaTreeCtrl.update(): Recreating tree...')
+            logging.debug('MediaTreeCtrl.updateAspect(): Recreating tree...')
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
@@ -225,7 +227,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             else:
                 self.setEntry(self.model.getSelectedEntry())
             self.restoreExpansionState()
-            logging.debug('MediaTreeCtrl.update(): Recreating tree finished')
+            logging.debug('MediaTreeCtrl.updateAspect(): Recreating tree finished')
         else:
             super(self, MediaTreeCtrl).update(observable, aspect)
 
