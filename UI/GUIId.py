@@ -38,8 +38,8 @@ def N_(message): return message
 
 # Constant Strings
 AppTitle = 'MediaFiler'
-MessageDuplicatesDeleted = _('%d duplicate entries deleted')
-TextGroupSizeString = _('%d images')
+MessageDuplicatesDeleted = _('%d duplicate media deleted')
+TextGroupSizeString = _('%d media')
 
 
 
@@ -78,14 +78,14 @@ def generateWxIdForLabel(label):
 LoadRecentDirectory = wx.NewId()  # load first recent root directory
 for i in xrange(MaxNumberRecentFiles - 1):  # reserve additional menu items for more recent directories
     wx.NewId()
-ChangeRootDirectory = generateWxIdForLabel(_('Change Image Directory'))
-ReloadDirectory = generateWxIdForLabel(_('Reload Images'))
-ExportImages = generateWxIdForLabel(_('Export (Filtered) Images'))
+ChangeRootDirectory = generateWxIdForLabel(_('Change Media Directory'))
+ReloadDirectory = generateWxIdForLabel(_('Reload Media'))
+ExportImages = generateWxIdForLabel(_('Export (Filtered) Media'))
 FunctionNames[wx.ID_EXIT] = _('Exit')
 
 ## Image
 EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
-DeleteImage = generateWxIdForLabel(_('Delete Image "%s"'))
+DeleteImage = generateWxIdForLabel(_('Delete Media "%s"'))
 DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
 
 RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
@@ -94,12 +94,12 @@ ChooseName = generateWxIdForLabel(_('Choose Name Manually...'))
 RandomConvertToSingle = wx.NewId()  # for a Single inside a Group, choose a random (free) name
 ChooseConvertToSingle = wx.NewId()  # for a Single inside a Group, ask user for an (existing) name
 ConvertToGroup = generateWxIdForLabel(_('Convert to Group'))  # convert a Single into a Group
-RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Elements'))
+RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Tags'))
 
 FilterIdentical = generateWxIdForLabel(_('Filter Identical'))
 FilterSimilar = generateWxIdForLabel(_('Filter Similar'))
 
-StartExternalViewer = generateWxIdForLabel(_('View Fullscreen'))
+StartExternalViewer = generateWxIdForLabel(_('View in External Program'))
 SendMail = generateWxIdForLabel(_('Send Email'))
 # Functions specific to OrganizationByName
 SelectScene = generateWxIdForLabel(_('Move to scene...'))  # TODO: merge with SelectMoveTo
@@ -120,8 +120,8 @@ ClearFilter = generateWxIdForLabel(_('Clear Filter'))
 ToggleTreePane = generateWxIdForLabel(_('Toggle Tree Pane'))
 ToggleClassificationPane = generateWxIdForLabel(_('Toggle Classification Pane'))
 ToggleLogPane = generateWxIdForLabel(_('Toggle Log Pane'))
-PreviousImage = generateWxIdForLabel(_('Previous Image'))
-NextImage = generateWxIdForLabel(_('Next Image'))
+PreviousImage = generateWxIdForLabel(_('Previous Media'))
+NextImage = generateWxIdForLabel(_('Next Media'))
 StopSlideshow = generateWxIdForLabel(_('Stop Slideshow'))
 ResumeSlideshow = generateWxIdForLabel(_('Resume Slideshow'))
 QuickSlideshow = generateWxIdForLabel(_('Present Quickly'))
@@ -142,8 +142,8 @@ Import = generateWxIdForLabel(_('Import'))
 ## Tools
 GenerateLinkDirectory = generateWxIdForLabel(_('Generate Link Directory'))
 GenerateThumbnails = generateWxIdForLabel(_('Generate Thumbnail Directory'))
-RenameElement = generateWxIdForLabel(_('Rename Element'))
-EditClasses = generateWxIdForLabel(_('Edit Classes'))
+RenameElement = generateWxIdForLabel(_('Rename Tag'))
+EditClasses = generateWxIdForLabel(_('Edit Tag Classes'))
 EditNames = generateWxIdForLabel(_('Edit Names'))
 HarvestURLs = generateWxIdForLabel(_('Harvest from URL...'))
 

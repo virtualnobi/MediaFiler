@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2017-09-16 22:22+0200\n"
-"PO-Revision-Date: 2017-09-16 22:37+0200\n"
+"POT-Creation-Date: 2017-10-01 13:01+Mitteleuropäische Sommerzeit\n"
+"PO-Revision-Date: 2017-10-01 13:14+0200\n"
 "Last-Translator: nobi <virtualnobi@gmx.de>\n"
 "Language-Team: nobisoft <virtualnobi@gmx.de>\n"
 "Language: de_DE\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
-"X-Generator: Poedit 2.0.1\n"
+"X-Generator: Poedit 2.0.4\n"
 "X-Poedit-Basepath: ../..\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -87,7 +87,7 @@ msgstr "&Werkzeug"
 
 #: AppDebug.py:358
 msgid "Select New Image Directory:"
-msgstr "Neues Bilderverzeichnis auswählen:"
+msgstr "Neues Medienverzeichnis auswählen:"
 
 #: AppDebug.py:375
 msgid "Select Directory to Export into:"
@@ -115,7 +115,7 @@ msgstr "Leeres Verzeichnis"
 
 #: AppDebug.py:525
 msgid "No files to import!"
-msgstr ""
+msgstr "Keine Medien gefunden!"
 
 #: AppDebug.py:532 AppDebug.py:534
 msgid "Import Report"
@@ -145,7 +145,7 @@ msgstr "Warnung"
 
 #: AppDebug.py:594 AppDebug.py:620
 msgid "No editor defined with \"%s\" configuration option!"
-msgstr "Es wurde mit der Konfigurationsoption \"%s\" kein Programm angegeben!"
+msgstr "Kein externes Programm mit der Konfigurationsoption \"%s\" angegeben!"
 
 #: AppDebug.py:699
 msgid "Loading..."
@@ -180,9 +180,9 @@ msgid ""
 "The current working directory for this program is not a valid media "
 "directory. Choose a media directory:"
 msgstr ""
-"Das Verzeichnis, in dem das Program gestartet wurde, enthält keine "
-"Mediendaten. Wählen Sie ein Verzeichnis, in dem die Mediendaten gespeichert "
-"werden sollen:"
+"Das Verzeichnis, in dem dieses Program gestartet wurde, enthält nicht die "
+"richtigen (Medien-)Daten. Wählen Sie ein Verzeichnis, in dem die "
+"Mediendaten gespeichert werden sollen:"
 
 #: Model\Installer.py:237
 msgid "Creation of required folders and files failed."
@@ -193,45 +193,45 @@ msgstr ""
 msgid "Error"
 msgstr "Fehler"
 
-#: Model\Movie.py:56
+#: Model\Movie.py:62
 msgid "Movie"
 msgstr "Film"
 
-#: Model\ObsoleteOrganization.py:880
-msgid "Choose Name"
-msgstr "Name"
+#: Model\Movie.py:176
+msgid "%d secs"
+msgstr "%d Sek"
 
-#: Model\ObsoleteOrganization.py:880
-msgid "Enter New Name"
-msgstr "Neuen Namen eingeben"
+#: Model\Movie.py:178
+msgid "unknown duration"
+msgstr "unbekannte Dauer"
 
 #: UI\GUIId.py:41
-msgid "%d duplicate entries deleted"
+msgid "%d duplicate media deleted"
 msgstr "%d doppelte Medien gelöscht"
 
 #: UI\GUIId.py:42
-msgid "%d images"
-msgstr "%d Bilder"
+msgid "%d media"
+msgstr "%d Medien"
 
 #: UI\GUIId.py:81
-msgid "Change Image Directory"
-msgstr "Bilderverzeichnis wechseln"
+msgid "Change Media Directory"
+msgstr "Medienverzeichnis ändern"
 
 #: UI\GUIId.py:82
-msgid "Reload Images"
+msgid "Reload Media"
 msgstr "Medien erneut laden"
 
 #: UI\GUIId.py:83
-msgid "Export (Filtered) Images"
-msgstr "(Gefilterte) Bilder exportieren"
+msgid "Export (Filtered) Media"
+msgstr "(Gefilterte) Medien exportieren"
 
 #: UI\GUIId.py:84
 msgid "Exit"
 msgstr "Beenden"
 
 #: UI\GUIId.py:88
-msgid "Delete Image %s"
-msgstr "Bild %s löschen"
+msgid "Delete Media \"%s\""
+msgstr "Medium \"%s\" löschen"
 
 #: UI\GUIId.py:89
 msgid "Delete Doubles"
@@ -251,23 +251,23 @@ msgstr "Namen auswählen..."
 
 #: UI\GUIId.py:96
 msgid "Convert to Group"
-msgstr "Umwandeln in Gruppe"
+msgstr "In Gruppe umwandeln "
 
 #: UI\GUIId.py:97
-msgid "Remove Illegal Elements"
-msgstr "Unbekannte Elemente löschen"
+msgid "Remove Illegal Tags"
+msgstr "Unbekannte Schlagworte löschen"
 
 #: UI\GUIId.py:99
 msgid "Filter Identical"
-msgstr "Identische Bilder"
+msgstr "Gleiche Filtern"
 
 #: UI\GUIId.py:100
 msgid "Filter Similar"
-msgstr "Ähnliche Bilder"
+msgstr "Ähnliche Filtern"
 
 #: UI\GUIId.py:102
-msgid "View Fullscreen"
-msgstr "Vollbild zeigen"
+msgid "View in External Program"
+msgstr "Im externen Programm anzeigen"
 
 #: UI\GUIId.py:103
 msgid "Send Email"
@@ -282,8 +282,8 @@ msgid "Rename scene to..."
 msgstr "Szene umbenennen..."
 
 #: UI\GUIId.py:110
-msgid "Move to date..."
-msgstr "Verschieben zu Datum..."
+msgid "Move to..."
+msgstr "Verschieben zu..."
 
 #: UI\GUIId.py:116
 msgid "Toggle Filter Pane"
@@ -314,12 +314,12 @@ msgid "Toggle Log Pane"
 msgstr "Protokoll zeigen/verbergen"
 
 #: UI\GUIId.py:123
-msgid "Previous Image"
-msgstr "Voriges Bild"
+msgid "Previous Media"
+msgstr "Voriges Medium"
 
 #: UI\GUIId.py:124
-msgid "Next Image"
-msgstr "Nächstes Bild"
+msgid "Next Media"
+msgstr "Nächstes Medium"
 
 #: UI\GUIId.py:125
 msgid "Stop Slideshow"
@@ -354,16 +354,16 @@ msgid "Generate Thumbnail Directory"
 msgstr "Minibilderverzeichnis erzeugen"
 
 #: UI\GUIId.py:145
-msgid "Rename Element"
-msgstr "Element umbenennen"
+msgid "Rename Tag"
+msgstr "Schlagwort umbenennen"
 
 #: UI\GUIId.py:146
-msgid "Edit Classes"
-msgstr "Klassen ändern"
+msgid "Edit Tag Classes"
+msgstr "Schlagwortklassen bearbeiten"
 
 #: UI\GUIId.py:147
 msgid "Edit Names"
-msgstr "Namen ändern"
+msgstr "Namen bearbeiten"
 
 #: UI\GUIId.py:148
 msgid "Harvest from URL..."
@@ -395,7 +395,7 @@ msgstr "Originale löschen"
 
 #: UI\Importing.py:273
 msgid "Maximum Number of Files to Import"
-msgstr "Nicht mehr Dateien importieren als"
+msgstr "Nicht mehr Medien importieren als"
 
 #: UI\Importing.py:274
 msgid "Ignore Files of Unknown Type"
@@ -403,15 +403,15 @@ msgstr "Dateien unbekannten Typs ignorieren"
 
 #: UI\Importing.py:275
 msgid "Minimum File Size"
-msgstr "Mindestgröße zu importierender Dateien"
+msgstr "Mindestgröße zu importierender Medien"
 
 #: UI\Importing.py:276
 msgid "Mark Imported Files as \"%s\""
-msgstr "Importierte Dateien mit \"%s\" markieren"
+msgstr "Importierte Medien mit \"%s\" markieren"
 
 #: UI\Importing.py:277
 msgid "Report Illegal Elements"
-msgstr "Report Illegal Elements"
+msgstr "Unbekannte Schlagworte aufführen"
 
 #: UI\Importing.py:278
 msgid "Prefer Date in Pathname over EXIF Date"
@@ -472,6 +472,51 @@ msgstr "Datumsbereich:"
 #: UI\MediaFilterPane.py:81
 msgid "Media Type:"
 msgstr "Medientyp:"
+
+#~ msgid "Choose Name"
+#~ msgstr "Name"
+
+#~ msgid "Enter New Name"
+#~ msgstr "Neuen Namen eingeben"
+
+#~ msgid "%d duplicate entries deleted"
+#~ msgstr "%d doppelte Medien gelöscht"
+
+#~ msgid "%d images"
+#~ msgstr "%d Bilder"
+
+#~ msgid "Change Image Directory"
+#~ msgstr "Bilderverzeichnis wechseln"
+
+#~ msgid "Reload Images"
+#~ msgstr "Medien erneut laden"
+
+#~ msgid "Export (Filtered) Images"
+#~ msgstr "(Gefilterte) Bilder exportieren"
+
+#~ msgid "Delete Image %s"
+#~ msgstr "Bild %s löschen"
+
+#~ msgid "Remove Illegal Elements"
+#~ msgstr "Unbekannte Elemente löschen"
+
+#~ msgid "View Fullscreen"
+#~ msgstr "Vollbild zeigen"
+
+#~ msgid "Move to date..."
+#~ msgstr "Verschieben zu Datum..."
+
+#~ msgid "Previous Image"
+#~ msgstr "Voriges Bild"
+
+#~ msgid "Next Image"
+#~ msgstr "Nächstes Bild"
+
+#~ msgid "Rename Element"
+#~ msgstr "Element umbenennen"
+
+#~ msgid "Edit Classes"
+#~ msgstr "Klassen ändern"
 
 #~ msgid "Delete Image"
 #~ msgstr "Bild löschen"
