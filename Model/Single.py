@@ -88,29 +88,6 @@ class Single(Entry):
         return(None)
 
 
-#     @classmethod
-#     def registerMemoryConsumption(cls, entry, imageSize):
-#         """Stores the memory consumed by entry, and releases memory of other images if overall consumption is too high.
-#         
-#         MediaFiler.Entry entry is the media being displayed
-#         Number imageSize is the number of bytes consumed by entry
-#         """
-#         logging.debug('Single.registerMemoryConsumption(): %3dMB free, consuming %3dMB for "%s"' 
-#                       % (((cls.MemoryMaximum - cls.MemoryUsed) / cls.MBFactor), 
-#                          (imageSize / cls.MBFactor), 
-#                          entry.getPath()))
-#         cls.MemoryUsed = (cls.MemoryUsed + imageSize)
-#         cls.MemoryUsageList[entry] = imageSize
-#         while (cls.MemoryMaximum < cls.MemoryUsed):
-#             (oldEntry, oldSize) = cls.MemoryUsageList.popitem(last=False)
-#             if (oldEntry == entry): 
-#                 logging.error('Single.registerMemoryConsumption(): not enough memory to add "%s"' % entry.getPath())
-#                 sys.exit()
-#             oldSize = oldEntry.releaseMemory()
-#             cls.MemoryUsed = (cls.MemoryUsed - oldSize)
-#             logging.debug('Single.registerMemoryConsumption(): releasing %3dMB from "%s"' % ((oldSize / cls.MBFactor), oldEntry.getPath()))
-
-
 
 # Lifecycle
     def __init__(self, model, path):
@@ -120,8 +97,7 @@ class Single(Entry):
         super(Single, self).__init__(model, path)
         # internal state
         self.rawImage = None
-#         self.rawWidth = None
-#         self.rawHeight = None
+        self.bitmap = None
 
 
 
@@ -203,11 +179,6 @@ class Single(Entry):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):
             message = self.sendMail()
-#         if ((GUIId.SelectScene <= menuId)
-#             and (menuId < (GUIId.SelectScene + GUIId.MaxNumberScenes))):  # function "change to scene..."
-#             newScene = self.getParentGroup().getScenes()[menuId - GUIId.SelectScene]
-#             #print('Changing scene of "%s" to %s' % (self.organizer.getPath(), newScene))
-#             message = self.renameTo(makeUnique=True, scene=newScene)
         elif (menuId == GUIId.RandomConvertToSingle):
             pass
         elif (menuId == GUIId.ChooseConvertToSingle):
@@ -238,8 +209,8 @@ class Single(Entry):
 #         newGroup = Group.createFromName(self.model, self.getName())
 #         self.setParentGroup(newGroup)
 #         self.renameTo(scene='1', number='1')
-#  
-#      
+
+
     def changeScene (self, newScene):
         """Change the scene number of self.
         
@@ -275,7 +246,7 @@ class Single(Entry):
             return(self.renameTo(newPath))
 
 
-## Getters
+# Getters
     def isGroup (self):
         """Indicate that self is a single media.
         """

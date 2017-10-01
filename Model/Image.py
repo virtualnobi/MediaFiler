@@ -88,8 +88,8 @@ class Image(Single):
         # inheritance
         super(Image, self).__init__(model, path) 
         # internal state
-        self.width = 0  # image size
-        self.height = 0
+#         self.width = 0  # image size
+#         self.height = 0
         self.rawImage = None
         self.bitmap = None
 
@@ -142,7 +142,7 @@ class Image(Single):
         
         Return a String
         """
-        return('%dx%d' % (self.getRawImage().Width, self.getRawImage().Height))
+        return('%dx%d' % (self.getRawImage().GetWidth(), self.getRawImage().GetHeight()))
 
 
 

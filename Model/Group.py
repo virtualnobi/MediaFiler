@@ -255,7 +255,7 @@ class Group(Entry, Observer):
             return(result)
 
     
-    def getScenes(self): 
+    def getScenes(self):  # TODO: remove
         """Return a sorted list of scenes.
         
         Return List of String
@@ -268,7 +268,7 @@ class Group(Entry, Observer):
         
         Return a String
         """
-        return(GUIId.TextGroupSizeString % len(self.subEntriesSorted))
+        return(GUIId.TextGroupSizeString % self.getGroupedMedia())
 
 
     def getFirstEntry(self):
@@ -448,8 +448,24 @@ class Group(Entry, Observer):
         for entry in self.subEntriesSorted:
             entry.removeNewIndicator()
 
-    
-    
+
+
+# Internal - to change without notice
+    def getGroupedMedia(self):
+        """Return the number of media grouped in self.
+        
+        Return Number
+        """
+        result = 0
+        for subEntry in self.getSubEntries(filtering=True):
+            if (subEntry.__class__ == Group):
+                result = (result + subEntry.getGroupedMedia())
+            else:
+                result = (result + 1) 
+        return(result)
+
+
+
 # Class Initialization
 Installer.getProductTrader().registerClassFor(Group, Entry.SpecificationGroup)  # register Group to handle directories
     

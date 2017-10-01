@@ -55,7 +55,6 @@ class Entry(PausableObservable):
 
 
 # Class Variables
-#     ProductTrader = SimpleProductTrader()
     
     
     
@@ -69,7 +68,6 @@ class Entry(PausableObservable):
         Return a Boolean indicating whether extension is handled by Entry
         """
         try:
-#             self.ProductTrader.getClassFor(extension.lower())
             Installer.getProductTrader().getClassFor(extension.lower())
         except:  # no class registered for this extension
             return(False)
@@ -89,13 +87,11 @@ class Entry(PausableObservable):
         clas = None
         # determine which class to instantiate
         if (os.path.isdir(path)):
-#             clas = self.ProductTrader.getClassFor(self.SpecificationGroup)
             clas = Installer.getProductTrader().getClassFor(self.SpecificationGroup)
         else:
             (dummy, extension) = os.path.splitext(path) 
             extension = extension[1:].lower()  # remove leading '.'
             try:
-#                 clas = self.ProductTrader.getClassFor(extension)
                 clas = Installer.getProductTrader().getClassFor(extension)
             except:  # probably extension has no class registered to handle it
                 logging.error('Entry.createInstance(): No class registered to instantiate "%s" media "%s"!' % (extension, path))
@@ -586,6 +582,8 @@ class Entry(PausableObservable):
         return(datetime.date(int(self.getYear()), int(self.getMonth()), int(self.getDay())))
 
 
+
+# Event Handlers
     def getContextMenu(self):
         """Create a menu containing all context menu functions.
         
@@ -607,8 +605,6 @@ class Entry(PausableObservable):
         return(menu)
 
 
-
-# Event Handlers
     def runContextMenuItem(self, menuId, parentWindow):
         """User selected menuId from context menu on self. Execute this function.
 
@@ -620,9 +616,9 @@ class Entry(PausableObservable):
         message = None
         logging.debug('Entry.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.FilterIdentical):
-            self.filterImages(True)  # True = identical classification
+            self.filterImages(True)
         elif (menuId == GUIId.FilterSimilar):
-            self.filterImages(False)  # False = similar classification
+            self.filterImages(False)
         elif (menuId == GUIId.DeleteImage):
             self.remove()
         elif (menuId == GUIId.RemoveNew):

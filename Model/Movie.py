@@ -92,23 +92,21 @@ class Movie(Single):
         # inheritance
         Single.__init__(self, model, path)
         # internal state
-#         self.rawImage = None
-#         self.rawWidth = None
-#         self.rawHeight = None
+        self.duration = None
         return(None)
 
 
 
 ## Inheritance - Entry
-    def runContextMenuItem(self, menuId, parentWindow):
-        """User selected menuId from context menu on self. Execute this function.
-        
-        menuId Number from GUIId function numbers
-        parentWindow wx.Window to open dialogs on
-        Returns
-        """
-        print('Running function %d on "%s"' % (menuId, self.getPath()))
-        return(super(Movie, self).runContextMenuItem(menuId, parentWindow))
+#     def runContextMenuItem(self, menuId, parentWindow):
+#         """User selected menuId from context menu on self. Execute this function.
+#         
+#         menuId Number from GUIId function numbers
+#         parentWindow wx.Window to open dialogs on
+#         Returns
+#         """
+#         print('Running function %d on "%s"' % (menuId, self.getPath()))
+#         return(super(Movie, self).runContextMenuItem(menuId, parentWindow))
 
 
 
@@ -162,15 +160,7 @@ class Movie(Single):
         if (self.rawImage == None):
             self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
                                      wx.BITMAP_TYPE_JPEG)
-#         self.rawWidth = self.rawImage.GetWidth()
-#         self.rawHeight = self.rawImage.GetHeight()
         return(self.rawImage)
-
-
-#     def getBitmap (self, width, height):
-#         """Retrieve preview image as bitmap, resizing it to fit into given size.
-#         """
-#         return(self.getRawImage().Copy().Rescale(width, height).ConvertToBitmap())
 
 
 
@@ -181,15 +171,53 @@ class Movie(Single):
         
         Return a String
         """
-        return('??:??:?? mins')  # TODO: define lazy-loading .getDuration()
+        duration = self.getDuration()
+        if (duration <> None):
+            return(_('%d secs') % duration)
+        else:
+            return(_('unknown duration'))
 
 
 
 # Event Handlers
 # Internal - to change without notice
+    def getDuration(self):
+        """Determine the duration of the movie, in seconds
+        
+        Return Number
+        """
+        if (self.duration == None):
+            ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
+            if (ffmpeg):
+                try:
+                    args = [ffmpeg, 
+                            '-i',
+                            self.getPath()]
+                    logging.debug('Movie.getDuration(): Calling "%s"' % args)
+                    proc = subprocess.Popen(args, stderr=subprocess.PIPE)
+                    (_, result) = proc.communicate()
+                    m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', result)
+                    if (m == None):
+                        logging.warning('Movie.getDuration(): Cannot determine duration for "%s"!' % self.getPath())
+                    else:
+                        # Avoiding strptime here because it has some issues handling milliseconds.
+                        m = [int(m.group(i)) for i in range(1, 5)]
+                        self.duration = datetime.timedelta(hours=m[0],
+                                                           minutes=m[1],
+                                                           seconds=m[2],
+                                                           # * 10 because truncated to 2 decimal places
+                                                           milliseconds=m[3] * 10
+                                                           ).total_seconds()
+                except Exception as e:
+                    logging.warning('Movie.getDuration(): Cannot determine duration due to error:\n%s' % e)
+            else:
+                logging.warning('Movie.getDuration(): No ffmpeg specified with %s' % Movie.ConfigurationOptionFfmpeg)
+        return(self.duration)
+
+
+
 # Class Initialization
 for extension in Movie.LegalExtensions: 
-#     Entry.ProductTrader.registerClassFor(Movie, extension)  # register Movie to handle extension
     Installer.getProductTrader().registerClassFor(Movie, extension)  # register Movie to handle extension
 
 
