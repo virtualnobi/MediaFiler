@@ -46,7 +46,7 @@ class Movie(Single):
 
 
 # Constants
-    LegalExtensions = ['mov', 'mp4', '3gp', 'mpg', 'avi', 'wmv']  # all file formats handled by Movie
+    LegalExtensions = ['mov', 'mp4', '3gp', 'mpg', 'avi', 'wmv', 'vob']  # all file formats handled by Movie
     ConfigurationOptionViewer = 'viewer-movie'
     ConfigurationOptionFfmpeg = 'ffmpeg'
     CaptureFramePosition = 0.1  # percentage of movie duration to take capture as placeholder
