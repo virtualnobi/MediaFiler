@@ -122,45 +122,16 @@ class Image(Single):
             if (imageType):
                 self.rawImage = wx.Image(self.getPath(), imageType)
                 if (not self.rawImage):
-                    logging.debug('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
+                    logging.warning('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
             else: 
-                print('Image.getRawImage(): Illegal type in "%s", using preview image' % self.getPath())
+                logging.warning('Image.getRawImage(): Illegal type in "%s"!' % self.getPath())
             if (not self.rawImage):
                 self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
                                          wx.BITMAP_TYPE_JPEG)
-            assert (self.rawImage <> None), ('Cannot load "%s"' % self.getPath())
-            # derive size from raw data
-            try:
-                self.rawWidth = self.rawImage.GetWidth()
-                self.rawHeight = self.rawImage.GetHeight()
-            except:
-                print('Image: Cannot determine size of "%s", using preview image' % self.getPath())
-                self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
-                                         wx.BITMAP_TYPE_JPEG)
-                self.rawWidth = self.rawImage.GetWidth()
-                self.rawHeight = self.rawImage.GetHeight()                
+                assert(self.rawImage <> None), ('Cannot load default image for "%s"!' % self.getPath())
             CachingController.allocateMemory(self, self.getRawDataMemoryUsage(), bitmap=False)
             self.releaseBitmapCache()
-        if (self.rawImage == None):
-            pass
-        assert (self.rawImage <> None), ('Raw Image empty in "%s"' % self.getPath())
         return(self.rawImage)
-
-
-    def getRawDataMemoryUsage(self):
-        """Return self's current memory usage for the raw image, in Bytes.
-        """
-        if (self.rawImage <> None):
-            return(self.rawWidth * self.rawHeight * 3)  # taken from wx.Image.setData() documentation
-        else:
-            return(0)
-
-
-    def releaseRawDataCache(self):
-        """Release memory used for self's raw image.
-        """
-        self.rawImage = None
-        CachingController.deallocateMemory(self, bitmap=False)
 
 
 

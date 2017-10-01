@@ -25,10 +25,9 @@ import GlobalConfigurationOptions
 from UI import GUIId
 #from .MediaCollection import MediaCollection
 from Model.Entry import Entry
-from Model.Group import Group
+#from Model.Group import Group
 from Model.MediaOrganization import MediaOrganization
-# from .CachingController import MRUOrderedDict
-# from Model.CachingController import CachingController
+from Model.CachingController import CachingController
 
 
 
@@ -65,18 +64,11 @@ class Single(Entry):
 
 
 # Constants
-#     MemoryMaximum = 10000000000  # fictional memory maximum to be used for Singles
-#     MBFactor = (1024 * 1024)
     ConfigurationOptionEmailClient = 'editor-email'
 
 
 
 # Class Variables
-#     MemoryUsed = 0  # current memory consumption in subclasses
-#     MemoryUsageList = MRUOrderedDict()
-
-
-
 # Class Methods
     @classmethod
     def getMediaTypeName(cls):
@@ -128,8 +120,8 @@ class Single(Entry):
         super(Single, self).__init__(model, path)
         # internal state
         self.rawImage = None
-        self.rawWidth = None
-        self.rawHeight = None
+#         self.rawWidth = None
+#         self.rawHeight = None
 
 
 
@@ -303,9 +295,28 @@ class Single(Entry):
 
 
     def getRawImage(self, debug=False):
-        """Retrieve raw data (JPG or PNG or GIF) for image.
+        """Retrieve raw data (JPG or PNG or GIF) for media.
         """
         raise NotImplementedError
+
+
+    def getRawDataMemoryUsage(self):
+        """Return self's current memory usage for the raw image, in Bytes.
+        
+        Return Number
+        """
+        if (self.rawImage <> None):
+            return(self.getRawImage().GetWidth() * self.getRawImage().GetHeight() * 3)  # taken from wx.Image.setData() documentation
+        else:
+            return(0)
+
+
+    def releaseRawDataCache(self):
+        """Release memory used for self's raw image.
+        """
+        self.rawImage = None
+        CachingController.deallocateMemory(self, bitmap=False)
+
 
 
     def getSizeFittedTo(self, width=None, height=None):
@@ -313,76 +324,39 @@ class Single(Entry):
         
         If neither width nor height are given, return the image's original size.
 
-        Returns (Number, Number)
+        Returns tuple of int (Number, Number)
         """
-        if ((self.rawWidth == None)
-            or (self.rawHeight == None)):
-            self.getRawImage()
-            assert (self.rawImage <> None), ('Raw image of "%s" doesn\'t exist' % self.getPath())
-        if ((width == None) 
+        rawWidth = self.getRawImage().GetWidth()
+        rawHeight = self.getRawImage().GetHeight()
+        assert (self.rawImage <> None), ('No raw image for "%s"!' % self.getPath())
+        if ((width == None)
             and (height == None)):  # return original size
-            return(self.rawImageWidth, self.rawImageHeight)
+            return(rawWidth, rawHeight)
         elif ((width <> None) 
               and (height <> None)):  # fit to size given
             if (width < 1): 
                 width = 1
             if (height < 1): 
                 height = 1
-            imageRatio = (Decimal(self.rawWidth) / Decimal(self.rawHeight))  # aspect of image
+            imageRatio = (Decimal(rawWidth) / Decimal(rawHeight))  # aspect of image
             paneRatio = (Decimal(width) / Decimal(height))  # aspect of frame
-            #print ("Image %sx%s (ratio %s), Pane %sx%s (ratio %s)" % (self.rawWidth, self.rawHeight, imageRatio, width, height, paneRatio))
+            logging.debug('Single.getSizeFittedTo(): Image %sx%s (ratio %s), Pane %sx%s (ratio %s)' % (rawWidth, rawHeight, imageRatio, width, height, paneRatio))
             if (paneRatio < imageRatio): # image wider than pane, use full pane width
                 height = int(width / imageRatio)
-                #print ("    changed height to %s" % height)
+                logging.debug('    changed height to %s' % height)
             else: # image taller than pane, use full pane height
                 width = int(height * imageRatio)
-                #print ("    changed width to %s" % width)
-            if ((width > self.rawWidth) 
-                and (height > self.rawHeight)):  # pane larger than image, don't enlarge image
-                width = self.rawWidth
-                height = self.rawHeight
+                logging.debug('    changed width to %s' % width)
+            if ((width > rawWidth) 
+                and (height > rawHeight)):  # pane larger than image, don't enlarge image
+                width = rawWidth
+                height = rawHeight
+                logging.debug('    using original size %sx%s' % (width, height))
             return(width, height)
-        else:  # illegal parameters
+        else:
             raise ValueError, 'Single.getSizeFittedTo(): Only one of width and height are given!'
 
     
-#     def getSize(self, width=None, height=None):
-#         """Return the size of self. If width and height are given, return the size after fitting self to the parameters.
-#         
-#         Returns (w, h)
-#         """
-#         print('Single.getSize() deprecated!')
-#         rawImage = self.getRawImage()  # get image in original size
-#         if (rawImage == None):
-#             print('Raw image of "%s" doesn\'t exist' % self.getPath())
-#             rawImage = self.getRawImage()
-#         if ((width == None) 
-#             and (height == None)):  # return original size
-#             return(rawImage.Width, rawImage.Height)
-#         elif ((width <> None) 
-#               and (height <> None)):  # fit to size given
-#             if (width < 1): 
-#                 width = 1
-#             if (height < 1): 
-#                 height = 1
-#             imageRatio = (Decimal(rawImage.Width) / Decimal(rawImage.Height))  # aspect of image
-#             paneRatio = (Decimal(width) / Decimal(height))  # aspect of frame
-#             #print ("Image %sx%s (ratio %s), Pane %sx%s (ratio %s)" % (self.rawWidth, self.rawHeight, imageRatio, width, height, paneRatio))
-#             if (paneRatio < imageRatio): # image wider than pane, use full pane width
-#                 height = int(width / imageRatio)
-#                 #print ("    changed height to %s" % height)
-#             else: # image taller than pane, use full pane height
-#                 width = int(height * imageRatio)
-#                 #print ("    changed width to %s" % width)
-#             if ((width > rawImage.Width) 
-#                 and (height > rawImage.Height)):  # pane larger than image, don't enlarge image
-#                 width = rawImage.Width
-#                 height = rawImage.Height
-#             return(width, height)
-#         else:  # illegal parameters
-#             raise('Illegal Parameters to Single.getSize() - only one of width and height are given')
-        
-
     def getFileSize(self):
         """Return the file size of self, in kilobytes.
         
@@ -400,7 +374,7 @@ class Single(Entry):
         
         Number width
         Number height
-        Returns MediaFiler.Single.ImageBitmap fitted into (width x height)
+        Returns MediaFiler.Single.ImageBitmap
         """
         # determine final size
         (w, h) = self.getSizeFittedTo(width, height)
@@ -421,34 +395,6 @@ class Single(Entry):
 
 # Other API Functions
 # Internal
-#     def askNewScene(self, parentWindow):
-#         """User wants to relabel a scene (organized by name). Ask for new scene. 
-#         
-#         Returns String containing new name, or None if user cancelled. 
-#         """
-#         dialog = wx.TextEntryDialog(parentWindow, 'Enter New Scene', 'Relabel Scene', '')
-#         ok = True
-#         newScene = -1
-#         newSceneString = None
-#         while (ok 
-#                and ((newScene < 0) or (99 < newScene))):
-#             ok = (dialog.ShowModal() == wx.ID_OK)
-#             if (ok):
-#                 newSceneString = dialog.GetValue()
-#                 try: 
-#                     newScene = int(newSceneString)
-#                 except: 
-#                     newScene = -1
-#                 if ((newScene < 0) or (999 < newScene)):
-#                     dialog.SetValue('%s is not a legal name' % newSceneString)
-#                 else:
-#                     newSceneString = (OrganizationByName.FormatScene % newScene)
-#             else:
-#                 newSceneString = None
-#         dialog.Destroy()
-#         return (newSceneString)
-
-
     def runExternalViewer(self, parentWindow):
         """Run an external viewer, as given in MediaFiler configuration, to view self's media.
         

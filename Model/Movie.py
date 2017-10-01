@@ -46,10 +46,11 @@ class Movie(Single):
 
 
 # Constants
-    LegalExtensions = ['mov', 'mp4', '3gp', 'mpg']  # all file formats handled by Movie
+    LegalExtensions = ['mov', 'mp4', '3gp', 'mpg', 'avi', 'wmv']  # all file formats handled by Movie
     ConfigurationOptionViewer = 'viewer-movie'
     ConfigurationOptionFfmpeg = 'ffmpeg'
-    PreviewImageFilename = 'Movie.jpg'  # image shown as placeholder for movie
+    CaptureFramePosition = 0.1  # percentage of movie duration to take capture as placeholder
+    PreviewImageFilename = 'Movie.jpg'  # image shown as placeholder for movie if ffmpeg doesn't work
 
 
 
@@ -91,9 +92,9 @@ class Movie(Single):
         # inheritance
         Single.__init__(self, model, path)
         # internal state
-        self.rawImage = None
-        self.rawWidth = None
-        self.rawHeight = None
+#         self.rawImage = None
+#         self.rawWidth = None
+#         self.rawHeight = None
         return(None)
 
 
@@ -118,7 +119,6 @@ class Movie(Single):
         if (self.rawImage <> None):
             return(self.rawImage)
         ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
-        position = 0.1
         if (ffmpeg):
             try:
                 logging.debug('Movie.getRawImage(): Using "%s"' % ffmpeg)
@@ -126,7 +126,7 @@ class Movie(Single):
                 (dummy, result) = proc.communicate()
                 m = re.search(r"Duration:\s*(\d+):(\d+):(\d+)\.(\d+)", result)
                 if (m == None):
-                    target = '20'
+                    target = '5'
                     logging.warning('Movie.getRawImage(): Cannot determine duration, using %s secs as offset for "%s"' % (target, self.getPath()))
                 else:
                     # Avoiding strptime here because it has some issues handling milliseconds.
@@ -137,7 +137,7 @@ class Movie(Single):
                                                   # * 10 because truncated to 2 decimal places
                                                   milliseconds=m[3] * 10
                                                   ).total_seconds()
-                    target = max(0, min(duration * position, duration - 0.1))
+                    target = max(0, min(duration * self.__class__.CaptureFramePosition, duration - 0.1))
                     target = "{:.3f}".format(target)
                 logging.debug('Movie.getRawImage(): Duration is %s, target frame is %s' % (duration, target))
             
@@ -162,20 +162,29 @@ class Movie(Single):
         if (self.rawImage == None):
             self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
                                      wx.BITMAP_TYPE_JPEG)
-        self.rawWidth = self.rawImage.GetWidth()
-        self.rawHeight = self.rawImage.GetHeight()
+#         self.rawWidth = self.rawImage.GetWidth()
+#         self.rawHeight = self.rawImage.GetHeight()
         return(self.rawImage)
 
 
-    def getBitmap (self, width, height):
-        """Retrieve preview image as bitmap, resizing it to fit into given size.
-        """
-        return(self.getRawImage().Copy().Rescale(width, height).ConvertToBitmap())
+#     def getBitmap (self, width, height):
+#         """Retrieve preview image as bitmap, resizing it to fit into given size.
+#         """
+#         return(self.getRawImage().Copy().Rescale(width, height).ConvertToBitmap())
 
 
 
 # Setters
 # Getters
+    def getSizeString(self):
+        """Return a String describing the size of self.
+        
+        Return a String
+        """
+        return('??:??:?? mins')  # TODO: define lazy-loading .getDuration()
+
+
+
 # Event Handlers
 # Internal - to change without notice
 # Class Initialization
