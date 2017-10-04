@@ -67,22 +67,22 @@ class OrganizationByDate(MediaOrganization):
     FormatYearMonthDay = (FormatYearMonth + MediaOrganization.NameSeparator + FormatDay)
     UnknownDateName = (FormatYear % 0)
     # RE patterns to recognize dates
-    YearString = '((?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d))'  # 4-digit year
-    YearString2 = '(?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d)'  # 4-digit year
-    MonthString = '[01]\d'  # 2-digit month
-    DayString = '[0123]\d'  # 2-digit day
+    YearString = r'(?:(?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d))'  # 4-digit year
+#    YearString2 = r'(?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d)'  # 4-digit year
+    MonthString = r'[01]\d'  # 2-digit month
+    DayString = r'[0123]\d'  # 2-digit day
     SeparatorString = r'[-_:/\.\\]'  # separator characters
-    YearPattern = re.compile(r'[/\\]%s(?!\d)' % YearString)
-    MonthPattern = re.compile('%s%s(%s)(?!\d)' % (YearString, SeparatorString, MonthString))
-    DayPattern = re.compile('%s(%s)(%s)\\2(%s)(?!\d)' % (YearString, SeparatorString, MonthString, DayString))
+    YearPattern = re.compile(r'(?<!\d)(%s)(?!\d)' % YearString)  # was: r'[/\\](%s)(?!\d)'
+    MonthPattern = re.compile(r'(%s)%s(%s)(?!\d)' % (YearString, SeparatorString, MonthString))
+    DayPattern = re.compile(r'(%s)(%s)(%s)\2(%s)(?!\d)' % (YearString, SeparatorString, MonthString, DayString))
     # Reduced patterns with 2-digit year
     ReducedYearString = r'[/\\](\d\d)'  # 2-digit year, only allowed at beginning of path component
     ReducedYearString2 = r'\d\d'  # 2-digit year, only allowed at beginning of path component
-    ReducedYearPattern = re.compile('%s(?!\d)' % ReducedYearString)
+    ReducedYearPattern = re.compile(r'%s(?!\d)' % ReducedYearString)
     ReducedMonthPattern = re.compile(r'%s%s(%s)(?!\d)' % (ReducedYearString, SeparatorString, MonthString))
-    ReducedDayPattern = re.compile('%s(%s)(%s)\\2(%s)(?!\d)' % (ReducedYearString, SeparatorString, MonthString, DayString))
+    ReducedDayPattern = re.compile(r'%s(%s)(%s)\2(%s)(?!\d)' % (ReducedYearString, SeparatorString, MonthString, DayString))
     # German Date
-    GermanDayPattern2 = re.compile(r'(%s)(\.)(%s)\2(%s)' % (DayString, MonthString, YearString2))
+    GermanDayPattern2 = re.compile(r'(%s)(\.)(%s)\2(%s)' % (DayString, MonthString, YearString))  # was: YearString2
     ReducedGermanDayPattern2 = re.compile(r'(%s)(\.)(%s)\2(%s)' % (DayString, MonthString, ReducedYearString2))
     # Simplified pattern without separators
     SimpleDayPattern = re.compile(r'%s%s%s' % (YearString, MonthString, DayString))
@@ -293,31 +293,32 @@ class OrganizationByDate(MediaOrganization):
             or contains None for each entry
         """
         date = None
-        if ((os.path.isfile(path))  # plain file
-            and (path[-4:].lower() == '.jpg')):  # of type JPG
+        if ((os.path.isfile(path)) 
+            and (path[-4:].lower() == '.jpg')): 
             with open(path, "rb") as f:
                 try:
                     exifTags = exifread.process_file(f)
                 except:
                     logging.warning('OrganizationByDate.deriveDateFromFile(): cannot read EXIF data from "%s"!' % path)
                     return(None, None, None)
-                if (('Model' in exifTags)
-                    and (exifTags['Model'] == 'MS Scanner')):
-                    return(None, None, None)
-                if (('Software' in exifTags)
-                    and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
-                    return (None, None, None)
-                if (exifTags):
-                    for key in ['DateTimeOriginal',
-                                # 'Image DateTime',  # bad date, changed by imaging software
-                                'EXIF DateTimeOriginal', 
-                                'EXIF DateTimeDigitized'
-                                ]:
-                        if (key in exifTags):
-                            date = exifTags[key]
-                            break
-                    if (date):
-                        match = self.DayPattern.search(str(date))
+            if (('Model' in exifTags)
+                and (exifTags['Model'] == 'MS Scanner')):
+                return(None, None, None)
+            if (('Software' in exifTags)
+                and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
+                return (None, None, None)
+            if (exifTags):
+                for key in ['DateTimeOriginal',
+                            # 'Image DateTime',  # bad date, changed by imaging software
+                            'EXIF DateTimeOriginal', 
+                            'EXIF DateTimeDigitized'
+                            ]:
+                    if (key in exifTags):
+                        date = exifTags[key]
+                        break
+                if (date):
+                    match = self.DayPattern.search(str(date))
+                    if (match):
                         year = match.group(1)
                         month = match.group(3)
                         day = match.group(4)
@@ -770,6 +771,7 @@ class OrganizationByDate(MediaOrganization):
             try:
                 result['year'] = int(year)
             except:
+                logging.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret year string "%s" as int' % year)
                 return(None)
         month = aMediaNamePane.monthInput.GetValue()
         if (month == ''):
@@ -778,6 +780,7 @@ class OrganizationByDate(MediaOrganization):
             try:
                 result['month'] = int(month)
             except:
+                logging.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret month string "%s" as int' % month)
                 return(None)
         day = aMediaNamePane.dayInput.GetValue()
         if (day == ''):
@@ -786,6 +789,7 @@ class OrganizationByDate(MediaOrganization):
             try:
                 result['day'] = int(day)
             except: 
+                logging.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret day string "%s" as int' % day)
                 return(None)
         return(result)
 

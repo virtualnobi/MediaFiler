@@ -37,16 +37,16 @@ class TestOrganizationByDate(unittest.TestCase):
 #         with self.assertRaises(ValueError):
 #             PartialDateTime('non-date string')
         self.verifyInvalidDate('/test/548183.rest')
-        self.verifyInvalidDate('/test/IMG_1957.JPG')
-        self.verifyInvalidDate('/test/nobi.2005.rest')
 
         self.checkDeriveDateFromPath('/test/2000-04-01.rest', '2000', '04', '01', '.rest')
         self.checkDeriveDateFromPath('/test/00-04-01.rest', '2000', '04', '01', '.rest')
 #        self.checkDeriveDateFromPath('/test/01.04.2000.rest', '2000', '04', '01')
 #        self.checkDeriveDateFromPath('/test/01.04.00.rest', '2000', '04', '01')
+        self.checkDeriveDateFromPath('/test/nobi.2005.rest', '2005', None, None, '.rest')
 
         self.checkDeriveDateFromPath('\\test\\1980-03.Algerien\\234.jpg', '1980', '03', None, '.Algerien\\234.jpg')
         self.checkDeriveDateFromPath('\\test\\2015-02.Schwellbrunn\\IMG_1980.jpg', '2015', '02', None, '.Schwellbrunn\\IMG_1980.jpg')
+        self.checkDeriveDateFromPath('/test/IMG_1957.JPG', '1957', None, None, '.JPG')
 
         self.checkDeriveDateFromPath('/test/2005.nobi.rest', '2005', None, None, '.nobi.rest')
         self.checkDeriveDateFromPath('/test/2008-nobi-Holger.png', '2008', None, None, '-nobi-Holger.png')

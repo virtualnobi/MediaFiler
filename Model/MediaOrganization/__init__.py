@@ -250,7 +250,7 @@ class MediaOrganization(object):
     def __init__(self, anEntry, aPath):
         """Create a MediaOrganization instance to go with anEntry.
         
-        MediaFiler.Entry anEntry is the group, image, or movie to be organized
+        MediaFiler.Entry anEntry is the group or single media to be organized
         String aPath contains the path for anEntry
         Returns a MediaFiler.MediaOrganization instance
         """
