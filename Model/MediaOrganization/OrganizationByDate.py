@@ -85,7 +85,7 @@ class OrganizationByDate(MediaOrganization):
     GermanDayPattern2 = re.compile(r'(%s)(\.)(%s)\2(%s)' % (DayString, MonthString, YearString))  # was: YearString2
     ReducedGermanDayPattern2 = re.compile(r'(%s)(\.)(%s)\2(%s)' % (DayString, MonthString, ReducedYearString2))
     # Simplified pattern without separators
-    SimpleDayPattern = re.compile(r'%s%s%s' % (YearString, MonthString, DayString))
+    SimpleDayPattern = re.compile(r'(%s)(%s)(%s)' % (YearString, MonthString, DayString))
 
 
 
@@ -303,20 +303,20 @@ class OrganizationByDate(MediaOrganization):
                     return(None, None, None)
             if (('Model' in exifTags)
                 and (exifTags['Model'] == 'MS Scanner')):
+                logging.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Model=MS Scanner')
                 return(None, None, None)
             if (('Software' in exifTags)
                 and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
+                logging.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Software=Paint Shop Photo Album')
                 return (None, None, None)
-            if (exifTags):
-                for key in ['DateTimeOriginal',
-                            # 'Image DateTime',  # bad date, changed by imaging software
-                            'EXIF DateTimeOriginal', 
-                            'EXIF DateTimeDigitized'
-                            ]:
-                    if (key in exifTags):
-                        date = exifTags[key]
-                        break
-                if (date):
+            for key in ['DateTimeOriginal',
+                        # 'Image DateTime',  # bad date, changed by imaging software
+                        'EXIF DateTimeOriginal', 
+                        'EXIF DateTimeDigitized'
+                        ]:
+                if (key in exifTags):
+                    logging.debug('OrganizationByDate.deriveDateFromFile(): Found EXIF tag %s in "%s"' % (key, path))
+                    date = exifTags[key]
                     match = self.DayPattern.search(str(date))
                     if (match):
                         year = match.group(1)
@@ -325,8 +325,10 @@ class OrganizationByDate(MediaOrganization):
                         if (year == self.UnknownDateName):
                             month = None
                             day = None
-                        #log.write('Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
+                        logging.debug('OrganizationByDate.deriveDateFromFile(): Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
                         return(year, month, day)
+                    else:
+                        logging.debug('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, date))
         return(None, None, None)
 
 
@@ -345,6 +347,7 @@ class OrganizationByDate(MediaOrganization):
         year = None
         month = None
         day = None
+        logging.debug('OrganizationByDate.deriveDateFromPath(): Inspecting "%s"' % path)
         # search for date
         match = cls.DayPattern.search(path)
         usingReducedPattern = False
@@ -352,6 +355,7 @@ class OrganizationByDate(MediaOrganization):
             usingReducedPattern = True
             match = cls.ReducedDayPattern.search(path)
         if (match):
+            logging.debug('OrganizationByDate.deriveDateFromPath(): Day pattern matched')
             if (match.group(2) == '.'):  # German date format DD.MM.YY(YY)
                 day = match.group(1)
                 month = match.group(3)
@@ -366,43 +370,54 @@ class OrganizationByDate(MediaOrganization):
             matched = (cls.FormatYearMonthDay % (int(year), int(month), int(day)))
             matchEnd = match.end()
         else:
-            match = cls.MonthPattern.search(path)
-            usingReducedPattern = False
-            if (match == None):
-                #log.write('Month pattern did not match in "%s"\n' % path)
-                usingReducedPattern = True
-                match = cls.ReducedMonthPattern.search(path)
+            match = cls.SimpleDayPattern.search(path)
             if (match):
+                logging.debug('OrganizationByDate.deriveDateFromPath(): Simple day pattern matched')
                 year = match.group(1)
-                if (usingReducedPattern):  # fix two-digit year
-                    assert (len(year) == 2), ('Reduced year "%s" too long in "%s"' % (year, path)) 
-                    year = cls.expandReducedYear(year)
                 month = match.group(2)
-                matched = (cls.FormatYearMonth % (int(year), int(month)))
+                day = match.group(3)
+                matched = (cls.FormatYearMonthDay % (int(year), int(month), int(day)))
                 matchEnd = match.end()
-            else: 
-                match = cls.YearPattern.search(path)
+            else:
+                match = cls.MonthPattern.search(path)
                 usingReducedPattern = False
-# A number starting the filename may be a year or just a counter - don't interpret as year
-#                 if (match == None):
-#                     usingReducedPattern = True
-#                     match = cls.ReducedYearPattern.search(path)
+                if (match == None):
+                    #log.write('Month pattern did not match in "%s"\n' % path)
+                    usingReducedPattern = True
+                    match = cls.ReducedMonthPattern.search(path)
                 if (match):
+                    logging.debug('OrganizationByDate.deriveDateFromPath(): Month pattern matched')
                     year = match.group(1)
-                    if (usingReducedPattern):
+                    if (usingReducedPattern):  # fix two-digit year
+                        assert (len(year) == 2), ('Reduced year "%s" too long in "%s"' % (year, path)) 
                         year = cls.expandReducedYear(year)
-                    matched = (cls.FormatYear % int(year))
+                    month = match.group(2)
+                    matched = (cls.FormatYearMonth % (int(year), int(month)))
                     matchEnd = match.end()
-                else:
-                    (year, month, day) = cls.deriveDateWithMonthFromPath(log, path)
-                    if (year):
-                        matched = ''
-                        matchEnd = -1
+                else: 
+                    match = cls.YearPattern.search(path)
+                    usingReducedPattern = False
+    # A number starting the filename may be a year or just a counter - don't interpret as year
+    #                 if (match == None):
+    #                     usingReducedPattern = True
+    #                     match = cls.ReducedYearPattern.search(path)
+                    if (match):
+                        logging.debug('OrganizationByDate.deriveDateFromPath(): Year pattern matched')
+                        year = match.group(1)
+                        if (usingReducedPattern):
+                            year = cls.expandReducedYear(year)
+                        matched = (cls.FormatYear % int(year))
+                        matchEnd = match.end()
                     else:
-                        year = cls.UnknownDateName
-                        matched = ''
-                        matchEnd = -1
-        #log.write('Recognized (%s, %s, %s) in path "%s"\n' % (year, month, day, path)) 
+                        (year, month, day) = cls.deriveDateWithMonthFromPath(log, path)
+                        if (year):
+                            matched = ''
+                            matchEnd = -1
+                        else:
+                            year = cls.UnknownDateName
+                            matched = ''
+                            matchEnd = -1
+        logging.debug('OrganizationByDate.deriveDateFromPath(): Recognized (%s, %s, %s) in path "%s"\n' % (year, month, day, path)) 
         # skip to last occurrence of match
         rest = path
         while (0 <= matchEnd):  
