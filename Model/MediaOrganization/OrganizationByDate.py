@@ -617,13 +617,10 @@ class OrganizationByDate(MediaOrganization):
         year = (int(year) if year else None)
         month = (int(month) if month else None)
         day = (int(day) if day else None)
-        if (0 < year):
-            try:
-                self.dateTaken = PartialDateTime(year, month, day)
-            except Exception as e:
-                raise ValueError, ('OrganizationByDate.setIdentifiersFromPath(): Illegal date in "%s"' % path)  # TODO: make more robust
-        else: 
-            self.dateTaken = None
+        try:
+            self.dateTaken = PartialDateTime(year, month, day)
+        except Exception as e:
+            self.dateTaken = PartialDateTime(None, None, None)
         return(rest)
 
 
@@ -693,6 +690,8 @@ class OrganizationByDate(MediaOrganization):
 
 
     def getDateTaken(self):
+        if (self.dateTaken == None):
+            logging.error('OrganizationByDate.getDateTaken(): No date found for "%s"' % self.context.getPath())
         return(self.dateTaken)
 
 

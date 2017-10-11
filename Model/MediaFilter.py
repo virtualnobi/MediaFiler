@@ -63,6 +63,8 @@ class MediaFilter(Observable):
                       fromDate=None, toDate=None):
         """Set conditions as specified. Not passing an argument does not change conditions.
         
+        fromDate and toDate can be cleared by passing False.
+        
         Boolean active
         Set of String required
         Set of String prohibited
@@ -110,12 +112,16 @@ class MediaFilter(Observable):
                 logging.error('MediaFilter.setConditions(): Single/group filtering only allowed for media organized by name!')
             else:  # organized by name
                 self.singleCondition = single
-        if (fromDate <> None):
+        if (fromDate == False):
+            self.fromDate = None
+        elif (fromDate <> None):
             if (self.model.organizedByDate):
                 self.fromDate = fromDate
             else:  # organized by name
                 logging.error('MediaFilter.setConditions(): Only images organized by date can be filtered by date!')
-        if (toDate <> None):
+        if (toDate == False):
+            self.toDate = None
+        elif (toDate <> None):
             if (self.model.organizedByDate):
                 self.toDate = toDate
             else:
@@ -138,7 +144,9 @@ class MediaFilter(Observable):
                            maximum=self.model.getMaximumSize(),
                            requiredMediaTypes=set(),
                            prohibitedMediaTypes=set(),
-                           single=None)
+                           single=None,
+                           fromDate=False,
+                           toDate=False)
 
 
     def setMediaTypes(self, required=None, prohibited=None):
@@ -246,65 +254,66 @@ class MediaFilter(Observable):
         
         Returns True if entry shall be hidden, or False otherwise
         """
+        if (not self.active):
+            return(False)
         entryFiltered = False  # assume entry will pass the filter, i.e., not be hidden
-        if (self.active):
-            # keep groups which have unfiltered subentries
-            if (entry.isGroup()): 
-                return(len(entry.getSubEntries(True)) == 0)
-            # check for single/group requirement
-            if (not self.model.organizedByDate):
-                if (self.singleCondition == True):
-                    if (not entry.isSingleton()):
-                        return(True)
-                elif (self.singleCondition == False):
-                    if (entry.isSingleton()):
-                        return(True)
-                else:  # singleCondition == None
-                    pass
-            # check for unknown requirement
-            if (self.unknownElementRequired): 
-                if (self.model.organizedByDate):  # TODO: move to Organization
-                    entryFiltered = (entry.getYear() <> entry.organizer.__class__.UnknownDateName)
-                else: # organized by name, illegal name will satisfy unknown element requirement
-                    match = re.match(r'([^\d]+)\d*', entry.getName())  # isolate name in name+number identifiers
-                    if ((match <> None)
-                        and (entry.organizer.nameHandler.isNameLegal(match.group(1)))  # legal name 
-                        and (entry.getScene() <> entry.organizer.__class__.NewIndicator)):  # not a "new" scene
-                        entryFiltered = True
-                if (entryFiltered):
-                    entryFiltered = (len(entry.getUnknownElements()) == 0)
-            # check known class elements
-            if (self.filteredByElements(entry)):
-                return(True)
-            # check file size requirements
-            if ((0 < self.minimumSize)  # minimum size required 
-                and (not entry.isGroup()) 
-                and (entry.getFileSize() < self.minimumSize)):   # file smaller than that
-                return(True)
-            if ((0 < self.maximumSize)  # maximum size requirement
-                and (not entry.isGroup())
-                and (self.maximumSize < entry.getFileSize())):  # file larger than that
-                return(True)
-            # media type
-            if (0 < len(self.requiredMediaTypes)):
-                for cls in self.requiredMediaTypes:
-                    if (isinstance(entry, cls)):
-                        break  # match!
-                else:  # no match in the loop
+        # keep groups which have unfiltered subentries
+        if (entry.isGroup()): 
+            return(len(entry.getSubEntries(True)) == 0)
+        # check for single/group requirement
+        if (not self.model.organizedByDate):
+            if (self.singleCondition == True):
+                if (not entry.isSingleton()):
                     return(True)
-            # date range 
-            if ((self.fromDate)
-                and (entry.organizer.getDateTaken() <= self.fromDate)):
-                print('MediaFilter.isFiltered(): %s later than "%s"' % (self.fromDate, entry.getPath()))
-                return(True)
-            if ((self.toDate)
-                and (entry.organizer.getDateTaken() >= self.toDate)):
-                print('MediaFilter.isFiltered(): %s earlier than "%s"' % (self.fromDate, entry.getPath()))
-                return(True)
-            # single/group
-            if (self.singleCondition <> None):
-                if (self.singleCondition == entry.isGroup()):
+            elif (self.singleCondition == False):
+                if (entry.isSingleton()):
                     return(True)
+            else:  # singleCondition == None
+                pass
+        # check for unknown requirement
+        if (self.unknownElementRequired): 
+            if (self.model.organizedByDate):  # TODO: move to Organization
+                entryFiltered = (entry.getYear() <> entry.organizer.__class__.UnknownDateName)
+            else: # organized by name, illegal name will satisfy unknown element requirement
+                match = re.match(r'([^\d]+)\d*', entry.getName())  # isolate name in name+number identifiers
+                if ((match <> None)
+                    and (entry.organizer.nameHandler.isNameLegal(match.group(1)))  # legal name 
+                    and (entry.getScene() <> entry.organizer.__class__.NewIndicator)):  # not a "new" scene
+                    entryFiltered = True
+            if (entryFiltered):
+                entryFiltered = (len(entry.getUnknownElements()) == 0)
+        # check known class elements
+        if (self.filteredByElements(entry)):
+            return(True)
+        # check file size requirements
+        if ((0 < self.minimumSize)  # minimum size required 
+            and (not entry.isGroup()) 
+            and (entry.getFileSize() < self.minimumSize)):   # file smaller than that
+            return(True)
+        if ((0 < self.maximumSize)  # maximum size requirement
+            and (not entry.isGroup())
+            and (self.maximumSize < entry.getFileSize())):  # file larger than that
+            return(True)
+        # media type
+        if (0 < len(self.requiredMediaTypes)):
+            for cls in self.requiredMediaTypes:
+                if (isinstance(entry, cls)):
+                    break  # match!
+            else:  # no match in the loop
+                return(True)
+        # date range TODO: Move to OrganizationByDate
+        if ((self.fromDate)
+            and (entry.organizer.getDateTaken() <= self.fromDate)):
+            print('MediaFilter.isFiltered(): %s later than "%s"' % (self.fromDate, entry.getPath()))
+            return(True)
+        if ((self.toDate)
+            and (entry.organizer.getDateTaken() >= self.toDate)):
+            print('MediaFilter.isFiltered(): %s earlier than "%s"' % (self.fromDate, entry.getPath()))
+            return(True)
+        # single/group
+        if (self.singleCondition <> None):
+            if (self.singleCondition == entry.isGroup()):
+                return(True)
         return(entryFiltered)
 
 

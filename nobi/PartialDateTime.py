@@ -91,7 +91,7 @@ class PartialDateTime(object):
                 else:
                     raise ValueError, ('String "%s" does not contain a valid date to create PartialDateTime' % arg)
             else:
-                raise ValueError
+                raise ValueError, ('Cannot create PartialDateTime from argument %s' % arg)
         elif (len(args) == 3):
             if (isinstance(args[0], Number)):
                 self.year = args[0]

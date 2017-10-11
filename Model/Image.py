@@ -108,7 +108,7 @@ class Image(Single):
     def getRawImage(self):
         """Retrieve raw data (JPG or PNG or GIF) for image.
         """
-        if (not self.rawImage):  # lazily load raw image
+        if (self.rawImage == None):  # lazily load raw image
             imageType = None
             if ((self.getExtension() == 'jpg')
                 or (self.getExtension() == 'jpeg')):
@@ -121,11 +121,11 @@ class Image(Single):
                 imageType = wx.BITMAP_TYPE_TIF
             if (imageType):
                 self.rawImage = wx.Image(self.getPath(), imageType)
-                if (not self.rawImage):
+                if (self.rawImage == None):
                     logging.warning('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
             else: 
                 logging.warning('Image.getRawImage(): Illegal type in "%s"!' % self.getPath())
-            if (not self.rawImage):
+            if (self.rawImage == None):
                 self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
                                          wx.BITMAP_TYPE_JPEG)
                 assert(self.rawImage <> None), ('Cannot load default image for "%s"!' % self.getPath())
@@ -142,7 +142,10 @@ class Image(Single):
         
         Return a String
         """
-        return('%dx%d' % (self.getRawImage().GetWidth(), self.getRawImage().GetHeight()))
+        image = self.getRawImage()
+        if (image == None):
+            logging.error('Image.getSizeString(): No image found for "%s"' % self.getPath())
+        return('%dx%d' % (image.GetWidth(), image.GetHeight()))
 
 
 
