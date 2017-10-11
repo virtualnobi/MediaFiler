@@ -292,7 +292,6 @@ class OrganizationByDate(MediaOrganization):
             which either contains year, month, and day as String
             or contains None for each entry
         """
-        date = None
         if ((os.path.isfile(path)) 
             and (path[-4:].lower() == '.jpg')): 
             with open(path, "rb") as f:
@@ -309,15 +308,11 @@ class OrganizationByDate(MediaOrganization):
                 and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
                 logging.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Software=Paint Shop Photo Album')
                 return (None, None, None)
-            for key in ['DateTimeOriginal',
-                        # 'Image DateTime',  # bad date, changed by imaging software
-                        'EXIF DateTimeOriginal', 
-                        'EXIF DateTimeDigitized'
-                        ]:
-                if (key in exifTags):
-                    logging.debug('OrganizationByDate.deriveDateFromFile(): Found EXIF tag %s in "%s"' % (key, path))
-                    date = exifTags[key]
-                    match = self.DayPattern.search(str(date))
+            for key in exifTags:
+                if ('Date' in key):
+                    logging.debug('OrganizationByDate.deriveDateFromFile(): Relevant EXIF tag "%s" in "%s"' % (key, path))
+                    value = exifTags[key]
+                    match = self.DayPattern.search(str(value))
                     if (match):
                         year = match.group(1)
                         month = match.group(3)
@@ -328,7 +323,7 @@ class OrganizationByDate(MediaOrganization):
                         logging.debug('OrganizationByDate.deriveDateFromFile(): Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
                         return(year, month, day)
                     else:
-                        logging.debug('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, date))
+                        logging.warning('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, value))
         return(None, None, None)
 
 
