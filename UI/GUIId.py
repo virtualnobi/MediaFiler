@@ -91,9 +91,8 @@ DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
 RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
 RandomName = generateWxIdForLabel(_('Choose Random Name'))
 ChooseName = generateWxIdForLabel(_('Choose Name Manually...'))
-RandomConvertToSingle = wx.NewId()  # for a Single inside a Group, choose a random (free) name
-ChooseConvertToSingle = wx.NewId()  # for a Single inside a Group, ask user for an (existing) name
 ConvertToGroup = generateWxIdForLabel(_('Convert to Group'))  # convert a Single into a Group
+ConvertToSingle = generateWxIdForLabel(_('Convert to Single'))  # convert a Single into a Group
 RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Tags'))
 
 FilterIdentical = generateWxIdForLabel(_('Filter Identical'))

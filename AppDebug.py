@@ -762,9 +762,9 @@ if __name__ == "__main__":
                             level=logging.DEBUG,
                             datefmt='%H:%M:%S',
                             format='%(asctime)s| %(message)s')
-        logging.info('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getImagePath()))
+        logging.info('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
         frame.Show()
-        frame.setModel(Installer.getImagePath())
+        frame.setModel(Installer.getMediaPath())
         if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
             logging.info('App.__main__(): Maximizing window')
             frame.Maximize(True)            

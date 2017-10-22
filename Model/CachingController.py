@@ -37,22 +37,24 @@ class MRUOrderedDict(OrderedDict):
 
 
 class CachingController(object): 
-    """This class keeps track of memory usage. 
-
-    If too much memory is used, the least recently used Singles are requested to free memory. 
+    """This class keeps track of which objects use how much memory. 
+    If too much memory is used, the least recently used objects are requested to free memory.
+    
+    The cache is organized into different numeric priorities (0 being highest priority), and when
+    requesting memory to be freed, objects with lower priority are requested to free up their memory
+    before objects with higher priority are considered.  
     """
     
 
 # Constants
-    MemoryMaximum = 1000000000
+    MemoryMaximum = 5000000000
     MBFactor = (1024 * 1024)
-
+    Logger = logging.getLogger(__name__)
 
 
 # Class Variables
     MemoryUsed = 0
-    CachedRawData = None
-    CachedBitmaps = None
+    CacheList = [MRUOrderedDict()]  # List of MRUOrderedDict, index corresponds to cache priority
 
 
 
@@ -61,70 +63,99 @@ class CachingController(object):
     def clear(cls):
         """Clear the cache information.
         """
+        cls.Logger.debug('CachingController.clear()')
         cls.MemoryUsed = 0
-        cls.CachedRawData = MRUOrderedDict()
-        cls.CachedBitmaps = MRUOrderedDict()
+        cls.CacheList = [MRUOrderedDict()]
+
+
+    @classmethod
+    def cacheState(cls):
+        """Return a String describing the cache state.
+        """
+        result = ('%dMB free, %dMB used' % (((cls.MemoryMaximum - cls.MemoryUsed) / cls.MBFactor), (cls.MemoryUsed / cls.MBFactor)))
+        for index in range(0, len(cls.CacheList)):
+            size = sum(cls.CacheList[index].values()) / cls.MBFactor
+            result = (result + ', Priority %d: %dMB in %d items' % (index, size, len(cls.CacheList[index])))
+        return(result)
 
         
     @classmethod
-    def allocateMemory(cls, entry, imageSize, bitmap=False):
+    def allocateMemory(cls, entry, imageSize, bitmap=False, cachePriority=-1):
         """Register that an Entry cached the specified bytes, and ask older entries to release memory if needed.
         
         MediaFiler.Entry entry just cached an image
         Number imageSize is the number of bytes consumed by entry
         Boolean bitmap indicates that a displayable bitmap (and not raw image data) has been cached
+        Number cachePriority (>= 0) indicates cache priority
         """
-        logging.debug('CachingController.allocateMemory(): %3dMB used in %d bitmaps and %d raw data, %3dMB free,\n caching %3dMB for %s of "%s"' 
-                      % ((cls.MemoryUsed / cls.MBFactor),
-                         len(cls.CachedBitmaps),
-                         len(cls.CachedRawData), 
-                         ((cls.MemoryMaximum - cls.MemoryUsed) / cls.MBFactor), 
+        cls.Logger.debug('CachingController.allocateMemory(): %s\n  caching %3dMB for %s (prio %s) of "%s"', 
+                         cls.cacheState(),
                          (imageSize / cls.MBFactor), 
-                         ('bitmap' if bitmap else 'raw data'), 
-                         entry.getPath()))
-        if (bitmap):
-            cls.CachedBitmaps[entry] = imageSize
-        else:
-            cls.CachedRawData[entry] = imageSize    
+                         ('bitmap' if bitmap else 'raw data'),
+                         cachePriority, 
+                         entry.getPath())
+        if (cachePriority == -1):
+            if (bitmap):
+                cachePriority = 0
+            else:  # raw data
+                cachePriority = 2
+        if ((len(cls.CacheList) <= cachePriority)
+            or (cls.CacheList[cachePriority] == None)):
+            for index in range(len(cls.CacheList), (cachePriority + 1)):
+                cls.CacheList.append(MRUOrderedDict())
         cls.MemoryUsed = (cls.MemoryUsed + imageSize)
-        while ((cls.MemoryMaximum < cls.MemoryUsed)
-               and (0 < len(cls.CachedRawData))):
-            (oldEntry, oldSize) = cls.CachedRawData.getOldestItem()  # @UnusedVariable
-            oldEntry.releaseRawDataCache()
-        while ((cls.MemoryMaximum < cls.MemoryUsed)
-               and (0 < len(cls.CachedBitmaps))):
-            (oldEntry, oldSize) = cls.CachedBitmaps.getOldestItem()  # @UnusedVariable
-            if (oldEntry <> entry):
-                oldEntry.releaseBitmapCache()
-            elif (1 == len(cls.CachedBitmaps)):  # only entry cached
-                logging.error('CachingController.allocateMemory(): Not enough memory to cache "%s"' % entry.getPath())
-                sys.exit()
+        currentPriority = (len(cls.CacheList) - 1)
+        while (cls.MemoryMaximum < cls.MemoryUsed):
+            if (len(cls.CacheList[currentPriority].keys()) == 0):
+                if (currentPriority == 0):
+                    cls.Logger.critical('CachingController.allocateMemory(): Not enough memory to cache "%s"',
+                                        entry.getPath())
+                    sys.exit()
+                else:
+                    currentPriority = (currentPriority - 1)
+            else:
+                (oldEntry, oldSize) = cls.CacheList[currentPriority].getOldestItem()  
+                cls.Logger.debug('CachingController.allocateMemory(): Releasing %dMB of priority %d from "%s"',
+                                 (oldSize / cls.MBFactor),
+                                 currentPriority,
+                                 entry.getPath())
+                oldEntry.releaseCacheWithPriority(currentPriority)
+        cls.CacheList[cachePriority][entry] = imageSize
 
 
     @classmethod
-    def deallocateMemory(cls, entry, bitmap=False):
+    def deallocateMemory(cls, entry, bitmap=False, cachePriority=-1):
         """Register that an Entry's cache has been cleared.
         
         MediaFiler.Entry entry just cleared its cache
         Boolean bitmap indicates that a displayable bitmap (and not raw image data) has been cleared
+        Number cachePriority (>= 0) 
         """
-        logging.debug('CachingController.deallocateMemory(): Clearing %s of "%s"' 
-                      % (('bitmap' if bitmap else 'raw data'), 
-                         entry.getPath()))
-        freeMemory = 0
-        if (bitmap):
-            if (entry in cls.CachedBitmaps):
-                freeMemory = cls.CachedBitmaps[entry]
-                del cls.CachedBitmaps[entry]
-            else:
-                logging.error('CachingControl.deallocateMemory(): Not bitmap found for "%s"!' % entry.getPath())
+        cls.Logger.debug('CachingController.deallocateMemory(): %s\n  clearing %s (prio %s) of "%s"',
+                         cls.cacheState(),
+                         ('bitmap' if bitmap else 'raw data'), 
+                         cachePriority,
+                         entry.getPath())
+        if (cachePriority == -1):
+            if (bitmap):
+                cachePriority = 0
+            else:  # raw data
+                cachePriority = 2
+        if (len(cls.CacheList) < cachePriority):
+            cls.Logger.error('CachingController.deallocateMemory(): No priority %s cache found while deallocating "%s"!',
+                             cachePriority,
+                             entry.getPath())
+#         elif ():
+#             cls.Logger.error('CachingController.deallocateMemory(): Lower-priority cache used while deallocating priority %s for "%s"!',
+#                              cachePriority,
+#                              entry.getPath())             
+        elif (entry in cls.CacheList[cachePriority]):
+            cls.MemoryUsed = (cls.MemoryUsed - cls.CacheList[cachePriority][entry])
+            del cls.CacheList[cachePriority][entry]
         else:
-            if (entry in cls.CachedRawData):
-                freeMemory = cls.CachedRawData[entry]
-                del cls.CachedRawData[entry]
-            else:
-                logging.error('CachingControl.deallocateMemory(): No raw data found for "%s"!' % entry.getPath())
-        cls.MemoryUsed = (cls.MemoryUsed - freeMemory)
+            cls.Logger.error('CachingController.deallocateMemory(): Priority %s cache contains no entry for "%s"!',
+                             cachePriority,
+                             entry.getPath())
 
 
 

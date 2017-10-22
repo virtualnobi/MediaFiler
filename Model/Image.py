@@ -47,7 +47,7 @@ class Image(Single):
     LegalExtensions = ['jpg', 'png', 'gif', 'tif', 'jpeg']
     ConfigurationOptionViewer = 'viewer-image'
     PreviewImageFilename = 'Image.jpg'
-    
+    Logger = logging.getLogger(__name__)
     
 
 ## Inheritance - Entry
@@ -88,9 +88,6 @@ class Image(Single):
         # inheritance
         super(Image, self).__init__(model, path) 
         # internal state
-#         self.width = 0  # image size
-#         self.height = 0
-        self.rawImage = None
         self.bitmap = None
 
 
@@ -129,6 +126,8 @@ class Image(Single):
                 self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
                                          wx.BITMAP_TYPE_JPEG)
                 assert(self.rawImage <> None), ('Cannot load default image for "%s"!' % self.getPath())
+            self.rawImageWidth = self.rawImage.GetWidth()
+            self.rawImageHeight = self.rawImage.GetHeight()
             CachingController.allocateMemory(self, self.getRawDataMemoryUsage(), bitmap=False)
             self.releaseBitmapCache()
         return(self.rawImage)
@@ -142,10 +141,7 @@ class Image(Single):
         
         Return a String
         """
-        image = self.getRawImage()
-        if (image == None):
-            logging.error('Image.getSizeString(): No image found for "%s"' % self.getPath())
-        return('%dx%d' % (image.GetWidth(), image.GetHeight()))
+        return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
 
 
 

@@ -31,22 +31,28 @@ from Model.CachingController import CachingController
 
 
 
-class ImageBitmap (wx.StaticBitmap):
+class ImageBitmap(wx.StaticBitmap):
     """An extension to wx.StaticBitmap which remembers the Entry it displays. 
      
     This class is used as the bitmap to display on UI.MediaCanvasPane.MediaCanvas. 
     When a bitmap is clicked, the underlying Entry can be recovered via .getEntry()
     """
-## Lifecycle
+
+
+
+# Class Variables
+# Class Methods
+# Lifecycle
     def __init__(self, parent, ident, entry, x, y, width, height):
         """Create bitmap and store entry for reference
         """
         # correct position (x, y) to place image in middle of frame
-        (w, h) = entry.getSizeFittedTo(width, height)
+        bitmap = entry.getBitmap(width, height)
+        (w, h) = bitmap.GetSize()
         x = x + ((width - w) / 2)
         y = y + ((height - h) / 2)
         # inheritance
-        wx.StaticBitmap.__init__(self, parent, ident, entry.getBitmap(width, height), pos=(x, y))
+        wx.StaticBitmap.__init__(self, parent, ident, bitmap, pos=(x, y))
         # internal state
         self.entry = entry
  
@@ -64,6 +70,7 @@ class Single(Entry):
 
 
 # Constants
+    Logger = logging.getLogger(__name__)
     ConfigurationOptionEmailClient = 'editor-email'
 
 
@@ -97,6 +104,10 @@ class Single(Entry):
         super(Single, self).__init__(model, path)
         # internal state
         self.rawImage = None
+        # raw image size must be cached independently from raw image, 
+        # to allow determination of fitted bitmap without reloading the raw image in getSizeFittedTo()
+        self.rawImageWidth = 0
+        self.rawImageHeight = 0
         self.bitmap = None
 
 
@@ -173,16 +184,14 @@ class Single(Entry):
             or None
         """
         message = None
-        logging.debug('Single.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
+        self.__class__.Logger.debug('Single.runContextMenu(): Function %d on "%s"',
+                                    menuId, 
+                                    self.getPath())
         # TODO: move scene functions to OrganizationByName
         if (menuId == GUIId.StartExternalViewer):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):
             message = self.sendMail()
-        elif (menuId == GUIId.RandomConvertToSingle):
-            pass
-        elif (menuId == GUIId.ChooseConvertToSingle):
-            pass
         else:
             message = super(Single, self).runContextMenuItem(menuId, parentWindow)
         return(message)
@@ -247,11 +256,17 @@ class Single(Entry):
 
 
 # Getters
-    def isGroup (self):
-        """Indicate that self is a single media.
+    def getFileSize(self):
+        """Return the file size of self, in kilobytes.
+        
+        Do not load the image. 
         """
-        return(False)
-
+        try: 
+            int(self.fileSize)  # check whether self.fileSize is an integer value
+        except: 
+            self.fileSize = (int(os.stat(self.getPath()).st_size / 1024) + 1)
+        return(self.fileSize)
+        
 
     def isIdentical(self, anEntry):
         """Check whether self and anEntry have the same content.
@@ -269,6 +284,18 @@ class Single(Entry):
         """Retrieve raw data (JPG or PNG or GIF) for media.
         """
         raise NotImplementedError
+
+
+    def getRawImageWidth(self):
+        if (self.rawImageWidth == 0):
+            self.getRawImage()
+        return(self.rawImageWidth)
+    
+    
+    def getRawImageHeight(self):
+        if (self.rawImageHeight == 0):
+            self.getRawImage()
+        return(self.rawImageHeight)
 
 
     def getRawDataMemoryUsage(self):
@@ -289,7 +316,6 @@ class Single(Entry):
         CachingController.deallocateMemory(self, bitmap=False)
 
 
-
     def getSizeFittedTo(self, width=None, height=None):
         """Return the size of self fitted into the dimensions specified. 
         
@@ -297,70 +323,64 @@ class Single(Entry):
 
         Returns tuple of int (Number, Number)
         """
-        rawWidth = self.getRawImage().GetWidth()
-        rawHeight = self.getRawImage().GetHeight()
-        assert (self.rawImage <> None), ('No raw image for "%s"!' % self.getPath())
         if ((width == None)
             and (height == None)):  # return original size
-            return(rawWidth, rawHeight)
+            return(self.getRawImageWidth(), self.getRawImageHeight())
         elif ((width <> None) 
               and (height <> None)):  # fit to size given
             if (width < 1): 
+                self.__class__.Logger.warning('Single.getSizeFittedTo(): Corrected width to 1 for "%s"',
+                                              self.getPath())
                 width = 1
             if (height < 1): 
+                self.__class__.Logger.warning('Single.getSizeFittedTo(): Corrected height to 1 for "%s"',
+                                              self.getPath())
                 height = 1
-            imageRatio = (Decimal(rawWidth) / Decimal(rawHeight))  # aspect of image
-            paneRatio = (Decimal(width) / Decimal(height))  # aspect of frame
-            logging.debug('Single.getSizeFittedTo(): Image %sx%s (ratio %s), Pane %sx%s (ratio %s)' % (rawWidth, rawHeight, imageRatio, width, height, paneRatio))
-            if (paneRatio < imageRatio): # image wider than pane, use full pane width
-                height = int(width / imageRatio)
-                logging.debug('    changed height to %s' % height)
-            else: # image taller than pane, use full pane height
-                width = int(height * imageRatio)
-                logging.debug('    changed width to %s' % width)
-            if ((width > rawWidth) 
-                and (height > rawHeight)):  # pane larger than image, don't enlarge image
-                width = rawWidth
-                height = rawHeight
-                logging.debug('    using original size %sx%s' % (width, height))
+            if ((self.getRawImageWidth() < width) 
+                and (self.getRawImageHeight() < height)):  # pane larger than image, don't enlarge image
+                width = self.getRawImageWidth()
+                height = self.getRawImageHeight()
+                self.__class__.Logger.debug('    image smaller than pane, using original size')
+            else:
+                imageRatio = (Decimal(self.getRawImageWidth()) / Decimal(self.getRawImageHeight()))  # aspect of image
+                paneRatio = (Decimal(width) / Decimal(height))  # aspect of frame
+                self.__class__.Logger.debug('Single.getSizeFittedTo(): Image %sx%s (ratio %s), Pane %sx%s (ratio %s)',
+                                            self.getRawImageWidth(), 
+                                            self.getRawImageHeight(), 
+                                            imageRatio, 
+                                            width, 
+                                            height, 
+                                            paneRatio)
+                if (paneRatio < imageRatio): # image wider than pane, use full pane width
+                    height = int(width / imageRatio)
+                    self.__class__.Logger.debug('    changed height to %s', height)
+                else: # image taller than pane, use full pane height
+                    width = int(height * imageRatio)
+                    self.__class__.Logger.debug('    changed width to %s', width)
+            self.__class__.Logger.debug('    using size %sx%s', width, height)
             return(width, height)
         else:
             raise ValueError, 'Single.getSizeFittedTo(): Only one of width and height are given!'
 
     
-    def getFileSize(self):
-        """Return the file size of self, in kilobytes.
-        
-        Do not load the image. 
-        """
-        try: 
-            int(self.fileSize)  # check whether self.fileSize is an integer value
-        except: 
-            self.fileSize = (int(os.stat(self.getPath()).st_size / 1024) + 1)
-        return(self.fileSize)
-        
-
     def getBitmap(self, width, height):
         """Return an MediaFiler.Single.ImageBitmap for self's image, resized to fit into given size.
         
         Number width
         Number height
-        Returns MediaFiler.Single.ImageBitmap
+        Boolean cacheAsThumbnail indicates whether width x height is fullsize or thumbnail
+         Returns MediaFiler.Single.ImageBitmap
         """
-        # determine final size
         (w, h) = self.getSizeFittedTo(width, height)
-        logging.debug('Single.getBitmap(%dx%d): Calculated size %dx%d for "%s"' % (width, height, w, h, self.getPath()))
-        if (not ((0 < w) and (0 < h))):
-            pass  # this will violate an assertion in Rescale()
-        # load and resize bitmap if needed 
-        if ((self.bitmap == None)  # no bitmap loaded
-            or (self.bitmapWidth <> w)  # width differs
-            or (self.bitmapHeight <> h)):  # height differs
+        if ((self.bitmap == None)
+            or (self.bitmapWidth <> w)
+            or (self.bitmapHeight <> h)):
             self.releaseBitmapCache()
+            self.__class__.Logger.debug('Single.getBitmap(): Creating %dx%d bitmap', w, h)
+            self.bitmap = self.getRawImage().Copy().Rescale(w, h).ConvertToBitmap()
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
-            logging.debug('Single.getBitmap(): Creating %dx%d bitmap' % (self.bitmapWidth, self.bitmapHeight))
-            self.bitmap = self.getRawImage().Copy().Rescale(self.bitmapWidth, self.bitmapHeight).ConvertToBitmap()
-        return(super(Single, self).getBitmap(width, height))
+            self.registerBitmapCache()
+        return(self.bitmap)
 
 
 
@@ -403,3 +423,4 @@ class Single(Entry):
             emailClient = emailClient.replace(GlobalConfigurationOptions.Parameter, self.getPath())
             commandArgs = shlex.split(emailClient)
             subprocess.call(commandArgs, shell=False)
+

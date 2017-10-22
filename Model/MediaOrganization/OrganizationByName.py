@@ -10,7 +10,7 @@ import copy
 import re
 import os.path
 import glob
-import StringIO
+#import StringIO
 import logging
 import gettext
 ## Contributed 
@@ -383,10 +383,11 @@ class OrganizationByName(MediaOrganization):
         """
         menu.Append(GUIId.RandomName, GUIId.FunctionNames[GUIId.RandomName])
         menu.Append(GUIId.ChooseName, GUIId.FunctionNames[GUIId.ChooseName])
+        if (self.context.isGroup()):
+            menu.Append(GUIId.ConvertToSingle, GUIId.FunctionNames[GUIId.ConvertToSingle])
+            if (1 < len(self.context.getSubEntries(filtering=False))):
+                menu.Enable(GUIId.ConvertToSingle, False)
         menu.AppendSeparator()
-        # functions applicable to singletons, i.e. media outside groups
-        if (self.context.isSingleton()):
-            menu.Append(GUIId.ConvertToGroup, GUIId.FunctionNames[GUIId.ConvertToGroup])
         # functions applicable to Singles inside named Groups
         if ((not self.context.isGroup())
             and (not self.context.isSingleton())):

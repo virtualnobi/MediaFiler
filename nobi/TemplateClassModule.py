@@ -8,6 +8,7 @@
 # Imports
 ## Standard
 from __future__ import print_function
+import logging
 import gettext
 import os.path
 ## Contributed
@@ -43,6 +44,7 @@ class ClassName(object):
     
 
 # Constants
+    Logger = logging.getLogger(__name__)
     ConstantName = 'value'
 
 

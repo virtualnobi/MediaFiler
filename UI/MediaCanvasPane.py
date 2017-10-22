@@ -115,6 +115,7 @@ class MediaCanvas(wx.Panel, Observer):
                                      (y + (self.ImagePadding / 2)), 
                                      self.imageWidth, 
                                      self.imageHeight)
+                # TODO: get bitmap with flag fullsize/thumbnail
                 bitmap.Bind(wx.EVT_MOUSE_EVENTS, self.onClickImage)
                 bitmap.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)
                 # calculate next image position

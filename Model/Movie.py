@@ -111,7 +111,7 @@ class Movie(Single):
 
 
 ## Inheritance - Single
-    def getRawImage (self):
+    def getRawImage(self):
         """Retrieve raw data (JPG or PNG or GIF) for image.
         """
         if (self.rawImage <> None):
@@ -119,26 +119,30 @@ class Movie(Single):
         ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
         if (ffmpeg):
             try:
-                logging.debug('Movie.getRawImage(): Using "%s"' % ffmpeg)
-                proc = subprocess.Popen([ffmpeg, "-i", self.getPath()], stderr=subprocess.PIPE)
-                (dummy, result) = proc.communicate()
-                m = re.search(r"Duration:\s*(\d+):(\d+):(\d+)\.(\d+)", result)
-                if (m == None):
-                    target = '5'
-                    logging.warning('Movie.getRawImage(): Cannot determine duration, using %s secs as offset for "%s"' % (target, self.getPath()))
-                else:
-                    # Avoiding strptime here because it has some issues handling milliseconds.
-                    m = [int(m.group(i)) for i in range(1, 5)]
-                    duration = datetime.timedelta(hours=m[0],
-                                                  minutes=m[1],
-                                                  seconds=m[2],
-                                                  # * 10 because truncated to 2 decimal places
-                                                  milliseconds=m[3] * 10
-                                                  ).total_seconds()
+                logging.debug('Movie.getRawImage(): Using "%s"' % ffmpeg)                
+#                 proc = subprocess.Popen([ffmpeg, "-i", self.getPath()], stderr=subprocess.PIPE)
+#                 (dummy, result) = proc.communicate()
+#                 m = re.search(r"Duration:\s*(\d+):(\d+):(\d+)\.(\d+)", result)
+#                 if (m == None):
+#                     target = '5'
+#                     logging.warning('Movie.getRawImage(): Cannot determine duration, using %s secs as offset for "%s"' % (target, self.getPath()))
+#                 else:
+#                     # Avoiding strptime here because it has some issues handling milliseconds.
+#                     m = [int(m.group(i)) for i in range(1, 5)]
+#                     duration = datetime.timedelta(hours=m[0],
+#                                                   minutes=m[1],
+#                                                   seconds=m[2],
+#                                                   # * 10 because truncated to 2 decimal places
+#                                                   milliseconds=m[3] * 10
+#                                                   ).total_seconds()
+                duration = self.getDuration()
+                if (duration):
                     target = max(0, min(duration * self.__class__.CaptureFramePosition, duration - 0.1))
-                    target = "{:.3f}".format(target)
-                logging.debug('Movie.getRawImage(): Duration is %s, target frame is %s' % (duration, target))
-            
+                else:
+                    target = 5 
+                    logging.warning('Movie.getRawImage(): Cannot determine duration, using %s secs as offset for "%s"' % (target, self.getPath()))
+                targetString = "{:.3f}".format(target)
+                logging.debug('Movie.getRawImage(): Duration is %s, target frame is %s' % (duration, target))            
                 args = [ffmpeg,
                         "-ss", target,
                         "-i", self.getPath(),
@@ -160,6 +164,9 @@ class Movie(Single):
         if (self.rawImage == None):
             self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
                                      wx.BITMAP_TYPE_JPEG)
+            assert (self.rawImage <> None), ('Cannot load default image for "%s"' % self.getPath())
+        self.rawImageWidth = self.rawImage.GetWidth()
+        self.rawImageHeight = self.rawImage.GetHeight()
         return(self.rawImage)
 
 
@@ -186,32 +193,33 @@ class Movie(Single):
         
         Return Number
         """
-        if (self.duration == None):
-            ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
-            if (ffmpeg):
-                try:
-                    args = [ffmpeg, 
-                            '-i',
-                            self.getPath()]
-                    logging.debug('Movie.getDuration(): Calling "%s"' % args)
-                    proc = subprocess.Popen(args, stderr=subprocess.PIPE)
-                    (_, result) = proc.communicate()
-                    m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', result)
-                    if (m == None):
-                        logging.warning('Movie.getDuration(): Cannot determine duration for "%s"!' % self.getPath())
-                    else:
-                        # Avoiding strptime here because it has some issues handling milliseconds.
-                        m = [int(m.group(i)) for i in range(1, 5)]
-                        self.duration = datetime.timedelta(hours=m[0],
-                                                           minutes=m[1],
-                                                           seconds=m[2],
-                                                           # * 10 because truncated to 2 decimal places
-                                                           milliseconds=m[3] * 10
-                                                           ).total_seconds()
-                except Exception as e:
-                    logging.warning('Movie.getDuration(): Cannot determine duration due to error:\n%s' % e)
-            else:
-                logging.warning('Movie.getDuration(): No ffmpeg specified with %s' % Movie.ConfigurationOptionFfmpeg)
+        if (self.duration <> None):
+            return(self.duration)
+        ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
+        if (ffmpeg):
+            try:
+                args = [ffmpeg, 
+                        '-i',
+                        self.getPath()]
+                logging.debug('Movie.getDuration(): Calling "%s"' % args)
+                proc = subprocess.Popen(args, stderr=subprocess.PIPE)
+                (_, result) = proc.communicate()
+                m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', result)
+                if (m == None):
+                    logging.warning('Movie.getDuration(): Cannot determine duration for "%s"!' % self.getPath())
+                else:
+                    # Avoiding strptime here because it has some issues handling milliseconds.
+                    m = [int(m.group(i)) for i in range(1, 5)]
+                    self.duration = datetime.timedelta(hours=m[0],
+                                                       minutes=m[1],
+                                                       seconds=m[2],
+                                                       # * 10 because truncated to 2 decimal places
+                                                       milliseconds=m[3] * 10
+                                                       ).total_seconds()
+            except Exception as e:
+                logging.warning('Movie.getDuration(): Cannot determine duration due to error:\n%s' % e)
+        else:
+            logging.warning('Movie.getDuration(): No ffmpeg specified with %s' % Movie.ConfigurationOptionFfmpeg)
         return(self.duration)
 
 

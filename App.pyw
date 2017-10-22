@@ -8,6 +8,7 @@ A Python 2.7 GUI application which lets you organize media (images and videos).
 
 # Imports
 ## standard
+#import sys
 import os 
 import subprocess
 import gettext
@@ -37,6 +38,8 @@ from UI.MediaTreePane import MediaTreeCtrl
 from UI.MediaCanvasPane import MediaCanvas
 from UI.MediaNamePane import MediaNamePane
 from UI.MediaClassificationPane import MediaClassificationPane
+from logging import FileHandler
+from numpy.core.setup_common import fname2def
 #from URLHarvester import URLHarvester
 #import URLHarvester.InputDialog
 
@@ -753,24 +756,35 @@ class MediaFiler (wx.Frame, Observer, Observable):
 # Functions
 # section: Executable script
 if __name__ == "__main__":
-    logging.basicConfig(# filename=(os.path.join(Installer.InstallationPath, Installer.LogFilename) % 1),
-                        filemode='w',
-                        level=logging.DEBUG,
-                        datefmt='%H:%M:%S',
-                        format='%(asctime)s| %(message)s')
+    fname = os.path.join(Installer.InstallationPath, (Installer.LogFilename % 1))
+    logFormatter = logging.Formatter(fmt='%(asctime)s| %(message)s', datefmt='%H:%M:%S')
+    logHandler = logging.FileHandler(fname, mode='w')
+    logHandler.setFormatter(logFormatter)
+    logging.getLogger().addHandler(logHandler)
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.debug('App.__main__(): Temporarily logging to "%s"' % fname)
+#     logging.basicConfig(filename=fname,
+#                         filemode='w',
+#                         level=logging.DEBUG,
+#                         datefmt='%H:%M:%S',
+#                         format='%(asctime)s| %(message)s')
     app = wx.App(False)    
     frame = MediaFiler(None, title=GUIId.AppTitle)
     if (Installer.ensureInstallationOk(frame)):
-        logging.basicConfig(# filename=(Installer.getLogFilePath() % 1),
-                            filemode='w',
-                            level=logging.DEBUG,
-                            datefmt='%H:%M:%S',
-                            format='%(asctime)s| %(message)s')
-        logging.info('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getImagePath()))
+        fname = (Installer.getLogFilePath() % 1)
+        logging.debug('App.__main__(): Now permanently logging to "%s"' % fname)
+        logging.getLogger().removeHandler(logHandler)
+        logHandler.close()
+        logHandler = FileHandler(fname, mode='w')
+        logHandler.setFormatter(logFormatter)
+        logging.getLogger().addHandler(logHandler)
+        logging.debug('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
+        logging.getLogger('Model.CachingController').addHandler(logging.StreamHandler())
+#    logging.getLogger('Model.Single').addHandler(logging.StreamHandler())
         frame.Show()
-        frame.setModel(Installer.getImagePath())
+        frame.setModel(Installer.getMediaPath())
         if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
-            logging.info('App.__main__(): Maximizing window')
+            logging.debug('App.__main__(): Maximizing window')
             frame.Maximize(True)            
         app.MainLoop()
     

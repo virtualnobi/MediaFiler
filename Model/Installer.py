@@ -62,7 +62,7 @@ ProductTrader = ProductTraderPattern.SimpleProductTrader()
 
 # Setters
 # Getters
-def getImagePath():
+def getMediaPath():
     """Return the path to the image directory.
     """
     return(os.path.join(CurrentPath, ImageFolder))
@@ -138,7 +138,7 @@ def checkInstallation():
     Returns Boolean indicating whether the installation is ok
     """
     logging.debug('Installer.checkInstallation(): Checking folders at "%s"...' % CurrentPath)
-    if (not os.path.isdir(getImagePath())):
+    if (not os.path.isdir(getMediaPath())):
         logging.debug('Installer.checkInstallation(): Image directory does not exist')
         return(False)
     if (not os.path.isdir(getLibraryPath())):
@@ -150,7 +150,6 @@ def checkInstallation():
     if (not os.path.exists(getConfigurationFilePath())):
         logging.debug('Installer.checkInstallation(): Configuration file does not exist')
         return(False)
-#     for c in Entry.ProductTrader.getClasses():
     for c in getProductTrader().getClasses():
         if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
             logging.debug('Installer.checkInstallation(): No preview image for class %s exists.' % c)
@@ -173,8 +172,8 @@ def install():
     """
     logging.debug('Installer.install(): Preparing folders at "%s"' % CurrentPath)
     try:
-        if (not os.path.isdir(getImagePath())):
-            os.makedirs(getImagePath())
+        if (not os.path.isdir(getMediaPath())):
+            os.makedirs(getMediaPath())
             logging.debug('Installer.install(): Image folder created')
         if (not os.path.isdir(getLibraryPath())):
             os.makedirs(getLibraryPath())

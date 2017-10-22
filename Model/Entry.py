@@ -304,7 +304,7 @@ class Entry(PausableObservable):
     def isGroup(self):
         """Return true if self represents a Group.
         """
-        raise NotImplementedError
+        return(False)
 
 
     def isFiltered(self):
@@ -490,9 +490,19 @@ class Entry(PausableObservable):
 
 
 
+    def releaseCacheWithPriority(self, cachePriority):
+        """
+        """
+        if (cachePriority == 0):
+            self.releaseBitmapCache()
+        elif (cachePriority == 2):
+            self.releaseRawDataCache()
+
+
     def getBitmap(self, width, height):  # @UnusedVariable
         """
         """
+        print('Entry.getBitmap() deprecated')
         CachingController.allocateMemory(self, self.getBitmapMemoryUsage(), bitmap=True)
         return(self.bitmap)
 
@@ -507,6 +517,14 @@ class Entry(PausableObservable):
         else:
             return(0)
 
+
+    def registerBitmapCache(self):
+        """Register memory usage for self's bitmap.
+        
+        Boolean cacheAsThumbnail indicates 
+        """
+        CachingController.allocateMemory(self, self.getBitmapMemoryUsage(), bitmap=True)
+    
 
     def releaseBitmapCache(self):
         """Release the memory alllocated for self's bitmap.
