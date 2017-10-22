@@ -1,5 +1,5 @@
-15:46:03| App.__main__(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
-15:46:04| Installer.checkInstallation(): Checking folders at "S:\amazonia"...
-15:46:04| Installer.checkInstallation(): Folders at "S:\amazonia" are ok
-15:46:04| Installer.ensureInstallationOk(): Changing working directory to "S:\amazonia"
-15:46:04| App.__main__(): Now permanently logging to "S:\amazonia\lib\log-1.txt"
+18:15:49| App.__main__(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
+18:15:50| Installer.checkInstallation(): Checking folders at "N:\shared\images"...
+18:15:50| Installer.checkInstallation(): Folders at "N:\shared\images" are ok
+18:15:50| Installer.ensureInstallationOk(): Changing working directory to "N:\shared\images"
+18:15:50| App.__main__(): Now permanently logging to "N:\shared\images\lib\log-1.txt"

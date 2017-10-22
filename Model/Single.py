@@ -375,11 +375,11 @@ class Single(Entry):
         if ((self.bitmap == None)
             or (self.bitmapWidth <> w)
             or (self.bitmapHeight <> h)):
-            self.releaseBitmapCache()
+            self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
             self.__class__.Logger.debug('Single.getBitmap(): Creating %dx%d bitmap', w, h)
             self.bitmap = self.getRawImage().Copy().Rescale(w, h).ConvertToBitmap()
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
-            self.registerBitmapCache()
+            self.registerCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
         return(self.bitmap)
 
 

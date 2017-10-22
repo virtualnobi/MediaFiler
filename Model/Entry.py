@@ -51,13 +51,13 @@ class Entry(PausableObservable):
     NameSeparator = '.'  # character separating image elements in file name
     IdentifierSeparator = '-'  # character separating scene, day, month, year, number in file name
     RESeparatorsRecognized = ('[, _' + NameSeparator + IdentifierSeparator + ']')
+    CachingLevelThumbnailBitmap = 0
+    CachingLevelFullsizeBitmap = 1
+    CachingLevelRawData = 2
 
 
 
-# Class Variables
-    
-    
-    
+# Class Variables    
 # Class Methods
     @classmethod
     def isLegalExtension(self, extension):
@@ -115,9 +115,8 @@ class Entry(PausableObservable):
         self.parentGroup = None  # not known yet
         self.filteredFlag = False  # initially, no entry is filtered
         self.treeItemID = None  # not inserted into MediaTreePane yet
-        self.initFromPath(path)
-        self.fileSize = self.getFileSize()
         self.bitmap = None
+        self.initFromPath(path)
 
 
     def initFromPath(self, path):
@@ -131,7 +130,7 @@ class Entry(PausableObservable):
             self.setExtension(extension)
         else:
             self.setExtension(extension[1:].lower())
-        self.getFileSize()
+        self.fileSize = self.getFileSize()
         if (self.isGroup() 
             and (self.getExtension() <> '')):
             print('Group "%s" should not use an extension' % self.getPath())
@@ -213,7 +212,9 @@ class Entry(PausableObservable):
         """
         self.changedAspect('remove')
         self.setParentGroup(None)
-        self.releaseBitmapCache()
+        self.releaseCacheWithPriority(self.__class__.CachingLevelRawData)
+        self.releaseCacheWithPriority(self.__class__.CachingLevelFullsizeBitmap)
+        self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
         # move to trash
         oldName = self.getPath()
         newName = os.path.join(self.model.rootDirectory, 
@@ -489,15 +490,27 @@ class Entry(PausableObservable):
             return(None)
 
 
-
     def releaseCacheWithPriority(self, cachePriority):
         """
         """
-        if (cachePriority == 0):
+        if (cachePriority == self.__class__.CachingLevelThumbnailBitmap):
             self.releaseBitmapCache()
+        elif (cachePriority == self.__class__.CachingLevelFullsizeBitmap):
+            pass
         elif (cachePriority == 2):
             self.releaseRawDataCache()
 
+
+    def registerCacheWithPriority(self, cachePriority):
+        """
+        """
+        if (cachePriority == self.__class__.CachingLevelThumbnailBitmap):
+            CachingController.allocateMemory(self, self.getBitmapMemoryUsage(), cachePriority=cachePriority)
+        elif (cachePriority == self.__class__.CachingLevelFullsizeBitmap):
+            pass
+        elif (cachePriority == 2):
+            pass
+            
 
     def getBitmap(self, width, height):  # @UnusedVariable
         """
@@ -544,6 +557,7 @@ class Entry(PausableObservable):
         
         Returns a String
         """
+        print('Entry.getName() deprecated!')
         return(self.organizer.getName())
 
 
@@ -552,6 +566,7 @@ class Entry(PausableObservable):
         
         Return a String
         """
+        print('Entry.getScene() deprecated!')
         return(self.organizer.getScene())
 
 
@@ -559,7 +574,8 @@ class Entry(PausableObservable):
         """Return whether self is a singleton, i.e., a named Single outside of named Group.
         
         Returns a Boolean
-        """
+        """ 
+        print('Entry.isSingleton() deprecated!')
         return(self.organizer.isSingleton())
 
 

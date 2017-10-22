@@ -128,8 +128,11 @@ class Image(Single):
                 assert(self.rawImage <> None), ('Cannot load default image for "%s"!' % self.getPath())
             self.rawImageWidth = self.rawImage.GetWidth()
             self.rawImageHeight = self.rawImage.GetHeight()
-            CachingController.allocateMemory(self, self.getRawDataMemoryUsage(), bitmap=False)
-            self.releaseBitmapCache()
+            CachingController.allocateMemory(self, 
+                                             self.getRawDataMemoryUsage(), 
+                                             cachePriority=self.__class__.CachingLevelRawData)
+            self.releaseCacheWithPriority(self.__class__.CachingLevelFullsizeBitmap)
+            self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
         return(self.rawImage)
 
 
