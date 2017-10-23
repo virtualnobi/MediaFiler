@@ -120,21 +120,6 @@ class Movie(Single):
         if (ffmpeg):
             try:
                 logging.debug('Movie.getRawImage(): Using "%s"' % ffmpeg)                
-#                 proc = subprocess.Popen([ffmpeg, "-i", self.getPath()], stderr=subprocess.PIPE)
-#                 (dummy, result) = proc.communicate()
-#                 m = re.search(r"Duration:\s*(\d+):(\d+):(\d+)\.(\d+)", result)
-#                 if (m == None):
-#                     target = '5'
-#                     logging.warning('Movie.getRawImage(): Cannot determine duration, using %s secs as offset for "%s"' % (target, self.getPath()))
-#                 else:
-#                     # Avoiding strptime here because it has some issues handling milliseconds.
-#                     m = [int(m.group(i)) for i in range(1, 5)]
-#                     duration = datetime.timedelta(hours=m[0],
-#                                                   minutes=m[1],
-#                                                   seconds=m[2],
-#                                                   # * 10 because truncated to 2 decimal places
-#                                                   milliseconds=m[3] * 10
-#                                                   ).total_seconds()
                 duration = self.getDuration()
                 if (duration):
                     target = max(0, min(duration * self.__class__.CaptureFramePosition, duration - 0.1))
@@ -178,9 +163,14 @@ class Movie(Single):
         
         Return a String
         """
-        duration = self.getDuration()
-        if (duration <> None):
-            return(_('%d secs') % duration)
+        seconds = self.getDuration()
+        if (seconds <> None):
+            minutes = (seconds / 60)
+            seconds = (seconds % 60)
+            numberList = (seconds, )
+            if (0 < minutes):
+                numberList = (minutes, seconds)
+            return(fmt % numberList)
         else:
             return(_('unknown duration'))
 
