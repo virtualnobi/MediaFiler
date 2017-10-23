@@ -167,8 +167,10 @@ class Movie(Single):
         if (seconds <> None):
             minutes = (seconds / 60)
             seconds = (seconds % 60)
+            fmt = _(u'%d secs')
             numberList = (seconds, )
             if (0 < minutes):
+                fmt = (_(u'%d mins, ') + fmt)
                 numberList = (minutes, seconds)
             return(fmt % numberList)
         else:
