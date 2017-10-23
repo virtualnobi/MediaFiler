@@ -215,7 +215,7 @@ class Single(Entry):
 #         print('Single.convertToGroup() deprecated')
 #         raise DeprecationWarning
 #         print('Converting "%s" to a group' % self.getPath())
-#         newGroup = Group.createFromName(self.model, self.getName())
+#         newGroup = Group.createFromName(self.model, self.organizer.getName())
 #         self.setParentGroup(newGroup)
 #         self.renameTo(scene='1', number='1')
 

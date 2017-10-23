@@ -144,7 +144,7 @@ class Group(Entry, Observer):
                 name = kwargs['name']
                 existingEntry = self.model.getEntry(name=name)
                 if (existingEntry == None):
-                    print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.getName(), elements))
+                    print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.organizer.getName(), elements))
                     return(super(Group, self).renameTo(name=name, 
                                                        elements=[], 
                                                        removeIllegalElements=removeIllegalElements))

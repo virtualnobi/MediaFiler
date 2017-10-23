@@ -251,8 +251,8 @@ class MediaCollection(Observable, Observer):
                 and ((year == None) or (year == entry.organizer.getYearString()))
                 and ((month == None) or (month == entry.organizer.getMonthString()))
                 and ((day == None) or (day == entry.organizer.getDayString()))
-                and ((name == None) or (name == entry.getName()))
-                and ((scene == None) or (scene == entry.getScene()))):
+                and ((name == None) or (name == entry.organizer.getName()))
+                and ((scene == None) or (scene == entry.organizer.getScene()))):
                 return (entry)
             if (entry.isGroup()):
                 # TODO: possible performance improvement

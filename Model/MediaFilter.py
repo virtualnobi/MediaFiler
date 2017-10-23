@@ -275,7 +275,7 @@ class MediaFilter(Observable):
             if (self.model.organizedByDate):  # TODO: move to Organization
                 entryFiltered = (entry.getYear() <> entry.organizer.__class__.UnknownDateName)
             else: # organized by name, illegal name will satisfy unknown element requirement
-                match = re.match(r'([^\d]+)\d*', entry.getName())  # isolate name in name+number identifiers
+                match = re.match(r'([^\d]+)\d*', entry.organizer.getName())  # isolate name in name+number identifiers
                 if ((match <> None)
                     and (entry.organizer.nameHandler.isNameLegal(match.group(1)))  # legal name 
                     and (entry.getScene() <> entry.organizer.__class__.NewIndicator)):  # not a "new" scene
