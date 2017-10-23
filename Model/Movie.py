@@ -144,7 +144,7 @@ class Movie(Single):
                 targetString = "{:.3f}".format(target)
                 logging.debug('Movie.getRawImage(): Duration is %s, target frame is %s' % (duration, target))            
                 args = [ffmpeg,
-                        "-ss", target,
+                        "-ss", targetString,
                         "-i", self.getPath(),
                         "-map", "v:0",     # first video stream
                         "-frames:v", "1",  # 1 frame

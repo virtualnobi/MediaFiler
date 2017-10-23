@@ -1,5 +1,0 @@
-18:15:49| App.__main__(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
-18:15:50| Installer.checkInstallation(): Checking folders at "N:\shared\images"...
-18:15:50| Installer.checkInstallation(): Folders at "N:\shared\images" are ok
-18:15:50| Installer.ensureInstallationOk(): Changing working directory to "N:\shared\images"
-18:15:50| App.__main__(): Now permanently logging to "N:\shared\images\lib\log-1.txt"
