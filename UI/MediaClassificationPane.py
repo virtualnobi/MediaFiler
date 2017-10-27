@@ -58,6 +58,10 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Class Variables
+    Logger = logging.getLogger(__name__)
+
+
+
 # Class Methods
 # Lifecycle
     def __init__ (self, parent, style=0):
@@ -189,7 +193,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def setEntry (self, entry):
         """Set the selected entry (either group or image), and enable/set checkboxes and radiobuttons accordingly.
         """
-        logging.debug('MediaClassificationPane.setEntry(%s)' % entry.getPath())
+        self.__class__.Logger.debug('MediaClassificationPane.setEntry(%s)' % entry.getPath())
         # observer pattern
         if (self.entry):
             self.entry.removeObserver(self)  # unregister from previous observable

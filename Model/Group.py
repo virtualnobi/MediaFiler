@@ -309,14 +309,17 @@ class Group(Entry, Observer):
         
         Return MediaFiler.Entry or None
         """
-        index = self.subEntriesSorted.index(entry)
-        if (index < (len(self.subEntriesSorted) - 1)):
-            nextEntry = self.subEntriesSorted[index + 1]
-            if (nextEntry.isGroup()):
-                nextEntry = nextEntry.getFirstEntry()
-            return(nextEntry)
+        if (entry <> self):
+            index = self.subEntriesSorted.index(entry)
+            if (index < (len(self.subEntriesSorted) - 1)):
+                nextEntry = self.subEntriesSorted[index + 1]
+                if (nextEntry.isGroup()):
+                    nextEntry = nextEntry.getFirstEntry()
+                return(nextEntry)
+            else:
+                return(super(Group, self).getNextEntry(self))
         else:
-            return(super(Group, self).getNextEntry(self))
+            return(self.getFirstEntry())
 
 
     def getPreviousEntry(self, entry=None):
