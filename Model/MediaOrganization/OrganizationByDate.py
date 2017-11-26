@@ -16,7 +16,7 @@ import gettext
 import exifread
 import wx
 ## nobi
-from nobi.wxExtensions.Menu import Menu
+from nobi.wx.Menu import Menu
 from nobi.PartialDateTime import PartialDateTime
 ## Project
 import UI  # to access UI.PackagePath
@@ -647,7 +647,7 @@ class OrganizationByDate(MediaOrganization):
         """Extend the context menu to contain functions relevant for organization by date.
 
         MediaFiler.Entry.Menu menu 
-        Return nobi.wxExtensions.Menu (which is a wx.Menu)
+        Return nobi.wx.Menu (which is a wx.Menu)
         """
         moveToMenu = Menu()
         moveToId = GUIId.SelectMoveTo

@@ -39,7 +39,6 @@ from UI.MediaCanvasPane import MediaCanvas
 from UI.MediaNamePane import MediaNamePane
 from UI.MediaClassificationPane import MediaClassificationPane
 from logging import FileHandler
-from numpy.core.setup_common import fname2def
 #from URLHarvester import URLHarvester
 #import URLHarvester.InputDialog
 
@@ -157,7 +156,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """
         # TODO: replace fixed entries by dynamic history
         index = GUIId.LoadRecentDirectory;
-        self.recentRootDirectories = ['N:\\shared\\images\\family', 
+        self.recentRootDirectories = ['N:\\shared\\images\\images', 
                                       'Y:\\home\\Lars\\LarsBilder\\images', 
                                       'Y:\\home\\Paul\\PaulsBilder\\images', 
                                       'Y:\\home\\Gilla\\GillasBilder\\images']
@@ -333,7 +332,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.Bind (wx.EVT_MENU, self.onImport, id=GUIId.Import)
         self.Bind (wx.EVT_MENU, self.onRemoveNew, id=GUIId.RemoveNew)
         # - tools menu
-        self.Bind(wx.EVT_MENU, self.onEditClasses, id = GUIId.EditClasses)
+        self.Bind(wx.EVT_MENU, self.onEditClasses, id=GUIId.EditClasses)
         self.Bind(wx.EVT_MENU, self.onEditNames, id=GUIId.EditNames)
         self.Bind(wx.EVT_MENU, self.onHarvestURLs, id=GUIId.HarvestURLs)
         # general events
@@ -779,8 +778,9 @@ if __name__ == "__main__":
         logHandler.setFormatter(logFormatter)
         logging.getLogger().addHandler(logHandler)
         logging.debug('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
-        logging.getLogger('Model.CachingController').addHandler(logging.StreamHandler())
-#    logging.getLogger('Model.Single').addHandler(logging.StreamHandler())
+#        logging.getLogger('Model.CachingController').addHandler(logging.StreamHandler())
+#        logging.getLogger('Model.Single').addHandler(logging.StreamHandler())
+        logging.getLogger('UI.MediaClassificationPane').addHandler(logging.StreamHandler())
         frame.Show()
         frame.setModel(Installer.getMediaPath())
         if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):

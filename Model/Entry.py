@@ -13,7 +13,7 @@ import datetime
 #import wx
 ## nobi
 from nobi.PausableObservable import PausableObservable
-from nobi.wxExtensions.Menu import Menu
+from nobi.wx.Menu import Menu
 # from nobi.SortedCollection import SortedCollection
 # from nobi.ProductTraderPattern import SimpleProductTrader
 ## Project

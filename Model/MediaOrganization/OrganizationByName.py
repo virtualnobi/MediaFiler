@@ -16,7 +16,7 @@ import gettext
 ## Contributed 
 import wx
 ## nobi
-from nobi.wxExtensions.Menu import Menu
+from nobi.wx.Menu import Menu
 ## Project
 from Model import Installer
 from Model.MediaNameHandler import MediaNameHandler

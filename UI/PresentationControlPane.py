@@ -57,6 +57,7 @@ class PresentationControlPane(wx.Panel, Observer):
 
 
 # Class Variables
+    Logger = logging.getLogger(__name__)
     timerDelay = TimerDelayLong
 
 
@@ -166,7 +167,7 @@ class PresentationControlPane(wx.Panel, Observer):
         """Stop the running presentation.
         """
         if (self.presentationTimer):
-            print('Stopping %s' % self.presentationTimer)
+            self.__class__.Logger.debug('PresentationController.onStopPresentation(): Stopping %s' % self.presentationTimer)
             self.presentationTimer.cancel()
             self.presentationTimer = None
         self.stopButton.Disable()
@@ -204,7 +205,7 @@ class PresentationControlPane(wx.Panel, Observer):
         self.model.setSelectedEntry(self.model.getNextEntry(self.model.getSelectedEntry()))
         self.presentationTimer = threading.Timer(self.timerDelay, self.presentNext)
         self.presentationTimer.start()
-        logging.debug('PresentationController.presentNext(): Scheduled timer %s to show next image in %s secs' % (self.presentationTimer, self.timerDelay))
+        self.__class__.Logger.debug('PresentationController.presentNext(): Scheduled timer %s to show next image in %s secs' % (self.presentationTimer, self.timerDelay))
 
 
 

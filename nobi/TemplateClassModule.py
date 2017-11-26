@@ -1,7 +1,7 @@
 #!python
 # -*- coding: latin-1 -*-
 """
-(c) by nobisoft 2016-
+(c) by nobisoft 2017-
 """
 
 
@@ -44,8 +44,7 @@ class ClassName(object):
     
 
 # Constants
-    Logger = logging.getLogger(__name__)
-    ConstantName = 'value'
+#     Logger = logging.getLogger(__name__)
 
 
 # Class Variables

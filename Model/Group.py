@@ -340,6 +340,18 @@ class Group(Entry, Observer):
             return(super(Group, self).getPreviousEntry(self))
 
 
+    def releaseCacheWithPriority(self, cachePriority):
+        """Do nothing here as Groups do not cache data.
+        """
+        pass
+
+
+    def registerCacheWithPriority(self, cachePriority):
+        """Do nothing here as Groups do not cache data.
+        """
+        pass
+
+
     def getEntriesForDisplay (self):
         """Return all subentries to be displayed on the canvas. 
 

@@ -5,7 +5,7 @@
 
 # Imports
 ## Standard
-from __builtin__ import classmethod
+# from __builtin__ import classmethod
 import datetime
 import re
 import os.path
@@ -18,7 +18,7 @@ import gettext
 ## Contributed 
 import wx
 ## nobi
-from nobi.wxExtensions.Menu import Menu
+from nobi.wx.Menu import Menu
 ## Project
 import Model.Installer
 from ..Entry import Entry
