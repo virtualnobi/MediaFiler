@@ -21,6 +21,11 @@ Read the [HOWTO-INSTALL file](https://github.com/virtualnobi/MediaFiler/blob/mas
 Read the [HOWTO-USE file](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md). 
 
 
+# How to configure?
+
+Read the [HOWTO-CONFIGURE file](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-CONFIGURE.md)
+
+
 # How to help?
 
 * Translate if you need another language: 

@@ -2,7 +2,7 @@
 
 ## Running MediaFiler
 
-If you completed the installation as described, you have a shortcut on your desktop which will run MediaFiler in a directory of your choice. Clicking the shortcut will open MediaFiler with a standard initial image and a default layout of panes. A "pane" is a area inside the window showing certain information. Panes can be rearranged and hidden, and the current layout of all panes can be saved as a "perspective" and restored later. 
+If you completed the installation as described, you have a shortcut on your desktop which will run MediaFiler in a directory of your choice. Clicking the shortcut will open MediaFiler with a standard initial image and a default layout of panes. A "pane" is a area inside the window showing certain information. Panes can be rearranged and hidden, and the layout of all panes can be saved as a "perspective" and restored later. 
 
 More information on how to change the window layout can be found at wxPython.AUI. 
 
@@ -120,59 +120,7 @@ Each tag class is shown as one row, with a selection list for the tags in the cl
 There's special entry `all` in the tags list, which will match any tag from the class. With this entry, you may search for media which has any of the tags in the class. 
 
 
-## Advanced Settings
 
-### Configuration File
+## More Flexibility
 
-A few advanced settings are available in a configuration file. The configuration is stored in the '&lt;your installation directory&gt;/lib/MediaFiler.ini' file, which is a text file you can edit with any simple text editor program. 
-
-The following options exist: 
-
-- `maximize-on-start = True`
-If set to `True`, the program will use the whole screen when starting. If set to `False` (or not existing), the program will use a fixed size, which might not fit your screen. 
-
-- `editor-text = "C:/Program Files (x86)/Gnu/Emacs-24.5/bin/emacs.exe" "%1"` 
-The program to use when editing text files (like tags and classes). You may use whatever text editor you like. Put the `%1` where the program expects the name of the file to be edited. The quotes `"` ensure filenames with spaces work as well. 
-
-- `viewer-image = "C:\Program Files (x86)\IrfanView\i_view32.exe" "%1" /fs`
-There's a "fullscreen" action in the MediaFiler program which will run the program indicated with this option on a selected image. If you want to further edit the image, for example, use this. 
-
-- `viewer-movie = "C:\Program Files\VideoLAN\VLC\vlc.exe" -f "%1"`
-This is the program to use for the "fullscreen" action for movies. Currently, that's the only way to view movies.  
-
-- `ffmpeg = "C:\Program Files\ffmpeg\bin\ffmpeg.exe"`
-This is the program which derives a still image from a movie. If you do not install ffmpeg, only a generic image will be shown for all videos. If you install ffmpeg, the frame at 20% of the video duration is shown for a video.
-
-- `editor-email = "C:\Program Files (x86)\Mozilla\Thunderbird\thunderbird.exe" -compose "attachment='%1'"`
-If you want to email a selected media to somebody, you can put your email program here. Don't forget the `%1` for the filename of the image (most likely, to be used as an attachment to the email). 
-
-- `show-parent-after-remove = True`
-Controls which item is selected in the tree view after deleting media. If `True`, the parent group is shown. As this might cause a long delay to display all entries in the group, and you might loose the orientation which media is the next or previous, you can leave this option out or set it to "False" to show the previous media after deleting one. 
-
-There are more options in this file, especially if you have used the MediaFiler program already. It's probably best to leave them unchanged, but here they are for completeness: 
-
-- `last-perspective = 0`
-The last perpective shown. "Perspective" is wxPython term to describe the layout of the window panes (media hierarchy, filter, preview, etc.).
-
-- `last-media = N:\shared\images\images\2002\2002-08\2002-08-005.Henning.Lars.Luebeln.jpg`
-The last media shown. 
-
-- `import-prefer-exif = True`
-- `import-path = N:\shared\import` plus many more...
-The settings used during the last import. 
-
-- 
-
-### Standard Images
-
-The images used by the MediaFiler program can be tweaked as well. Just replace the images in the directory by ones you like better: 
-
-- logo.ico
-The icon shown on the window frame, and in the taskbar representing the program.
-
-- initial.jpg
-This image is shown when no media is selected. Usually, the program starts by showing the media shown when using the program last time, so you should not seen this often. 
-
-- Image.jpg
-- Movie.jpg
-The images used to represent the media, if the media cannot be shown. For images, seeing this image means there has been an error loading the image. For movies, this image is used always. 
+To learn more about ways to change how MediaFiler behaves and integrates with other programs, read [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-CONFIGURE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-CONFIGURE.md). 

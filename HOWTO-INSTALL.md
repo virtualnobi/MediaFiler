@@ -1,27 +1,29 @@
 # How to install MediaFiler?
 
-The steps you need to do are similar on all operating systems (i.e. whether you use a Mac, a Linux or Windows computer). The decriptions how to complete each steps are currently for Windows 10. If you use another operating system, let me know the details and I can add them here. 
+The steps you need to do are similar on all operating systems (i.e. whether you use a Mac, a Linux or Windows computer). The descriptions how to complete each steps are currently for Windows 10. If you use another operating system, let me know the details and I can add them here. 
+
 
 ## Install Python and Python Libraries
 
-* Install Python 2.7.10 from [python.org](http://python.org/download):
-Python is the programming language used to develop the MediaFiler program.  
+* Install Python 2.7.10 from [python.org](http://python.org/download): Python is the programming language used to develop the MediaFiler program.  
 I recommend version 2.7.10 because it includes 'pip' (2.7.13 seems not to). Be sure to check the 'Add to Path' option in the installer. 
 
-* Upgrade pip:
-Pip is a program to download additional Python libraries. 
-Type `cmd` into the Windows search field and run the command interpreter. Type `pip install --ugrade pip` into its window. If you run into permissions errors on Windows, type `cmd` into the search field, and press Ctrl+Shift+Enter (instead of only Enter) to execute the command interpreter in administrator mode, then try the pip command again.
+* Upgrade `pip`: `Pip` is a program to download additional Python libraries. 
+Type `cmd` into the Windows search field and run the command interpreter. Type `pip install --ugrade pip` into its window. If you run into permissions errors on Windows, type `cmd` into the search field, and press Ctrl+Shift+Enter (instead of only Enter) to execute the command interpreter in administrator mode, then try the `pip` command again.
 
-* Install the exifread module:
-The exifread Python module reads the date when a photo was taken from the image metadata.  
-In the command interpreter, type the command `pip install exifread`. 
+* Install the `exifread` module: The `exifread` Python module reads the date when a photo was taken from the image metadata.  
+In the command interpreter (if you closed it, open it again as described above), type the command `pip install exifread`. 
 
-* Install wxPython for Python 2.7 from [wxpython.org](http://wxpython.org/download.php): 
-wxPython is the GUI toolkit used by MediaFiler.
+* Install `wxPython` for Python 2.7 from [wxpython.org](http://wxpython.org/download.php): wxPython is the GUI toolkit used by MediaFiler.
+
 
 ## Install the MediaFiler program
 
-There are two options for you: Either you use a Github account to download updates, or you download the sources as a ZIP file. Using a Github account will make upgrading to a new version easier, and will allow you to participate in developing MediaFiler. If you use a ZIP file, you need to repeat this procedure every time you want to upgrade to a new version. 
+There are two options for you: Either you use a Github account to download updates, or you download the sources as a ZIP file. 
+
+Using a Github account will make upgrading to a new version easier, and will allow you to participate in developing MediaFiler. If you use a ZIP file, you need to repeat this procedure every time you want to upgrade to a new version. 
+
+Using the stand-alone installation with a ZIP file does not require a Github account and will be quicker than using Github.
 
 ### Stand-alone Installation Using ZIP File
 
@@ -44,39 +46,33 @@ There are two options for you: Either you use a Github account to download updat
 * Clone the MediaFiler repository from [github.com/virtualnobi/MediaFiler](https://github.com/virtualnobi/MediaFiler).
 Note the directory it is cloned into as your installation directory into for later. 
 
+
 ## Set up the MediaFiler program on your computer
 
 * Set the `LANGUAGE` variable to your locale:
-On Windows 10, enter 'Environment Variable' (German: 'Umgebungsvariable') into the Windows search field. The program which comes up has a button 'Evironment Variables', which presents user-specific variables. Usually, LANGUAGE is not defined, so you need to press 'New'. Enter `LANGUAGE` and the locale you wish to use. Currently supported values are `de_DE` and `en_US`. 
+On Windows 10, enter 'Environment Variable' (German: 'Umgebungsvariable') into the Windows search field. The program which comes up has a button 'Evironment Variables', which presents two lists of user-specific and system-wide variables. `LANGUAGE` shall be a system variable, so go to the lower table. Usually, `LANGUAGE` is not defined, so you need to press `New`. Enter `LANGUAGE` and the locale you wish to use. Currently supported values are `de_DE` and `en_US`. 
 
-* Set the PYTHONPATH variable to include your installation directory: 
-Following the same procedure as above, make sure an environment variable PYTHONPATH exists. (It should after the installation of Python.) This list contains a semicolon-separated list of places where Python code is searched. Add the installation directory from above to the end of this list; don't forget to add the semicolon as separator.  
+* Set the `PYTHONPATH` variable to include your installation directory: 
+Following the same procedure as above, make sure a system environment variable `PYTHONPATH` exists. (It should, after the installation of Python.) This list contains a list of places where Python code is searched. Add the installation directory from above to the end of this list.
+
+Windows < 10: The list of directories is specified as a single string, with the directories separated by semicolon (;). A typical string would be "C:\Python\lib" and you would need to add you installation directory as follows: "C:\Python\lib;C:\your\installation\directory".
 
 * Pick or create an image directory to keep all your images:
-A good choice on Windows is `/Users/&lt;your-user-name&gt;/Pictures/MediaFiler`. 
+A good choice on Windows is `/Users/<your-user-name>/Pictures/MediaFiler`. 
 
-* Create a shortcut for the app:
+* Create a shortcut for the app (optional):
 In the installation directory, there is an `App.pyw` file. Create a shortcut to this file and move it to your desktop. In the properties for this shortcut, change the working directory (German `Ausführen In:`) to the image directory from the previous step.
 
 * Start the shortcut:
 Clicking the shortcut should run the MediaFiler program. When started for the first time, it will ask your for the image directory. If erverything is working correctly, the directory shown by default is correct, but you can still choose another one. Mediafiler will create subdirectories called `images` (all your images), `lib` (some configuration files), `trash` (all media you delete, for easy recovery), and `import` (the default directory from which media is imported).
 
 
-## Install External Viewers And Players
 
-### Images
+## Congratulations! 
 
-If you want to be able to view (and edit) images with an external program, you can tell MediaFiler how to invoke this program. I use IrfanView, which can be downloaded from [http://www.irfanview.com/](http://www.irfanview.com/), but you may use any other image viewer or editor. The command line to run the image viewer (with '%1' as a placeholder for the actual image filename) must be added to the 'MediaFiler.ini' configuration file under the 'image-viewer' option. 
+You're done with the setup. 
 
-### Videos
+If you're curious and want to see it, continue with [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md).
 
-If you want to include videos in your media collection, they will display a generic video image. 
+If you want to explore all settings first, continue with [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-CONFIGURE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-CONFIGURE.md). 
 
-In case you want to see a frame from the video instead, you have to install the ffmpeg program and tell MediaFiler where to find it. You can install ffmpeg from [https://ffmpeg.org/](https://ffmpeg.org/). The complete pathname of the 'ffmpeg.exe' program (usually in 'bin/ffmpeg.exe' in its installation directory) must be added to the 'MediaFiler.ini' configuration file under the 'ffmpeg' option. 
-
-In case you want to be able to view the entire video in a separate window, you have to install a video player (or use a built-in player) and tell MediaFiler where to find it. I use VLC, which can be downloaded from [https://www.videolan.org/vlc/](https://www.videolan.org/vlc/). The command line to run the video player (with '%1' as a placeholder for the actual video filename) must be added to the 'MediaFiler.ini' configuration file under the 'movie-viewer' option. 
-
-
-## Congratulations! You're done with the setup. 
-
-Continue with [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md).
