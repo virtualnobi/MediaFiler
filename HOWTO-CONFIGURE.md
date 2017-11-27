@@ -9,7 +9,7 @@ MediaFiler can display images. If you want to view movies, or want to edit image
 
 If you want to be able to view (and edit) images with an external program, you can tell MediaFiler how to invoke this program. I use IrfanView, which can be downloaded from [http://www.irfanview.com/](http://www.irfanview.com/), but you may use any other image viewer or editor. 
 
-See section Advanced Settings>Configuration File>viewer-image in [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md) to learn how to configure an external program for viewing images.
+See section `Advanced Settings>Configuration File>viewer-image` below to learn how to configure an external program for viewing images.
 
 
 ### Videos
@@ -18,11 +18,11 @@ If you want to include videos in your media collection, they will display a gene
 
 In case you want to see a frame from the video instead, you have to install the ffmpeg program and tell MediaFiler where to find it. You can install ffmpeg from [https://ffmpeg.org/](https://ffmpeg.org/). 
 
-See section Advanced Settings>Configuration File>ffmpeg in [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md) to learn how to configure MediaFiler to use ffmpeg.
+See section `Advanced Settings>Configuration File>ffmpeg` below on how to configure MediaFiler to use ffmpeg.
 
 In case you want to be able to view the entire video in a separate window, you have to install a video player (or use a built-in player) and tell MediaFiler where to find it. I use VLC, which can be downloaded from [https://www.videolan.org/vlc/](https://www.videolan.org/vlc/). 
 
-See section Advanced Settings>Configuration File>viewer-movie in [https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md](https://github.com/virtualnobi/MediaFiler/blob/master/HOWTO-USE.md) to learn how to configure an external program for viewing movies.
+See section `Advanced Settings>Configuration File>viewer-movie` below on how to configure an external program for viewing movies.
 
 
 ## Advanced Settings
