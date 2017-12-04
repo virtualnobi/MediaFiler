@@ -281,7 +281,7 @@ class MediaCollection(Observable, Observer):
                 if ((fsize < self.cachedMinimumSize)  # smaller one found
                     or (self.cachedMinimumSize == 0)):  # no image found so far
                     self.cachedMinimumSize = fsize
-        return (self.cachedMinimumSize)
+        return(self.cachedMinimumSize)
 
 
     def getMaximumSize(self):

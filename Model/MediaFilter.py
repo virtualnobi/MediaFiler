@@ -43,8 +43,8 @@ class MediaFilter(Observable):
         self.requiredElements = set()
         self.prohibitedElements = set()
         self.unknownElementRequired = False
-        self.minimumSize = self.model.getMinimumSize()  # TODO: make lazy-loadable
-        self.maximumSize = self.model.getMaximumSize()  # TODO: make lazy-loadable
+        self.minimumSize = self.model.getMinimumSize()
+        self.maximumSize = self.model.getMaximumSize()
         self.requiredMediaTypes = set()
         self.prohibitedMediaTypes = set()
         # special conditions for OrganizationByDate

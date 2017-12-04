@@ -230,6 +230,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         if (modeName == self.FilterModeNameRequire):
             if (valueName == ''):
                 unknownElementRequired = True
+            else:
+                self.requiredElements.add(valueName)
         elif (modeName == self.FilterModeNameExclude):
             if (valueName <> ''):
                 self.prohibitedElements.add(valueName)
@@ -461,18 +463,25 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
          fromDate,
          toDate) = self.filterModel.getFilterConditions()
         # unknown elements
+        self.filterValues[self.UnknownElementsIndex].SetValue('')
         if (unknownElementRequired):
             self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexRequire)
         else:
             self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexIgnore)
-            for tag in requiredElements: 
-                if (not self.imageModel.getClassHandler().isLegalElement(tag)):
-                    self.filterValues[self.UnknownElementsIndex].SetValue(tag)
-                    self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexRequire)
-            for tag in prohibitedElements:
-                if (not self.imageModel.getClassHandler().isLegalElement(tag)):
-                    self.filterValues[self.UnknownElementsIndex].SetValue(tag)
-                    self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexExclude)    
+        unknownTags = ''
+        for tag in requiredElements: 
+            if (not self.imageModel.getClassHandler().isLegalElement(tag)):
+                unknownTags = ' '.join([unknownTags, tag])
+        if (unknownTags <> ''):
+            self.filterValues[self.UnknownElementsIndex].SetValue(unknownTags)
+            self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexRequire)
+        unknownTags = ''
+        for tag in prohibitedElements:
+            if (not self.imageModel.getClassHandler().isLegalElement(tag)):
+                unknownTags = ' '.join([unknownTags, tag])
+        if (unknownTags <> ''):
+            self.filterValues[self.UnknownElementsIndex].SetValue(unknownTags)
+            self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexExclude)    
         # class elements
         for className in self.imageModel.getClassHandler().getClassNames():
             # reset to no filtering
