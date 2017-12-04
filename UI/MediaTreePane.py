@@ -16,7 +16,8 @@ from nobi.PausableObservable import PausableObservable
 ## project
 import UI
 from UI import GUIId
-#from Model.Entry import Entry
+import Model.Image 
+import Model.Installer
 
 
 
@@ -58,8 +59,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         PausableObservable.__init__(self, ['selection'])
         # define norgy images
         imglist = wx.ImageList(16, 16, True, 2)
-        imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size (16, 16)))
-        imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size (16, 16)))
+        imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16)))
+        imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16)))
         self.AssignImageList(imglist)
         # bind events triggered by tree
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSelectionChanged, self)
@@ -83,6 +84,15 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         self.model.addObserverForAspect(self, 'selection')
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
+        # 
+        self.typeIconsIndices = {}
+        for c in Model.Installer.getProductTrader().getClasses():
+            filename = (c.__name__ + '.jpg')
+            icon = wx.Image(os.path.join(Model.Installer.getLibraryPath(), filename), 
+                            wx.BITMAP_TYPE_JPEG).Rescale(16, 16).ConvertToBitmap()
+            index = self.GetImageList().Add(icon)
+            self.typeIconsIndices[c] = index
+        #
         self.addSubTree(self.model.getRootEntry(), None)
         self.setEntry(self.model.getSelectedEntry())
 
@@ -111,7 +121,11 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
                     self.addSubTree(subentry, node)
         else:
             # add a terminal node for entry
-            node = self.AppendItem(parent, entry.getFilename(), GUIId.TI_Image, data=item)
+#             node = self.AppendItem(parent, entry.getFilename(), GUIId.TI_Image, data=item)
+            node = self.AppendItem(parent, 
+                                   entry.getFilename(), 
+                                   self.typeIconsIndices[entry.__class__], 
+                                   data=item)
         # register as observer for entry
         entry.addObserverForAspect(self, 'name')
         entry.addObserverForAspect(self, 'remove')

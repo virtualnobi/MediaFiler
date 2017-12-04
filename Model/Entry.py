@@ -10,12 +10,9 @@ import os.path
 import logging
 import datetime
 ## Contributed
-#import wx
 ## nobi
 from nobi.PausableObservable import PausableObservable
 from nobi.wx.Menu import Menu
-# from nobi.SortedCollection import SortedCollection
-# from nobi.ProductTraderPattern import SimpleProductTrader
 ## Project
 from UI import GUIId
 import Installer
@@ -27,8 +24,6 @@ from Model.CachingController import CachingController
 class Entry(PausableObservable):
     """An Entry is an PausableObservable representing either an image or a group of the image tree. 
     A group can either be a folder (based on directory structure) or be based on special naming of image files.
-
-    The Entry class is also a SimpleProductTrader, to allow subclasses to register for filename extensions. 
     
     The filename of the entry consists of its path, its name, and its extension.
     The name of the entry consists of its identifier, its known elements, and its unknown elements.
