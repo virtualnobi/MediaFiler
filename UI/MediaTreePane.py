@@ -51,6 +51,10 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 
 
 # Constants
+    Logger = logging.getLogger(__name__)
+
+
+
 # section: Lifecycle
     def __init__ (self, parent, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.TR_DEFAULT_STYLE):
         # initialize superclasses
@@ -58,9 +62,10 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         Observer.__init__(self)
         PausableObservable.__init__(self, ['selection'])
         # define norgy images
-        imglist = wx.ImageList(16, 16, True, 2)
-        imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16)))
-        imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16)))
+        imglist = wx.ImageList(16, 16, True, 3)
+        self.closedFolderIcon = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16)))
+        self.openFolderIcon = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_OTHER, wx.Size(16, 16)))
+        self.fallBackTypeIconIndex = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16)))
         self.AssignImageList(imglist)
         # bind events triggered by tree
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSelectionChanged, self)
@@ -87,11 +92,15 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         # 
         self.typeIconsIndices = {}
         for c in Model.Installer.getProductTrader().getClasses():
-            filename = (c.__name__ + '.jpg')
-            icon = wx.Image(os.path.join(Model.Installer.getLibraryPath(), filename), 
-                            wx.BITMAP_TYPE_JPEG).Rescale(16, 16).ConvertToBitmap()
-            index = self.GetImageList().Add(icon)
-            self.typeIconsIndices[c] = index
+            pathname = os.path.join(Model.Installer.getLibraryPath(), (c.__name__ + '.jpg'))
+            try:
+                icon = wx.Image(os.path.join(Model.Installer.getLibraryPath(), pathname), 
+                                wx.BITMAP_TYPE_JPEG).Rescale(16, 16).ConvertToBitmap()
+                index = self.GetImageList().Add(icon)
+                self.typeIconsIndices[c] = index
+            except Exception as e:
+                self.__class__.Logger.warning('MediaTreePane.setModel(): Cannot find type icon for class "%s"' % c)
+                self.typeIconsIndices[c] = self.fallBackTypeIconIndex
         #
         self.addSubTree(self.model.getRootEntry(), None)
         self.setEntry(self.model.getSelectedEntry())
@@ -113,15 +122,20 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         # insert tree item
         if (entry.isGroup()):  # entry is a Group, add a collapsible node for entry
             if (parent == None):  # entry is root Group
-                node = self.AddRoot("All", GUIId.TI_Folder, GUIId.TI_Folder, item)  
+                node = self.AddRoot("All", 
+                                    self.closedFolderIcon, 
+                                    self.openFolderIcon, 
+                                    data=item)  
             else:   
-                node = self.AppendItem(parent, entry.getFilename(), GUIId.TI_Folder, data=item)
+                node = self.AppendItem(parent, 
+                                       entry.getFilename(), 
+                                       self.closedFolderIcon, 
+                                       self.openFolderIcon, 
+                                       data=item)
             for subentry in entry.getSubEntries():
                 if (not subentry.filteredFlag):
                     self.addSubTree(subentry, node)
-        else:
-            # add a terminal node for entry
-#             node = self.AppendItem(parent, entry.getFilename(), GUIId.TI_Image, data=item)
+        else:  # add a leaf for entry
             node = self.AppendItem(parent, 
                                    entry.getFilename(), 
                                    self.typeIconsIndices[entry.__class__], 

@@ -59,12 +59,6 @@ SB_Filter = 3  # number if filters active
 
 
 
-# Tree Icons
-TI_Folder = 0
-TI_Image = 1
-
-
-
 # Identifiers and texts to register event handlers
 FunctionNames = {}  # mapping event identifiers to texts
 def generateWxIdForLabel(label):
