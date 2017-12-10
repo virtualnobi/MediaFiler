@@ -131,6 +131,14 @@ class CheckBoxGroup(wx.Panel):
 
 
 # Setters
+    def clearAll(self):
+        """Unset all checkboxes in self.
+        """
+        for checkbox in self.checkBoxes:
+            checkbox.SetValue(False)
+
+
+
     def setValue(self, indexOrLabel, state, caseSensitive=True):   
         """Set the indicated item in self to the given state.
         
@@ -140,6 +148,7 @@ class CheckBoxGroup(wx.Panel):
         """
         index = self.ensureNumericIndex(indexOrLabel, caseSensitive)
         self.checkBoxes[index].SetValue(state)
+    SetValue = setValue  # provide similar API as CheckBox
 
 
     def set3StateValue(self, indexOrLabel, state, caseSensitive=True):
@@ -151,6 +160,7 @@ class CheckBoxGroup(wx.Panel):
         """
         index = self.ensureNumericIndex(indexOrLabel, caseSensitive)
         self.checkBoxes[index].Set3StateValue(state)
+    Set3ValueValue = set3StateValue  # provide similar API as CheckBox
 
 
     def enableItem(self, indexOrLabel, enable=True, caseSensitive=True):
@@ -162,8 +172,9 @@ class CheckBoxGroup(wx.Panel):
         """
         index = self.ensureNumericIndex(indexOrLabel, caseSensitive)
         self.checkBoxes[index].Enable(enable)
-    
-    
+    EnableItem = enableItem  # provide same API as RadioBoxGroup
+
+
     def showItem(self, indexOrLabel, show=True, caseSensitive=True):
         """Shows or hides the indicated item in self.
 
@@ -282,13 +293,12 @@ class CheckBoxGroup(wx.Panel):
         checkbox = event.GetEventObject()
         index = self.checkBoxes.index(checkbox)
         choice = self.labels[index][:]  # deep copy to be thread-safe in wx.ProcessEvent()
-        newEvent = CheckBoxGroupEvent(0,  # what is this?
+        newEvent = CheckBoxGroupEvent(0,
                                       index=index, 
                                       choice=choice,
                                       value=checkbox.IsChecked())
         newEvent.__setattr__('EventObject', self)
         wx.PostEvent(self.GetParent(), newEvent)  # TODO: after migrating to wxPython 4, use QueueEvent() for thread safety
-#         self.handlerFunction(event)  # TODO: eliminate
 
 
 

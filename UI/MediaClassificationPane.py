@@ -11,10 +11,9 @@ import gettext
 import logging
 ## contributed
 import wx.lib.scrolledpanel
-# import wx.lib.rcsizer
 ## nobi
 from nobi.ObserverPattern import Observer
-from nobi.wx.CheckBoxGroup import CheckBoxGroup, EVT_CHECKBOX_CLICK_IN_GROUP
+from nobi.wx.CheckBoxGroup import CheckBoxGroup, EVT_CHECKBOX_CLICK_IN_GROUP, CheckBoxGroupEvent
 ## project
 import UI
 # from Model.Entry import Entry
@@ -75,7 +74,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # init variables
         self.model = None  # for definition of selectionBoxes
         self.entry = None  # for selecting selectionBoxes
-        self.selectionBoxes = {}  # selectionBoxes (as className->RadioBox mapping)
+        self.selectionBoxes = {}  # selectionBoxes (as className->RadioBox/CheckBoxGroup mapping)
         # vertical sizer for entire pane
         self.SetSizer(wx.BoxSizer(wx.VERTICAL))
         # 
@@ -83,39 +82,6 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.SetupScrolling()
 
 
-
-# Getters
-    def getClassification(self):
-        """Return the current classification.
-        
-        Classes for which "n/a" is selected do not appear in the result.
-        Classes for which "(none)" is selected appear in the result with an empty string as element.
-        All other classes appear in the result with the selected element. 
-        
-        Returns a Dictionary mapping Strings to Arrays of Strings, mapping class names to lists of elements.
-        """
-        result = {}
-        for className in self.model.getClassHandler().getClassNames():
-            if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes used
-                elements = []
-                for element in self.model.getClassHandler().getElementsOfClassByName(className):
-                    print('class %s, element %s, value %s' % (className, element, self.selectionBoxes[className]['cbg'].isChecked(element)))
-                    if (self.selectionBoxes[className]['cbg'].isChecked(element)):
-                        elements.append(element)
-                if (0 < len(elements)):
-                    result[className] = elements
-            else:  # single selection, radioboxes used
-                if (self.selectionBoxes[className].GetSelection() == self.ClassDontChangeIndex): 
-                    pass
-                elif (self.selectionBoxes[className].GetSelection() == self.ClassUnselectedIndex):  
-                    result[className] = []
-                else:  # real element name
-                    result[className] = [self.selectionBoxes[className].GetStringSelection()]
-        return(result)
-
-
-
-# Setters
     def setModel(self, mediaCollection):
         """Set the model, and create widgets on self accordingly.
         """
@@ -145,40 +111,17 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
             # create radiobox/checkbox group with class elements
             if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, use checkboxes
                 choices.remove(self.__class__.ClassUnselectedText)  # not needed for checkboxes
-                # data container for checkboxes and Sizer
-                checkboxes = dict()
-                checkboxes['list'] = []
-#                 checkboxes['sizer'] = wx.lib.rcsizer.RowColSizer()  # TODO: switch to GridBagSizer; it's newer
                 # add new CheckBoxGroup
-                checkboxes['cbg'] = CheckBoxGroup(self, 
-                                                  self.onSelect, 
-                                                  label=className,
-                                                  majordimension=columns,
-                                                  style=wx.RA_SPECIFY_COLS, 
-                                                  choices=choices)
+                checkBox = CheckBoxGroup(self, 
+                                         self.onSelect, 
+                                         label=className,
+                                         majordimension=columns,
+                                         style=wx.RA_SPECIFY_COLS, 
+                                         choices=choices)
                 self.Bind(EVT_CHECKBOX_CLICK_IN_GROUP, self.onSelect)
-                self.GetSizer().Add(checkboxes['cbg'])
-#                 # create all checkboxes within the sizer
-#                 checkBoxSizer = checkboxes['sizer']
-#                 checkBoxSizer.Add(item=wx.StaticText(self, -1, className), row=0, col=1, colspan=columns)  # TODO: switch to GridBagSizer; it's newer
-#                 row = 1
-#                 col = 1
-#                 for choice in choices: 
-#                     # add a checkbox
-#                     checkBox = wx.CheckBox(self, -1, choice)
-#                     self.Bind(wx.EVT_CHECKBOX, self.onSelect, checkBox)  # attach event
-#                     checkboxes['list'].append(checkBox)
-#                     checkBoxSizer.Add(item=checkBox, row=row, col=col)  # TODO: switch to GridBagSizer; it's newer
-#                     # determine position of next checkbox
-#                     if (col == columns):  # last column reached
-#                         row = (row + 1)
-#                         col = 1
-#                     else:  # last column not yet reached
-#                         col = (col + 1)
+                self.GetSizer().Add(checkBox)
                 # store checkboxes
-                self.selectionBoxes[className] = checkboxes
-#                 # put checkbox sizer into layout
-#                 self.GetSizer().Add(checkBoxSizer)
+                self.selectionBoxes[className] = checkBox
             else:  # single selection, use selectionBoxes
                 radioBox = wx.RadioBox(self, 
                                        -1, 
@@ -196,6 +139,38 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.setEntry(self.model.getSelectedEntry())
 
 
+
+# Getters
+    def getClassification(self):
+        """Return the current classification, mapping class names to lists of elements.
+        
+        Classes for which "n/a" is selected do not appear in the result.
+        Classes for which "(none)" is selected appear in the result with an empty string as element.
+        All other classes appear in the result with the selected element. 
+        
+        Returns a Dictionary mapping Strings to Arrays of Strings.
+        """
+        result = {}
+        for className in self.model.getClassHandler().getClassNames():
+            if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes used
+                elements = []
+                for element in self.model.getClassHandler().getElementsOfClassByName(className):
+                    if (self.selectionBoxes[className].isChecked(element)):  
+                        elements.append(element)
+                if (0 < len(elements)):
+                    result[className] = elements
+            else:  # single selection, radioboxes used
+                if (self.selectionBoxes[className].GetSelection() == self.ClassDontChangeIndex): 
+                    pass
+                elif (self.selectionBoxes[className].GetSelection() == self.ClassUnselectedIndex):  
+                    result[className] = []
+                else:  # real element name
+                    result[className] = [self.selectionBoxes[className].GetStringSelection()]
+        return(result)
+
+
+
+# Setters
     def setEntry (self, entry):
         """Set the selected entry (either group or image), and enable/set checkboxes and radiobuttons accordingly.
         """
@@ -204,35 +179,34 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         if (self.entry):
             self.entry.removeObserver(self)  # unregister from previous observable
         self.entry = entry
-        #
-        if (entry <> None):
-            self.entry.addObserverForAspect(self, 'name')  # register for changes of name
-            # enable the first radiobutton in each group (the 'n/a' one) only if entry is a group
-            for className in self.model.getClassHandler().getClassNames():
-                if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, use checkboxes
-#                     self.selectionBoxes[className]['list'][0].Enable(self.entry.isGroup())
-                    self.selectionBoxes[className]['cbg'].enableItem(0, enable=self.entry.isGroup())
-                else:  # single selection, use radiobuttons
-                    self.selectionBoxes[className].EnableItem(0, self.entry.isGroup())
+        if (self.entry == None):
+            self.clear()
+            return 
+        self.entry.addObserverForAspect(self, 'name')
+        # 
+        entryElements = self.entry.getKnownElements()
+        for className in self.model.getClassHandler().getClassNames():
+            selectionBox = self.selectionBoxes[className]
+            # enable first button in each group (the 'n/a' one) only if entry is a group
+            selectionBox.EnableItem(self.__class__.ClassDontChangeIndex, self.entry.isGroup())
             # fill in data from the selected entry/group
-            entryElements = self.entry.getKnownElements()
-            for className in self.model.getClassHandler().getClassNames():
-                hits = entryElements.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
-                if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes
-#                     for checkBox in self.selectionBoxes[className]['list']:  # translate each existing class element into checked box 
-#                         checkBox.SetValue(checkBox.GetLabel() in hits)
+            hits = entryElements.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
+            if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes
+                selectionBox.clearAll() 
+                if (len(hits) == 0):  # no tag of this class selected
+                    if (self.entry.isGroup()):
+                        selectionBox.setValue(self.__class__.ClassDontChangeIndex, True)
+                else:  # tag(s) of this class selected
                     for element in self.model.getClassHandler().getElementsOfClassByName(className):
-                        self.selectionBoxes[className]['cbg'].setValue(element, (element in hits))
-                else:  # single selection, radioboxes
-                    if (0 < len(hits)):  # applies, select radio button
-                        self.selectionBoxes[className].SetStringSelection(hits.pop())
-                    else:  # does not apply
-                        if (self.entry.isGroup()):  # for a group, select "n/a" item
-                            self.selectionBoxes[className].SetSelection(self.__class__.ClassDontChangeIndex)
-                        else:  # for an image, select empty item
-                            self.selectionBoxes[className].SetSelection(self.__class__.ClassUnselectedIndex)
-        else:  # no entry selected
-            pass  # TODO: reset all widgets
+                        selectionBox.setValue(element, (element in hits))
+            else:  # single selection, radioboxes
+                if (len(hits) == 0):  # no tag of this class selected
+                    if (self.entry.isGroup()):  # for a group, select "n/a" item
+                        selectionBox.SetSelection(self.__class__.ClassDontChangeIndex)
+                    else:  # for an image, select empty item
+                        selectionBox.SetSelection(self.__class__.ClassUnselectedIndex)
+                else:  # tag of this class selected
+                    selectionBox.SetStringSelection(hits.pop())
         # relayout
         self.SetupScrolling()
         self.GetSizer().Layout()
@@ -243,13 +217,23 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def onSelect (self, event):  # @UnusedVariable
         """User changed selection.
         """
+        if (isinstance(event, CheckBoxGroupEvent)):
+            checkBoxGroup = event.GetEventObject()
+            if (checkBoxGroup.isChecked(self.__class__.ClassDontChangeIndex)
+                and (event.index <> self.__class__.ClassDontChangeIndex)
+                and (event.value == True)):
+                checkBoxGroup.setValue(self.__class__.ClassDontChangeIndex, False)
+            elif (checkBoxGroup.isChecked(self.__class__.ClassDontChangeIndex)
+                  and (event.index == self.__class__.ClassDontChangeIndex)):
+                checkBoxGroup.clearAll()
+                checkBoxGroup.setValue(self.__class__.ClassDontChangeIndex, True)
         classMapping = self.getClassification()
         elements = set()
         for className in classMapping:
             for element in classMapping[className]:
                 elements.add(element)
         elements.update(self.entry.getUnknownElements())
-        self.entry.renameTo(elements=elements)
+        self.entry.renameTo(elements=elements)  # TODO: allow to remove classes from groups
 
 
 
@@ -272,31 +256,10 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # remove all selectionBoxes if there are any
         for className in self.selectionBoxes.keys():
             container = self.selectionBoxes[className]
-            if (self.model.getClassHandler().isMultipleClassByName(className)):
-#                 self.GetSizer().Remove(container['sizer'])
-                self.GetSizer().Remove(container['cbg'])
-            else:
-                self.GetSizer().Remove(container)  # not self.RemoveChild(container)
+            self.GetSizer().Remove(container)  # not self.RemoveChild(container)
         self.selectionBoxes = {}
         while (0 < len(self.GetSizer().GetChildren())):
             self.GetSizer().Remove(0)
         self.DestroyChildren()
 
     
-#     def currentFilename(self):
-#         """Return the file name of entry as defined by current selection.
-#         
-#         Return String
-#         """
-#         result = ''
-#         classification = self.getClassification()
-#         for className in self.model.getClassHandler().getClassNames():
-#             if className in classification.keys():
-#                 for element in self.model.getClassHandler().getElementsOfClassByName(className):
-#                     if (element in classification[className]):
-#                         result = (result + MediaClassHandler.TagSeparator + element)
-#         for element in self.entry.getUnknownElements():
-#             result = (result + MediaClassHandler.TagSeparator + element)
-#         return (result)
-
-

@@ -234,35 +234,61 @@ class Entry(PausableObservable):
                  number=None, makeUnique=False,
                  elements=None, removeIllegalElements=False):
         """Rename self's file, replacing the components as specified. 
-        
+       
+        If a parameter is None or not given in pathInfo, leave it unchanged. 
         If makeUnique is True, find another number to ensure a unique filename.
         
-        String year, month, day 
-        String name, scene 
-        String number 
-        Boolean makeUnique 
-        set of String elements 
-        Boolean removeIllegalElements
-        
+        Dictionary pathInfo may contain the following keys:
+            <organization-specific keys>
+                String year, month, day 
+                String name, scene 
+            Number number 
+            Boolean makeUnique 
+            Set of String elements 
+            Boolean removeIllegalElements
         Return Boolean indicating success
         """
+        if (str(year)
+            or unicode(year)):
+            print('Entry.renameTo(): Deprecated usage of String year!')
+            year = int(year)
+        if (str(month) 
+            or unicode(month)):
+            print('Entry.renameTo(): Deprecated usage of String month!')
+            month = int(month)
+        if (str(day) 
+            or unicode(day)):
+            print('Entry.renameTo(): Deprecated usage of String day!')
+            day = int(day)
+        if (str(scene) 
+            or unicode(scene)):
+            print('Entry.renameTo(): Deprecated usage of String scene!')
+            scene = int(scene)
+        if (str(number) 
+            or unicode(number)):
+            print('Entry.renameTo(): Deprecated usage of String number!')
+            number = int(number)
+        if (removeIllegalElements):
+            elements = filter(self.model.getClassHandler().isLegalElement, elements)
+#         if (removeClasses):
+#             for clas in removeClasses
         kwargs = {'rootDir': self.model.rootDirectory,
                   'makeUnique': makeUnique,
                   'extension': self.getExtension(),
-                  'removeIllegalElements': removeIllegalElements,
-                  'elements': self.model.getClassHandler().elementsToString(elements)}
+                  'elements': self.model.getClassHandler().elementsToString(elements),
+                  'removeIllegalElements': removeIllegalElements}
         if (year): 
-            kwargs['year'] = int(year)  # TODO: switch parameters to numbers
+            kwargs['year'] = year
         if (month):
-            kwargs['month'] = int(month)
+            kwargs['month'] = month
         if (day):
-            kwargs['day'] = int(day)
+            kwargs['day'] = day
         if (name):
             kwargs['name'] = name
         if (scene):
-            kwargs['scene'] = int(scene)
+            kwargs['scene'] = scene
         if (number): 
-            kwargs['number'] = int(number)
+            kwargs['number'] = number
         newPath = self.organizer.constructPathForSelf(**kwargs) 
         return(self.renameToFilename(newPath))
 

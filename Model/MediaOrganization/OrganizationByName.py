@@ -357,7 +357,8 @@ class OrganizationByName(MediaOrganization):
         
         String newScene contains the number of the new scene 
         """
-        logging.debug('OrganizationByName.relabelToScene(): Moving entries from scene %s to scene %s (from "%s")' % (self.getScene(), newScene), self.context.getPath())
+        logging.debug('OrganizationByName.relabelToScene(): Moving entries from scene %s to scene %s (from "%s")' 
+                      % (self.getScene(), newScene, self.context.getPath()))
         parentGroup = self.context.getParentGroup()
         for entry in parentGroup.getSubEntries():
             if (entry.organizer.getScene() == self.getScene()):

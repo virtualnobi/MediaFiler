@@ -104,14 +104,7 @@ class Group(Entry, Observer):
 
 
     def renameTo(self, **kwargs):
-        """Rename self according to the changes listed in kwargs
-        
-        Dictionary kwargs
-            <organization-specific identifiers>
-            Number number not allowed
-            Set of String elements
-            Boolean removeIllegalElements
-        Return Boolean indicating success
+        """Rename a Group of Entry-s. See Entry.renameTo()
         """
         result = True
         if (('number' in kwargs)

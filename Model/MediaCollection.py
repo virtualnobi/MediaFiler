@@ -65,6 +65,7 @@ class MediaCollection(Observable, Observer):
 
 
 # Constants
+    Logger = logging.getLogger(__name__)
     IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
 
 
@@ -76,13 +77,14 @@ class MediaCollection(Observable, Observer):
         
         String rootDir specifies the path to the image root directory.
         """
-        logging.debug('MediaCollection.init()')
+        self.__class__.Logger.debug('MediaCollection.init()')
         # inheritance
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection'])
         # internal state
         if (rootDir):
-            self.setRootDirectoryProfiled(rootDir)
-        logging.debug('MediaCollection.init() finished')
+#            self.setRootDirectoryProfiled(rootDir)
+            self.setRootDirectory(rootDir)
+        self.__class__.Logger.debug('MediaCollection.init() finished')
         return(None)
 
 
@@ -121,13 +123,13 @@ class MediaCollection(Observable, Observer):
         if (path):
             entry = self.getEntry(path=path)
             if (entry):
-                logging.info('MediaCollection.setRootDirectory(): selecting "%s" from last run' % entry.getPath())
+                self.__class__.Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run' % entry.getPath())
                 self.setSelectedEntry(entry)
             else:
-                logging.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
+                self.__class__.Logger.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
                 self.setSelectedEntry(self.root)
         else: 
-            logging.info('MediaCollection.setRootDirectory(): last viewed media not saved')
+            self.__class__.Logger.info('MediaCollection.setRootDirectory(): last viewed media not saved')
             self.setSelectedEntry(self.root)
 
 
@@ -154,7 +156,7 @@ class MediaCollection(Observable, Observer):
         
         If entry is the (hidden) root entry, the initial image will be selected, if it exists.
         """
-        logging.debug('MediaCollection.setSelectedEntry(%s)' % (entry.getPath() if entry else entry))
+        self.__class__.Logger.debug('MediaCollection.setSelectedEntry(%s)' % (entry.getPath() if entry else entry))
         self.selectedEntry = entry
         if (self.selectedEntry):
             self.setConfiguration(GlobalConfigurationOptions.LastMedia, entry.getPath())
@@ -412,7 +414,7 @@ class MediaCollection(Observable, Observer):
                 and entry.isFiltered()):
                 entry = entry.getParentGroup()
             if (entry == None):
-                logging.error('MediaCollection.filterEntries(): Root not found!')
+                self.__class__.Logger.error('MediaCollection.filterEntries(): Root not found!')
             self.setSelectedEntry(entry)
         self.changedAspect('stopFiltering')
         print('MediaCollection.filterEntries() finished')
@@ -640,7 +642,7 @@ class MediaCollection(Observable, Observer):
     def cacheCollectionProperties(self):
         """Calculate and cache properties of the entire collection, to avoid repeated iterations.
         """
-        logging.info('MediaCollection.cacheCollectionProperties()')
+        self.__class__.Logger.info('MediaCollection.cacheCollectionProperties()')
         self.cachedCollectionSize = 0
         self.cachedMinimumSize = 0
         self.cachedMaximumSize = 0
@@ -663,8 +665,8 @@ class MediaCollection(Observable, Observer):
                     if ((not self.cachedLatestDate)
                         or (self.cachedLatestDate < entryDate.getLatestDateTime())):
                         self.cachedLatestDate = entryDate.getLatestDateTime()
-        logging.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
+        self.__class__.Logger.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
                       % (self.cachedEarliestDate, self.cachedLatestDate))
-        logging.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 
+        self.__class__.Logger.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 
                       % (self.cachedMinimumSize, self.cachedMaximumSize))                
-        logging.info('MediaCollection.cacheCollectionProperties() finished')
+        self.__class__.Logger.info('MediaCollection.cacheCollectionProperties() finished')
