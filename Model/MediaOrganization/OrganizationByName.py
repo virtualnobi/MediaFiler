@@ -26,6 +26,7 @@ from Model.Group import Group
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaOrganization import MediaOrganization
+from test.test_pyclbr import ClassMethodType
 
 
 
@@ -65,6 +66,15 @@ class OrganizationByName(MediaOrganization):
 
 
 # Class Methods
+    @classmethod
+    def getDescription(cls):
+        """Return a description of the organization. 
+        """
+        return(_('organized by name, %d names used, %d free')
+               % (cls.nameHandler.getNumberUsedNames(),
+                  cls.nameHandler.getNumberFreeNames()))
+
+
     @classmethod
     def setModel(self, model):
         """Also load the legal names. 
@@ -181,21 +191,6 @@ class OrganizationByName(MediaOrganization):
                     raise ValueError, ('OrganizationByName.getGroupFromPath(): Cannnot find parent Group for "%s"' % path)
             group.setParentGroup(parent)
         return(group)
-#         parent = None
-#         if (os.path.join(name, '') in path):  # if name is a directory, path indicates a media group
-#             group = cls.ImageFilerModel.getEntry(group=True, name=name)
-#             if (not group):
-#                 group = Group.createFromName(cls.ImageFilerModel, name)
-#                 parent = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
-#                 if (parent == None):
-#                     logging.error('OrganizationByName.getGroupFromPath(): Cannot find parent Group for "%s"' % name)
-#                     raise KeyError, ('OrganizationByName.getGroupFromPath(): Cannot find parent Group for "%s"' % name)
-#                 group.setParentGroup(parent)
-#         else:
-#             group = cls.ImageFilerModel.getEntry(group=True, name=name[0:1])
-#         if (not group):
-#             raise ValueError
-#         return(group)
 
 
     @classmethod

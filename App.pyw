@@ -227,8 +227,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
 
 
     def createStatusBar (self):
-        self.statusbar = self.CreateStatusBar(3, wx.ST_SIZEGRIP)
-        self.statusbar.SetStatusWidths([-2, -3, -1])
+        self.statusbar = self.CreateStatusBar(2, wx.ST_SIZEGRIP)
+        self.statusbar.SetStatusWidths([-3, -4])
 
 
     def createMenuBar (self):
@@ -696,7 +696,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Set the model from its root DIRECTORY. Update status and load initial image.
         """
         wx.BeginBusyCursor()
-        self.statusbar.SetStatusText(directory, GUIId.SB_Root)
+        self.statusbar.SetStatusText(directory, GUIId.SB_Organization)
         self.displayInfoMessage(_('Loading...'))
         logging.debug('App.setModel(): loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
@@ -716,18 +716,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.presentationPane.setModel(self.model)
         logging.debug('MediaFiler: Setting up tree pane')
         self.imageTree.setModel(self.model)
-        if (self.model.organizedByDate):
-            self.statusbar.SetStatusText (_('Organized by date'), GUIId.SB_Organization)
-            text = _('%s (%d media)') % (directory, 
-                                         self.model.getCollectionSize())
-        else:
-            self.statusbar.SetStatusText(_('Organized by name'), GUIId.SB_Organization)
-            text = (_('%s (%d media, %d names used, %d names free)') 
-                    % (directory,
-                       self.model.getCollectionSize(), 
-                       self.model.organizationStrategy.nameHandler.getNumberUsedNames(), 
-                       self.model.organizationStrategy.nameHandler.getNumberFreeNames()))
-        self.statusbar.SetStatusText(text, GUIId.SB_Root)           
+        self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
         self.statusbar.Show()
         lastPerspective = self.model.getConfiguration(GlobalConfigurationOptions.LastPerspective)
         if (lastPerspective):

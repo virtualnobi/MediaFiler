@@ -92,6 +92,13 @@ class OrganizationByDate(MediaOrganization):
 # Variables
 # Class Methods
     @classmethod
+    def getDescription(cls):
+        """Return a description of the organization. 
+        """
+        return(_('organized by date'))
+
+
+    @classmethod
     def constructPathForOrganization(self, **kwargs):
         """
         Dictionary kwargs
@@ -169,30 +176,6 @@ class OrganizationByDate(MediaOrganization):
                 raise KeyError, ('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
             group = Group(cls.ImageFilerModel, path)
             group.setParentGroup(parentGroup)
-#             (year, month, day, pathRest) = cls.deriveDateFromPath(StringIO.StringIO(), path)  # @UnusedVariable
-#             if (day <> None):
-#                 day = None
-#                 month = int(month)
-#                 year = int(year)
-#             elif (month <> None):
-#                 month = None
-#                 year = int(year)
-#             elif (year <> None):
-#                 year = None
-#             else: 
-#                 logging.error('OrganizationByDate.getGroupFromPath(): No valid date recognized in "%s"' % path)
-#                 raise KeyError, ('OrganizationByDate.getGroupFromPath(): No valid date recognized in "%s"' % path)
-#             parentPath = cls.constructPath(rootDir=cls.ImageFilerModel.getRootDirectory(),
-#                                            day=day,
-#                                            month=month,
-#                                            year=year)
-#             parentGroup = cls.getGroupFromPath(parentPath)
-#             if (not parentGroup):
-#                 logging.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % parentPath)
-#                 raise KeyError, ('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % parentPath)
-#             group = Group(cls.ImageFilerModel, path)
-#             group.setParentGroup(parentGroup)
-#             return(group)
         return(group)
 
 

@@ -35,6 +35,7 @@ import copy
 import os.path
 import re
 import logging
+import gettext
 import cProfile, pstats, StringIO
 # Contributed 
 # nobi
@@ -46,15 +47,30 @@ from Model import Installer
 from Model.MediaClassHandler import MediaClassHandler 
 from Model.MediaFilter import MediaFilter
 from Model.Entry import Entry
-
-#from Model.MediaOrganization import MediaOrganization
 from Model.MediaOrganization.OrganizationByDate import OrganizationByDate
 from Model.MediaOrganization.OrganizationByName import OrganizationByName
-# from Model.Organization import OrganizationByDate
-# from Model.Organization import OrganizationByName
-
-from UI import GUIId
 from Model.CachingController import CachingController
+from UI import GUIId
+
+
+
+# Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
+import UI  # to access UI.PackagePath
+try:
+    LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
+    Translation = gettext.translation('MediaFiler', LocalesPath)
+except BaseException as e:  # likely an IOError because no translation file found
+    try:
+        language = os.environ['LANGUAGE']
+    except:
+        print('%s: No LANGUAGE environment variable found!' % (__file__))
+    else:
+        print('%s: No translation found at "%s"; using originals instead of locale %s. Complete error:' % (__file__, LocalesPath, language))
+        print(e)
+    def _(message): return message
+else:
+    _ = Translation.ugettext
+def N_(message): return message
 
 
 
@@ -352,6 +368,18 @@ class MediaCollection(Observable, Observer):
             return(unicode(self.configuration.get(GUIId.AppTitle, option)))
         else: 
             return(None)
+
+
+    def getDescription(self):
+        """Return a description of the model, including organization, number of images, etc.
+        
+        Return String
+        """
+        result = ('%s: %d %s, %s' % (self.rootDirectory,
+                                     self.getCollectionSize(),
+                                     _('media'), 
+                                     self.organizationStrategy.getDescription()))
+        return(result)
 
 
 

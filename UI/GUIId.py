@@ -53,9 +53,8 @@ MaxNumberMoveToLocations = 10  # max number of remembered last move-to locations
 
 # Status Bar components
 SB_Info = 0  # informational messages
-SB_Root = 1  # root directory
-SB_Organization = 2  # organization of images: by date or by name
-SB_Filter = 3  # number if filters active
+SB_Organization = 1  # organization of images: by date or by name
+# TODO: SB_Filter = 3  # number if filters active
 
 
 
