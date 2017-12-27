@@ -314,7 +314,7 @@ class MediaOrganization(object):
         if (not 'number' in kwargs):
             kwargs['number'] = self.getNumber()
         if (not 'elements' in kwargs):
-            kwargs['elements'] = self.context.getElementString()
+            kwargs['elements'] = self.context.getElements()
         if (not 'extension' in kwargs):
             kwargs['extension'] = self.context.getExtension()
         return(self.constructPath(**kwargs))

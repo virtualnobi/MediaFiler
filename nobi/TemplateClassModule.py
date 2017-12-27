@@ -44,7 +44,7 @@ class ClassName(object):
     
 
 # Constants
-#     Logger = logging.getLogger(__name__)
+    Logger = logging.getLogger(__name__)
 
 
 # Class Variables

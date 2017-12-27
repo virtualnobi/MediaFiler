@@ -156,6 +156,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         Boolean expand indicates that the selected node shall be expanded.
         """
         logging.debug('MediaTreeCtrl.setEntry(%s)' % entry.getPath())
+#         self.Freeze()
         if (entry == self.model.getRootEntry()):
             entry = self.model.getInitialEntry()
         if (entry.getTreeItemID()):
@@ -166,6 +167,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
                 self.Expand(entry.getTreeItemID())                
         else:
             logging.error('MediaTreeCtrl.setEntry(): no tree item ID for "%s"' % entry.getPath())
+#         self.Thaw()
+
 
 
 # Getters

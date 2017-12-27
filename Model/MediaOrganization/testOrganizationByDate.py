@@ -70,8 +70,6 @@ class TestOrganizationByDate(unittest.TestCase):
         """
         log = StringIO.StringIO()
         (year, month, day, rest) = OrganizationByDate.deriveDateFromPath(log, path)
-        if ((year, month, day, rest) <> OrganizationByDate.deriveDateFromPath2(log, path)):
-            print('Derived dates differ for "%s"' % path)
         self.assertEqual((year, month, day), 
                          (targetYear, targetMonth, targetDay),
                          ('Failure at "%s": %s-%s-%s with rest "%s"' % (path, year, month, day, rest)))

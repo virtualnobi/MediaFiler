@@ -35,6 +35,7 @@ class Group(Entry, Observer):
 
 
 # Constants
+    Logger = logging.getLogger(__name__)
     PreviewImageFilename = 'Group.jpg'
 
 
@@ -101,6 +102,14 @@ class Group(Entry, Observer):
         self.subEntriesSorted.insert(entry)
         entry.addObserverForAspect(self, 'name')
         self.changedAspect('children')
+
+
+    def remove(self):  # TODO: remove subentries individually for correct MediaCollection size
+        # TODO: inform MediaOrganization as well, to release names
+        """
+        """
+        super(Group, self).remove()
+
 
 
     def renameTo(self, **kwargs):
@@ -461,7 +470,7 @@ class Group(Entry, Observer):
 # Internal - to change without notice
     def getGroupedMedia(self):
         """Return the number of media grouped in self.
-        
+
         Return Number
         """
         result = 0

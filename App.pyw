@@ -539,7 +539,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
                 logDialog.Maximize(True)  # logDialog.SetSize(wx.Size(1000,600))
                 logDialog.ShowModal()
                 logDialog.Destroy()
-                self.displayInfoMessage(_('%d media imported from %s') % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
+                self.displayInfoMessage(_('%d media imported from "%s"') % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
             wx.EndBusyCursor()
         dialog.Destroy()  # destroy after getting the user input
     
@@ -676,6 +676,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
             self.imageTree.DeleteAllItems() 
             self.imageTree.addSubTree(self.model.getRootEntry(), None)
             self.displayInfoMessage('Ok')
+        elif (aspect == 'size'):
+            self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
+            self.statusbar.Show()
         else:
             print 'Unhandled change of aspect %s in observable %s' % (aspect, observable)
 #            pass
@@ -703,6 +706,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.model = MediaCollection(directory)
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
+        self.model.addObserverForAspect(self, 'size')
         self.updateMenuAccordingToModel(self.model)
         logging.debug('MediaFiler: Setting up name pane')
         self.namePane.setModel(self.model)
@@ -769,7 +773,9 @@ if __name__ == "__main__":
         logging.debug('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
 #        logging.getLogger('Model.CachingController').addHandler(logging.StreamHandler())
 #        logging.getLogger('Model.Single').addHandler(logging.StreamHandler())
-        logging.getLogger('UI.MediaClassificationPane').addHandler(logging.StreamHandler())
+#        logging.getLogger('UI.MediaClassificationPane').addHandler(logging.StreamHandler())
+        logging.getLogger('Model.MediaOrganization.OrganizationByDate').addHandler(logging.StreamHandler())
+        logging.getLogger('Model.MediaCollection').addHandler(logging.StreamHandler())
         frame.Show()
         frame.setModel(Installer.getMediaPath())
         if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):

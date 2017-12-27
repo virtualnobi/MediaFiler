@@ -25,7 +25,9 @@ class MediaCanvas(wx.Panel, Observer):
 
 
 # Constants
+    Logger = logging.getLogger(__name__)
     ImagePadding = 1  # pixel distance between images on canvas in X and Y direction
+
 
 
 # Class Variables
@@ -68,7 +70,7 @@ class MediaCanvas(wx.Panel, Observer):
         self.setEntry(self.model.getSelectedEntry())
 
 
-    def setEntryProfiler(self, entry, forceUpdate=False):
+    def setEntryProfiled(self, entry, forceUpdate=False):
         profiler = cProfile.Profile()
         profiler.enable()
         self.setEntryProfiled(entry, forceUpdate)
@@ -88,12 +90,14 @@ class MediaCanvas(wx.Panel, Observer):
         
         Boolean forceUpdate redisplays even if the same entry is already selected (after filtering)
         """
-        logging.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
-        if (entry == self.model.root):
+        self.__class__.Logger.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
+        if (entry == self.model.root):  # TODO: remove
+            print('MediaCanvasPane.setEntry() should not get model.root as entry...')
             entry = self.model.initialEntry
         if (forceUpdate 
             or (self.entry <> entry)):
             wx.BeginBusyCursor()
+#            self.Freeze()
             column = 1  # count columns when placing images in grid
             (x, y) = (0, 0)  # position of image
             self.clear()  # unbind events and unregister observable
@@ -107,7 +111,7 @@ class MediaCanvas(wx.Panel, Observer):
             self.calculateGrid(len(displayedEntries))
             for entry in displayedEntries:
                 # place image on canvas
-                logging.debug('MediaCanvasPane.setEntry(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
+                self.__class__.Logger.debug('MediaCanvasPane.setEntry(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
                 bitmap = ImageBitmap(self, 
                                      -1, 
                                      entry, 
@@ -115,25 +119,21 @@ class MediaCanvas(wx.Panel, Observer):
                                      (y + (self.ImagePadding / 2)), 
                                      self.imageWidth, 
                                      self.imageHeight)
-                # TODO: get bitmap with flag fullsize/thumbnail
                 bitmap.Bind(wx.EVT_MOUSE_EVENTS, self.onClickImage)
                 bitmap.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)
                 # calculate next image position
-                if (column == self.cols):  # this image would be placed in column too far to right
+                if (column == self.cols): 
                     x = 0
                     y = (y + self.imageHeight + self.ImagePadding)
                     column = 1
-                else:  # this image placed in a legal column
+                else:  
                     x = (x + self.imageWidth + self.ImagePadding)
                     column = (column + 1)
-            #print 'ImageFilterCanvas:           images added'
+#            self.Thaw()
             self.Refresh()
             self.Update()
             wx.EndBusyCursor()
-        else:
-            #print('  Setting identical entry, ignored')
-            pass
-        logging.debug('MediaCanvas.setEntry() finished')
+        self.__class__.Logger.debug('MediaCanvas.setEntry() finished')
 
 
 # Event Handling

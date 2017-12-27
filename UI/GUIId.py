@@ -81,18 +81,22 @@ EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to M
 DeleteImage = generateWxIdForLabel(_('Delete Media "%s"'))
 DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
 
-RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
 RandomName = generateWxIdForLabel(_('Choose Random Name'))
 ChooseName = generateWxIdForLabel(_('Choose Name Manually...'))
 ConvertToGroup = generateWxIdForLabel(_('Convert to Group'))  # convert a Single into a Group
 ConvertToSingle = generateWxIdForLabel(_('Convert to Single'))  # convert a Single into a Group
+
+RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
 RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Tags'))
+
+ReorderByTime = generateWxIdForLabel(_('Reorder by Time Taken'))
+UndoReorder = generateWxIdForLabel(_('Undo Reordering'))
 
 FilterIdentical = generateWxIdForLabel(_('Filter Identical'))
 FilterSimilar = generateWxIdForLabel(_('Filter Similar'))
 
 StartExternalViewer = generateWxIdForLabel(_('View in External Program'))
-SendMail = generateWxIdForLabel(_('Send Email'))
+SendMail = generateWxIdForLabel(_('Send As Email'))
 # Functions specific to OrganizationByName
 SelectScene = generateWxIdForLabel(_('Move to scene...'))  # TODO: merge with SelectMoveTo
 for i in xrange(MaxNumberScenes - 1):  # reserve additional menu items for more scene numbers

@@ -221,11 +221,11 @@ class Entry(PausableObservable):
                                    Installer.getTrashPath(),  # self.TrashDirectory,
                                    (self.getFilename() + '-' + str(count) + '.' + self.getExtension()))
             count = (count + 1)
-        print ('Trashing "%s" (into "%s")' % (oldName, newName))
+        self.__class__.Logger.debug('Trashing "%s" (into "%s")' % (oldName, newName))
         try:
             os.rename(oldName, newName)
         except Exception as e: 
-            print('Trashing failed: %s' % e)
+            self.__class__.Logger.error('Trashing "%s" failed:\n%s' % (oldName, e))
 
 
     def renameTo(self, 

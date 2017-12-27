@@ -309,6 +309,6 @@ if __name__ == '__main__':
     assert list(sd) == ['Brown', 'Fox', 'jUmPeD', 'quick', 'QuIcK', 'The']
 
     import doctest
-    from operator import itemgetter
+#    from operator import itemgetter
     print(doctest.testmod())
 
