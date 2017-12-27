@@ -12,6 +12,7 @@ import os.path
 import StringIO
 import logging
 import gettext
+from operator import itemgetter
 ## Contributed 
 import exifread
 import wx
@@ -26,6 +27,7 @@ from Model.Group import Group
 #from ..MediaNameHandler import MediaNameHandler
 #from ..MediaClassHandler import MediaClassHandler
 from Model.MediaOrganization import MediaOrganization
+from nobi.SortedCollection import SortedCollection
 
 
 
@@ -59,6 +61,7 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Constants
+    Logger = logging.getLogger(__name__)
     # format strings for date output
     FormatYear = '%04d'
     FormatMonth = '%02d'
@@ -86,6 +89,13 @@ class OrganizationByDate(MediaOrganization):
     ReducedGermanDayPattern2 = re.compile(r'(%s)(\.)(%s)\2(%s)' % (DayString, MonthString, ReducedYearString2))
     # Simplified pattern without separators
     SimpleDayPattern = re.compile(r'(%s)(%s)(%s)' % (YearString, MonthString, DayString))
+    # Reordering
+    ReorderSelectTop = 0
+    ReorderSelectFollow = 1
+    ReorderSelectBottom = 2
+    ReorderLabelTop = _('at top')
+    ReorderLabelFollow = _('with predecessor')
+    ReorderLabelBottom = _('at bottom')
 
 
 
@@ -172,7 +182,7 @@ class OrganizationByDate(MediaOrganization):
             (head, _) = os.path.split(path)  # @UnusedVariable
             parentGroup = cls.getGroupFromPath(head)
             if (not parentGroup):
-                logging.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
+                cls.Logger.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
                 raise KeyError, ('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
             group = Group(cls.ImageFilerModel, path)
             group.setParentGroup(parentGroup)
@@ -281,19 +291,19 @@ class OrganizationByDate(MediaOrganization):
                 try:
                     exifTags = exifread.process_file(f)
                 except:
-                    logging.warning('OrganizationByDate.deriveDateFromFile(): cannot read EXIF data from "%s"!' % path)
+                    self.Logger.warning('OrganizationByDate.deriveDateFromFile(): cannot read EXIF data from "%s"!' % path)
                     return(None, None, None)
             if (('Model' in exifTags)
                 and (exifTags['Model'] == 'MS Scanner')):
-                logging.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Model=MS Scanner')
+                self.Logger.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Model=MS Scanner')
                 return(None, None, None)
             if (('Software' in exifTags)
                 and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
-                logging.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Software=Paint Shop Photo Album')
+                self.Logger.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Software=Paint Shop Photo Album')
                 return (None, None, None)
             for key in exifTags:
                 if ('Date' in key):
-                    logging.debug('OrganizationByDate.deriveDateFromFile(): Relevant EXIF tag "%s" in "%s"' % (key, path))
+                    self.Logger.debug('OrganizationByDate.deriveDateFromFile(): Relevant EXIF tag "%s" in "%s"' % (key, path))
                     value = exifTags[key]
                     match = self.DayPattern.search(str(value))
                     if (match):
@@ -303,10 +313,10 @@ class OrganizationByDate(MediaOrganization):
                         if (year == self.UnknownDateName):
                             month = None
                             day = None
-                        logging.debug('OrganizationByDate.deriveDateFromFile(): Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
+                        self.Logger.debug('OrganizationByDate.deriveDateFromFile(): Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
                         return(year, month, day)
                     else:
-                        logging.warning('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, value))
+                        self.Logger.warning('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, value))
         return(None, None, None)
 
 
@@ -325,7 +335,7 @@ class OrganizationByDate(MediaOrganization):
         year = None
         month = None
         day = None
-        logging.debug('OrganizationByDate.deriveDateFromPath(): Inspecting "%s"' % path)
+        cls.Logger.debug('OrganizationByDate.deriveDateFromPath(): Inspecting "%s"' % path)
         # search for date
         match = cls.DayPattern.search(path)
         usingReducedPattern = False
@@ -333,7 +343,7 @@ class OrganizationByDate(MediaOrganization):
             usingReducedPattern = True
             match = cls.ReducedDayPattern.search(path)
         if (match):
-            logging.debug('OrganizationByDate.deriveDateFromPath(): Day pattern matched')
+            cls.Logger.debug('OrganizationByDate.deriveDateFromPath(): Day pattern matched')
             if (match.group(2) == '.'):  # German date format DD.MM.YY(YY)
                 day = match.group(1)
                 month = match.group(3)
@@ -350,7 +360,7 @@ class OrganizationByDate(MediaOrganization):
         else:
             match = cls.SimpleDayPattern.search(path)
             if (match):
-                logging.debug('OrganizationByDate.deriveDateFromPath(): Simple day pattern matched')
+                cls.Logger.debug('OrganizationByDate.deriveDateFromPath(): Simple day pattern matched')
                 year = match.group(1)
                 month = match.group(2)
                 day = match.group(3)
@@ -364,7 +374,7 @@ class OrganizationByDate(MediaOrganization):
                     usingReducedPattern = True
                     match = cls.ReducedMonthPattern.search(path)
                 if (match):
-                    logging.debug('OrganizationByDate.deriveDateFromPath(): Month pattern matched')
+                    cls.Logger.debug('OrganizationByDate.deriveDateFromPath(): Month pattern matched')
                     year = match.group(1)
                     if (usingReducedPattern):  # fix two-digit year
                         assert (len(year) == 2), ('Reduced year "%s" too long in "%s"' % (year, path)) 
@@ -380,7 +390,7 @@ class OrganizationByDate(MediaOrganization):
     #                     usingReducedPattern = True
     #                     match = cls.ReducedYearPattern.search(path)
                     if (match):
-                        logging.debug('OrganizationByDate.deriveDateFromPath(): Year pattern matched')
+                        cls.Logger.debug('OrganizationByDate.deriveDateFromPath(): Year pattern matched')
                         year = match.group(1)
                         if (usingReducedPattern):
                             year = cls.expandReducedYear(year)
@@ -395,7 +405,7 @@ class OrganizationByDate(MediaOrganization):
                             year = cls.UnknownDateName
                             matched = ''
                             matchEnd = -1
-        logging.debug('OrganizationByDate.deriveDateFromPath(): Recognized (%s, %s, %s) in path "%s"\n' % (year, month, day, path)) 
+        cls.Logger.debug('OrganizationByDate.deriveDateFromPath(): Recognized (%s, %s, %s) in path "%s"\n' % (year, month, day, path)) 
         # skip to last occurrence of match
         rest = path
         while (0 <= matchEnd):  
@@ -408,90 +418,90 @@ class OrganizationByDate(MediaOrganization):
         return (year, month, day, rest)
 
 
-    @classmethod
-    def deriveDateFromPath2(cls, log, path):  # @UnusedVariable
-        """Determine the date of a file from its path. 
-        
-        StringIO log is used to report progress. 
-        String path contains the absolute filename.  
-        Return a triple (year, month, day, rest) where 
-            year, month, and day are either String or None 
-            String rest contains the rest of path not consumed by the match
-        """
-        year = None
-        month = None
-        day = None
-        usingReducedPattern = False
-        # search for date
-        match = cls.DayPattern.search(path)
-        if (match == None):
-            usingReducedPattern = True
-            match = cls.ReducedDayPattern.search(path)
-        if (match):
-            year = match.group(1)
-            month = match.group(3)
-            day = match.group(4)
-            if (usingReducedPattern):
-                if (len(year) <> 2):
-                    logging.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
-                    return(cls.UnknownDateName, None, None, path)
-                year = cls.expandReducedYear(year)
-            matched = path[match.start():match.end()]
-            matchIndex = match.start()
-        else:
-            usingReducedPattern = False
-            match = cls.GermanDayPattern2.search(path)
-            if (match == None):
-                usingReducedPattern = True
-                match = cls.ReducedGermanDayPattern2.search(path)
-            if (match): 
-                day = match.group(1)
-                month = match.group(3)
-                year = match.group(4)
-                if (usingReducedPattern):
-                    if (len(year) <> 2):
-                        logging.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
-                        return(cls.UnknownDateName, None, None, path)
-                    year = cls.expandReducedYear(year)
-                matched = path[match.start():match.end()]
-                matchIndex = match.start()
-            else:
-                usingReducedPattern = False
-                match = cls.MonthPattern.search(path)
-                if (match == None):
-                    usingReducedPattern = True
-                    match = cls.ReducedMonthPattern.search(path)
-                if (match):
-                    year = match.group(1)
-                    month = match.group(2)
-                    if (usingReducedPattern):
-                        if (len(year) <> 2):
-                            logging.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
-                            return(cls.UnknownDateName, None, None, path)
-                        year = cls.expandReducedYear(year)
-                    matched = path[match.start():match.end()]
-                    matchIndex = match.start()
-                else: 
-                    match = cls.YearPattern.search(path)
-                    if (match):
-                        year = match.group(1)
-                        matched = path[match.start():match.end()]
-                        matchIndex = match.start()
-                    else:
-                        (year, month, day) = cls.deriveDateWithMonthFromPath(log, path)
-                        if (year):
-                            matched = ''
-                            matchIndex = -1
-                        else:
-                            year = cls.UnknownDateName
-                            matched = ''
-                            matchIndex = -1
-        # skip to last occurrence of match
-        rest = path
-        while (matchIndex >= 0):  
-            rest = rest[(matchIndex + len(matched)):]
-            matchIndex = rest.find(matched)
-        return (year, month, day, rest)
+#     @classmethod
+#     def deriveDateFromPath2(cls, log, path):  # @UnusedVariable
+#         """Determine the date of a file from its path. 
+#         
+#         StringIO log is used to report progress. 
+#         String path contains the absolute filename.  
+#         Return a triple (year, month, day, rest) where 
+#             year, month, and day are either String or None 
+#             String rest contains the rest of path not consumed by the match
+#         """
+#         year = None
+#         month = None
+#         day = None
+#         usingReducedPattern = False
+#         # search for date
+#         match = cls.DayPattern.search(path)
+#         if (match == None):
+#             usingReducedPattern = True
+#             match = cls.ReducedDayPattern.search(path)
+#         if (match):
+#             year = match.group(1)
+#             month = match.group(3)
+#             day = match.group(4)
+#             if (usingReducedPattern):
+#                 if (len(year) <> 2):
+#                     cls.Logger.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
+#                     return(cls.UnknownDateName, None, None, path)
+#                 year = cls.expandReducedYear(year)
+#             matched = path[match.start():match.end()]
+#             matchIndex = match.start()
+#         else:
+#             usingReducedPattern = False
+#             match = cls.GermanDayPattern2.search(path)
+#             if (match == None):
+#                 usingReducedPattern = True
+#                 match = cls.ReducedGermanDayPattern2.search(path)
+#             if (match): 
+#                 day = match.group(1)
+#                 month = match.group(3)
+#                 year = match.group(4)
+#                 if (usingReducedPattern):
+#                     if (len(year) <> 2):
+#                         cls.Logger.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
+#                         return(cls.UnknownDateName, None, None, path)
+#                     year = cls.expandReducedYear(year)
+#                 matched = path[match.start():match.end()]
+#                 matchIndex = match.start()
+#             else:
+#                 usingReducedPattern = False
+#                 match = cls.MonthPattern.search(path)
+#                 if (match == None):
+#                     usingReducedPattern = True
+#                     match = cls.ReducedMonthPattern.search(path)
+#                 if (match):
+#                     year = match.group(1)
+#                     month = match.group(2)
+#                     if (usingReducedPattern):
+#                         if (len(year) <> 2):
+#                             cls.Logger.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
+#                             return(cls.UnknownDateName, None, None, path)
+#                         year = cls.expandReducedYear(year)
+#                     matched = path[match.start():match.end()]
+#                     matchIndex = match.start()
+#                 else: 
+#                     match = cls.YearPattern.search(path)
+#                     if (match):
+#                         year = match.group(1)
+#                         matched = path[match.start():match.end()]
+#                         matchIndex = match.start()
+#                     else:
+#                         (year, month, day) = cls.deriveDateWithMonthFromPath(log, path)
+#                         if (year):
+#                             matched = ''
+#                             matchIndex = -1
+#                         else:
+#                             year = cls.UnknownDateName
+#                             matched = ''
+#                             matchIndex = -1
+#         # skip to last occurrence of match
+#         rest = path
+#         while (matchIndex >= 0):  
+#             rest = rest[(matchIndex + len(matched)):]
+#             matchIndex = rest.find(matched)
+#         return (year, month, day, rest)
 
 
     @classmethod
@@ -582,6 +592,17 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Lifecycle
+    def __init__(self, anEntry, aPath):
+        """
+        """
+        # inheritance
+        super(OrganizationByDate, self).__init__(anEntry, aPath)
+        # internal state
+        self.timeTaken = None  # for Singles: capture time
+        self.undoList = None  # for Groups: undo last reordering
+
+
+
 # Setters
     def setIdentifiersFromPath(self, path):
         """Set year, month, day (if any) from path, and return remaining part of path.
@@ -604,6 +625,47 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Getters
+    def getTimeTaken(self):
+        """Return the time self was taken. 
+        
+        Works for single images with EXIF info only.
+        
+        Return datetime.time or None
+        """
+        if (not self.timeTaken):
+            if (self.context.getExtension() == 'jpg'): 
+                with open(self.context.getPath(), "rb") as f:
+                    try:
+                        exifTags = exifread.process_file(f)
+                    except:
+                        self.__class__.Logger.warning('OrganizationByDate.getTimeTaken(): cannot read EXIF data from "%s"!' % self.context.getPath())
+                        return(None)
+                if (('Model' in exifTags)
+                    and (exifTags['Model'] == 'MS Scanner')):
+                    self.__class__.Logger.debug('OrganizationByDate.getTimeTaken(): Ignoring EXIF data because Model=MS Scanner')
+                    return(None)
+                if (('Software' in exifTags)
+                    and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
+                    self.__class__.Logger.debug('OrganizationByDate.getTimeTaken(): Ignoring EXIF data because Software=Paint Shop Photo Album')
+                    return (None)
+                for key in exifTags:
+                    if ('DateTime' in key):
+                        self.__class__.Logger.debug('OrganizationByDate.getTimeTaken(): Relevant EXIF tag "%s" in "%s"' % (key, self.context.getPath()))
+                        value = str(exifTags[key])
+                        try:
+                            timestamp = datetime.datetime.strptime(value, '%Y:%m:%d %H:%M:%S')
+                        except ValueError:
+                            self.__class__.Logger.warning('OrganizationByDate.getTimeTaken(): EXIF tag "%s" contains illegal date %s' % (key, value))
+                        else:
+                            self.timeTaken = timestamp.time()
+                            self.__class__.Logger.debug('OrganizationByDate.getTimeTaken(): Recognized time %s in EXIF data of file "%s"\n' % (self.timeTaken, self.context.getPath())) 
+                            return(self.timeTaken)
+                self.__class__.Logger.info('OrganizationByDate.getTimeTaken(): No time found for "%s"' % self.context.getPath())
+            else:
+                self.__class__.Logger.info('OrganizationByDate.getTimeTaken(): No time available for "%s"' % self.context.getPath())
+        return(self.timeTaken)
+
+
     def constructPathForSelf(self, **kwargs):
         """
         """
@@ -647,8 +709,13 @@ class OrganizationByDate(MediaOrganization):
             moveToMenu.Append(moveToId, mtl)
             moveToId = (moveToId + 1)
         menu.PrependMenu(0, GUIId.FunctionNames[GUIId.SelectMoveTo], moveToMenu)
-        if (GUIId.SelectMoveTo == moveToId):  
+        if (GUIId.SelectMoveTo == moveToId):  # TODO: check length of menu
             menu.Enable(0, False)
+        if (self.context.isGroup()):
+            if (self.undoList):
+                menu.Append(GUIId.UndoReorder, GUIId.FunctionNames[GUIId.UndoReorder])
+            else:
+                menu.Append(GUIId.ReorderByTime, GUIId.FunctionNames[GUIId.ReorderByTime])
         return(menu)
 
 
@@ -663,13 +730,17 @@ class OrganizationByDate(MediaOrganization):
 #             mtl = self.__class__.MoveToLocations[mtlText]
 #             print('Moving "%s" to %s' % (self.getPath(), mtl))
 #             self.context.renameTo(makeUnique=True, **mtl)
+        elif (menuId == GUIId.ReorderByTime):
+            return(self.onReorderByTime(parentWindow))
+        elif (menuId == GUIId.UndoReorder):
+            return(self.onUndoReorder(parentWindow))
         else:
-            super(OrganizationByDate, self).runContextMenuItem(self, menuId, parentWindow)
+            return(super(OrganizationByDate, self).runContextMenuItem(self, menuId, parentWindow))
 
 
     def getDateTaken(self):
         if (self.dateTaken == None):
-            logging.error('OrganizationByDate.getDateTaken(): No date found for "%s"' % self.context.getPath())
+            self.__class__.Logger.error('OrganizationByDate.getDateTaken(): No date found for "%s"' % self.context.getPath())
         return(self.dateTaken)
 
 
@@ -679,7 +750,7 @@ class OrganizationByDate(MediaOrganization):
              and (int(self.year) <> self.dateTaken.getYear()))
             or ((self.year == None)
                 and self.dateTaken.getYear())):
-            print('OrganizationByDate.getYear(): explicit and PartialDateTime year do not match')
+            self.__class__.Logger.error('OrganizationByDate.getYear(): explicit and PartialDateTime year do not match')
         if (self.year == None):
             return(None)
         else:
@@ -701,7 +772,7 @@ class OrganizationByDate(MediaOrganization):
             or ((self.month == None)
                 and (self.dateTaken <> None)
                 and self.dateTaken.getMonth())):
-            print('OrganizationByDate.getMonth(): explicit and PartialDateTime month do not match')
+            self.__class__.Logger.error('OrganizationByDate.getMonth(): explicit and PartialDateTime month do not match')
         if (self.month == None):
             return(None)
         else:
@@ -723,7 +794,7 @@ class OrganizationByDate(MediaOrganization):
             or ((self.day == None)
                 and (self.dateTaken <> None)
                 and self.dateTaken.getDay())):
-            print('OrganizationByDate.getDay(): explicit and PartialDateTime day do not match')
+            self.__class__.Logger.error('OrganizationByDate.getDay(): explicit and PartialDateTime day do not match')
         if (self.day == None):
             return(None)
         else:
@@ -763,7 +834,7 @@ class OrganizationByDate(MediaOrganization):
             try:
                 result['year'] = int(year)
             except:
-                logging.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret year string "%s" as int' % year)
+                self.__class__.Logger.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret year string "%s" as int' % year)
                 return(None)
         month = aMediaNamePane.monthInput.GetValue()
         if (month == ''):
@@ -772,7 +843,7 @@ class OrganizationByDate(MediaOrganization):
             try:
                 result['month'] = int(month)
             except:
-                logging.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret month string "%s" as int' % month)
+                self.__class__.Logger.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret month string "%s" as int' % month)
                 return(None)
         day = aMediaNamePane.dayInput.GetValue()
         if (day == ''):
@@ -781,11 +852,132 @@ class OrganizationByDate(MediaOrganization):
             try:
                 result['day'] = int(day)
             except: 
-                logging.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret day string "%s" as int' % day)
+                self.__class__.Logger.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret day string "%s" as int' % day)
                 return(None)
         return(result)
 
 
 
 # Event Handlers
+    def onReorderByTime(self, parentWindow):
+        """
+        """
+        dlg = wx.Dialog(parentWindow, wx.ID_ANY, _('Reorder by Time Taken'))
+        dlgSizer = wx.BoxSizer(orient=wx.VERTICAL)
+        rb = wx.RadioBox(dlg, 
+                         label=_('Media without time placed'), 
+                         choices=[self.__class__.ReorderLabelTop,
+                                  self.__class__.ReorderLabelFollow,
+                                  self.__class__.ReorderLabelBottom],
+                         majorDimension=1, 
+                         style=(wx.RA_SPECIFY_COLS))
+        rb.SetSelection(self.__class__.ReorderSelectFollow)
+        dlgSizer.Add(rb)
+        line = wx.StaticLine(dlg,
+                             size=(20,-1), 
+                             style=wx.LI_HORIZONTAL)
+        dlgSizer.Add(line, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP, 5)
+        btnSizer = wx.StdDialogButtonSizer()        
+        btn = wx.Button(dlg, wx.ID_OK)
+        btn.SetDefault()
+        btnSizer.AddButton(btn)
+        btn = wx.Button(dlg, wx.ID_CANCEL)
+        btnSizer.AddButton(btn)
+        btnSizer.Realize()
+        dlgSizer.Add(btnSizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        dlg.SetSizerAndFit(dlgSizer)
+        if (dlg.ShowModal()):
+            self.reorderByTime(rb.GetSelection())
+        dlg.Destroy()
+
+
+    def onUndoReorder(self, parentWindow):
+        """
+        """
+        result = None
+        dlg = wx.MessageDialog(parentWindow, 
+                               _('Undo the last reorder by time command?'),
+                               _('Undo Reordering?'),
+                               (wx.YES_NO | wx.ICON_INFORMATION))
+        if (dlg.ShowModal() == wx.ID_YES):
+            if (self.context.model.renameList(self.undoList)):
+                result = _('Reordering undone')
+            else:
+                result = _('Undoing reordering failed!')
+            self.undoList = None            
+        dlg.Destroy()
+        return(result)
+
+
+
 # Internal - to change without notice
+    def reorderByTime(self, handleUntimedPolicy):
+        """Reorder subentries of self's context by time taken, earlierst first.
+        
+        Media without a time taken (i.e., videos and images without EXIF info) are sorted according to handleUntimedPolicy:
+        0: they appear at top, in current relative order
+        1: they move with their predecessor
+        2: they appear at bottom, in current relative order
+        
+        Media without a time taken are moved to the following microseconds. 
+        If these are used by other media, the resulting sort order may be incorrect. 
+        0: The first microseconds of the day 
+        1: As many microsecond(s) after the last time taken as there are media without time taken
+        2: The last second of the day 
+        
+        Number handleUntimedPolicy
+        """
+        sortedEntries = SortedCollection(key=itemgetter(1))
+        nextTimeForUntimedMedia = datetime.time(hour=0, minute=0, second=0, microsecond=1)
+        untimedMediaAtBottom = []
+        for entry in [e for e in self.context.getSubEntries(False) if (not e.isGroup())]:
+            sortTime = entry.organizer.getTimeTaken()
+            if (sortTime):
+                if (handleUntimedPolicy == self.__class__.ReorderSelectFollow):
+                    nextTimeForUntimedMedia = datetime.time(hour=sortTime.hour,
+                                                            minute=sortTime.minute,
+                                                            second=sortTime.second,
+                                                            microsecond=1)
+            else:
+                if (handleUntimedPolicy == self.__class__.ReorderSelectTop):
+                    sortTime = nextTimeForUntimedMedia
+                    nextTimeForUntimedMedia = datetime.time(hour=nextTimeForUntimedMedia.hour,
+                                                            minute=nextTimeForUntimedMedia.minute,
+                                                            second=nextTimeForUntimedMedia.second,
+                                                            microsecond=(nextTimeForUntimedMedia.microsecond + 1))
+                    self.__class__.Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (sortTime, entry.getPath()))
+                elif (handleUntimedPolicy == self.__class__.ReorderSelectFollow):                    
+                    sortTime = nextTimeForUntimedMedia
+                    nextTimeForUntimedMedia = datetime.time(hour=nextTimeForUntimedMedia.hour,
+                                                            minute=nextTimeForUntimedMedia.minute,
+                                                            second=nextTimeForUntimedMedia.second,
+                                                            microsecond=(nextTimeForUntimedMedia.microsecond + 1))
+                    self.__class__.Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (sortTime, entry.getPath()))
+                elif (handleUntimedPolicy == self.__class__.ReorderSelectBottom):
+                    untimedMediaAtBottom.append(entry)
+                else:
+                    raise ValueError, ('Illegal policy %d to handle media without timestamp!' % handleUntimedPolicy)
+            if (sortTime):
+                sortedEntries.insert((entry, sortTime))
+        for entry in untimedMediaAtBottom:
+            sortTime = datetime.time(23, 
+                                     59,  
+                                     59, 
+                                     (100000 - len(untimedMediaAtBottom) + untimedMediaAtBottom.index(entry)))
+            sortedEntries.insert((entry, sortTime))
+        newIndex = 1
+        doList = []
+        self.undoList = []
+        for (entry, time) in sortedEntries:
+            newPath = entry.organizer.constructPathForSelf(number=newIndex)
+            newIndex = (newIndex + 1)
+            if (entry.getPath() <> newPath):
+                self.__class__.Logger.debug('OrganizationByDate.reorderByTime(): At %s, reordering\n   %s\n  >%s' % (time, entry.getPath(), newPath))
+                doList.append((entry, entry.getPath(), newPath))
+                self.undoList.append((entry, newPath, entry.getPath()))
+        if (self.context.model.renameList(doList)):
+            return(_('%s media reordered') % len(doList))
+        else:
+            return(_('Reordering failed!'))
+
+

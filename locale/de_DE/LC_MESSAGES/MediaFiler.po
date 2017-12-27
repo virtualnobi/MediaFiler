@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2017-10-01 13:01+Mitteleuropäische Sommerzeit\n"
-"PO-Revision-Date: 2017-10-01 13:14+0200\n"
+"POT-Creation-Date: 2017-12-27 12:38+Mitteleuropäische Zeit\n"
+"PO-Revision-Date: 2017-12-27 12:45+0100\n"
 "Last-Translator: nobi <virtualnobi@gmx.de>\n"
 "Language-Team: nobisoft <virtualnobi@gmx.de>\n"
 "Language: de_DE\n"
@@ -21,107 +21,107 @@ msgstr ""
 "X-Poedit-SearchPath-0: MediaFiler.pot\n"
 "X-Poedit-SearchPath-1: .\n"
 
-#: AppDebug.py:67
+#: ..\App.pyw:69
 msgid "Filter"
 msgstr "Filter"
 
-#: AppDebug.py:68
+#: ..\App.pyw:70
 msgid "Media"
 msgstr "Medien"
 
-#: AppDebug.py:69 UI\PresentationControlPane.py:55
+#: ..\App.pyw:71 ..\UI\PresentationControlPane.py:55
 msgid "Name"
 msgstr "Name"
 
-#: AppDebug.py:70
+#: ..\App.pyw:72
 msgid "Classification"
 msgstr "Klassifikation"
 
-#: AppDebug.py:71
+#: ..\App.pyw:73
 msgid "Log"
 msgstr "Protokoll"
 
-#: AppDebug.py:73
+#: ..\App.pyw:75
 msgid "Classify"
 msgstr "Klassifizieren"
 
-#: AppDebug.py:75
+#: ..\App.pyw:77
 msgid "Search"
 msgstr "Suchen"
 
-#: AppDebug.py:77
+#: ..\App.pyw:79
 msgid "Present"
 msgstr "Präsentieren"
 
-#: AppDebug.py:79
+#: ..\App.pyw:81
 msgid "All Views"
 msgstr "Alle Ansichten"
 
-#: AppDebug.py:80
+#: ..\App.pyw:82
 msgid "Last Used"
 msgstr "Zuletzt benutzt"
 
-#: AppDebug.py:81
+#: ..\App.pyw:83
 msgid "&Program"
 msgstr "&Programm"
 
-#: AppDebug.py:82
+#: ..\App.pyw:84
 msgid "&Media"
 msgstr "&Medien"
 
-#: AppDebug.py:83
+#: ..\App.pyw:85
 msgid "&View"
 msgstr "&Ansicht"
 
-#: AppDebug.py:84
+#: ..\App.pyw:86
 msgid "Perspectiv&e"
 msgstr "Perspektiv&e"
 
-#: AppDebug.py:85
+#: ..\App.pyw:87
 msgid "&Import"
 msgstr "&Importieren"
 
-#: AppDebug.py:86
+#: ..\App.pyw:88
 msgid "&Tool"
 msgstr "&Werkzeug"
 
-#: AppDebug.py:358
+#: ..\App.pyw:360
 msgid "Select New Image Directory:"
 msgstr "Neues Medienverzeichnis auswählen:"
 
-#: AppDebug.py:375
+#: ..\App.pyw:377
 msgid "Select Directory to Export into:"
 msgstr "Exportverzeichnis auswählen:"
 
-#: AppDebug.py:388
+#: ..\App.pyw:390
 msgid "%d media exported to \"%s\""
 msgstr "%d Medien nach \"%s\" exportiert"
 
-#: AppDebug.py:396
+#: ..\App.pyw:398
 msgid "Closing..."
 msgstr "Aufräumen..."
 
-#: AppDebug.py:509
+#: ..\App.pyw:511
 msgid "Testing import from %s"
 msgstr "Import von \"%s\" wird getestet"
 
-#: AppDebug.py:512
+#: ..\App.pyw:514
 msgid "Importing from %s"
 msgstr "Importieren aus \"%s\""
 
-#: AppDebug.py:525
+#: ..\App.pyw:527
 msgid "Empty Directory"
 msgstr "Leeres Verzeichnis"
 
-#: AppDebug.py:525
+#: ..\App.pyw:527
 msgid "No files to import!"
 msgstr "Keine Medien gefunden!"
 
-#: AppDebug.py:532 AppDebug.py:534
+#: ..\App.pyw:534 ..\App.pyw:536
 msgid "Import Report"
 msgstr "Importprotokoll"
 
-#: AppDebug.py:534
+#: ..\App.pyw:536
 msgid ""
 "Import log too large to display.\n"
 "\n"
@@ -131,353 +131,422 @@ msgstr ""
 "\n"
 "Der Import was erfolgreich."
 
-#: AppDebug.py:541
+#: ..\App.pyw:542
 msgid "%d media imported from %s"
 msgstr "%s Medien von \"%s\" importiert"
 
-#: AppDebug.py:586 AppDebug.py:613
+#: ..\App.pyw:587 ..\App.pyw:614
 msgid "The external program failed with return code %s."
 msgstr "Das Programm wurde mit Fehlercode %s abgebrochen."
 
-#: AppDebug.py:587 AppDebug.py:614
+#: ..\App.pyw:588 ..\App.pyw:615
 msgid "Warning"
 msgstr "Warnung"
 
-#: AppDebug.py:594 AppDebug.py:620
+#: ..\App.pyw:595 ..\App.pyw:621
 msgid "No editor defined with \"%s\" configuration option!"
 msgstr "Kein externes Programm mit der Konfigurationsoption \"%s\" angegeben!"
 
-#: AppDebug.py:699
+#: ..\App.pyw:703
 msgid "Loading..."
 msgstr "Laden..."
 
-#: AppDebug.py:719
-msgid "Organized by date"
-msgstr "Nach Datum organisiert"
-
-#: AppDebug.py:720
-msgid "%s (%d media)"
-msgstr "%s (%d Medien)"
-
-#: AppDebug.py:723
-msgid "Organized by name"
-msgstr "Nach Namen organisiert"
-
-#: AppDebug.py:724
-msgid "%s (%d media, %d names used, %d names free)"
-msgstr "%s (%d Medien, %d Namen benutzt, %d Namen frei)"
-
-#: AppDebug.py:734
+#: ..\App.pyw:728
 msgid "Ready"
 msgstr "Fertig"
 
-#: Model\Image.py:58
+#: ..\Model\Image.py:58
 msgid "Image"
 msgstr "Bild"
 
-#: Model\Installer.py:229
+#: ..\Model\Installer.py:228
 msgid ""
 "The current working directory for this program is not a valid media "
 "directory. Choose a media directory:"
 msgstr ""
 "Das Verzeichnis, in dem dieses Program gestartet wurde, enthält nicht die "
-"richtigen (Medien-)Daten. Wählen Sie ein Verzeichnis, in dem die "
-"Mediendaten gespeichert werden sollen:"
+"richtigen (Medien-)Daten. Wählen Sie ein Verzeichnis, in dem die Mediendaten "
+"gespeichert werden sollen:"
 
-#: Model\Installer.py:237
+#: ..\Model\Installer.py:236
 msgid "Creation of required folders and files failed."
 msgstr ""
 "Die notwendigen Verzeichnisse und Dateien konnten nicht angelegt werden."
 
-#: Model\Installer.py:237
+#: ..\Model\Installer.py:236
 msgid "Error"
 msgstr "Fehler"
 
-#: Model\Movie.py:62
+#: ..\Model\MediaCollection.py:389
+msgid "media"
+msgstr "Medien"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:96
+msgid "at top"
+msgstr "am Anfang"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:97
+msgid "with predecessor"
+msgstr "mit dem Vorgänger"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:98
+msgid "at bottom"
+msgstr "am Ende"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:108
+msgid "organized by date"
+msgstr "nach Datum organisiert"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:865 ..\UI\GUIId.py:92
+msgid "Reorder by Time Taken"
+msgstr "Nach Aufnahmezeit sortieren"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:868
+msgid "Media without time placed"
+msgstr "Medien ohne Aufnahmezeit sortieren"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:899
+msgid "Undo the last reorder by time command?"
+msgstr "Letzte Sortierung nach Aufnahmedatum rückgängig machen?"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:900
+msgid "Undo Reordering?"
+msgstr "Sortierung rückgängig machen?"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:904
+msgid "Reordering undone"
+msgstr "Sortierung rückgängig gemacht"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:906
+msgid "Undoing reordering failed!"
+msgstr "Sortierung konnte nicht rückgängig gemacht werden!"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:979
+msgid "%s media reordered"
+msgstr "%d Medien sortiert"
+
+#: ..\Model\MediaOrganization\OrganizationByDate.py:981
+msgid "Reordering failed!"
+msgstr "Sortieren fehlgeschlagen!"
+
+#: ..\Model\MediaOrganization\OrganizationByName.py:73
+msgid "organized by name, %d names used, %d free"
+msgstr "organisiert nach Namen, %d Namen frei, %d benutzt"
+
+#: ..\Model\MediaOrganization\OrganizationByName.py:554
+msgid "Choose Name"
+msgstr "Name"
+
+#: ..\Model\MediaOrganization\OrganizationByName.py:554
+msgid "Enter New Name"
+msgstr "Neuen Namen eingeben"
+
+#: ..\Model\Movie.py:62
 msgid "Movie"
 msgstr "Film"
 
-#: Model\Movie.py:176
+#: ..\Model\Movie.py:170
 msgid "%d secs"
 msgstr "%d Sek"
 
-#: Model\Movie.py:178
+#: ..\Model\Movie.py:173
+msgid "%d mins, "
+msgstr "%s Min,"
+
+#: ..\Model\Movie.py:177
 msgid "unknown duration"
 msgstr "unbekannte Dauer"
 
-#: UI\GUIId.py:41
+#: ..\UI\GUIId.py:41
 msgid "%d duplicate media deleted"
 msgstr "%d doppelte Medien gelöscht"
 
-#: UI\GUIId.py:42
+#: ..\UI\GUIId.py:42
 msgid "%d media"
 msgstr "%d Medien"
 
-#: UI\GUIId.py:81
+#: ..\UI\GUIId.py:74
 msgid "Change Media Directory"
 msgstr "Medienverzeichnis ändern"
 
-#: UI\GUIId.py:82
+#: ..\UI\GUIId.py:75
 msgid "Reload Media"
 msgstr "Medien erneut laden"
 
-#: UI\GUIId.py:83
+#: ..\UI\GUIId.py:76
 msgid "Export (Filtered) Media"
 msgstr "(Gefilterte) Medien exportieren"
 
-#: UI\GUIId.py:84
+#: ..\UI\GUIId.py:77
 msgid "Exit"
 msgstr "Beenden"
 
-#: UI\GUIId.py:88
+#: ..\UI\GUIId.py:81
 msgid "Delete Media \"%s\""
 msgstr "Medium \"%s\" löschen"
 
-#: UI\GUIId.py:89
+#: ..\UI\GUIId.py:82
 msgid "Delete Doubles"
 msgstr "Doppelte löschen"
 
-#: UI\GUIId.py:91
-msgid "Remove Import Indicator"
-msgstr "Importindikator löschen"
-
-#: UI\GUIId.py:92
+#: ..\UI\GUIId.py:84
 msgid "Choose Random Name"
 msgstr "Zufälliger Name"
 
-#: UI\GUIId.py:93
+#: ..\UI\GUIId.py:85
 msgid "Choose Name Manually..."
 msgstr "Namen auswählen..."
 
-#: UI\GUIId.py:96
+#: ..\UI\GUIId.py:86
 msgid "Convert to Group"
-msgstr "In Gruppe umwandeln "
+msgstr "In Gruppe umwandeln"
 
-#: UI\GUIId.py:97
+#: ..\UI\GUIId.py:87
+msgid "Convert to Single"
+msgstr "In Single umwandeln"
+
+#: ..\UI\GUIId.py:89
+msgid "Remove Import Indicator"
+msgstr "Importindikator löschen"
+
+#: ..\UI\GUIId.py:90
 msgid "Remove Illegal Tags"
 msgstr "Unbekannte Schlagworte löschen"
 
-#: UI\GUIId.py:99
+#: ..\UI\GUIId.py:93
+msgid "Undo Reordering"
+msgstr "Sortierung rückgängig machen"
+
+#: ..\UI\GUIId.py:95
 msgid "Filter Identical"
 msgstr "Gleiche Filtern"
 
-#: UI\GUIId.py:100
+#: ..\UI\GUIId.py:96
 msgid "Filter Similar"
 msgstr "Ähnliche Filtern"
 
-#: UI\GUIId.py:102
+#: ..\UI\GUIId.py:98
 msgid "View in External Program"
 msgstr "Im externen Programm anzeigen"
 
-#: UI\GUIId.py:103
-msgid "Send Email"
-msgstr "Als Email verschicken"
+#: ..\UI\GUIId.py:99
+msgid "Send As Email"
+msgstr "Als email verschicken"
 
-#: UI\GUIId.py:105
+#: ..\UI\GUIId.py:101
 msgid "Move to scene..."
 msgstr "Verschieben zu Szene..."
 
-#: UI\GUIId.py:108
+#: ..\UI\GUIId.py:104
 msgid "Rename scene to..."
 msgstr "Szene umbenennen..."
 
-#: UI\GUIId.py:110
+#: ..\UI\GUIId.py:106
 msgid "Move to..."
 msgstr "Verschieben zu..."
 
-#: UI\GUIId.py:116
+#: ..\UI\GUIId.py:112
 msgid "Toggle Filter Pane"
 msgstr "Filter zeigen/verbergen"
 
-#: UI\GUIId.py:117
+#: ..\UI\GUIId.py:113
 msgid "Toggle Filter"
 msgstr "Filter an/aus"
 
-#: UI\GUIId.py:118
+#: ..\UI\GUIId.py:114
 msgid "Apply Filter"
 msgstr "Filter anwenden"
 
-#: UI\GUIId.py:119
+#: ..\UI\GUIId.py:115
 msgid "Clear Filter"
 msgstr "Filter löschen"
 
-#: UI\GUIId.py:120
+#: ..\UI\GUIId.py:116
 msgid "Toggle Tree Pane"
 msgstr "Dateibaum zeigen/verbergen"
 
-#: UI\GUIId.py:121
+#: ..\UI\GUIId.py:117
 msgid "Toggle Classification Pane"
 msgstr "Klassifizierung zeigen/verbergen"
 
-#: UI\GUIId.py:122
+#: ..\UI\GUIId.py:118
 msgid "Toggle Log Pane"
 msgstr "Protokoll zeigen/verbergen"
 
-#: UI\GUIId.py:123
+#: ..\UI\GUIId.py:119
 msgid "Previous Media"
 msgstr "Voriges Medium"
 
-#: UI\GUIId.py:124
+#: ..\UI\GUIId.py:120
 msgid "Next Media"
 msgstr "Nächstes Medium"
 
-#: UI\GUIId.py:125
+#: ..\UI\GUIId.py:121
 msgid "Stop Slideshow"
 msgstr "Präsentation anhalten"
 
-#: UI\GUIId.py:126
+#: ..\UI\GUIId.py:122
 msgid "Resume Slideshow"
 msgstr "Präsentation zeigen"
 
-#: UI\GUIId.py:127
+#: ..\UI\GUIId.py:123
 msgid "Present Quickly"
 msgstr "Schnell wechseln"
 
-#: UI\GUIId.py:128
+#: ..\UI\GUIId.py:124
 msgid "Present Slowly"
 msgstr "Langsam wechseln"
 
-#: UI\GUIId.py:139 UI\Importing.py:268
+#: ..\UI\GUIId.py:135 ..\UI\Importing.py:268
 msgid "Test Import"
 msgstr "Import testen"
 
-#: UI\GUIId.py:140 UI\Importing.py:269
+#: ..\UI\GUIId.py:136 ..\UI\Importing.py:269
 msgid "Import"
 msgstr "Importieren"
 
-#: UI\GUIId.py:143
+#: ..\UI\GUIId.py:139
 msgid "Generate Link Directory"
 msgstr "Linkverzeichnis erzeugen"
 
-#: UI\GUIId.py:144
+#: ..\UI\GUIId.py:140
 msgid "Generate Thumbnail Directory"
 msgstr "Minibilderverzeichnis erzeugen"
 
-#: UI\GUIId.py:145
+#: ..\UI\GUIId.py:141
 msgid "Rename Tag"
 msgstr "Schlagwort umbenennen"
 
-#: UI\GUIId.py:146
+#: ..\UI\GUIId.py:142
 msgid "Edit Tag Classes"
 msgstr "Schlagwortklassen bearbeiten"
 
-#: UI\GUIId.py:147
+#: ..\UI\GUIId.py:143
 msgid "Edit Names"
 msgstr "Namen bearbeiten"
 
-#: UI\GUIId.py:148
+#: ..\UI\GUIId.py:144
 msgid "Harvest from URL..."
 msgstr "Bilder von URL importieren..."
 
-#: UI\GUIId.py:151
+#: ..\UI\GUIId.py:147
 msgid "Browse"
 msgstr "Auswählen"
 
-#: UI\GUIId.py:154
+#: ..\UI\GUIId.py:150
 msgid "Rename"
 msgstr "Umbennen"
 
-#: UI\GUIId.py:155
+#: ..\UI\GUIId.py:151
 msgid "Reuse Last"
 msgstr "Zuletzt benutzt"
 
-#: UI\Importing.py:270
+#: ..\UI\Importing.py:270
 msgid "Directory"
 msgstr "Verzeichnis"
 
-#: UI\Importing.py:271
+#: ..\UI\Importing.py:271
 msgid "Test Only"
 msgstr "Nur testen"
 
-#: UI\Importing.py:272
+#: ..\UI\Importing.py:272
 msgid "Delete Originals"
 msgstr "Originale löschen"
 
-#: UI\Importing.py:273
+#: ..\UI\Importing.py:273
 msgid "Maximum Number of Files to Import"
 msgstr "Nicht mehr Medien importieren als"
 
-#: UI\Importing.py:274
+#: ..\UI\Importing.py:274
 msgid "Ignore Files of Unknown Type"
 msgstr "Dateien unbekannten Typs ignorieren"
 
-#: UI\Importing.py:275
+#: ..\UI\Importing.py:275
 msgid "Minimum File Size"
 msgstr "Mindestgröße zu importierender Medien"
 
-#: UI\Importing.py:276
+#: ..\UI\Importing.py:276
 msgid "Mark Imported Files as \"%s\""
 msgstr "Importierte Medien mit \"%s\" markieren"
 
-#: UI\Importing.py:277
+#: ..\UI\Importing.py:277
 msgid "Report Illegal Elements"
 msgstr "Unbekannte Schlagworte aufführen"
 
-#: UI\Importing.py:278
+#: ..\UI\Importing.py:278
 msgid "Prefer Date in Pathname over EXIF Date"
 msgstr "Aufnahmedatum im Dateipfad bevorzugen (ggn. EXIF)"
 
-#: UI\Importing.py:473
+#: ..\UI\Importing.py:473
 msgid "Choose a directory to test import:"
 msgstr "Verzeichnis zum Import-Test auswählen:"
 
-#: UI\Importing.py:475
+#: ..\UI\Importing.py:475
 msgid "Choose a directory to import from:"
 msgstr "Verzeichnis zum Import auswählen:"
 
-#: UI\MediaClassificationPane.py:53
+#: ..\UI\MediaClassificationPane.py:52
 msgid "(n/a)"
 msgstr "(n/a)"
 
-#: UI\MediaClassificationPane.py:55
+#: ..\UI\MediaClassificationPane.py:54
 msgid "(none)"
 msgstr "(keine)"
 
-#: UI\MediaFilterPane.py:62 UI\MediaFilterPane.py:63
+#: ..\UI\MediaFilterPane.py:62 ..\UI\MediaFilterPane.py:63
 msgid "single"
 msgstr "einzeln"
 
-#: UI\MediaFilterPane.py:64
+#: ..\UI\MediaFilterPane.py:64
 msgid "group"
 msgstr "Gruppe"
 
-#: UI\MediaFilterPane.py:66
+#: ..\UI\MediaFilterPane.py:66
 msgid "unknown"
 msgstr "unbekannt"
 
-#: UI\MediaFilterPane.py:69
+#: ..\UI\MediaFilterPane.py:69
 msgid "any"
 msgstr "alle"
 
-#: UI\MediaFilterPane.py:71
+#: ..\UI\MediaFilterPane.py:71
 msgid "ignore"
 msgstr "egal"
 
-#: UI\MediaFilterPane.py:73
+#: ..\UI\MediaFilterPane.py:73
 msgid "require"
 msgstr "erforderlich"
 
-#: UI\MediaFilterPane.py:75
+#: ..\UI\MediaFilterPane.py:75
 msgid "exclude"
 msgstr "ausgeschlossen"
 
-#: UI\MediaFilterPane.py:79
+#: ..\UI\MediaFilterPane.py:79
 msgid "Size:"
 msgstr "Größe:"
 
-#: UI\MediaFilterPane.py:80
+#: ..\UI\MediaFilterPane.py:80
 msgid "Date Range:"
 msgstr "Datumsbereich:"
 
-#: UI\MediaFilterPane.py:81
+#: ..\UI\MediaFilterPane.py:81
 msgid "Media Type:"
 msgstr "Medientyp:"
 
-#~ msgid "Choose Name"
-#~ msgstr "Name"
+#~ msgid "Organized by date"
+#~ msgstr "Nach Datum organisiert"
 
-#~ msgid "Enter New Name"
-#~ msgstr "Neuen Namen eingeben"
+#~ msgid "%s (%d media)"
+#~ msgstr "%s (%d Medien)"
+
+#~ msgid "Organized by name"
+#~ msgstr "Nach Namen organisiert"
+
+#~ msgid "%s (%d media, %d names used, %d names free)"
+#~ msgstr "%s (%d Medien, %d Namen benutzt, %d Namen frei)"
+
+#~ msgid "Send Email"
+#~ msgstr "Als Email verschicken"
 
 #~ msgid "%d duplicate entries deleted"
 #~ msgstr "%d doppelte Medien gelöscht"
