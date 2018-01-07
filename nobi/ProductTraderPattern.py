@@ -48,14 +48,23 @@ class SimpleProductTrader(object):
 
 
 # Getters
+    def isKnown(self, specString):
+        """Return True is specString is a known specification, i.e., getClassFor() would return a valid class.
+        
+        String specString
+        Return Boolean
+        """
+        return(specString in self.productRegistry)
+
+
     def getClassFor(self, specString):
         """Return the class to which specString is mapped.
         
         BaseException when specString was not registered.
         
-        Returns a Class
+        Returns Class
         """
-        if (specString in self.productRegistry):
+        if (self.isKnown(specString)):
             return(self.productRegistry[specString])
         else:
             raise(BaseException('Specification "%s" not found in registry of SimpleProductTrader' % specString))

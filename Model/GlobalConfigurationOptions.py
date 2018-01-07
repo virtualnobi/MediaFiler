@@ -32,6 +32,7 @@ ImportMinimumSize = 'import-minimum-size'
 ImportMaximumFiles = 'import-maximum-files'
 ImportDeleteOriginals = 'import-delete-originals'
 ImportMarkAsNew = 'import-mark-as-new'
+ImportKeepUnknownTags = 'import-keep-unknown-tags'
 ImportReportIllegals = 'import-report-illegals'
 ImportPreferExif = 'import-prefer-exif'
 

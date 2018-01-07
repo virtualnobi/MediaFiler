@@ -119,8 +119,7 @@ class OrganizationByName(MediaOrganization):
         """
         pathInfo = copy.copy(targetPathInfo)
         if ('elements' in pathInfo):
-            print('OrganizationByName.constructPathFromImport(): targetPathInfo may not contain "elements"!')
-            del pathInfo['elements']
+            raise ('OrganizationByName.constructPathFromImport(): targetPathInfo may not contain "elements"!')
         singleton = True
         if (level == 0):  # not embedded, is a single
             # determine name of image
@@ -153,12 +152,18 @@ class OrganizationByName(MediaOrganization):
         (dummy, extension) = os.path.splitext(sourcePath)  # @UnusedVariable
         pathInfo['extension'] = extension[1:].lower() 
         # determine elements
-        tagString = self.ImageFilerModel.deriveElements(importParameters,  # TODO: turn this into a Set instead of a String
-                                                        sourcePath[:-len(extension)], 
-                                                        baseLength, 
-                                                        False, 
-                                                        illegalElements)
-        tagSet = self.ImageFilerModel.getClassHandler().stringToElements(tagString)
+        tagSet = self.ImageFilerModel.deriveTags(importParameters,
+                                                 sourcePath,
+                                                 baseLength,
+                                                 illegalElements)
+        if (pathInfo['name'] in tagSet):
+            tagSet.remove(pathInfo['name'])
+#         tagString = self.ImageFilerModel.deriveElements(importParameters,  # TODO: turn this into a Set instead of a String
+#                                                         sourcePath[:-len(extension)], 
+#                                                         baseLength, 
+#                                                         False, 
+#                                                         illegalElements)
+#         tagSet = self.ImageFilerModel.getClassHandler().stringToElements(tagString)
         # add new indicator as needed
         if (singleton):
             if (importParameters.getMarkAsNew()):
@@ -223,8 +228,7 @@ class OrganizationByName(MediaOrganization):
          
         StringIO log collects all messages.
         String path contains the name of the file/directory to create a new name for.
-        
-        Return a String containing the legal name, or None if no names are free anymore. 
+        Return String containing the legal name, or None if no names are free anymore. 
         """
         if (path.find(self.ImageFilerModel.getRootDirectory()) <> 0):
             print('OrganizationByName.deriveName(): Outside of root directory: "%s"' % path)

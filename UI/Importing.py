@@ -10,6 +10,7 @@ Classes to support the importing of media.
 import gettext
 import os.path
 import StringIO
+import logging
 ## Contributed
 import wx
 ## nobi
@@ -18,7 +19,8 @@ from Model import GlobalConfigurationOptions
 from Model.MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from Model.MediaOrganization import OrganizationByName
+from Model.MediaOrganization.OrganizationByName import OrganizationByName
+from Model.MediaOrganization.OrganizationByDate import OrganizationByDate
 
 
 
@@ -50,27 +52,8 @@ class ImportParameterObject(object):
 
 
 # Constants
-#     ConfigurationOptionImportPath = 'import-path'
-#     ConfigurationOptionImportIgnoreUnhandled = 'import-ignore-unhandled'
-#     ConfigurationOptionImportMinimumSize = 'import-minimum-size'
-#     ConfigurationOptionImportMaximumFiles = 'import-maximum-files'
-#     ConfigurationOptionImportDeleteOriginals = 'import-delete-originals'
-#     ConfigurationOptionImportMarkAsNew = 'import-mark-as-new'
-#     ConfigurationOptionImportReportIllegals = 'import-report-illegals'
-#     ConfigurationOptionImportPreferExif = 'import-prefer-exif'
-
-
-
 # Class Variables
 # Class Methods
-    @classmethod
-    def classMethod(clas):
-        """
-        """
-        pass
-
-
-
 # Lifecycle
     def __init__(self, model):
         """
@@ -112,6 +95,11 @@ class ImportParameterObject(object):
             self.maxFilesToImport = 1000
         else:
             self.maxFilesToImport = int(stringValue)
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportKeepUnknownTags)
+        if (stringValue == None):
+            self.keepUnknownTags = (self.model.organizationStrategy == OrganizationByDate)
+        else:
+            self.keepUnknownTags = (stringValue == 'True')                    
         stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportReportIllegals)
         if (stringValue == None):
             self.reportIllegalElements = False
@@ -164,6 +152,10 @@ class ImportParameterObject(object):
 
     def setPreferPathDateOverExifDate(self, value):
         self.preferPathDateOverExifDate = value
+
+
+    def setKeepUnknownTags(self, value):
+        self.keepUnknownTags = value
 
 
     def logString(self, strng):
@@ -225,6 +217,10 @@ class ImportParameterObject(object):
         return(self.numberOfImportedFiles <= self.maxFilesToImport)
 
 
+    def getKeepUnknownTags(self):
+        return(self.keepUnknownTags)
+
+
 # Other API functions
     def storeSettings(self):
         """User has accepted the settings to import media. Store them for next use.
@@ -241,6 +237,8 @@ class ImportParameterObject(object):
                                     self.markAsNew)
         self.model.setConfiguration(GlobalConfigurationOptions.ImportMaximumFiles,
                                     self.maxFilesToImport)
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportKeepUnknownTags,
+                                    self.keepUnknownTags)        
         self.model.setConfiguration(GlobalConfigurationOptions.ImportReportIllegals,
                                     self.reportIllegalElements)
         # parameters for OrganizationByDate
@@ -265,6 +263,8 @@ class ImportDialog(wx.Dialog):
     
 
 # Constants
+    Logger = logging.getLogger(__name__)
+    # dialog texts
     TitleTestRun = _('Test Import')
     TitleImport = _('Import')
     FieldLabelImportDirectory = _('Directory')
@@ -274,6 +274,7 @@ class ImportDialog(wx.Dialog):
     FieldLabelIgnoreUnknowns = _('Ignore Files of Unknown Type')
     FieldLabelMinimumSize = _('Minimum File Size')
     FieldLabelMarkAsNew = (_('Mark Imported Files as "%s"') % MediaClassHandler.ElementNew)
+    FieldLabelKeepUnknown = _('Keep Unknown Tags')
     FieldLabelReportIllegal = _('Report Illegal Elements')
     FieldLabelPreferPathDate = _('Prefer Date in Pathname over EXIF Date')
 
@@ -281,14 +282,6 @@ class ImportDialog(wx.Dialog):
 
 # Class Variables
 # Class Methods
-#     @classmethod
-#     def classMethod(clas):
-#         """
-#         """
-#         pass
-
-
-
 # Lifecycle
     def __init__(self, parent, model, parameters,
                  size=wx.DefaultSize, 
@@ -304,7 +297,7 @@ class ImportDialog(wx.Dialog):
             title = self.TitleImport
         # inheritance
         super(ImportDialog, self).__init__(parent, id=-1, title=title, size=size, pos=pos, style=style)
-        s = wx.GridBagSizer(8, 8)
+        s = wx.GridBagSizer(9, 8)
         # row 1 - import directory
         vBox = wx.BoxSizer()
         self.importDirectoryField = wx.TextCtrl(self, size=(200,0))
@@ -390,32 +383,44 @@ class ImportDialog(wx.Dialog):
               (6, 1),
               (1, 1),
               (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
-        # row 8 - reportIllegalElements
-        s.Add(wx.StaticText(self, -1, self.FieldLabelReportIllegal),
+        # row 8 - keepUnknownTags
+        s.Add(wx.StaticText(self, -1, self.FieldLabelKeepUnknown),
               (7, 0),
+              (1, 1),
+              (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)) 
+        checkbox = wx.CheckBox(self)
+        checkbox.SetValue(self.parameters.getKeepUnknownTags())
+        self.Bind(wx.EVT_CHECKBOX, self.onKeepUnknown, checkbox)
+        s.Add(checkbox, 
+              (7, 1),
+              (1, 1),
+              (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
+        # row 9 - reportIllegalElements
+        s.Add(wx.StaticText(self, -1, self.FieldLabelReportIllegal),
+              (8, 0),
               (1, 1),
               (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)) 
         checkbox = wx.CheckBox(self)
         checkbox.SetValue(self.parameters.getReportIllegalElements())
         self.Bind(wx.EVT_CHECKBOX, self.onReportIllegal, checkbox)
         s.Add(checkbox, 
-              (7, 1),
+              (8, 1),
               (1, 1),
               (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
-        # row 9 - preferPathDateOverExifDate
+        # row 10 - preferPathDateOverExifDate
         if (model.organizedByDate):
             s.Add(wx.StaticText(self, -1, self.FieldLabelPreferPathDate),
-                  (8, 0),
+                  (9, 0),
                   (1, 1),
                   (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)) 
             checkbox = wx.CheckBox(self)
             checkbox.SetValue(self.parameters.getPreferPathDateOverExifDate())
             self.Bind(wx.EVT_CHECKBOX, self.onPreferPathDate, checkbox)
             s.Add(checkbox, 
-                  (8, 1),
+                  (9, 1),
                   (1, 1),
                   (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
-        # row 10 - buttons
+        # row 11 - buttons
         btnsizer = wx.StdDialogButtonSizer()
         btn = wx.Button(self, wx.ID_OK)
         btn.SetDefault()
@@ -424,7 +429,7 @@ class ImportDialog(wx.Dialog):
         btnsizer.AddButton(btn)
         btnsizer.Realize() 
         s.Add(btnsizer, 
-              (9, 0),
+              (10, 0),
               (1,2), 
               (wx.ALIGN_RIGHT|wx.ALL))
         # events
@@ -437,13 +442,6 @@ class ImportDialog(wx.Dialog):
 
 
 # Setters
-#     def setAttribute(self, value):
-#         """
-#         """
-#         pass
-    
-    
-
 # Getters
     def getParameterObject(self):
         return(self.parameters)
@@ -452,23 +450,18 @@ class ImportDialog(wx.Dialog):
 
 # Event Handlers
     def onResize(self, event):  # @UnusedVariable
-        """
-        """
         #event.GetEventObject().GetSizer().Layout()
-        print('Not Resizing')
+        self.__class__.Logger.warning('ImportDialog.onResize(): Resize event ignored')
 
 
     def onDirectoryChanged(self, event):  # @UnusedVariable
-        """
-        """
         self.parameters.setImportDirectory(self.importDirectoryField.GetValue())
+        self._class__.Logger.debug('ImportDialog.onDirectoryChanged(): importDirectory set to %s' % self.parameters.getImportDirectory())
 
 
     def onBrowse(self, event):  # @UnusedVariable
         """User wants to browse for a new import directory
         """
-        #print('ImportDialog.onBrowse() here')
-        # set up a few texts
         if (self.parameters.getTestRun()):
             dialogTitle = _("Choose a directory to test import:")
         else:
@@ -482,41 +475,31 @@ class ImportDialog(wx.Dialog):
 
 
     def onDeleteOriginal(self, event):
-        """
-        """
         self.parameters.setDeleteOriginals(event.GetEventObject().GetValue())
-        print('DeleteOriginals=%s' % self.parameters.getDeleteOriginals())
+        self._class__.Logger.debug('ImportDialog.onDeleteOriginal(): deleteOriginals set to %s' % self.parameters.getDeleteOriginals())
 
 
     def onMaxNumber(self, event):
-        """
-        """
         try:
             maxFiles = int(event.GetEventObject().GetValue())
         except:
             pass
         else:
             self.parameters.setMaxFilesToImport(maxFiles)
-            print('MaxFilesToImport=%s' % self.parameters.getMaxFilesToImport())
+            self._class__.Logger.debug('ImportDialog.onMaxNumber(): maxFilesToImport set to %s' % self.parameters.getMaxFilesToImport())
 
 
     def onIgnoreUnknowns(self, event):
-        """
-        """
         self.parameters.setIgnoreUnhandledTypes(event.GetEventObject().GetValue())
-        print('IgnoreUnknown=%s' % self.parameters.getIgnoreUnhandledTypes())
+        self._class__.Logger.debug('ImportDialog.onIgnoreUnknowns(): ignoreUnknowns set to %s' % self.parameters.getIgnoreUnhandledTypes())
 
 
     def onMarkAsNew(self, event):
-        """
-        """
         self.parameters.setMarkAsNew(event.GetEventObject().GetValue())
-        print('MarksAsNew=%s' % self.parameters.getMarkAsNew())
+        self._class__.Logger.debug('ImportDialog.onMarksAsNew(): markAsNew set to %s' % self.parameters.getMarkAsNew())
 
     
     def onMinimumSize(self, event):
-        """
-        """
         string = event.GetEventObject().GetValue()
         try: 
             size = int(string)
@@ -524,21 +507,28 @@ class ImportDialog(wx.Dialog):
             event.GetEventObject().SetValue(self.parameters.getMinimumFileSizeAsString())
         else:
             self.parameters.setMinimumFileSize(size)
-            print('MinimumFileSize=%s' % self.parameters.getMinimumFileSize())
+            self._class__.Logger.debug('ImportDialog.onMinimumSize set to %s' % self.parameters.getMinimumFileSize())
+
+
+    def onKeepUnknown(self, event):
+        """
+        """
+        self.parameters.setKeepUnknownTags(event.GetEventObject().GetValue())
+        self.__class__.Logger.debug('ImportDialog.onKeepUnknown(): keepUnknownTags set to %s' % self.parameters.getKeepUnknownTags())
 
 
     def onReportIllegal(self, event):
         """
         """
         self.parameters.setReportIllegalElements(event.GetEventObject().GetValue())
-        print('ReportIllegalElements=%s' % self.parameters.getReportIllegalElements())
+        self._class__.Logger.debug('ImportDialog.onReportIllegal(): reportIllegals set to %s' % self.parameters.getReportIllegalElements())
 
 
     def onPreferPathDate(self, event):
         """
         """
         self.parameters.setPreferPathDateOverExifDate(event.GetEventObject().GetValue())
-        print('PreferPathDate=%s' % self.parameters.getPreferPathDateOverExifDate())
+        self._class__.Logger.debug('ImportDialog.onPreferPathDate(): preferPathDate set to %s' % self.parameters.getPreferPathDateOverExifDate())
 
 
 

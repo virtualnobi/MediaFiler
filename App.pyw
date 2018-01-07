@@ -774,6 +774,7 @@ if __name__ == "__main__":
 #        logging.getLogger('UI.MediaClassificationPane').addHandler(logging.StreamHandler())
         logging.getLogger('Model.MediaOrganization.OrganizationByDate').addHandler(logging.StreamHandler())
         logging.getLogger('Model.MediaCollection').addHandler(logging.StreamHandler())
+        logging.getLogger('UI.Importing').addHandler(logging.StreamHandler())
         frame.Show()
         frame.setModel(Installer.getMediaPath())
         if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):

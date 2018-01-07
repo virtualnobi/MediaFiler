@@ -149,12 +149,16 @@ class OrganizationByDate(MediaOrganization):
         (dummy, extension) = os.path.splitext(sourcePath)
         extension = extension.lower() 
         # determine elements
-        tagString = self.ImageFilerModel.deriveElements(importParameters,  # TODO: make this return a set instead of string
-                                                          sourcePath[:-len(extension)], 
-                                                          baseLength, 
-                                                          True, 
-                                                          illegalElements)
-        tagSet = self.ImageFilerModel.getClassHandler().stringToElements(tagString)
+        tagSet = self.ImageFilerModel.deriveTags(importParameters, 
+                                                 sourcePath, 
+                                                 baseLength,
+                                                 illegalElements)
+#         tagString = self.ImageFilerModel.deriveElements(importParameters,  # TODO: make this return a set instead of string
+#                                                           sourcePath[:-len(extension)], 
+#                                                           baseLength, 
+#                                                           True, 
+#                                                           illegalElements)
+#         tagSet = self.ImageFilerModel.getClassHandler().stringToElements(tagString)
         if (importParameters.getMarkAsNew()):
             tagSet.add(MediaClassHandler.ElementNew)
         # ensure uniqueness via number
@@ -165,7 +169,6 @@ class OrganizationByDate(MediaOrganization):
                                      elements=tagSet,
                                      extension=extension[1:],
                                      makeUnique=True)
-        # rename
         return(newPath)
 
 

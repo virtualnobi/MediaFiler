@@ -32,6 +32,7 @@ from UI import GUIId
 
 # Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
 import UI  # to access UI.PackagePath
+from logging import root
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)
@@ -661,7 +662,7 @@ class MediaCollection(Observable, Observer):
         return(oldPath)
 
 
-    def deriveElements(self, parameters, oldPath, baseLength, keepIllegals, illegalElements):
+    def deriveElements(self, parameters, oldPath, baseLength, keepIllegals, illegalElements):  # TODO: obsolete
         """Create a string containing all elements of oldPath, legal ones first in class sequence, illegal ones second.
          
         Importing.ImportParameterObject parameters
@@ -696,7 +697,41 @@ class MediaCollection(Observable, Observer):
         return(self.classHandler.elementsToString(elements))
 
 
-    def getWordsInPathName(self, path):
+    def deriveTags(self, parameters, oldPath, baseLength, illegalTags):
+        """Create a set containing all tags of oldPath, including ones required by tag definition.
+         
+        Importing.ImportParameterObject parameters
+        String oldPath is the absolute path of the file (needed to include into illegalElements)
+        Integer baseLength is the length of the prefix of oldPath which shall not be considered.
+        Dictionary illegalTags associates unknown tag Strings with path names of files where they occur
+        Returns Set containing tags
+        """
+        # reduce to relevant part of pathname
+        fixedPath = self.fixPathWhileImporting(parameters, oldPath[baseLength:])
+        # find possible tags
+        elements = set()
+        RegexIllegalTags = re.compile('^\d+$|CAM|IMG|HPIM|DSC', re.IGNORECASE)
+        words = re.split(r'[\W_/\\]+', fixedPath, flags=re.UNICODE)
+        for word in words: 
+            if ((word == '')
+                or RegexIllegalTags.match(word)
+                or Entry.isLegalExtension(word)):
+                pass
+            elif self.classHandler.isLegalElement(word):  # keep legal elements
+                elements.add(self.classHandler.normalizeTag(word))
+            else:  # handle illegal elements
+                if (parameters.getKeepUnknownTags()):
+                    elements.add(word)
+                if (word in illegalTags):  # illegal element occurred before
+                    illegalTags[word].append(oldPath) # add to list of occurrences
+                else:  # first occurrence of illegal element
+                    illegalTags[word] = [oldPath]  # create list of occurrences
+        # add required tags
+        elements = self.classHandler.includeRequiredElements(elements)
+        return(elements)
+
+
+    def getWordsInPathName(self, path):  # TODO: obsolete
         """Return all words in String path.
         """
         # TODO: align with MediaFiler.Organization.isIgnoredNamePart()
