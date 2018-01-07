@@ -19,15 +19,15 @@ import wx
 ## nobi
 from nobi.wx.Menu import Menu
 from nobi.PartialDateTime import PartialDateTime
+from nobi.SortedCollection import SortedCollection
 ## Project
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from Model.Entry import Entry
+#from Model.Entry import Entry
 from Model.Group import Group
 #from ..MediaNameHandler import MediaNameHandler
-#from ..MediaClassHandler import MediaClassHandler
+from ..MediaClassHandler import MediaClassHandler
 from Model.MediaOrganization import MediaOrganization
-from nobi.SortedCollection import SortedCollection
 
 
 
@@ -65,9 +65,9 @@ class OrganizationByDate(MediaOrganization):
     # format strings for date output
     FormatYear = '%04d'
     FormatMonth = '%02d'
-    FormatYearMonth = (FormatYear + MediaOrganization.NameSeparator + FormatMonth)
+    FormatYearMonth = (FormatYear + MediaOrganization.IdentifierSeparator + FormatMonth)
     FormatDay = '%02d'
-    FormatYearMonthDay = (FormatYearMonth + MediaOrganization.NameSeparator + FormatDay)
+    FormatYearMonthDay = (FormatYearMonth + MediaOrganization.IdentifierSeparator + FormatDay)
     UnknownDateName = (FormatYear % 0)
     # RE patterns to recognize dates
     YearString = r'(?:(?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d))'  # 4-digit year
@@ -149,22 +149,22 @@ class OrganizationByDate(MediaOrganization):
         (dummy, extension) = os.path.splitext(sourcePath)
         extension = extension.lower() 
         # determine elements
-        newElements = self.ImageFilerModel.deriveElements(importParameters, 
+        tagString = self.ImageFilerModel.deriveElements(importParameters,  # TODO: make this return a set instead of string
                                                           sourcePath[:-len(extension)], 
                                                           baseLength, 
                                                           True, 
                                                           illegalElements)
-        if (importParameters.getMarkAsNew()
-            and (not self.NewIndicator in newElements)):
-            newElements = (newElements + Entry.NameSeparator + self.NewIndicator)
+        tagSet = self.ImageFilerModel.getClassHandler().stringToElements(tagString)
+        if (importParameters.getMarkAsNew()):
+            tagSet.add(MediaClassHandler.ElementNew)
         # ensure uniqueness via number
         newPath = self.constructPath(rootDir=targetDir,
-                                year=year,
-                                month=month,
-                                day=day,
-                                elements=newElements,
-                                extension=extension[1:],
-                                makeUnique=True)
+                                     year=year,
+                                     month=month,
+                                     day=day,
+                                     elements=tagSet,
+                                     extension=extension[1:],
+                                     makeUnique=True)
         # rename
         return(newPath)
 
@@ -285,38 +285,44 @@ class OrganizationByDate(MediaOrganization):
             which either contains year, month, and day as String
             or contains None for each entry
         """
+        exclusions = {'Model': 'MS Scanner',
+                      'Software': 'Paint Shop Photo Album'}
         if ((os.path.isfile(path)) 
             and (path[-4:].lower() == '.jpg')): 
             with open(path, "rb") as f:
                 try:
                     exifTags = exifread.process_file(f)
                 except:
-                    self.Logger.warning('OrganizationByDate.deriveDateFromFile(): cannot read EXIF data from "%s"!' % path)
+                    log.write('OrganizationByDate.deriveDateFromFile(): Cannot read EXIF data from "%s"!' % path)
                     return(None, None, None)
-            if (('Model' in exifTags)
-                and (exifTags['Model'] == 'MS Scanner')):
-                self.Logger.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Model=MS Scanner')
+            for (tag, value) in exclusions.items():
+                if ((tag in exifTags)
+                    and (0 <= exifTags[tag].find(value))):
+                    log.write('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data for "%s"\n  because %s=%s' % (path, tag, value))
+                    return(None, None, None)
+            dateTags = set((tag for tag in exifTags.keys() if ('Date' in tag)))
+            digitizedTags = set(tag for tag in dateTags if (('Original' in tag) or ('Digitized' in tag)))
+            if (0 == len(digitizedTags)):
+                digitizedTags = dateTags
+            if (0 == len(digitizedTags)):
+                log.write('OrganizationByDate.deriveDateFromFile(): No tag named "*Date*" found')
                 return(None, None, None)
-            if (('Software' in exifTags)
-                and (0 <= exifTags['Software'].find('Paint Shop Photo Album'))):
-                self.Logger.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data because Software=Paint Shop Photo Album')
-                return (None, None, None)
-            for key in exifTags:
-                if ('Date' in key):
-                    self.Logger.debug('OrganizationByDate.deriveDateFromFile(): Relevant EXIF tag "%s" in "%s"' % (key, path))
-                    value = exifTags[key]
-                    match = self.DayPattern.search(str(value))
-                    if (match):
-                        year = match.group(1)
-                        month = match.group(3)
-                        day = match.group(4)
-                        if (year == self.UnknownDateName):
-                            month = None
-                            day = None
-                        self.Logger.debug('OrganizationByDate.deriveDateFromFile(): Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
-                        return(year, month, day)
-                    else:
-                        self.Logger.warning('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, value))
+            for key in digitizedTags:
+                log.write('OrganizationByDate.deriveDateFromFile(): Relevant EXIF tag "%s" in "%s"' % (key, path))
+                value = exifTags[key]
+                match = self.DayPattern.search(str(value))
+                if (match):
+                    year = match.group(1)
+                    month = match.group(3)
+                    day = match.group(4)
+                    if (year == self.UnknownDateName):
+                        month = None
+                        day = None
+                    log.write('OrganizationByDate.deriveDateFromFile(): Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
+                    return(year, month, day)
+                else:
+                    log.write('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, value))
+        log.write('OrganizationByDate.deriveDateFromFile(): No date found in EXIF data')
         return(None, None, None)
 
 
@@ -405,7 +411,7 @@ class OrganizationByDate(MediaOrganization):
                             year = cls.UnknownDateName
                             matched = ''
                             matchEnd = -1
-        cls.Logger.debug('OrganizationByDate.deriveDateFromPath(): Recognized (%s, %s, %s) in path "%s"\n' % (year, month, day, path)) 
+        cls.Logger.debug('OrganizationByDate.deriveDateFromPath(): Recognized (%s, %s, %s) in path "%s"' % (year, month, day, path)) 
         # skip to last occurrence of match
         rest = path
         while (0 <= matchEnd):  
@@ -416,92 +422,6 @@ class OrganizationByDate(MediaOrganization):
             else: 
                 matchEnd = -1
         return (year, month, day, rest)
-
-
-#     @classmethod
-#     def deriveDateFromPath2(cls, log, path):  # @UnusedVariable
-#         """Determine the date of a file from its path. 
-#         
-#         StringIO log is used to report progress. 
-#         String path contains the absolute filename.  
-#         Return a triple (year, month, day, rest) where 
-#             year, month, and day are either String or None 
-#             String rest contains the rest of path not consumed by the match
-#         """
-#         year = None
-#         month = None
-#         day = None
-#         usingReducedPattern = False
-#         # search for date
-#         match = cls.DayPattern.search(path)
-#         if (match == None):
-#             usingReducedPattern = True
-#             match = cls.ReducedDayPattern.search(path)
-#         if (match):
-#             year = match.group(1)
-#             month = match.group(3)
-#             day = match.group(4)
-#             if (usingReducedPattern):
-#                 if (len(year) <> 2):
-#                     cls.Logger.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
-#                     return(cls.UnknownDateName, None, None, path)
-#                 year = cls.expandReducedYear(year)
-#             matched = path[match.start():match.end()]
-#             matchIndex = match.start()
-#         else:
-#             usingReducedPattern = False
-#             match = cls.GermanDayPattern2.search(path)
-#             if (match == None):
-#                 usingReducedPattern = True
-#                 match = cls.ReducedGermanDayPattern2.search(path)
-#             if (match): 
-#                 day = match.group(1)
-#                 month = match.group(3)
-#                 year = match.group(4)
-#                 if (usingReducedPattern):
-#                     if (len(year) <> 2):
-#                         cls.Logger.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
-#                         return(cls.UnknownDateName, None, None, path)
-#                     year = cls.expandReducedYear(year)
-#                 matched = path[match.start():match.end()]
-#                 matchIndex = match.start()
-#             else:
-#                 usingReducedPattern = False
-#                 match = cls.MonthPattern.search(path)
-#                 if (match == None):
-#                     usingReducedPattern = True
-#                     match = cls.ReducedMonthPattern.search(path)
-#                 if (match):
-#                     year = match.group(1)
-#                     month = match.group(2)
-#                     if (usingReducedPattern):
-#                         if (len(year) <> 2):
-#                             cls.Logger.error('OrganizationByDate.deriveDateFromPath(): Reduced year "%s" too long in "%s"' % (year, path)) 
-#                             return(cls.UnknownDateName, None, None, path)
-#                         year = cls.expandReducedYear(year)
-#                     matched = path[match.start():match.end()]
-#                     matchIndex = match.start()
-#                 else: 
-#                     match = cls.YearPattern.search(path)
-#                     if (match):
-#                         year = match.group(1)
-#                         matched = path[match.start():match.end()]
-#                         matchIndex = match.start()
-#                     else:
-#                         (year, month, day) = cls.deriveDateWithMonthFromPath(log, path)
-#                         if (year):
-#                             matched = ''
-#                             matchIndex = -1
-#                         else:
-#                             year = cls.UnknownDateName
-#                             matched = ''
-#                             matchIndex = -1
-#         # skip to last occurrence of match
-#         rest = path
-#         while (matchIndex >= 0):  
-#             rest = rest[(matchIndex + len(matched)):]
-#             matchIndex = rest.find(matched)
-#         return (year, month, day, rest)
 
 
     @classmethod
@@ -575,13 +495,13 @@ class OrganizationByDate(MediaOrganization):
         aMediaNamePane.yearInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.yearInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # separator
-        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.NameSeparator), flag=(wx.ALIGN_CENTER_VERTICAL))
+        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.IdentifierSeparator), flag=(wx.ALIGN_CENTER_VERTICAL))
         # month
         aMediaNamePane.monthInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(40,-1), style=wx.TE_PROCESS_ENTER)
         aMediaNamePane.monthInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.monthInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # separator
-        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.NameSeparator), flag=(wx.ALIGN_CENTER_VERTICAL))
+        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.IdentifierSeparator), flag=(wx.ALIGN_CENTER_VERTICAL))
         # day
         aMediaNamePane.dayInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(40,-1), style=wx.TE_PROCESS_ENTER)
         aMediaNamePane.dayInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)

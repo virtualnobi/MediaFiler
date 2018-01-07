@@ -17,7 +17,6 @@ from nobi import SecureConfigParser
 from nobi import ProductTraderPattern
 ## Project
 import GlobalConfigurationOptions
-# from Entry import Entry
 from MediaClassHandler import MediaClassHandler
 import UI
 from UI import GUIId

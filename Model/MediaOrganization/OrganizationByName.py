@@ -21,12 +21,11 @@ from nobi.wx.Menu import Menu
 from Model import Installer
 from Model.MediaNameHandler import MediaNameHandler
 from Model.MediaClassHandler import MediaClassHandler
-from Model.Entry import Entry
+#from Model.Entry import Entry
 from Model.Group import Group
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaOrganization import MediaOrganization
-from test.test_pyclbr import ClassMethodType
 
 
 
@@ -107,7 +106,7 @@ class OrganizationByName(MediaOrganization):
             try:
                 scene = (self.FormatScene % (int(kwargs['scene'])))
             except: 
-                scene = self.NewIndicator
+                scene = MediaClassHandler.ElementNew
             result = os.path.join(result, scene)
         else:  # no scene given yields a singleton
             pass
@@ -118,8 +117,10 @@ class OrganizationByName(MediaOrganization):
     def constructPathFromImport(self, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):  
         """Import image at sourcePath.
         """
-#        pathInfo = {'rootDir': targetDir}
         pathInfo = copy.copy(targetPathInfo)
+        if ('elements' in pathInfo):
+            print('OrganizationByName.constructPathFromImport(): targetPathInfo may not contain "elements"!')
+            del pathInfo['elements']
         singleton = True
         if (level == 0):  # not embedded, is a single
             # determine name of image
@@ -128,44 +129,45 @@ class OrganizationByName(MediaOrganization):
                 importParameters.logString('Cannot determine new name for "%s", terminating import!' % sourcePath)
                 return
             groupExists = os.path.isdir(self.constructPath(**pathInfo))
-            singleExists = (len(glob.glob(self.constructPath(**pathInfo) + MediaOrganization.NameSeparator + '*')) > 0)
+            singleExists = (len(glob.glob(self.constructPath(**pathInfo) + MediaOrganization.IdentifierSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
                 importParameters.logString('OrganizationByName: Cannot merge two singles into group (NYI)!')
                 return
             elif (groupExists):  # a group of this name exists, move into it
                 importParameters.logString('Existing name "%s" used in "%s"' % (pathInfo['name'], sourcePath))
-                pathInfo['scene'] = self.NewIndicator
+                pathInfo['scene'] = MediaClassHandler.ElementNew
                 pathInfo['makeUnique'] = True
                 singleton = False
             else:  # neither Single nor Group exist, create singleton
                 pass
         else:  # embedded, is inside a group, name already contained in targetDir
-            singleExists = (len(glob.glob(targetDir + MediaOrganization.NameSeparator + '*')) > 0)
+            singleExists = (len(glob.glob(targetDir + MediaOrganization.IdentifierSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
                 importParameters.logString('OrganizationByName: Cannot merge single with group (NYI)!')
                 return                
             else:  # no Single exists, put into the group
                 self.ensureDirectoryExists(importParameters.log, importParameters.getTestRun(), targetDir, None)
-                pathInfo['scene'] = self.NewIndicator
+                pathInfo['scene'] = MediaClassHandler.ElementNew
                 singleton = False
         # determine extension
         (dummy, extension) = os.path.splitext(sourcePath)  # @UnusedVariable
         pathInfo['extension'] = extension[1:].lower() 
         # determine elements
-        pathInfo['elements'] = self.ImageFilerModel.deriveElements(importParameters, 
-                                                                   sourcePath[:-len(extension)], 
-                                                                   baseLength, 
-                                                                   False, 
-                                                                   illegalElements)
+        tagString = self.ImageFilerModel.deriveElements(importParameters,  # TODO: turn this into a Set instead of a String
+                                                        sourcePath[:-len(extension)], 
+                                                        baseLength, 
+                                                        False, 
+                                                        illegalElements)
+        tagSet = self.ImageFilerModel.getClassHandler().stringToElements(tagString)
         # add new indicator as needed
         if (singleton):
-            if (importParameters.getMarkAsNew()
-                and (not Entry.NameSeparator in pathInfo['elements'])):
-                pathInfo['elements'] = (pathInfo['elements'] + MediaClassHandler.TagSeparator + MediaClassHandler.ElementNew)
+            if (importParameters.getMarkAsNew()):
+                tagSet.add(MediaClassHandler.ElementNew)
         else:  # in a Group, create new number
             pathInfo['makeUnique'] = True
         # rename
-        newPath = self.constructPath(**pathInfo)
+        newPath = self.constructPath(elements=tagSet,
+                                     **pathInfo)
         return(newPath)
 
 
@@ -386,7 +388,7 @@ class OrganizationByName(MediaOrganization):
         menu.AppendSeparator()
         # functions applicable to Singles inside named Groups
         if ((not self.context.isGroup())
-            and (not self.context.isSingleton())):
+            and (not self.isSingleton())):
             sceneMenu = Menu()
             sceneId = GUIId.SelectScene
             for scene in self.context.getParentGroup().getScenes():
@@ -525,7 +527,7 @@ class OrganizationByName(MediaOrganization):
             if (newEntry): 
                 kwargs['makeUnique'] = True
                 if (newEntry.isGroup()):  # name used by Group
-                    kwargs['scene'] = MediaOrganization.NewIndicator
+                    kwargs['scene'] = MediaClassHandler.ElementNew
                 else:  # name used by singleton
                     newGroup = Group.createFromName(self.context.model, name)
                     parent = self.context.model.getEntry(group=True, name=name[0:1])

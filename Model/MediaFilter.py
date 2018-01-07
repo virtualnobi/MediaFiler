@@ -23,6 +23,7 @@ import copy
 # nobi's libraries
 from nobi.ObserverPattern import Observable
 # project 
+from .MediaClassHandler import MediaClassHandler
 
 
 
@@ -278,7 +279,7 @@ class MediaFilter(Observable):
                 match = re.match(r'([^\d]+)\d*', entry.organizer.getName())  # isolate name in name+number identifiers
                 if ((match <> None)
                     and (entry.organizer.nameHandler.isNameLegal(match.group(1)))  # legal name 
-                    and (entry.getScene() <> entry.organizer.__class__.NewIndicator)):  # not a "new" scene
+                    and (entry.getScene() <> MediaClassHandler.ElementNew)):  # not a "new" scene
                     entryFiltered = True
             if (entryFiltered):
                 entryFiltered = (len(entry.getUnknownElements()) == 0)

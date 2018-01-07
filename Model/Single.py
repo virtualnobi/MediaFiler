@@ -28,6 +28,7 @@ from Model.Entry import Entry
 #from Model.Group import Group
 from Model.MediaOrganization import MediaOrganization
 from Model.CachingController import CachingController
+from .MediaClassHandler import MediaClassHandler
 
 
 
@@ -135,7 +136,8 @@ class Single(Entry):
             kwargs['number'] = number
         kwargs['makeUnique'] = makeUnique
         if (elements):
-            kwargs['elements'] = self.model.getClassHandler().elementsToString(elements)
+#             kwargs['elements'] = self.model.getClassHandler().elementsToString(elements)
+            kwargs['elements'] = elements
         kwargs['removeIllegalElements'] = removeIllegalElements
         newPath = self.organizer.constructPathForSelf(**kwargs) 
         return(self.renameToFilename(newPath))
@@ -201,8 +203,8 @@ class Single(Entry):
     def removeNewIndicator(self):
         """Remove the new indicator on self's filename
         """
-        if (MediaOrganization.NewIndicator in self.unknownElements):
-            self.unknownElements.remove(MediaOrganization.NewIndicator)
+        if (MediaClassHandler.ElementNew in self.unknownElements):
+            self.unknownElements.remove(MediaClassHandler.ElementNew)
             self.renameTo()
 
 
@@ -233,8 +235,8 @@ class Single(Entry):
         else:  # organized by name
             # change scene of self
             if (self.getScene() <> newScene):  # new scene, implies new number
-                if (newScene == self.organizer.__class__.NewIndicator):
-                    self.idScene = self.organizer.__class__.NewIndicator
+                if (newScene == MediaClassHandler.ElementNew):
+                    self.idScene = MediaClassHandler.ElementNew
                 elif (int(newScene)):  # numeric scene
                     self.idScene = ('%02i' % int(newScene))
                 else:  # illegal scene

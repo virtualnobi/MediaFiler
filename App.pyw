@@ -485,7 +485,6 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Delete the current perspective.
             EVENT is the event raised by the MenuItem
         """
-        # TODO:
         pass
 
 
@@ -566,7 +565,6 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Rename a class element to another name, in the entire collection. 
         Allows to remove an element if renamed to "".
         """
-        # TODO:
         print('NYI: Rename Class Element')
         pass
     

@@ -16,26 +16,26 @@ from nobi.wx.Menu import Menu
 ## Project
 from UI import GUIId
 import Installer
+from Model.MediaClassHandler import MediaClassHandler
 from Model.CachingController import CachingController
 
 
 
 # Class 
 class Entry(PausableObservable):
-    """An Entry is an PausableObservable representing either an image or a group of the image tree. 
+    """An Entry is an PausableObservable representing a (group of) media in the directory tree. 
     A group can either be a folder (based on directory structure) or be based on special naming of image files.
     
     The filename of the entry consists of its path, its name, and its extension.
-    The name of the entry consists of its identifier, its known elements, and its unknown elements.
+    The name of the entry consists of its identifier, its number, its known elements, and its unknown elements.
     The identifier is the date (if the model is organized by date) 
     or the name (if the model is organized by name) (for singleton images, not contained in a Group) 
-    or the scene and image number (for images contained in a Group).
+    or the name and the scene (for images contained in a Group).
 
     ObserverPattern aspects
     - name: The file name on disk has changed
     - remove: The entry is deleted
     - children: The children of an entry group have changed
-
     Pausing updates is used in batch commands like the deletion of doubles.
     """
 
@@ -43,9 +43,9 @@ class Entry(PausableObservable):
 
 # Constants
     SpecificationGroup = 'directory'  # Specification for ProductTrader, registering to handle directories
-    NameSeparator = '.'  # character separating image elements in file name
-    IdentifierSeparator = '-'  # character separating scene, day, month, year, number in file name
-    RESeparatorsRecognized = ('[, _' + NameSeparator + IdentifierSeparator + ']')
+#    NameSeparator = '.'  # character separating image elements in file name
+#    IdentifierSeparator = '-'  # character separating scene, day, month, year, number in file name
+#    RESeparatorsRecognized = ('[, _' + NameSeparator + IdentifierSeparator + ']')
     CachingLevelThumbnailBitmap = 0
     CachingLevelFullsizeBitmap = 1
     CachingLevelRawData = 2
@@ -59,8 +59,7 @@ class Entry(PausableObservable):
         """Check whether extension denotes a file type which is handled by Entry or its subclasses.
         
         String extension is the file name extension (upper and lower case handled)
-        
-        Return a Boolean indicating whether extension is handled by Entry
+        Return Boolean indicating whether extension is handled by Entry
         """
         try:
             Installer.getProductTrader().getClassFor(extension.lower())
@@ -130,7 +129,7 @@ class Entry(PausableObservable):
             and (self.getExtension() <> '')):
             print('Group "%s" should not use an extension' % self.getPath())
         self.setFilename(rest)
-        elementStart = rest.find(self.NameSeparator)
+        elementStart = rest.find(MediaClassHandler.TagSeparator)
         if (0 <= elementStart):
             elements = rest[elementStart:]
             (known, unknown) = self.model.getClassHandler().stringToKnownAndUnknownElements(elements)
@@ -454,10 +453,8 @@ class Entry(PausableObservable):
     
     def getElementString (self):
         """Return a String containing all elements of self. 
-        
-        Contains a leading NameSeparator if non-empty.
-        
-        Returns a String
+
+        Return String
         """
         return(self.model.getClassHandler().elementsToString(self.getElements()))
 

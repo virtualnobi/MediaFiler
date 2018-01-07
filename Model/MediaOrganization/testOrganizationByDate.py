@@ -11,7 +11,7 @@ import StringIO
 ## Contributed
 ## nobi
 ## Project
-import Model.Installer  # to resolve import sequence issues  TODO:
+#import Model.Installer  # to resolve import sequence issues  
 from OrganizationByDate import OrganizationByDate
 
 

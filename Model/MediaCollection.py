@@ -1,28 +1,4 @@
-"""MediaFiler
-
-Model representing a set of image files, including class definitions and organization model.
-    
-The classes are specified in a text file found in relative path given by ClassFileName.
-- Lines starting with # are comments.
-- The first token is the name of the class.
-- Subsequent tokens starting with '+' are required elements, ie. this class can only apply if the required element applies.
-- Subsequent tokens starting with '-' are prohibited elements, ie. this class cannot apply if the prohibited element applies.
-- If the next token is '[]', several elements of the following set can be chosen. 
-- Otherwise, only one element of the following set can be chosen.
-- All remaining tokens list the elements in this class. 
-    
-The names are listed in a text file found in relative path given by NamesFileName.
-If the names file exists, the images are organized by name: The root directory contains folders with the initial letter of the names, 
-which contain files or folders. Names of single files consist of the name and subsequent class elements. Names of folders consist only
-of the name; files contained in folders consist of a number and subsequent class elements.
-If the names file does not exist, the images are organized by date: The root directory contains folders per year, which contain folders
-per month, which contain single images or image folders. Single image names consist of the date and subsequent class elements. 
-folder names consist of the date and text.
-
-The following aspects of ImageFilerModel are observable:
-- startFiltering: Filter has changed, starting to filter Entries
-- stopFiltering: Filter has changed, and all Entries have been processed
-
+"""
 (c) by nobisoft 2015-
 """
 
@@ -75,14 +51,35 @@ def N_(message): return message
 
 
 class MediaCollection(Observable, Observer):
-    """
+    """Model representing a set of image files, including class definitions and organization model.
+    
+    The classes are specified in a text file found in relative path given by ClassFileName.
+    - Lines starting with # are comments.
+    - The first token is the name of the class.
+    - Subsequent tokens starting with '+' are required elements, ie. this class can only apply if the required element applies.
+    - Subsequent tokens starting with '-' are prohibited elements, ie. this class cannot apply if the prohibited element applies.
+    - If the next token is '[]', several elements of the following set can be chosen. 
+    - Otherwise, only one element of the following set can be chosen.
+    - All remaining tokens list the elements in this class. 
+        
+    The names are listed in a text file found in relative path given by NamesFileName.
+    If the names file exists, the images are organized by name: The root directory contains folders with the initial letter of the names, 
+    which contain files or folders. Names of single files consist of the name and subsequent class elements. Names of folders consist only
+    of the name; files contained in folders consist of a number and subsequent class elements.
+    If the names file does not exist, the images are organized by date: The root directory contains folders per year, which contain folders
+    per month, which contain single images or image folders. Single image names consist of the date and subsequent class elements. 
+    folder names consist of the date and text.
+    
+    The following aspects of ImageFilerModel are observable:
+    - startFiltering: Filter has changed, starting to filter Entries
+    - stopFiltering: Filter has changed, and all Entries have been processed
     """
 
 
 
 # Constants
     Logger = logging.getLogger(__name__)
-    IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
+#    IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
     ReorderTemporaryTag = 'reordering'  # to ensure uniqueness in renameList()
 
 
@@ -601,7 +598,7 @@ class MediaCollection(Observable, Observer):
             oldPath = os.path.join(sourceDir, oldName)
             newTargetPathInfo = copy.copy(targetPathInfo)
             if (os.path.isdir(oldPath)):  # import a directory
-                if (self.organizedByDate):
+                if (self.organizedByDate):  # TODO: delegate to MediaOrganization
                     newPath = targetDir
                     if (not 'rootDir' in newTargetPathInfo):
                         newTargetPathInfo['rootDir'] = targetDir

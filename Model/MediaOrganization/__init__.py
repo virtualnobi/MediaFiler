@@ -61,8 +61,7 @@ class MediaOrganization(object):
 
 
 # Constants
-    NewIndicator = 'new'  # indicates a newly imported media
-    NameSeparator = '-'  # to separate identifier parts such as name, scene, year, month, day
+    IdentifierSeparator = '-'  # to separate identifier parts such as number, name, scene, year, month, day
     FormatNumber = '%03d'  # format string for number ensuring uniqueness of pathname
 
 
@@ -96,7 +95,7 @@ class MediaOrganization(object):
 
 
     @classmethod
-    def isIgnoredNamePart(self, namePart):  # @UnusedVariable
+    def isIgnoredNamePart(self, namePart):
         """Check whether namePart can be a name element as part of a pathname.
         
         String namePart        
@@ -138,14 +137,14 @@ class MediaOrganization(object):
         if (('makeUnique' in kwargs)
             and kwargs['makeUnique']):
             number = 1
-            while (0 < len(glob.glob(result + cls.NameSeparator + (cls.FormatNumber % number) + '*'))):
+            while (0 < len(glob.glob(result + cls.IdentifierSeparator + (cls.FormatNumber % number) + '*'))):
                 number = (number + 1)
         elif (('number' in kwargs)
               and kwargs['number']):
             number = kwargs['number']
         if (number):
             number = int(number)
-            result = (result + cls.NameSeparator + (cls.FormatNumber % number))
+            result = (result + cls.IdentifierSeparator + (cls.FormatNumber % number))
         if (('elements' in kwargs)
             and kwargs['elements']):
             tagSpec = kwargs['elements']
@@ -238,7 +237,7 @@ class MediaOrganization(object):
     def initNamePane(cls, aMediaNamePane):
         """Add controls to MediaNamePane to represent the organization's identifiers.
         """
-        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.NameSeparator), 
+        aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.IdentifierSeparator), 
                                       flag=(wx.ALIGN_CENTER_VERTICAL))
         aMediaNamePane.numberInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(60,-1), style=wx.TE_PROCESS_ENTER)
         aMediaNamePane.numberInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
@@ -280,7 +279,7 @@ class MediaOrganization(object):
     def setNumberFromPath(self, pathRest):
         """Check whether pathRest begins with a 3-digit number, store it if so, and return the unconsumed rest.
         
-        Assumes that Entry.NameSeparator introduces the number.
+        Assumes that Entry.IdentifierSeparator introduces the number.
         
         Returns a String
         """
@@ -383,12 +382,12 @@ class MediaOrganization(object):
             print('From "%s"\n     adding elements %s\n  to "%s"' % (otherEntry.getPath(), newElements, self.context.getPath()))
             self.context.renameTo(elements=newElements)
         else:
-            if ((self.NewIndicator in self.context.getElements())
-                and (not self.NewIndicator in otherEntry.getElements())):
+            if ((MediaClassHandler.ElementNew in self.context.getElements())
+                and (not MediaClassHandler.ElementNew in otherEntry.getElements())):
                 print('Keep   "%s"\nremove "%s"' % (otherEntry.getPath(), self.context.getPath()))
                 newPath = otherEntry.getPath()
-            elif ((not self.NewIndicator in self.context.getElements())
-                  and (self.NewIndicator in otherEntry.getElements())):
+            elif ((not MediaClassHandler.ElementNew in self.context.getElements())
+                  and (MediaClassHandler.ElementNew in otherEntry.getElements())):
                 print('Keep   "%s"\nremove "%s"' % (self.context.getPath(), otherEntry.getPath()))
             else:
                 if (len(self.context.getElements()) < len(otherEntry.getElements())):

@@ -13,7 +13,7 @@ import codecs
 ## Contributed
 ## nobi
 ## Project
-from .Entry import Entry
+#from .MediaOrganization import MediaOrganization
 
 
 
@@ -28,8 +28,9 @@ class MediaClassHandler(object):
     KeyElements = u'elements'  # key in class dictionary mapping to list of elements
     KeyRequired = u'required'  # key in class dictionary mapping to list of required elements
     KeyProhibited = u'prohibited'  # key in class dictionary mapping to list of prohibited elements
-    ElementIllegal = u'illegal'  # special element signalling that a combination of elements is not legal
     TagSeparator = u'.'  # character to introduce a tag/element
+    RETagSeparatorsRecognized = ('[, _' + TagSeparator + '-]')
+    ElementIllegal = u'illegal'  # special element signalling that a combination of elements is not legal
     ElementNew = u'new'  # special element signalling that the entry is new, i.e., just imported
     InitialFileContent = (u'# Classname Element+  # for classes with single-choice elements\n' +
                           u'# Classname [] Element+  # for classes with multiple-choice elements\n' +
@@ -38,18 +39,7 @@ class MediaClassHandler(object):
 
 
 # Class Variables
-
-
-
 # Class Methods
-#     @classmethod
-#     def classMethod(clas):
-#         """
-#         """
-#         pass
-
-
-
 # Lifecycle
     def __init__(self, pathname):
         """Create a MediaClassHandler instance from the definitions in pathname.
@@ -230,7 +220,7 @@ class MediaClassHandler(object):
         elements = self.orderElements(elementSet)
         result = (self.__class__.TagSeparator.join(elements))
         if (not (result == '')):
-            result = (Entry.NameSeparator + result)
+            result = (self.__class__.TagSeparator + result)
         return (result)
 
 
@@ -240,7 +230,7 @@ class MediaClassHandler(object):
         String elementString contains a string of words
         Return a Set with all elements from ELEMENTSTRING   
         """
-        elements = set(re.split(Entry.RESeparatorsRecognized, elementString))
+        elements = set(re.split(self.__class__.RETagSeparatorsRecognized, elementString))
         if ('' in elements):
             elements.remove('')
         #print('"%s" split into %s' % (elementString, elements))
