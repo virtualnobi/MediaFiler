@@ -28,6 +28,7 @@ from Model.Group import Group
 #from ..MediaNameHandler import MediaNameHandler
 from ..MediaClassHandler import MediaClassHandler
 from Model.MediaOrganization import MediaOrganization
+from wx import ORIENTATION_MASK
 
 
 
@@ -153,12 +154,6 @@ class OrganizationByDate(MediaOrganization):
                                                  sourcePath, 
                                                  baseLength,
                                                  illegalElements)
-#         tagString = self.ImageFilerModel.deriveElements(importParameters,  # TODO: make this return a set instead of string
-#                                                           sourcePath[:-len(extension)], 
-#                                                           baseLength, 
-#                                                           True, 
-#                                                           illegalElements)
-#         tagSet = self.ImageFilerModel.getClassHandler().stringToElements(tagString)
         if (importParameters.getMarkAsNew()):
             tagSet.add(MediaClassHandler.ElementNew)
         # ensure uniqueness via number
@@ -785,17 +780,31 @@ class OrganizationByDate(MediaOrganization):
     def onReorderByTime(self, parentWindow):
         """
         """
+#         padRect = wx.Size(12, 12)
         dlg = wx.Dialog(parentWindow, wx.ID_ANY, _('Reorder by Time Taken'))
         dlgSizer = wx.BoxSizer(orient=wx.VERTICAL)
-        rb = wx.RadioBox(dlg, 
-                         label=_('Media without time placed'), 
+#         dlgSizer.Add(padRect)
+#         fldSizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+#         fldSizer.Add(padRect)
+        rb = wx.RadioBox(dlg,
+                         label=_('Media without capture time placed'), 
                          choices=[self.__class__.ReorderLabelTop,
                                   self.__class__.ReorderLabelFollow,
                                   self.__class__.ReorderLabelBottom],
                          majorDimension=1, 
                          style=(wx.RA_SPECIFY_COLS))
         rb.SetSelection(self.__class__.ReorderSelectFollow)
-        dlgSizer.Add(rb)
+#         fldSizer.Add(padRect)
+#         dlgSizer.Add(fldSizer, border=5)
+        dlgSizer.Add(rb, border=5)
+        fldSizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+#        fldSizer.Add(padRect)
+        fldSizer.Add(wx.StaticText(dlg, label=_('Step Width for Renumbering:')))
+#        fldSizer.Add(padRect)
+        stepWidthField = wx.SpinCtrl(dlg, min=1, max=20, initial=2, size=(50, 20))
+        fldSizer.Add(stepWidthField)
+#        fldSizer.Add(padRect)
+        dlgSizer.AddSizer(fldSizer)
         line = wx.StaticLine(dlg,
                              size=(20,-1), 
                              style=wx.LI_HORIZONTAL)
@@ -809,8 +818,8 @@ class OrganizationByDate(MediaOrganization):
         btnSizer.Realize()
         dlgSizer.Add(btnSizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         dlg.SetSizerAndFit(dlgSizer)
-        if (dlg.ShowModal()):
-            self.reorderByTime(rb.GetSelection())
+        if (dlg.ShowModal() == wx.ID_OK):
+            self.reorderByTime(rb.GetSelection(), stepWidthField.GetValue())
         dlg.Destroy()
 
 
@@ -834,8 +843,10 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Internal - to change without notice
-    def reorderByTime(self, handleUntimedPolicy):
+    def reorderByTime(self, handleUntimedPolicy, stepWidth):
         """Reorder subentries of self's context by time taken, earlierst first.
+        
+        When renumbering, leave stepWidth numbers free.
         
         Media without a time taken (i.e., videos and images without EXIF info) are sorted according to handleUntimedPolicy:
         0: they appear at top, in current relative order
@@ -849,7 +860,10 @@ class OrganizationByDate(MediaOrganization):
         2: The last second of the day 
         
         Number handleUntimedPolicy
+        Number stepWidth
         """
+        if (stepWidth < 1):
+            raise ValueError, 'stepWidth must be greater 0!'
         sortedEntries = SortedCollection(key=itemgetter(1))
         nextTimeForUntimedMedia = datetime.time(hour=0, minute=0, second=0, microsecond=1)
         untimedMediaAtBottom = []
@@ -893,7 +907,7 @@ class OrganizationByDate(MediaOrganization):
         self.undoList = []
         for (entry, time) in sortedEntries:
             newPath = entry.organizer.constructPathForSelf(number=newIndex)
-            newIndex = (newIndex + 1)
+            newIndex = (newIndex + stepWidth)
             if (entry.getPath() <> newPath):
                 self.__class__.Logger.debug('OrganizationByDate.reorderByTime(): At %s, reordering\n   %s\n  >%s' % (time, entry.getPath(), newPath))
                 doList.append((entry, entry.getPath(), newPath))

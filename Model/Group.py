@@ -112,15 +112,20 @@ class Group(Entry, Observer):
 
 
 
-    def renameTo(self, **kwargs):
-        """Rename a Group of Entry-s. See Entry.renameTo()
+    def renameTo(self, 
+                 classesToRemove=set(),
+                 elements=set(),
+                 **kwargs):
+        """Rename a Group of Entrys. See Entry.renameTo()
+        
+        #TODO: refactor/redesign/redo!
         """
         result = True
         if (('number' in kwargs)
             and kwargs['number']):
             logging.error('Group.renameTo(): No number allowed!')
             return(False)
-        elements = (kwargs['elements'] if 'elements' in kwargs else None)
+#        elements = (kwargs['elements'] if 'elements' in kwargs else None)
         removeIllegalElements = (kwargs['removeIllegalElements'] if 'removeIllegalElements' in kwargs else None)
         if (self.model.organizedByDate):  # TODO: move to OrganizationByDate
             year = (kwargs['year'] if 'year' in kwargs else None)
@@ -137,8 +142,11 @@ class Group(Entry, Observer):
                         return(False)
             for subEntry in self.getSubEntries(filtering=True):
                 newElements = subEntry.getElements().union(elements)
-                kwargs['elements'] = newElements
-                result = (result and subEntry.renameTo(**kwargs))
+#                kwargs['elements'] = newElements
+                result = (result 
+                          and subEntry.renameTo(classesToRemove=classesToRemove, 
+                                                elements=newElements, 
+                                                **kwargs))
         else:  # organized by name  TODO: move to OrganizationByName
             selfToBeDeleted = False
             if (('name' in kwargs)
@@ -147,8 +155,9 @@ class Group(Entry, Observer):
                 existingEntry = self.model.getEntry(name=name)
                 if (existingEntry == None):
                     print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.organizer.getName(), elements))
-                    return(super(Group, self).renameTo(name=name, 
+                    return(super(Group, self).renameTo(classesToRemove=classesToRemove,
                                                        elements=[], 
+                                                       name=name, 
                                                        removeIllegalElements=removeIllegalElements))
                 elif (existingEntry.isGroup()):
                     print('Group "%s" exists' % name)
@@ -158,7 +167,10 @@ class Group(Entry, Observer):
                     print('Single "%s" exists' % name)
                     newGroup = Group.createFromName(self.model, name)
                     newGroup.setParent(self.model.getEntry(group=True, name=name[0:1]))
-                    existingEntry.renameTo(name=name, scene='1', makeUnique=True)
+                    existingEntry.renameTo(classesToRemove=classesToRemove,
+                                           name=name, 
+                                           scene='1', 
+                                           makeUnique=True)
                     selfToBeDeleted = True
                 print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newGroup.getPath()))
                 # construct mapping from scenes in current group to scenes in existing target group
@@ -185,7 +197,7 @@ class Group(Entry, Observer):
             print('   with scene mapping %s' % sceneMap)
             # move each subEntry
             print('   %d subentries' % len(self.subEntriesSorted))
-            for subEntry in self.getSubEntries(False):  
+            for subEntry in self.getSubEntries(filtering=False):  
                 newElements = subEntry.getElements()
                 if (elements):
                     newElements = (newElements.union(elements))
@@ -194,7 +206,8 @@ class Group(Entry, Observer):
                 kwargs2 = kwargs.copy()
                 kwargs2['elements'] = newElements
                 kwargs2['scene'] = sceneMap[subEntry.getScene()]
-                subEntry.renameTo(number=subEntry.getNumber(), 
+                subEntry.renameTo(classesToRemove=classesToRemove,
+                                  number=subEntry.getNumber(), 
                                   removeIllegalElements=removeIllegalElements,
                                   **kwargs2)
             if (selfToBeDeleted):

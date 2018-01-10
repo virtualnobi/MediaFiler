@@ -49,7 +49,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Constants
-    ClassDontChangeText = _('(n/a)')
+    ClassDontChangeText = _('(no change)')
     ClassDontChangeIndex = 0
     ClassUnselectedText = _('(none)')
     ClassUnselectedIndex = 1
@@ -141,35 +141,6 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Getters
-    def getClassification(self):
-        """Return the current classification, mapping class names to lists of elements.
-        
-        Classes for which "n/a" is selected do not appear in the result.
-        Classes for which "(none)" is selected appear in the result with an empty string as element.
-        All other classes appear in the result with the selected element. 
-        
-        Returns a Dictionary mapping Strings to Arrays of Strings.
-        """
-        result = {}
-        for className in self.model.getClassHandler().getClassNames():
-            if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes used
-                elements = []
-                for element in self.model.getClassHandler().getElementsOfClassByName(className):
-                    if (self.selectionBoxes[className].isChecked(element)):  
-                        elements.append(element)
-                if (0 < len(elements)):
-                    result[className] = elements
-            else:  # single selection, radioboxes used
-                if (self.selectionBoxes[className].GetSelection() == self.ClassDontChangeIndex): 
-                    pass
-                elif (self.selectionBoxes[className].GetSelection() == self.ClassUnselectedIndex):  
-                    result[className] = []
-                else:  # real element name
-                    result[className] = [self.selectionBoxes[className].GetStringSelection()]
-        return(result)
-
-
-
 # Setters
     def setEntry (self, entry):
         """Set the selected entry (either group or image), and enable/set checkboxes and radiobuttons accordingly.
@@ -227,13 +198,15 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                   and (event.index == self.__class__.ClassDontChangeIndex)):
                 checkBoxGroup.clearAll()
                 checkBoxGroup.setValue(self.__class__.ClassDontChangeIndex, True)
-        classMapping = self.getClassification()
-        elements = set()
-        for className in classMapping:
-            for element in classMapping[className]:
-                elements.add(element)
+#         elements = set()
+#         classMapping = self.getClassification()
+#         for className in classMapping:
+#             for element in classMapping[className]:
+#                 elements.add(element)
+        elements = self.getTags()
         elements.update(self.entry.getUnknownElements())
-        self.entry.renameTo(elements=elements)  # TODO: allow to remove classes from groups
+        self.entry.renameTo(elements=elements,
+                            classesToRemove=self.getClassesToRemove())
 
 
 
@@ -263,3 +236,66 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.DestroyChildren()
 
     
+    def getClassification(self):
+        """Return the current classification, mapping class names to lists of elements.
+        
+        Classes for which "n/a" is selected do not appear in the result.
+        Classes for which "(none)" is selected appear in the result with an empty string as element.
+        All other classes appear in the result with the selected element. 
+        
+        Returns a Dictionary mapping Strings to Arrays of Strings.
+        """
+        result = {}
+        for className in self.model.getClassHandler().getClassNames():
+            if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes used
+                elements = []
+                for element in self.model.getClassHandler().getElementsOfClassByName(className):
+                    if (self.selectionBoxes[className].isChecked(element)):  
+                        elements.append(element)
+                if (0 < len(elements)):
+                    result[className] = elements
+            else:  # single selection, radioboxes used
+                if (self.selectionBoxes[className].GetSelection() == self.ClassDontChangeIndex): 
+                    pass
+                elif (self.selectionBoxes[className].GetSelection() == self.ClassUnselectedIndex):  
+                    result[className] = []
+                else:  # real element name
+                    result[className] = [self.selectionBoxes[className].GetStringSelection()]
+        return(result)
+
+
+    def getTags(self):
+        """Return the set of all tags to be assigned to the current Entry.
+        
+        Return Set of String
+        """
+        result = set()
+        for className in self.selectionBoxes:
+            if (self.model.getClassHandler().isMultipleClassByName(className)):
+                checkBoxGroup = self.selectionBoxes[className]
+                for tag in self.model.getClassHandler().getElementsOfClassByName(className):
+                    if (checkBoxGroup.isChecked(tag)):
+                        result.add(tag)
+            else:
+                radioBoxGroup = self.selectionBoxes[className]
+                if ((radioBoxGroup.GetSelection() <> self.ClassDontChangeIndex)
+                    and (radioBoxGroup.GetSelection() <> self.ClassUnselectedIndex)):
+                    result.add(radioBoxGroup.GetStringSelection())
+        return(result)
+
+
+    def getClassesToRemove(self):
+        """Return the set of classes whose tags shall be removed from the current Entry.
+        
+        Return Set of String
+        """
+        result= set()
+        for className in self.selectionBoxes:
+            if (self.model.getClassHandler().isMultipleClassByName(className)):
+                pass
+            else:
+                if (self.selectionBoxes[className].GetSelection() == self.ClassUnselectedIndex):
+                    result.add(className)
+        return(result)
+
+

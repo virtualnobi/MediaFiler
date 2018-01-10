@@ -662,39 +662,39 @@ class MediaCollection(Observable, Observer):
         return(oldPath)
 
 
-    def deriveElements(self, parameters, oldPath, baseLength, keepIllegals, illegalElements):  # TODO: obsolete
-        """Create a string containing all elements of oldPath, legal ones first in class sequence, illegal ones second.
-         
-        Importing.ImportParameterObject parameters
-        String oldPath is the absolute path of the file (needed to include into illegalElements)
-        Integer baseLength is the length of the prefix of oldPath which shall not be considered.
-        Boolean keepIllegals determines whether illegal elements are included in the result
-        Dictionary illegalElements associates Strings of illegal elements with path names of files.
-        
-        Returns String containing elements. 
-        """
-        # split oldPath into elements
-        elements = set()  # set of class elements in path
-        words = self.getWordsInPathName(self.fixPathWhileImporting(parameters, oldPath[baseLength:]))  # split into components
-        for word in words: 
-            if self.classHandler.isLegalElement(word):  # keep legal elements
-                elements.add(self.classHandler.normalizeTag(word))
-            elif (re.match("^\d+$", word)):  # ignore numbers
-                pass  
-            elif ((not self.organizedByDate)  # TODO: Delegate to Organization.isIgnoredNamePart
-                  and self.organizationStrategy.nameHandler.isNameLegal(word)):  # ignore names
-                #print('ImageFilerModel.deriveElements matched a name!')
-                pass
-            else:  # handle illegal elements
-                if (keepIllegals):
-                    elements.add(word)
-                if (word in illegalElements):  # illegal element occurred before
-                    illegalElements[word].append(oldPath) # add to list of occurrences
-                else:  # first occurrence of illegal element
-                    illegalElements[word] = [oldPath]  # create list of occurrences
-        # add elements required by any element
-        elements = self.classHandler.includeRequiredElements(elements)
-        return(self.classHandler.elementsToString(elements))
+#     def deriveElements(self, parameters, oldPath, baseLength, keepIllegals, illegalElements):  # TODO: obsolete
+#         """Create a string containing all elements of oldPath, legal ones first in class sequence, illegal ones second.
+#          
+#         Importing.ImportParameterObject parameters
+#         String oldPath is the absolute path of the file (needed to include into illegalElements)
+#         Integer baseLength is the length of the prefix of oldPath which shall not be considered.
+#         Boolean keepIllegals determines whether illegal elements are included in the result
+#         Dictionary illegalElements associates Strings of illegal elements with path names of files.
+#         
+#         Returns String containing elements. 
+#         """
+#         # split oldPath into elements
+#         elements = set()  # set of class elements in path
+#         words = self.getWordsInPathName(self.fixPathWhileImporting(parameters, oldPath[baseLength:]))  # split into components
+#         for word in words: 
+#             if self.classHandler.isLegalElement(word):  # keep legal elements
+#                 elements.add(self.classHandler.normalizeTag(word))
+#             elif (re.match("^\d+$", word)):  # ignore numbers
+#                 pass  
+#             elif ((not self.organizedByDate)  # TODO: Delegate to Organization.isIgnoredNamePart
+#                   and self.organizationStrategy.nameHandler.isNameLegal(word)):  # ignore names
+#                 #print('ImageFilerModel.deriveElements matched a name!')
+#                 pass
+#             else:  # handle illegal elements
+#                 if (keepIllegals):
+#                     elements.add(word)
+#                 if (word in illegalElements):  # illegal element occurred before
+#                     illegalElements[word].append(oldPath) # add to list of occurrences
+#                 else:  # first occurrence of illegal element
+#                     illegalElements[word] = [oldPath]  # create list of occurrences
+#         # add elements required by any element
+#         elements = self.classHandler.includeRequiredElements(elements)
+#         return(self.classHandler.elementsToString(elements))
 
 
     def deriveTags(self, parameters, oldPath, baseLength, illegalTags):
@@ -704,22 +704,17 @@ class MediaCollection(Observable, Observer):
         String oldPath is the absolute path of the file (needed to include into illegalElements)
         Integer baseLength is the length of the prefix of oldPath which shall not be considered.
         Dictionary illegalTags associates unknown tag Strings with path names of files where they occur
-        Returns Set containing tags
+        Return Set of String
         """
         # reduce to relevant part of pathname
-        fixedPath = self.fixPathWhileImporting(parameters, oldPath[baseLength:])
+        fixedPath = self.fixPathWhileImporting(parameters, oldPath[baseLength:])  # TODO: do once at beginning of import
         # find possible tags
         elements = set()
-        RegexIllegalTags = re.compile('^\d+$|CAM|IMG|HPIM|DSC', re.IGNORECASE)
-        words = re.split(r'[\W_/\\]+', fixedPath, flags=re.UNICODE)
+        words = self.getWordsInPathName(fixedPath)
         for word in words: 
-            if ((word == '')
-                or RegexIllegalTags.match(word)
-                or Entry.isLegalExtension(word)):
-                pass
-            elif self.classHandler.isLegalElement(word):  # keep legal elements
+            if self.classHandler.isLegalElement(word):
                 elements.add(self.classHandler.normalizeTag(word))
-            else:  # handle illegal elements
+            else:  # unknown 
                 if (parameters.getKeepUnknownTags()):
                     elements.add(word)
                 if (word in illegalTags):  # illegal element occurred before
@@ -731,18 +726,23 @@ class MediaCollection(Observable, Observer):
         return(elements)
 
 
-    def getWordsInPathName(self, path):  # TODO: obsolete
-        """Return all words in String path.
+    def getWordsInPathName(self, path):  # TODO: use for tag and name derivation
+        """Return all words in String path which might be legal organization identifiers or tags.
+        
+        Ignore numbers, known file types, and known camera identifiers.
+        
+        Return Set of String
         """
-        # TODO: align with MediaFiler.Organization.isIgnoredNamePart()
-        words = []
+        words = set()
+        RegexCameraIdentifiers = re.compile('CAM|IMG|HPIM|DSC')  # TODO: make configurable
         for word in re.split(r'[\W_/\\]+', path, flags=re.UNICODE):
-            if ((word == '')  # emtpy string
-                or (Entry.isLegalExtension(word))  # known file types
-                or re.match(r'CAM|IMG|HPIM|DSC', word, re.IGNORECASE)):  # TODO: make known file names configurable
+            if ((word == '')
+                or (Entry.isLegalExtension(word))
+                or re.match(r'^\d+$', word)  
+                or RegexCameraIdentifiers.match(word)): 
                 pass  # these are ignored
             else:  # legal word
-                words.append(word)
+                words.add(word)
         return(words)
 
 

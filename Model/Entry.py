@@ -228,15 +228,18 @@ class Entry(PausableObservable):
 
 
     def renameTo(self, 
+                 classesToRemove=set(),
+                 elements=set(),
                  year=None, month=None, day=None, 
                  name=None, scene=None, 
                  number=None, makeUnique=False,
-                 elements=None, removeIllegalElements=False):
+                 removeIllegalElements=False):
         """Rename self's file, replacing the components as specified. 
        
         If a parameter is None or not given in pathInfo, leave it unchanged. 
         If makeUnique is True, find another number to ensure a unique filename.
         
+        Set of String classesToRemove contains the names of classes whose tags shall be removed
         Dictionary pathInfo may contain the following keys:
             <organization-specific keys>
                 String year, month, day 
@@ -269,12 +272,13 @@ class Entry(PausableObservable):
             number = int(number)
         if (removeIllegalElements):
             elements = filter(self.model.getClassHandler().isLegalElement, elements)
-#         if (removeClasses):
-#             for clas in removeClasses
+        for className in classesToRemove: 
+            for tag in self.model.getClassHandler().getElementsOfClassByName(className):
+                elements.discard(tag)
         kwargs = {'rootDir': self.model.rootDirectory,
                   'makeUnique': makeUnique,
                   'extension': self.getExtension(),
-                  'elements': self.model.getClassHandler().elementsToString(elements),
+                  'elements': elements,  # self.model.getClassHandler().elementsToString(elements),
                   'removeIllegalElements': removeIllegalElements}
         if (year): 
             kwargs['year'] = year

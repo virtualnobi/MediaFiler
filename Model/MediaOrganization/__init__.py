@@ -79,34 +79,34 @@ class MediaOrganization(object):
         self.ImageFilerModel = model
 
 
-    @classmethod
-    def getNamePartsInPathName(self, path):
-        """Return all words in String path.
-        
-        Illegal words, such as extension and camera identifiers, are ignored.
-     
-        Return List of String
-        """
-        words = []
-        for word in re.split(r'[\W_/\\]+', path, flags=re.UNICODE):
-            if (not self.isIgnoredNamePart(word)):
-                words.append(word)
-        return(words)
+#     @classmethod
+#     def getNamePartsInPathName(self, path):
+#         """Return all words in String path.
+#         
+#         Illegal words, such as extension and camera identifiers, are ignored.
+#      
+#         Return List of String
+#         """
+#         words = []
+#         for word in re.split(r'[\W_/\\]+', path, flags=re.UNICODE):
+#             if (not self.isIgnoredNamePart(word)):
+#                 words.append(word)
+#         return(words)
 
 
-    @classmethod
-    def isIgnoredNamePart(self, namePart):
-        """Check whether namePart can be a name element as part of a pathname.
-        
-        String namePart        
-        Returns a Boolean indicating whether namePart can be ignored.
-        """
-        if ((namePart == '')  # emtpy string
-            or Entry.isLegalExtension(namePart)  # known file types
-            or re.match(r'CAM\d+|IMG|HPIM\d+', namePart, re.IGNORECASE)):  # camera identifiers
-            return(True)
-        else:
-            return(False)
+#     @classmethod
+#     def isIgnoredNamePart(self, namePart):
+#         """Check whether namePart can be a name element as part of a pathname.
+#         
+#         String namePart        
+#         Returns a Boolean indicating whether namePart can be ignored.
+#         """
+#         if ((namePart == '')  # emtpy string
+#             or Entry.isLegalExtension(namePart)  # known file types
+#             or re.match(r'CAM\d+|IMG|HPIM\d+', namePart, re.IGNORECASE)):  # camera identifiers
+#             return(True)
+#         else:
+#             return(False)
 
 
     @classmethod

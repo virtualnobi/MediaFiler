@@ -158,12 +158,6 @@ class OrganizationByName(MediaOrganization):
                                                  illegalElements)
         if (pathInfo['name'] in tagSet):
             tagSet.remove(pathInfo['name'])
-#         tagString = self.ImageFilerModel.deriveElements(importParameters,  # TODO: turn this into a Set instead of a String
-#                                                         sourcePath[:-len(extension)], 
-#                                                         baseLength, 
-#                                                         False, 
-#                                                         illegalElements)
-#         tagSet = self.ImageFilerModel.getClassHandler().stringToElements(tagString)
         # add new indicator as needed
         if (singleton):
             if (importParameters.getMarkAsNew()):
@@ -235,9 +229,10 @@ class OrganizationByName(MediaOrganization):
         else:
             path = path[len(self.ImageFilerModel.getRootDirectory()):]
         newName = None # safe start state
-        # split old path into elements
-        words = self.getNamePartsInPathName(path)
+#         # split old path into elements
+#         words = self.getNamePartsInPathName(path)
         # search for legal name in path
+        words = self.ImageFilerModel.getWordsInPathName(path)
         for word in words: 
             word = word.lower()
             #log.write(' checking "%s" for name-ness' % word)
