@@ -16,7 +16,7 @@ from nobi.PausableObservable import PausableObservable
 ## project
 import UI
 from UI import GUIId
-import Model.Image 
+#import Model.Image 
 import Model.Installer
 
 
@@ -71,6 +71,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSelectionChanged, self)
         self.Bind(wx.EVT_TREE_ITEM_MENU, self.onContextMenuRequest, self)
         self.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)  # context menu actions on Entry objects
+        self.Bind(wx.EVT_SIZE, self.onResize)
         # internal state
         self.model = None  
         self.selectionBeforeFiltering = None  # selected Entry before filtering started, to detect whether it is filtered
@@ -209,7 +210,17 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         wx.EndBusyCursor()
 
 
+    def onResize(self, event): 
+        """After conventional resizing, ensure selected entry is still visible.
+        """
+        if (self.model
+            and self.model.getSelectedEntry().getTreeItemID()):
+            wx.CallAfter(self.EnsureVisible, self.model.getSelectedEntry().getTreeItemID())
+            event.Skip()
+            #print('MediaTreePane.onResize(): Queued "EnsureVisible(%s)"' % self.model.getSelectedEntry().getPath())
 
+
+    
 # Inheritance - Observer
     def updateAspect(self, observable, aspect):
         """ASPECT of OBSERVABLE changed. 
@@ -260,7 +271,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.restoreExpansionState()
             logging.debug('MediaTreeCtrl.updateAspect(): Recreating tree finished')
         else:
-            super(self, MediaTreeCtrl).update(observable, aspect)
+            super(MediaTreeCtrl, self).update(observable, aspect)
 
 
 # Inheritance - wx.TreeCtrl
