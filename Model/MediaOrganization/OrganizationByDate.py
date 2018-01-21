@@ -594,7 +594,7 @@ class OrganizationByDate(MediaOrganization):
             checkMakeUnique = True
         if (not 'month' in kwargs):
             kwargs['month'] = self.getMonth()
-        elif(kwargs['month'] <> self.getMonth()):
+        elif (kwargs['month'] <> self.getMonth()):
             checkMakeUnique = True
         if (not 'day' in kwargs):
             kwargs['day'] = self.getDay()

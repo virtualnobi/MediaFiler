@@ -69,6 +69,9 @@ class Group(Entry, Observer):
         super(Observer, self).__init__()
         # internal state
         self.subEntriesSorted = SortedCollection(key=Entry.getPath)
+        # TODO: have subentries sorted with Entrys first, then Groups. 
+        # TODO: idea 1 - manage list with custom sort function
+        # TODO: idea 2 - keep SortedCollections for Entry and Group separately
 
 
 
@@ -205,7 +208,7 @@ class Group(Entry, Observer):
                     newElements.remove(subEntry.getUnknownElements())
                 kwargs2 = kwargs.copy()
                 kwargs2['elements'] = newElements
-                kwargs2['scene'] = sceneMap[subEntry.getScene()]
+                kwargs2['scene'] = sceneMap[subEntry.getOrganizer().getScene()]
                 subEntry.renameTo(classesToRemove=classesToRemove,
                                   number=subEntry.getNumber(), 
                                   removeIllegalElements=removeIllegalElements,

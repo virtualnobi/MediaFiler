@@ -753,6 +753,11 @@ if __name__ == "__main__":
     logging.getLogger().addHandler(logHandler)
     logging.getLogger().setLevel(logging.DEBUG)
     logging.debug('App.__main__(): Temporarily logging to "%s"' % fname)
+#     logging.basicConfig(filename=fname,
+#                         filemode='w',
+#                         level=logging.DEBUG,
+#                         datefmt='%H:%M:%S',
+#                         format='%(asctime)s| %(message)s')
     app = wx.App(False)    
     frame = MediaFiler(None, title=GUIId.AppTitle)
     if (Installer.ensureInstallationOk(frame)):

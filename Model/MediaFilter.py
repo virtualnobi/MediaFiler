@@ -278,8 +278,8 @@ class MediaFilter(Observable):
             else: # organized by name, illegal name will satisfy unknown element requirement
                 match = re.match(r'([^\d]+)\d*', entry.organizer.getName())  # isolate name in name+number identifiers
                 if ((match <> None)
-                    and (entry.organizer.nameHandler.isNameLegal(match.group(1)))  # legal name 
-                    and (entry.getScene() <> MediaClassHandler.ElementNew)):  # not a "new" scene
+                    and (entry.getOrganizer().nameHandler.isNameLegal(match.group(1)))  # legal name 
+                    and (entry.getOrganizer().getScene() <> MediaClassHandler.ElementNew)):  # not a "new" scene
                     entryFiltered = True
             if (entryFiltered):
                 entryFiltered = (len(entry.getUnknownElements()) == 0)

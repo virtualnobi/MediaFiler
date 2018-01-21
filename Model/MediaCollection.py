@@ -273,11 +273,11 @@ class MediaCollection(Observable, Observer):
             entry = searching.pop()
             if (((group == None) or (group == entry.isGroup()))
                 and ((path == None) or (path == entry.getPath()))
-                and ((year == None) or (year == entry.organizer.getYearString()))
-                and ((month == None) or (month == entry.organizer.getMonthString()))
-                and ((day == None) or (day == entry.organizer.getDayString()))
-                and ((name == None) or (name == entry.organizer.getName()))
-                and ((scene == None) or (scene == entry.organizer.getScene()))):
+                and ((year == None) or (year == entry.getOrganizer().getYearString()))
+                and ((month == None) or (month == entry.getOrganizer().getMonthString()))
+                and ((day == None) or (day == entry.getOrganizer().getDayString()))
+                and ((name == None) or (name == entry.getOrganizer().getName()))
+                and ((scene == None) or (scene == entry.getOrganizer().getScene()))):
                 return (entry)
             if (entry.isGroup()):
                 # TODO: possible performance improvement
@@ -411,7 +411,7 @@ class MediaCollection(Observable, Observer):
                     if ('True' == self.getConfiguration(GlobalConfigurationOptions.ShowParentAfterRemove)):
                         self.setSelectedEntry(observable.getParentGroup())
                     else:
-                        self.setSelectedEntry(observable.getNextEntry())
+                        self.setSelectedEntry(observable.getNextEntry(observable))
                     break
                 entry = entry.getParentGroup()
             self.changedAspect('size')

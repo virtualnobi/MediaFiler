@@ -26,7 +26,7 @@ from UI import GUIId
 #from .MediaCollection import MediaCollection
 from Model.Entry import Entry
 #from Model.Group import Group
-from Model.MediaOrganization import MediaOrganization
+#from Model.MediaOrganization import MediaOrganization
 from Model.CachingController import CachingController
 from .MediaClassHandler import MediaClassHandler
 
@@ -114,33 +114,33 @@ class Single(Entry):
 
 
 # Setters
-    def renameTo(self, 
-                 number=None, makeUnique=False, 
-                 elements=None, removeIllegalElements=False,
-                 **kwargs):
-        """
-        rootDir=None
-        
-        year=None
-        month=None
-        day=None 
-        name=None
-        scene=None
-        """
-        # possibly remove unknown tags/elements
-        if (elements == None):  # no new elements, re-use existing ones
-            elements = self.getElements()
-        if (removeIllegalElements):  
-            elements = [e for e in elements if self.model.getClassHandler().isLegalElement(e)]
-        if (number): 
-            kwargs['number'] = number
-        kwargs['makeUnique'] = makeUnique
-        if (elements):
-#             kwargs['elements'] = self.model.getClassHandler().elementsToString(elements)
-            kwargs['elements'] = elements
-        kwargs['removeIllegalElements'] = removeIllegalElements
-        newPath = self.organizer.constructPathForSelf(**kwargs) 
-        return(self.renameToFilename(newPath))
+#     def renameTo(self, 
+#                  number=None, makeUnique=False, 
+#                  elements=None, removeIllegalElements=False,
+#                  **kwargs):
+#         """
+#         rootDir=None
+#         
+#         year=None
+#         month=None
+#         day=None 
+#         name=None
+#         scene=None
+#         """
+#         # possibly remove unknown tags/elements
+#         if (elements == None):  # no new elements, re-use existing ones
+#             elements = self.getElements()
+#         if (removeIllegalElements):  
+#             elements = [e for e in elements if self.model.getClassHandler().isLegalElement(e)]
+#         if (number): 
+#             kwargs['number'] = number
+#         kwargs['makeUnique'] = makeUnique
+#         if (elements):
+# #             kwargs['elements'] = self.model.getClassHandler().elementsToString(elements)
+#             kwargs['elements'] = elements
+#         kwargs['removeIllegalElements'] = removeIllegalElements
+#         newPath = self.organizer.constructPathForSelf(**kwargs) 
+#         return(self.renameToFilename(newPath))
 
 
 
@@ -234,7 +234,7 @@ class Single(Entry):
             return(False)
         else:  # organized by name
             # change scene of self
-            if (self.getScene() <> newScene):  # new scene, implies new number
+            if (self.getOrganizer().getScene() <> newScene):  # new scene, implies new number
                 if (newScene == MediaClassHandler.ElementNew):
                     self.idScene = MediaClassHandler.ElementNew
                 elif (int(newScene)):  # numeric scene
@@ -246,14 +246,14 @@ class Single(Entry):
                 # check for collisions of scene+number, incrementing number until no collisions
                 while (not pathNameOk):
                     newPath = os.path.join (self.getDirectory(), 
-                                            (self.getScene() + '-' + self.idNumber + '*'))  # only check for scene+number
+                                            (self.getOrganizer().getScene() + '-' + self.idNumber + '*'))  # only check for scene+number
                     pathNameOk = (len(glob.glob(newPath)) == 0)  # zero hits are required
                     if (not pathNameOk):
                         self.idNumber = ('%03i' % (int(self.number) + 1))  # increase number to check whether it's unused
             # construct element list
             elements = self.getElementString()
             # construct complete path with elements and extension
-            newPath = os.path.join (self.getDirectory(), (self.getScene() + '-' + self.idNumber + elements + '.' + self.getExtension()))
+            newPath = os.path.join (self.getDirectory(), (self.getOrganizer().getScene() + '-' + self.idNumber + elements + '.' + self.getExtension()))
             return(self.renameTo(newPath))
 
 

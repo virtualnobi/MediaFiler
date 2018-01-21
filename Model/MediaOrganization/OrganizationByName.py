@@ -417,9 +417,14 @@ class OrganizationByName(MediaOrganization):
             or (menuId == GUIId.RandomName)):
             if (menuId == GUIId.ChooseName):
                 newName = self.askNewName(parentWindow)
+                if (newName):
+                    message = self.renameMedia(newName)
             else:
                 newName = self.nameHandler.getFreeName()
-            message = self.renameMedia(newName)
+                if (newName):
+                    message = self.renameMedia(newName)
+                else:
+                    message = 'No more free names!'
         elif (menuId == GUIId.ConvertToGroup):
             message = self.convertToGroup()
         elif (menuId == GUIId.RelabelScene):

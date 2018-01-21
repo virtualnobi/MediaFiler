@@ -143,7 +143,10 @@ class MediaOrganization(object):
               and kwargs['number']):
             number = kwargs['number']
         if (number):
-            number = int(number)
+            if (isinstance(number, str)
+                or isinstance(number, unicode)):
+                print('MediaOrganization.constructPath(): Deprecated use of non-numeric number!')
+                number = int(number)
             result = (result + cls.IdentifierSeparator + (cls.FormatNumber % number))
         if (('elements' in kwargs)
             and kwargs['elements']):

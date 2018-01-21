@@ -228,12 +228,11 @@ class Entry(PausableObservable):
 
 
     def renameTo(self, 
-                 classesToRemove=set(),
-                 elements=set(),
+                 classesToRemove=None, elements=None, removeIllegalElements=False,
+                 number=None, makeUnique=False,
                  year=None, month=None, day=None, 
                  name=None, scene=None, 
-                 number=None, makeUnique=False,
-                 removeIllegalElements=False):
+                 **kwargs):
         """Rename self's file, replacing the components as specified. 
        
         If a parameter is None or not given in pathInfo, leave it unchanged. 
@@ -250,36 +249,40 @@ class Entry(PausableObservable):
             Boolean removeIllegalElements
         Return Boolean indicating success
         """
-        if (str(year)
-            or unicode(year)):
+        if (isinstance(year, str)
+            or isinstance(year, unicode)):
             print('Entry.renameTo(): Deprecated usage of String year!')
             year = int(year)
-        if (str(month) 
-            or unicode(month)):
+        if (isinstance(month, str) 
+            or isinstance(month, unicode)):
             print('Entry.renameTo(): Deprecated usage of String month!')
             month = int(month)
-        if (str(day) 
-            or unicode(day)):
+        if (isinstance(day, str) 
+            or isinstance(day, unicode)):
             print('Entry.renameTo(): Deprecated usage of String day!')
             day = int(day)
-        if (str(scene) 
-            or unicode(scene)):
+        if (isinstance(scene, str) 
+            or isinstance(scene, unicode)):
             print('Entry.renameTo(): Deprecated usage of String scene!')
             scene = int(scene)
-        if (str(number) 
-            or unicode(number)):
-            print('Entry.renameTo(): Deprecated usage of String number!')
-            number = int(number)
-        if (removeIllegalElements):
-            elements = filter(self.model.getClassHandler().isLegalElement, elements)
-        for className in classesToRemove: 
-            for tag in self.model.getClassHandler().getElementsOfClassByName(className):
-                elements.discard(tag)
-        kwargs = {'rootDir': self.model.rootDirectory,
-                  'makeUnique': makeUnique,
-                  'extension': self.getExtension(),
-                  'elements': elements,  # self.model.getClassHandler().elementsToString(elements),
-                  'removeIllegalElements': removeIllegalElements}
+        # elements
+        if (classesToRemove):  
+            if (elements == None):  # if classes must be removed, elements must be explicit
+                elements = self.getElements()
+            for className in classesToRemove: 
+                for tag in self.model.getClassHandler().getElementsOfClassByName(className):
+                    elements.discard(tag)
+            kwargs['classesToRemove'] = classesToRemove
+        if (elements):
+            if (removeIllegalElements):
+                elements = filter(self.model.getClassHandler().isLegalElement, elements)
+            kwargs['elements'] = elements
+        kwargs['removeIllegalElements'] = removeIllegalElements
+        # number 
+        if (number): 
+            kwargs['number'] = number
+        kwargs['makeUnique'] = makeUnique
+        # 
         if (year): 
             kwargs['year'] = year
         if (month):
@@ -290,8 +293,6 @@ class Entry(PausableObservable):
             kwargs['name'] = name
         if (scene):
             kwargs['scene'] = scene
-        if (number): 
-            kwargs['number'] = number
         newPath = self.organizer.constructPathForSelf(**kwargs) 
         return(self.renameToFilename(newPath))
 
@@ -385,6 +386,14 @@ class Entry(PausableObservable):
         Return Number
         """
         return(0)
+
+
+    def getOrganizer(self):
+        """Return the MediaOrganization instance associated with self.
+        
+        Return MediaOrganization
+        """
+        return(self.organizer)
 
 
     def getOrganizationIdentifier(self):
