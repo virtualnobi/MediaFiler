@@ -28,7 +28,6 @@ from Model.Group import Group
 #from ..MediaNameHandler import MediaNameHandler
 from ..MediaClassHandler import MediaClassHandler
 from Model.MediaOrganization import MediaOrganization
-from wx import ORIENTATION_MASK
 
 
 
@@ -634,6 +633,8 @@ class OrganizationByDate(MediaOrganization):
                 menu.Append(GUIId.UndoReorder, GUIId.FunctionNames[GUIId.UndoReorder])
             else:
                 menu.Append(GUIId.ReorderByTime, GUIId.FunctionNames[GUIId.ReorderByTime])
+        if (not self.getContext().isGroup()):
+            menu.AppendSubMenu(self.deriveRenumberSubMenu(), GUIId.FunctionNames[GUIId.AssignNumber])
         return(menu)
 
 
@@ -653,7 +654,7 @@ class OrganizationByDate(MediaOrganization):
         elif (menuId == GUIId.UndoReorder):
             return(self.onUndoReorder(parentWindow))
         else:
-            return(super(OrganizationByDate, self).runContextMenuItem(self, menuId, parentWindow))
+            return(super(OrganizationByDate, self).runContextMenuItem(menuId, parentWindow))
 
 
     def getDateTaken(self):
@@ -853,11 +854,11 @@ class OrganizationByDate(MediaOrganization):
         1: they move with their predecessor
         2: they appear at bottom, in current relative order
         
-        Media without a time taken are moved to the following microseconds. 
+        Media without a time taken are moved to the following microseconds, depending on handleUntimedPolicy.
         If these are used by other media, the resulting sort order may be incorrect. 
         0: The first microseconds of the day 
         1: As many microsecond(s) after the last time taken as there are media without time taken
-        2: The last second of the day 
+        2: The first microseconds of the last second of the day 
         
         Number handleUntimedPolicy
         Number stepWidth

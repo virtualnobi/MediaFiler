@@ -32,7 +32,6 @@ from UI import GUIId
 
 # Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
 import UI  # to access UI.PackagePath
-from logging import root
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)
@@ -427,7 +426,7 @@ class MediaCollection(Observable, Observer):
         - the current pathname of the Single (to verify no other changes have been done)
         - the new pathname of the Single
         
-        List of (Single, String, String) pairList 
+        List of (Single, String, String) renameList 
         Return Boolean indicating success 
         """
         renameSequence = []
@@ -438,7 +437,7 @@ class MediaCollection(Observable, Observer):
                 self.__class__.Logger.warning('MediaCollection.renameList(): Entry "%s" was expected to be named "%s"!' % (entry.getPath(), oldPath))
                 return(False)
             if (oldPath == newPath):
-                self.__class__.Logger.warning('MediaCollection.renameList(): Duplicate entry "%s" ignored!' % oldPath)
+                self.__class__.Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % oldPath)
             elif os.path.exists(newPath):
                 tmpElements = set((self.__class__.ReorderTemporaryTag, )).union(entry.getElements())
                 tmpPath = entry.organizer.constructPathForSelf(elements=tmpElements)

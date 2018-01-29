@@ -46,6 +46,7 @@ TextGroupSizeString = _('%d media')
 # Sizes and Ranges
 MaxNumberRecentFiles = 10  # maximum number of stored recent root directories
 MaxNumberScenes = 99  # maximum number of change scene functions
+MaxNumberNumbers = 999 # max number of change number functions
 MaxNumberPerspectives = 10  # maximum number of stored perspectives
 MaxNumberMoveToLocations = 10  # max number of remembered last move-to locations
 
@@ -89,6 +90,9 @@ ConvertToSingle = generateWxIdForLabel(_('Convert to Single'))  # convert a Sing
 RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
 RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Tags'))
 
+AssignNumber = generateWxIdForLabel(_('Move to Number...'))
+for i in xrange(MaxNumberNumbers - 1):  # reserve additional menu items for media numbers
+    wx.NewId()
 ReorderByTime = generateWxIdForLabel(_('Reorder by Time Taken'))
 UndoReorder = generateWxIdForLabel(_('Undo Reordering'))
 

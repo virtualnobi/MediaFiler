@@ -42,10 +42,8 @@ class Entry(PausableObservable):
 
 
 # Constants
+    Logger = logging.getLogger(__name__)
     SpecificationGroup = 'directory'  # Specification for ProductTrader, registering to handle directories
-#    NameSeparator = '.'  # character separating image elements in file name
-#    IdentifierSeparator = '-'  # character separating scene, day, month, year, number in file name
-#    RESeparatorsRecognized = ('[, _' + NameSeparator + IdentifierSeparator + ']')
     CachingLevelThumbnailBitmap = 0
     CachingLevelFullsizeBitmap = 1
     CachingLevelRawData = 2
@@ -101,7 +99,6 @@ class Entry(PausableObservable):
         
         If model is None, the Image's identifiers are not initialized.
         """
-        #path = self.fixNumber(path)
         # inheritance
         super(Entry, self).__init__(['name', 'remove', 'children'])  # legal aspects to observe
         # internal state
@@ -110,6 +107,7 @@ class Entry(PausableObservable):
         self.filteredFlag = False  # initially, no entry is filtered
         self.treeItemID = None  # not inserted into MediaTreePane yet
         self.bitmap = None
+        #path = self.fixNumber(path)
         self.initFromPath(path)
 
 
@@ -187,7 +185,7 @@ class Entry(PausableObservable):
 
     def setTreeItemID(self, treeItemID):
         if (not treeItemID):
-            pass
+            print('Entry.setTreeItemId(): Setting tree item ID to None for %s!' % self.getPath())
         self.treeItemID = treeItemID
 
 
@@ -225,105 +223,6 @@ class Entry(PausableObservable):
             os.rename(oldName, newName)
         except Exception as e: 
             self.__class__.Logger.error('Trashing "%s" failed:\n%s' % (oldName, e))
-
-
-    def renameTo(self, 
-                 classesToRemove=None, elements=None, removeIllegalElements=False,
-                 number=None, makeUnique=False,
-                 year=None, month=None, day=None, 
-                 name=None, scene=None, 
-                 **kwargs):
-        """Rename self's file, replacing the components as specified. 
-       
-        If a parameter is None or not given in pathInfo, leave it unchanged. 
-        If makeUnique is True, find another number to ensure a unique filename.
-        
-        Set of String classesToRemove contains the names of classes whose tags shall be removed
-        Dictionary pathInfo may contain the following keys:
-            <organization-specific keys>
-                String year, month, day 
-                String name, scene 
-            Number number 
-            Boolean makeUnique 
-            Set of String elements 
-            Boolean removeIllegalElements
-        Return Boolean indicating success
-        """
-        if (isinstance(year, str)
-            or isinstance(year, unicode)):
-            print('Entry.renameTo(): Deprecated usage of String year!')
-            year = int(year)
-        if (isinstance(month, str) 
-            or isinstance(month, unicode)):
-            print('Entry.renameTo(): Deprecated usage of String month!')
-            month = int(month)
-        if (isinstance(day, str) 
-            or isinstance(day, unicode)):
-            print('Entry.renameTo(): Deprecated usage of String day!')
-            day = int(day)
-        if (isinstance(scene, str) 
-            or isinstance(scene, unicode)):
-            print('Entry.renameTo(): Deprecated usage of String scene!')
-            scene = int(scene)
-        # elements
-        if (classesToRemove):  
-            if (elements == None):  # if classes must be removed, elements must be explicit
-                elements = self.getElements()
-            for className in classesToRemove: 
-                for tag in self.model.getClassHandler().getElementsOfClassByName(className):
-                    elements.discard(tag)
-            kwargs['classesToRemove'] = classesToRemove
-        if (elements):
-            if (removeIllegalElements):
-                elements = filter(self.model.getClassHandler().isLegalElement, elements)
-            kwargs['elements'] = elements
-        kwargs['removeIllegalElements'] = removeIllegalElements
-        # number 
-        if (number): 
-            kwargs['number'] = number
-        kwargs['makeUnique'] = makeUnique
-        # 
-        if (year): 
-            kwargs['year'] = year
-        if (month):
-            kwargs['month'] = month
-        if (day):
-            kwargs['day'] = day
-        if (name):
-            kwargs['name'] = name
-        if (scene):
-            kwargs['scene'] = scene
-        newPath = self.organizer.constructPathForSelf(**kwargs) 
-        return(self.renameToFilename(newPath))
-
-
-    def renameToFilename(self, fname):
-        """Rename self's file to an absolute filename, register self with new parent, 
-        and register new move-to-location.
-        
-        String fname is the new absolute filename
-        Return Boolean indicating success
-        """
-        print('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
-        (newDirectory, dummy) = os.path.split(fname)  # @UnusedVariable
-        try:
-            if (not os.path.exists(newDirectory)):
-                os.makedirs(newDirectory)
-            os.rename(self.getPath(), fname) 
-        except Exception as e:
-            print('Renaming failed (exception follows)!\n%s' % e)
-            return(False)
-        else:
-            # remove from current group, and add to new group
-            (head, tail) = os.path.split(fname)  # @UnusedVariable
-            newGroup = self.organizer.__class__.getGroupFromPath(head)
-            if (newGroup <> self.getParentGroup()):
-                self.setParentGroup(newGroup)
-            self.initFromPath(fname)  # name must be changed last, otherwise the Group will not find its subentry
-            self.changedAspect('name')
-            self.organizer.__class__.registerMoveToLocation(fname)
-            return(True)
-
 
 
 # Getters
@@ -428,10 +327,11 @@ class Entry(PausableObservable):
             return(self.getFilename())
 
 
-    def getNumber(self):
+    def getNumber(self):  # TODO: remove as it's defined in Single
         """Return the number of self.
         """
-        return(self.organizer.getNumber())
+        print('Entry.getNumber() deprecated')
+        return(self.getOrganizer().getNumber())
 
 
     def getKnownElementsDictionary(self):
@@ -582,6 +482,109 @@ class Entry(PausableObservable):
 
 
 
+# Other API methods
+    def renameTo(self, 
+                 classesToRemove=None, elements=None, removeIllegalElements=False,
+                 number=None, makeUnique=False,
+                 year=None, month=None, day=None, 
+                 name=None, scene=None, 
+                 **kwargs):
+        """Rename self's file, replacing the components as specified. 
+       
+        If a parameter is None or not given in pathInfo, leave it unchanged. 
+        If makeUnique is True, find another number to ensure a unique filename.
+        
+        Set of String classesToRemove contains the names of classes whose tags shall be removed
+        Dictionary pathInfo may contain the following keys:
+            <organization-specific keys>
+                String year, month, day 
+                String name, scene 
+            Number number 
+            Boolean makeUnique 
+            Set of String elements 
+            Boolean removeIllegalElements
+        Return Boolean indicating success
+        """
+        if (isinstance(year, str)
+            or isinstance(year, unicode)):
+            print('Entry.renameTo(): Deprecated usage of String year!')
+            year = int(year)
+        if (isinstance(month, str) 
+            or isinstance(month, unicode)):
+            print('Entry.renameTo(): Deprecated usage of String month!')
+            month = int(month)
+        if (isinstance(day, str) 
+            or isinstance(day, unicode)):
+            print('Entry.renameTo(): Deprecated usage of String day!')
+            day = int(day)
+        if (isinstance(scene, str) 
+            or isinstance(scene, unicode)):
+            print('Entry.renameTo(): Deprecated usage of String scene!')
+            scene = int(scene)
+        # elements
+        if (classesToRemove):  
+            if (elements == None):  # if classes must be removed, elements must be explicit
+                elements = self.getElements()
+            for className in classesToRemove: 
+                for tag in self.model.getClassHandler().getElementsOfClassByName(className):
+                    elements.discard(tag)
+            kwargs['classesToRemove'] = classesToRemove
+        if (elements):
+            if (removeIllegalElements):
+                elements = filter(self.model.getClassHandler().isLegalElement, elements)
+            kwargs['elements'] = elements
+        kwargs['removeIllegalElements'] = removeIllegalElements
+        # number 
+        if (number): 
+            kwargs['number'] = number
+        kwargs['makeUnique'] = makeUnique
+        # 
+        if (year): 
+            kwargs['year'] = year
+        if (month):
+            kwargs['month'] = month
+        if (day):
+            kwargs['day'] = day
+        if (name):
+            kwargs['name'] = name
+        if (scene):
+            kwargs['scene'] = scene
+        newPath = self.organizer.constructPathForSelf(**kwargs) 
+        return(self.renameToFilename(newPath))
+
+
+    def renameToFilename(self, fname):
+        """Rename self's file to an absolute filename, register self with new parent, 
+        and register new move-to-location.
+        
+        String fname is the new absolute filename
+        Return Boolean indicating success
+        """
+        self.__class__.Logger.debug('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
+        print('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
+        (newDirectory, dummy) = os.path.split(fname)  # @UnusedVariable
+        try:
+            if (not os.path.exists(newDirectory)):
+                os.makedirs(newDirectory)
+            os.rename(self.getPath(), fname) 
+        except Exception as e:
+            self.__class__.Logger.error('Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
+            print('Renaming failed (exception follows)!\n%s' % e)
+            return(False)
+        else:
+            # remove from current group, and add to new group
+            (head, tail) = os.path.split(fname)  # @UnusedVariable
+            newGroup = self.organizer.__class__.getGroupFromPath(head)
+            if (newGroup <> self.getParentGroup()):
+                self.setParentGroup(newGroup)
+            self.initFromPath(fname)  # name must be changed last, otherwise the Group will not find its subentry
+            self.changedAspect('name')
+            self.organizer.__class__.registerMoveToLocation(fname)
+            return(True)
+
+
+
+
 ## Getters for organization by name
     def getName(self):
         """Return the name.
@@ -679,7 +682,7 @@ class Entry(PausableObservable):
             or None
         """
         message = None
-        logging.debug('Entry.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
+        self.__class__.Logger.debug('Entry.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.FilterIdentical):
             self.filterImages(True)
         elif (menuId == GUIId.FilterSimilar):
@@ -699,8 +702,7 @@ class Entry(PausableObservable):
         
         Return a String
         """
-#        raise NotImplementedError
-        return('')
+        raise NotImplementedError
 
 
 ## Context Menu Functions

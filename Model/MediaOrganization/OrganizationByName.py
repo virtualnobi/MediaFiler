@@ -363,6 +363,24 @@ class OrganizationByName(MediaOrganization):
 
 
 # Getters
+    def getNumbersInGroup(self):
+        """Return the (ascending) list of Numbers in self's group.
+        
+        TODO: Remove his when OrganizationByName uses embedded Groups for the scene, and let the Group
+        list the numbers. 
+        """
+        return([e.getOrganizer().getNumber() 
+                for e in self.getContext().getParentGroup().getSubEntries() 
+                if ((not e.isGroup())
+                    and (e.getOrganizer().getScene() == self.getScene()))])
+#         result = []
+#         for subentry in self.getContext().getParentGroup().getSubEntries():
+#             if ((not subentry.isGroup()) 
+#                 and (subentry.getOrganizer().getScene() == self.getScene())):
+#                 result.append(subentry.getOrganizer().getNumber())
+#         return(result)
+
+
     def constructPathForSelf(self, **kwargs):
         """
         """
@@ -386,11 +404,14 @@ class OrganizationByName(MediaOrganization):
                 menu.Enable(GUIId.ConvertToSingle, False)
         menu.AppendSeparator()
         # functions applicable to Singles inside named Groups
+        if ((not self.getContext().isGroup())
+            and (not self.isSingleton())):
+            menu.AppendSubMenu(self.deriveRenumberSubMenu(), GUIId.FunctionNames[GUIId.AssignNumber])
         if ((not self.context.isGroup())
             and (not self.isSingleton())):
             sceneMenu = Menu()
             sceneId = GUIId.SelectScene
-            for scene in self.context.getParentGroup().getScenes():
+            for scene in self.getContext().getParentGroup().getOrganizer().getScenes():
                 if (sceneId <= (GUIId.SelectScene + GUIId.MaxNumberScenes)):  # respect max number of scenes in menu
                     #print('Putting %d into scene menu' % sceneId)
                     sceneMenu.Append(sceneId, scene)
@@ -433,11 +454,11 @@ class OrganizationByName(MediaOrganization):
                 self.relabelToScene(newScene)
         elif ((GUIId.SelectScene <= menuId)
               and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
-            newScene = self.context.getParentGroup().getScenes()[menuId - GUIId.SelectScene]
+            newScene = self.getContext().getParentGroup().getOrganizer().getScenes()[menuId - GUIId.SelectScene]
             logging.debug('OrganizationByName.runContextMenu(): Changing scene of "%s" to %s' % (self.getPath(), newScene))
             message = self.context.renameTo(makeUnique=True, scene=newScene)
         else:
-            super(OrganizationByName, self).runContextMenu(menuId, parentWindow)
+            super(OrganizationByName, self).runContextMenuItem(menuId, parentWindow)
         return(message)
 
 
@@ -469,9 +490,9 @@ class OrganizationByName(MediaOrganization):
         Return List of String
         """
         result = []
-        if (self.context.isGroup()):
-            for subEntry in self.context.getSubEntries():
-                scene = subEntry.organizer.getScene()
+        if (self.getContext().isGroup()):
+            for subEntry in self.getContext().getSubEntries():
+                scene = subEntry.getOrganizer().getScene()
                 if (not (scene in result)):
                     result.append(scene)
             result.sort()

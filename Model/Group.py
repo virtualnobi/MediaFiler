@@ -76,6 +76,14 @@ class Group(Entry, Observer):
 
 
 # Setters
+    def addEntryToGroup(self, entry):
+        """Add photoFilerEntry entry to self's collection.
+        """
+        self.subEntriesSorted.insert(entry)
+        entry.addObserverForAspect(self, 'name')
+        self.changedAspect('children')
+
+
     def removeEntryFromGroup(self, entry, notifyObservers=True):
         """Remove an Entry from self.
         
@@ -99,14 +107,6 @@ class Group(Entry, Observer):
             self.changedAspect('children')
     
     
-    def addEntryToGroup(self, entry):
-        """Add photoFilerEntry entry to self's collection.
-        """
-        self.subEntriesSorted.insert(entry)
-        entry.addObserverForAspect(self, 'name')
-        self.changedAspect('children')
-
-
     def remove(self):  # TODO: remove subentries individually for correct MediaCollection size
         # TODO: inform MediaOrganization as well, to release names
         """
@@ -178,12 +178,12 @@ class Group(Entry, Observer):
                 print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newGroup.getPath()))
                 # construct mapping from scenes in current group to scenes in existing target group
                 sceneMap = {}
-                nextFreeScene = (len(newGroup.getScenes()) + 1)
-                if ('99' in newGroup.getScenes()):
+                nextFreeScene = (len(newGroup.getOrganizer().getScenes()) + 1)
+                if ('99' in newGroup.getOrganizer().getScenes()):
                     nextFreeScene = (nextFreeScene - 1)
-                if (MediaClassHandler.ElementNew in newGroup.getScenes()):
+                if (MediaClassHandler.ElementNew in newGroup.getOrganizer().getScenes()):
                     nextFreeScene = (nextFreeScene - 1)
-                for scene in self.getScenes():
+                for scene in self.getOrganizer().getScenes():
                     if (scene == MediaClassHandler.ElementNew):
                         sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
                     else:
@@ -195,7 +195,7 @@ class Group(Entry, Observer):
                     del kwargs['name']
                 # construct an identity scene map
                 sceneMap = {}
-                for scene in self.getScenes():
+                for scene in self.getOrganizer().getScenes():
                     sceneMap[scene] = scene
             print('   with scene mapping %s' % sceneMap)
             # move each subEntry
@@ -210,7 +210,7 @@ class Group(Entry, Observer):
                 kwargs2['elements'] = newElements
                 kwargs2['scene'] = sceneMap[subEntry.getOrganizer().getScene()]
                 subEntry.renameTo(classesToRemove=classesToRemove,
-                                  number=subEntry.getNumber(), 
+                                  number=subEntry.getOrganizer().getNumber(), 
                                   removeIllegalElements=removeIllegalElements,
                                   **kwargs2)
             if (selfToBeDeleted):
@@ -272,13 +272,29 @@ class Group(Entry, Observer):
         else:
             return(result)
 
-    
+
+#     def getNumbersInGroup(self):
+#         """Return an ordered list of numbers used by media directly contained in self.
+#         
+#         At the moment, this is not used, as it will confound numbers of different scenes in the 
+#         OrganizationByName. The Single refers to its getOrganizer() object to derive the numbers, 
+#         which will know about scenes and return only the numbers for the scene of self.
+#
+#         TODO: If needed, can be list comprehension
+#         """
+#         for subentry in self.getSubEntries():
+#             if (not subentry.isGroup()):
+#                 result.append(subentry.getNumber())
+#         return(result)
+
+
     def getScenes(self):  # TODO: remove
         """Return a sorted list of scenes.
         
         Return List of String
         """
-        return(self.organizer.getScenes())
+        print('Group.getScenes() deprecated!')
+        return(self.getOrganizer().getScenes())
 
 
     def getSizeString(self):
@@ -478,9 +494,16 @@ class Group(Entry, Observer):
     def removeNewIndicator(self):
         """Remove the new indicator on all subentries
         """
-        for entry in self.subEntriesSorted:
+        for entry in self.getSubEntries():
             entry.removeNewIndicator()
 
+
+    def renumberMedia(self, pairList):
+        """Renumber media grouped in self according to pairList.
+        
+        List pairList contains pairs of numbers indicating the current and new number.
+        """
+        pass
 
 
 # Internal - to change without notice
@@ -501,4 +524,3 @@ class Group(Entry, Observer):
 
 # Class Initialization
 Installer.getProductTrader().registerClassFor(Group, Entry.SpecificationGroup)  # register Group to handle directories
-    

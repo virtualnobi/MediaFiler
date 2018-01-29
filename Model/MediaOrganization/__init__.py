@@ -67,6 +67,7 @@ class MediaOrganization(object):
 
 
 # Class Variables
+    Logger = logging.getLogger(__name__)
     ImageFilerModel = None  # to access legal names 
     MoveToLocations = []  # last move-to locations for repeated moving; no concurrent usage of subclasses!
     
@@ -323,6 +324,12 @@ class MediaOrganization(object):
 
 
 # Getters
+    def getContext(self):
+        """Return the Entry which is organized by self.
+        """
+        return(self.context)
+
+
     def getPath(self):
         return(self.path)
 
@@ -338,12 +345,65 @@ class MediaOrganization(object):
         return(self.number)
 
 
+    def getNumbersInGroup(self):
+        """Return the (ascending) list of Numbers in self's group.
+         
+        TODO: Remove his when OrganizationByName uses embedded Groups for the scene, and let the Group
+        list the numbers. 
+        """
+        return([e.getOrganizer().getNumber() 
+                for e in self.getContext().getParentGroup().getSubEntries() 
+                if (not e.isGroup())])
 
-    # These getters must be defined in the respective subclasses
+
     def extendContextMenu(self, menu):
+        """
+        The AssignNumber function will be added in subclasses, as it's not applicable to singletons in organization by name.
+        """
         pass
+
+
+# Other API functions
+    def deriveRenumberSubMenu(self):
+        """Return the wx.Menu containing the renumber possibilities (GUIId.AssignNumber).
+
+        Run through the list of numbers used in self's parent group, 
+        - if there's a gap between two neighbor numbers, use the smallest number in the gap.
+        - if the neighbor numbers are successive (i.e., only +1 apart), use the higher number.
+        """
+        renumberList = []
+        groupNumbers = self.getNumbersInGroup()
+        lastNumber = 0
+        for currentNumber in groupNumbers:
+            renumberList.append(lastNumber + 1)
+            if (len(renumberList) == GUIId.MaxNumberNumbers):
+                break
+            lastNumber = currentNumber
+        renumberList.append(lastNumber + 1)
+        assignNumberMenu = wx.Menu()
+        for i in renumberList:
+            assignNumberMenu.Append((GUIId.AssignNumber + i), str(i))
+            if (i == self.getNumber()):
+                assignNumberMenu.Enable((GUIId.AssignNumber + i), False)
+        return(assignNumberMenu)
+
+
     def runContextMenuItem(self, menuId, parentWindow):  # @UnusedVariable
-        logging.error('MediaOrganization.runContextMenu(): Unhandled function %d on "%s"!' % (menuId, self.context.getPath()))
+        """
+        Number menuId
+        wx.Window parentWindow to display messages
+        Return String describing execution status
+        """
+        if ((GUIId.AssignNumber <= menuId)
+            and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
+            number = (menuId - GUIId.AssignNumber)
+            self.__class__.Logger.debug('MediaOrganization.runContextMenu(): Renaming to number %d' % number)
+            return(self.renumberTo(number))
+        else:
+            self.__class__.Logger.error('MediaOrganization.runContextMenu(): Unhandled function %d on "%s"!' % (menuId, self.getContext().getPath()))
+
+    
+    # These getters must be defined in the respective subclasses
     # OrganizationByName only
     def getName(self):
         return(None)
@@ -427,4 +487,38 @@ class MediaOrganization(object):
             except:
                 return(None)
         return(result)
+
+
+# Internal
+    def renumberTo(self, newNumber):
+        """Renumber Singles in self's parent group so that self can change to the given number.
+        """
+        print('MediaOrganization.renumberTo(): Assigning new number %d' % newNumber)
+        currentNumberToEntryMap = {}
+        for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
+            currentNumberToEntryMap[entry.getOrganizer().getNumber()] = entry
+        selfNumber = self.getNumber()
+        currentNumbers = [i for i in currentNumberToEntryMap.keys() if ((newNumber <= i) and (i <> selfNumber))]
+        numberPairList = []
+        if (0 < len(currentNumbers)):
+            lastUsed = currentNumbers[0]
+            for i in currentNumbers:
+                if (lastUsed < i):  # a gap where renumbering can stop
+                    break
+                if ((newNumber < selfNumber)  # moving a media to the front
+                    and (selfNumber <= lastUsed)):  # and passing the former number of media, which is a gap
+                    break
+                lastUsed = (i+1)
+                numberPairList.append((i, lastUsed))
+        numberPairList.append((selfNumber, newNumber))
+        print('MediaOrganization.renumberTo(): Mapping numbers %s' % numberPairList)
+        renameList = []
+        for (now, then) in numberPairList:
+            entry = currentNumberToEntryMap[now]
+            renameList.append((entry, entry.getPath(), entry.getOrganizer().constructPathForSelf(number=then)))
+        print('...: Mapping names %s' % renameList)
+        if (self.__class__.ImageFilerModel.renameList(renameList)):
+            return(_('%d media renumbered' % len(renameList)))
+        else:
+            return(_('Renumbering failed!'))
 

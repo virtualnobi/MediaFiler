@@ -165,6 +165,13 @@ class Single(Entry):
         Return wx.Menu
         """
         menu = super(Single, self).getContextMenu()
+#         # renumber
+#         assignNumberMenu = wx.Menu()
+#         for i in self.deriveRenumberList():
+#             assignNumberMenu.Append((GUIId.AssignNumber + i), str(i))
+#             if (i == self.getOrganizer().getNumber()):
+#                 assignNumberMenu.Enable((GUIId.AssignNumber + i), False)
+#         menu.AppendSubMenu(assignNumberMenu, GUIId.FunctionNames[GUIId.AssignNumber])
         # external viewer
         menu.insertAfterId(GUIId.FilterSimilar, newText=GUIId.FunctionNames[GUIId.StartExternalViewer], newId=GUIId.StartExternalViewer)
         if ((not self.__class__.getConfigurationOptionExternalViewer()) 
@@ -189,7 +196,9 @@ class Single(Entry):
         self.__class__.Logger.debug('Single.runContextMenu(): Function %d on "%s"',
                                     menuId, 
                                     self.getPath())
-        # TODO: move scene functions to OrganizationByName
+#         if ((GUIId.AssignNumber <= menuId)
+#             and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
+#             self.renumberTo(menuId - GUIId.AssignNumber)
         if (menuId == GUIId.StartExternalViewer):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):
@@ -425,4 +434,5 @@ class Single(Entry):
             emailClient = emailClient.replace(GlobalConfigurationOptions.Parameter, self.getPath())
             commandArgs = shlex.split(emailClient)
             subprocess.call(commandArgs, shell=False)
+
 

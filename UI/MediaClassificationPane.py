@@ -188,16 +188,32 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def onSelect (self, event):  # @UnusedVariable
         """User changed selection.
         """
+        change = ''
+        groupBox = event.GetEventObject()
+        groupName = '-'
+        for name in self.selectionBoxes: 
+            if (groupBox == self.selectionBoxes[name]):
+                groupName = name
+                break
         if (isinstance(event, CheckBoxGroupEvent)):
-            checkBoxGroup = event.GetEventObject()
-            if (checkBoxGroup.isChecked(self.__class__.ClassDontChangeIndex)
+            if (groupBox.isChecked(self.__class__.ClassDontChangeIndex)
                 and (event.index <> self.__class__.ClassDontChangeIndex)
                 and (event.value == True)):
-                checkBoxGroup.setValue(self.__class__.ClassDontChangeIndex, False)
-            elif (checkBoxGroup.isChecked(self.__class__.ClassDontChangeIndex)
+                groupBox.setValue(self.__class__.ClassDontChangeIndex, False)
+                change = ('added tag %s in check group %s' % (groupBox.getItemLabel(event.index), groupName))
+            elif (groupBox.isChecked(self.__class__.ClassDontChangeIndex)
                   and (event.index == self.__class__.ClassDontChangeIndex)):
-                checkBoxGroup.clearAll()
-                checkBoxGroup.setValue(self.__class__.ClassDontChangeIndex, True)
+                groupBox.clearAll()
+                groupBox.setValue(self.__class__.ClassDontChangeIndex, True)
+                change = ('removed check group %s' % groupName)
+            else:
+                change = ('%s tag %s in check group %s' % (('added' if event.value else 'removed'), 
+                                                           groupBox.getItemLabel(event.index),
+                                                           groupName))
+        else:  # RadioBox event
+            change = ('changed to tag %s in radio group %s' % (groupBox.GetItemLabel(groupBox.GetSelection()), 
+                                                               groupName))
+        print('MediaClassificationPane.onSelect(): %s' % change)
 #         elements = set()
 #         classMapping = self.getClassification()
 #         for className in classMapping:

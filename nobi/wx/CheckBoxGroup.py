@@ -83,6 +83,7 @@ class CheckBoxGroup(wx.Panel):
         super(CheckBoxGroup, self).__init__(parent, ident, **kwargs)  # pos, size, style, validator, name)
         # internal state
         self.handlerFunction = handlerFunction
+        self.groupLabel = label
         self.labels = choices
         self.checkBoxes = []
         # sizing of the grid
@@ -106,7 +107,7 @@ class CheckBoxGroup(wx.Panel):
         #
         gbSizer = wx.GridBagSizer(vgap=vgap, hgap=hgap)
         gbSizer.SetEmptyCellSize((5, 5))  # otherwise, it's (10, 20)
-        gbSizer.Add(item=wx.StaticText(self, -1, label), pos=(0, 0), span=(1, self.columnCount))
+        gbSizer.Add(item=wx.StaticText(self, -1, self.groupLabel), pos=(0, 0), span=(1, self.columnCount))
         col = 0
         row = 1
         for choice in choices:
@@ -187,6 +188,12 @@ class CheckBoxGroup(wx.Panel):
 
         
 # Getters
+    def getLabel(self):
+        """Return the label of the CheckBoxGroup.
+        """
+        return(self.groupLabel)
+
+
     def getCount(self): 
         """Return the number of items in self.
         """
@@ -234,7 +241,7 @@ class CheckBoxGroup(wx.Panel):
         return(self.getValue(index))
 
 
-    def findLabel(self, label, caseSensitive=True):
+    def findItemLabel(self, label, caseSensitive=True):
         """Return the index of the given label. 
         
         Return Number
@@ -250,7 +257,7 @@ class CheckBoxGroup(wx.Panel):
                     return(0)
                 index = (index + 1)
             raise ValueError, ('"%s" not a label in "%s"' % (label, self))
-        raise RuntimeError, ('CheckBoxGroup.findLabel() should never reach this statement!')
+        raise RuntimeError, ('CheckBoxGroup.findItemLabel() should never reach this statement!')
 
 
     def getItemLabel(self, index):
@@ -316,7 +323,7 @@ class CheckBoxGroup(wx.Panel):
         """
         if (isinstance(indexOrLabel, str)
              or isinstance(indexOrLabel, unicode)):
-            index = self.findLabel(indexOrLabel, caseSensitive)
+            index = self.findItemLabel(indexOrLabel, caseSensitive)
         elif (isinstance(indexOrLabel, int)):
             if ((0 <= indexOrLabel) 
                 and (indexOrLabel <= self.getCount())):
