@@ -18,6 +18,8 @@ import logging
 import time
 import cProfile
 import pstats
+#import types
+import pkgutil
 ## contributed
 import wx.aui
 import wx.lib.dialogs
@@ -90,6 +92,11 @@ class MediaFiler (wx.Frame, Observer, Observable):
 #    ConfigurationOptionMaximizeOnStart = 'maximize-on-start'
 #    ConfigurationOptionTextEditor = 'editor-text'
 
+
+
+# Class Variables
+    LogHandlerInteractive = logging.StreamHandler()  # logging handler to output to visible pane
+    LogHandlerFile = None  # logging handler to output to file
 
 
 ## Lifecycle
@@ -295,10 +302,27 @@ class MediaFiler (wx.Frame, Observer, Observable):
         menuItem = wx.MenuItem(self.toolsMenu, GUIId.EditNames, GUIId.FunctionNames[GUIId.EditNames])
         self.menuItemsByName.append(menuItem)
         self.toolsMenu.AppendItem(menuItem)
+        self.toolsMenu.AppendSeparator()
+        self.toolsMenu.AppendSubMenu(self.getLoggingMenu(), GUIId.FunctionNames[GUIId.ManageLogging])
 #        tools_menu.AppendSeparator()
 # TODO:        tools_menu.Append(GUIId.HarvestURLs, GUIId.FunctionNames[GUIId.HarvestURLs])
         
-        
+
+    def getLoggingMenu(self):
+        """Return a menu of checkbox items for all modules, to control logging
+        """        
+        result = wx.Menu()
+        modules = self.getLoggableModules()
+        cnt = 0
+        for module in modules:
+            result.AppendCheckItem((GUIId.ManageLogging + cnt), module)
+            cnt = (cnt + 1)
+            if (GUIId.MaxNumberLogging < cnt):
+                break
+        # TODO: store & retrieve logging state from configuration
+        return(result)
+
+
     def createLogPane (self):
         # Create the log for import tests
         self.logPane = wx.Panel(self)
@@ -334,6 +358,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         # - tools menu
         self.Bind(wx.EVT_MENU, self.onEditClasses, id=GUIId.EditClasses)
         self.Bind(wx.EVT_MENU, self.onEditNames, id=GUIId.EditNames)
+        self.Bind(wx.EVT_MENU, self.onLoggingChanged, id=GUIId.ManageLogging, id2=(GUIId.ManageLogging + GUIId.MaxNumberLogging))
         self.Bind(wx.EVT_MENU, self.onHarvestURLs, id=GUIId.HarvestURLs)
         # general events
         #        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -622,6 +647,23 @@ class MediaFiler (wx.Frame, Observer, Observable):
             print('Not supported!')
     
 
+    def onLoggingChanged(self, event):
+        """User toggled logging for some module. 
+        """
+        menuId = event.GetId()
+        state = event.GetEventObject().IsChecked(menuId)
+        moduleName = self.getLoggableModules()[(menuId - GUIId.ManageLogging)]
+        print('Turning logging %s for %s' % (('On' if state else 'Off'), moduleName))
+        if (state):
+            logging.getLogger(moduleName).addHandler(self.__class__.LogHandlerInteractive)
+            logging.getLogger(moduleName).debug('User turned on logging for %s' % moduleName)
+        else:
+            logging.getLogger(moduleName).debug('User turned off logging for %s' % moduleName)
+            logging.getLogger(moduleName).removeHandler(self.__class__.LogHandlerInteractive)
+        # TODO: store in configuration
+    
+
+
     def onHarvestURLs(self, event):  # @UnusedVariable
         """When image collection is organized by name, ask for URL to harvest images.
         """
@@ -684,6 +726,25 @@ class MediaFiler (wx.Frame, Observer, Observable):
 
 
 # Other API Functions
+    def getLoggableModules(self):
+        """Return a list of all MediaFiler modules, for toggling logging on the UI.
+        """
+        result = []
+        def findNames(prefix, pathList):
+            print('Looking at %s' % pathList)
+            for dummy, moduleName, isPackage in pkgutil.iter_modules(pathList):
+                if (moduleName.find('test') <> 0):
+                    result.append(prefix + '.' + moduleName)
+                    if (isPackage):
+                        findNames((prefix + '.' + moduleName),
+                                  [os.path.join(pathList[0], moduleName)])
+        import Model
+        findNames('Model', Model.__path__)
+        import UI  # @Reimport
+        findNames('UI', UI.__path__)
+        return(result)
+
+
     def displayInfoMessage(self, aString):
         """Display aString in the main window's status bar. 
         """
@@ -764,17 +825,6 @@ if __name__ == "__main__":
         logHandler.setFormatter(logFormatter)
         logging.getLogger().addHandler(logHandler)
         logging.debug('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
-#        logging.getLogger('Model.MediaCollection').addHandler(logging.StreamHandler())
-#        logging.getLogger('Model.CachingController').addHandler(logging.StreamHandler())
-        logging.getLogger('Model.Entry').addHandler(logging.StreamHandler())
-        logging.getLogger('Model.Entry').debug('HI Entry')
-        logging.getLogger('Model.Single').addHandler(logging.StreamHandler())
-        logging.getLogger('Model.Single').debug('HI Single')        
-#        logging.getLogger('Model.Single').addHandler(logging.StreamHandler())
-#        logging.getLogger('Model.MediaOrganization.OrganizationByDate').addHandler(logging.StreamHandler())
-#        logging.getLogger('UI.MediaClassificationPane').addHandler(logging.StreamHandler())
-#        logging.getLogger('UI.MediaTreePane').addHandler(logging.StreamHandler())
-        logging.getLogger('UI.Importing').addHandler(logging.StreamHandler())
         frame.Show()
         frame.setModel(Installer.getMediaPath())
         if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):

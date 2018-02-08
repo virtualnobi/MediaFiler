@@ -8,18 +8,15 @@
 import gettext
 import os.path
 import logging
-#import datetime
 ## contributed
 import wx.lib.scrolledpanel
 import wx.calendar
-#from wxPython._misc import wxDateTime
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
-# from Model.Entry import Entry
 from Model.Single import Single
 
 

@@ -217,20 +217,6 @@ class Single(Entry):
             self.renameTo()
 
 
-#     def convertToGroup(self):
-#         """Convert the current Single to a Group with the same name.
-#          
-#         This function is only called on singletons organized by name.
-#         """
-#         # TODO: move to OrganizationByName
-#         print('Single.convertToGroup() deprecated')
-#         raise DeprecationWarning
-#         print('Converting "%s" to a group' % self.getPath())
-#         newGroup = Group.createFromName(self.model, self.organizer.getName())
-#         self.setParentGroup(newGroup)
-#         self.renameTo(scene='1', number='1')
-
-
     def changeScene (self, newScene):
         """Change the scene number of self.
         

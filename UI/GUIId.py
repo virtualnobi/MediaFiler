@@ -49,7 +49,7 @@ MaxNumberScenes = 99  # maximum number of change scene functions
 MaxNumberNumbers = 999 # max number of change number functions
 MaxNumberPerspectives = 10  # maximum number of stored perspectives
 MaxNumberMoveToLocations = 10  # max number of remembered last move-to locations
-
+MaxNumberLogging = 30  # max number of modules to toggle logging
 
 
 # Status Bar components
@@ -146,6 +146,9 @@ RenameElement = generateWxIdForLabel(_('Rename Tag'))
 EditClasses = generateWxIdForLabel(_('Edit Tag Classes'))
 EditNames = generateWxIdForLabel(_('Edit Names'))
 HarvestURLs = generateWxIdForLabel(_('Harvest from URL...'))
+ManageLogging = generateWxIdForLabel(_('Manage Logging...'))
+for i in xrange(MaxNumberLogging - 1):
+    wx.NewId()
 
 ## Importing
 BrowseImportDirectory = generateWxIdForLabel(_('Browse'))
