@@ -14,7 +14,6 @@ from __future__ import print_function
 
 
 
-
 # Constants
 Parameter = '%1'
 
@@ -23,6 +22,7 @@ TextEditor = 'editor-text'
 MaximizeOnStart = 'maximize-on-start'
 LastPerspective = 'last-perspective'
 LastMedia = 'last-media'
+LastLoggedModules = 'last-logged-modules'
 
 ShowParentAfterRemove = 'show-parent-after-remove'
 

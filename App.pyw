@@ -650,9 +650,11 @@ class MediaFiler (wx.Frame, Observer, Observable):
     def onLoggingChanged(self, event):
         """User toggled logging for some module. 
         """
+        menu = event.GetEventObject()
         menuId = event.GetId()
-        state = event.GetEventObject().IsChecked(menuId)
-        moduleName = self.getLoggableModules()[(menuId - GUIId.ManageLogging)]
+        state = menu.IsChecked(menuId)
+        loggableModules = self.getLoggableModules()
+        moduleName = loggableModules[(menuId - GUIId.ManageLogging)]
         print('Turning logging %s for %s' % (('On' if state else 'Off'), moduleName))
         if (state):
             logging.getLogger(moduleName).addHandler(self.__class__.LogHandlerInteractive)
@@ -660,7 +662,9 @@ class MediaFiler (wx.Frame, Observer, Observable):
         else:
             logging.getLogger(moduleName).debug('User turned off logging for %s' % moduleName)
             logging.getLogger(moduleName).removeHandler(self.__class__.LogHandlerInteractive)
-        # TODO: store in configuration
+        loggedModules = [name for name in loggableModules if menu.IsChecked(menu.FindItem(name))]
+        self.model.setConfiguration(GlobalConfigurationOptions.LastLoggedModules,
+                                    ' '.join(loggedModules))
     
 
 
@@ -669,7 +673,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """
 #         if (not self.model.organizedByDate):
 #             dialog = URLHarvester.InputDialog.InputDialog(self, -1, self.model)
-#             dialog.setSourceURL('http://nudemodel.pics/errotica-archives/nessa-cigarillo/')
+#             dialog.setSourceURL('')
 #             dialog.setLevels(2)
 #             if (dialog.ShowModal() == wx.ID_OK):
 #                 dialog.execute()
@@ -721,30 +725,10 @@ class MediaFiler (wx.Frame, Observer, Observable):
             self.statusbar.Show()
         else:
             print 'Unhandled change of aspect %s in observable %s' % (aspect, observable)
-#            pass
 
 
 
 # Other API Functions
-    def getLoggableModules(self):
-        """Return a list of all MediaFiler modules, for toggling logging on the UI.
-        """
-        result = []
-        def findNames(prefix, pathList):
-            print('Looking at %s' % pathList)
-            for dummy, moduleName, isPackage in pkgutil.iter_modules(pathList):
-                if (moduleName.find('test') <> 0):
-                    result.append(prefix + '.' + moduleName)
-                    if (isPackage):
-                        findNames((prefix + '.' + moduleName),
-                                  [os.path.join(pathList[0], moduleName)])
-        import Model
-        findNames('Model', Model.__path__)
-        import UI  # @Reimport
-        findNames('UI', UI.__path__)
-        return(result)
-
-
     def displayInfoMessage(self, aString):
         """Display aString in the main window's status bar. 
         """
@@ -803,8 +787,39 @@ class MediaFiler (wx.Frame, Observer, Observable):
             self.GetMenuBar().Enable(GUIId.EditNames, enable=False)
 
 
+    def getLoggableModules(self):
+        """Return a list of all MediaFiler modules, for toggling logging on the UI.
+        """
+        result = []
+        def findNames(prefix, pathList):
+            print('Looking at %s' % pathList)
+            for dummy, moduleName, isPackage in pkgutil.iter_modules(pathList):
+                if (moduleName.find('test') <> 0):
+                    result.append(prefix + '.' + moduleName)
+                    if (isPackage):
+                        findNames((prefix + '.' + moduleName),
+                                  [os.path.join(pathList[0], moduleName)])
+        import Model
+        findNames('Model', Model.__path__)
+        import UI  # @Reimport
+        findNames('UI', UI.__path__)
+        print('App.getLoggableModules(): Returning %s' % result)
+        return(result)
 
-# Functions
+
+    def setLoggedModules(self):
+        """
+        """
+        loggedModules = self.model.getConfiguration(GlobalConfigurationOptions.LastLoggedModules).split(' ')
+        if ('' in loggedModules):
+            loggedModules.remove('')
+        for moduleName in loggedModules:
+            print('App.setLoggedModules(): Continuing to log "%s"' % moduleName)
+            self.toolsMenu.Check(self.toolsMenu.FindItem(moduleName), True)
+            logging.getLogger(moduleName).addHandler(MediaFiler.LogHandlerInteractive)
+
+
+
 # section: Executable script
 if __name__ == "__main__":
     fname = os.path.join(Installer.InstallationPath, (Installer.LogFilename % 1))
@@ -829,6 +844,7 @@ if __name__ == "__main__":
         frame.setModel(Installer.getMediaPath())
         if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
             logging.debug('App.__main__(): Maximizing window')
-            frame.Maximize(True)            
+            frame.Maximize(True)
+        frame.setLoggedModules()
         app.MainLoop()
     

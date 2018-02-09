@@ -20,6 +20,7 @@ import Installer
 from .Entry import Entry
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
+from __builtin__ import classmethod
 #import MediaFiler.Organization  
 
 
@@ -43,7 +44,29 @@ class Group(Entry, Observer):
 # Class Variables
 # Class Methods
     @classmethod
-    def createFromName(cls, model, name):
+    def createAndPersist(cls, model, **kwargs):
+        """Create a new Group including its directory and link it to its parent.
+        
+        MediaCollection model
+        Dictionary kwargs either contains String path, or parameters for MediaOrganization.constructPath()
+        Returns a Group
+        """
+        if ('path' in kwargs):
+            path = kwargs['path']
+        else:
+            path = model.organizationStrategy.constructPath(kwargs)
+        cls.Logger.debug('Group.createAndPersist(): New group for "%s"' % path)
+        newGroup = Group(model, path)
+        parent = model.organizationStrategy.findParentForPath(path)
+        cls.Logger.debug('Group.createAndPersist(): Parent found at "%s"' % parent.getPath())
+        newGroup.setParent(parent)
+        cls.Logger.debug('Group.createAndPersist(): Creating directory "%s"' % path)
+        os.mkdir(path)
+        return(newGroup)
+
+
+    @classmethod
+    def createFromName(cls, model, name):  # TODO: replace by createAndPersist()
         """Create a new Group for name.
         
         model an imageFilerModel 
@@ -70,8 +93,8 @@ class Group(Entry, Observer):
         # internal state
         self.subEntriesSorted = SortedCollection(key=Entry.getPath)
         # TODO: have subentries sorted with Entrys first, then Groups. 
-        # TODO: idea 1 - manage list with custom sort function
-        # TODO: idea 2 - keep SortedCollections for Entry and Group separately
+        # - idea 1 - manage list with custom sort function
+        # - idea 2 - keep SortedCollections for Entry and Group separately
 
 
 
@@ -124,34 +147,35 @@ class Group(Entry, Observer):
         #TODO: refactor/redesign/redo!
         """
         result = True
+        selfToBeDeleted = False
         if (('number' in kwargs)
             and kwargs['number']):
             logging.error('Group.renameTo(): No number allowed!')
             return(False)
-#        elements = (kwargs['elements'] if 'elements' in kwargs else None)
         removeIllegalElements = (kwargs['removeIllegalElements'] if 'removeIllegalElements' in kwargs else None)
         if (self.model.organizedByDate):  # TODO: move to OrganizationByDate
+            # ensure new group exists
             year = (kwargs['year'] if 'year' in kwargs else None)
             month = (kwargs['month'] if 'month' in kwargs else None)
             day = (kwargs['day'] if 'day' in kwargs else None)
             if ((year <> self.organizer.getYear())
                 or (month <> self.organizer.getMonth())
                 or (day <> self.organizer.getDay())):
+                selfToBeDeleted = True
                 if (not self.model.getEntry(year=year, month=month, day=day)):
                     newPath = self.model.organizationStrategy.constructPath(**kwargs)
                     newParent = Group(self.model, newPath)
                     if (not newParent):
                         logging.error('Group.renameTo(): Cannot create new Group "%s"' % newPath)
                         return(False)
+            # move subentries to new group
             for subEntry in self.getSubEntries(filtering=True):
                 newElements = subEntry.getElements().union(elements)
-#                kwargs['elements'] = newElements
                 result = (result 
                           and subEntry.renameTo(classesToRemove=classesToRemove, 
                                                 elements=newElements, 
                                                 **kwargs))
         else:  # organized by name  TODO: move to OrganizationByName
-            selfToBeDeleted = False
             if (('name' in kwargs)
                 and (kwargs['name'] <> self.organizer.getName())):
                 name = kwargs['name']
@@ -164,24 +188,26 @@ class Group(Entry, Observer):
                                                        removeIllegalElements=removeIllegalElements))
                 elif (existingEntry.isGroup()):
                     print('Group "%s" exists' % name)
-                    newGroup = existingEntry
+                    newParent = existingEntry
                     selfToBeDeleted = True
                 else:  # existingEntry is a Single
                     print('Single "%s" exists' % name)
-                    newGroup = Group.createFromName(self.model, name)
-                    newGroup.setParent(self.model.getEntry(group=True, name=name[0:1]))
+                    newPath = self.model.organizationStrategy.constructPath(name=name)
+                    newParent = Group.createFromName(self.model, name)
+                    assert (newPath == newParent.getPath()), 'Path of new parent differs!'
+                    newParent.setParent(self.model.getEntry(group=True, name=name[0:1]))
                     existingEntry.renameTo(classesToRemove=classesToRemove,
                                            name=name, 
                                            scene='1', 
                                            makeUnique=True)
                     selfToBeDeleted = True
-                print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newGroup.getPath()))
+                print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newParent.getPath()))
                 # construct mapping from scenes in current group to scenes in existing target group
                 sceneMap = {}
-                nextFreeScene = (len(newGroup.getOrganizer().getScenes()) + 1)
-                if ('99' in newGroup.getOrganizer().getScenes()):
+                nextFreeScene = (len(newParent.getOrganizer().getScenes()) + 1)
+                if ('99' in newParent.getOrganizer().getScenes()):
                     nextFreeScene = (nextFreeScene - 1)
-                if (MediaClassHandler.ElementNew in newGroup.getOrganizer().getScenes()):
+                if (MediaClassHandler.ElementNew in newParent.getOrganizer().getScenes()):
                     nextFreeScene = (nextFreeScene - 1)
                 for scene in self.getOrganizer().getScenes():
                     if (scene == MediaClassHandler.ElementNew):
@@ -213,9 +239,10 @@ class Group(Entry, Observer):
                                   number=subEntry.getOrganizer().getNumber(), 
                                   removeIllegalElements=removeIllegalElements,
                                   **kwargs2)
-            if (selfToBeDeleted):
-                self.remove()
-                self.model.setSelectedEntry(newGroup)
+        if (selfToBeDeleted):
+            if (self.model.getSelectedEntry() == self):
+                self.model.setSelectedEntry(newParent)
+            self.remove()
         return(result)
 
 
