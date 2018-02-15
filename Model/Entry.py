@@ -56,7 +56,7 @@ class Entry(PausableObservable):
     def isLegalExtension(self, extension):
         """Check whether extension denotes a file type which is handled by Entry or its subclasses.
         
-        String extension is the file name extension (upper and lower case handled)
+        String extension is the file name extension (without '.', upper and lower case handled)
         Return Boolean indicating whether extension is handled by Entry
         """
         try:
@@ -68,16 +68,14 @@ class Entry(PausableObservable):
 
     @classmethod
     def createInstance(self, model, path):
-        """Return an instance of (a subclass of) Entry to represent the file at path, using model.
+        """Return an instance of (a subclass of) Entry to represent a media file.
 
-        BaseException when no subclass of Entry registered to handle the file type
+        Raise BaseException when no subclass of Entry registered to handle the file's type
         
         model imageFilerModel
         path String
         Returns an instance of (a subclass of) Entry 
         """
-        clas = None
-        # determine which class to instantiate
         if (os.path.isdir(path)):
             clas = Installer.getProductTrader().getClassFor(self.SpecificationGroup)
         else:
@@ -88,7 +86,6 @@ class Entry(PausableObservable):
             except:  # probably extension has no class registered to handle it
                 logging.error('Entry.createInstance(): No class registered to instantiate "%s" media "%s"!' % (extension, path))
                 return(None)
-        # instantiate
         return(clas(model, path))
 
 
@@ -117,7 +114,8 @@ class Entry(PausableObservable):
         self.setPath(os.path.normpath(path))
         (directory, rest) = os.path.split(self.getPath())
         self.setDirectory(directory)
-        (rest, extension) = os.path.splitext(rest)
+        (fname, extension) = os.path.splitext(rest)
+        self.setFilename(fname)
         if (extension == ''):
             self.setExtension(extension)
         else:
@@ -126,10 +124,9 @@ class Entry(PausableObservable):
         if (self.isGroup() 
             and (self.getExtension() <> '')):
             print('Group "%s" should not use an extension' % self.getPath())
-        self.setFilename(rest)
-        elementStart = rest.find(MediaClassHandler.TagSeparator)
+        elementStart = fname.find(MediaClassHandler.TagSeparator)
         if (0 <= elementStart):
-            elements = rest[elementStart:]
+            elements = fname[elementStart:]
             (known, unknown) = self.model.getClassHandler().stringToKnownAndUnknownElements(elements)
             self.setKnownElementsDictionary(known)
             self.setUnknownElements(unknown)

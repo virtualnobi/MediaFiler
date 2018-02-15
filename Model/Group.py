@@ -65,23 +65,23 @@ class Group(Entry, Observer):
         return(newGroup)
 
 
-    @classmethod
-    def createFromName(cls, model, name):  # TODO: replace by createAndPersist()
-        """Create a new Group for name.
-        
-        model an imageFilerModel 
-        name a String containing the path of the media file
-        Returns a Group
-        """
-        if (model.organizedByDate):
-            raise('Named Groups cannot be created when images are organized by date!')
-        else:  # organized by name
-            groupDirectory = os.path.join(model.rootDirectory, name[0:1], name)
-            if (not os.path.exists(groupDirectory)):
-                print('Creating new folder "%s"' % groupDirectory)
-                os.makedirs(groupDirectory)
-            newGroup = cls(model, groupDirectory)
-            return(newGroup)
+#     @classmethod
+#     def createFromName(cls, model, name):  # TODO: replace by createAndPersist()
+#         """Create a new Group for name.
+#         
+#         model an imageFilerModel 
+#         name a String containing the path of the media file
+#         Returns a Group
+#         """
+#         if (model.organizedByDate):
+#             raise('Named Groups cannot be created when images are organized by date!')
+#         else:  # organized by name
+#             groupDirectory = os.path.join(model.rootDirectory, name[0:1], name)
+#             if (not os.path.exists(groupDirectory)):
+#                 print('Creating new folder "%s"' % groupDirectory)
+#                 os.makedirs(groupDirectory)
+#             newGroup = cls(model, groupDirectory)
+#             return(newGroup)
 
 
 
@@ -140,41 +140,40 @@ class Group(Entry, Observer):
 
     def renameTo(self, 
                  classesToRemove=set(),
-                 elements=set(),
                  **kwargs):
         """Rename a Group of Entrys. See Entry.renameTo()
         
         #TODO: refactor/redesign/redo!
         """
-        result = True
-        selfToBeDeleted = False
         if (('number' in kwargs)
             and kwargs['number']):
-            logging.error('Group.renameTo(): No number allowed!')
-            return(False)
+            raise ValueError, 'Group.renameTo(): No number parameter allowed!'
+        result = True
+        selfToBeDeleted = False
         removeIllegalElements = (kwargs['removeIllegalElements'] if 'removeIllegalElements' in kwargs else None)
         if (self.model.organizedByDate):  # TODO: move to OrganizationByDate
-            # ensure new group exists
-            year = (kwargs['year'] if 'year' in kwargs else None)
-            month = (kwargs['month'] if 'month' in kwargs else None)
-            day = (kwargs['day'] if 'day' in kwargs else None)
-            if ((year <> self.organizer.getYear())
-                or (month <> self.organizer.getMonth())
-                or (day <> self.organizer.getDay())):
-                selfToBeDeleted = True
-                if (not self.model.getEntry(year=year, month=month, day=day)):
-                    newPath = self.model.organizationStrategy.constructPath(**kwargs)
-                    newParent = Group(self.model, newPath)
-                    if (not newParent):
-                        logging.error('Group.renameTo(): Cannot create new Group "%s"' % newPath)
-                        return(False)
-            # move subentries to new group
-            for subEntry in self.getSubEntries(filtering=True):
-                newElements = subEntry.getElements().union(elements)
-                result = (result 
-                          and subEntry.renameTo(classesToRemove=classesToRemove, 
-                                                elements=newElements, 
-                                                **kwargs))
+            newSelection = self.getOrganizer().renameMedia(**kwargs)
+#             # ensure new group exists
+#             year = (kwargs['year'] if 'year' in kwargs else None)
+#             month = (kwargs['month'] if 'month' in kwargs else None)
+#             day = (kwargs['day'] if 'day' in kwargs else None)
+#             if ((year <> self.organizer.getYear())
+#                 or (month <> self.organizer.getMonth())
+#                 or (day <> self.organizer.getDay())):
+#                 selfToBeDeleted = True
+#                 if (not self.model.getEntry(year=year, month=month, day=day)):
+#                     newPath = self.model.organizationStrategy.constructPath(**kwargs)
+#                     newParent = Group(self.model, newPath)
+#                     if (not newParent):
+#                         logging.error('Group.renameTo(): Cannot create new Group "%s"' % newPath)
+#                         return(False)
+#             # move subentries to new group
+#             for subEntry in self.getSubEntries(filtering=True):
+#                 newElements = subEntry.getElements().union(elements)
+#                 result = (result 
+#                           and subEntry.renameTo(classesToRemove=classesToRemove, 
+#                                                 elements=newElements, 
+#                                                 **kwargs))
         else:  # organized by name  TODO: move to OrganizationByName
             if (('name' in kwargs)
                 and (kwargs['name'] <> self.organizer.getName())):
@@ -192,10 +191,11 @@ class Group(Entry, Observer):
                     selfToBeDeleted = True
                 else:  # existingEntry is a Single
                     print('Single "%s" exists' % name)
-                    newPath = self.model.organizationStrategy.constructPath(name=name)
-                    newParent = Group.createFromName(self.model, name)
-                    assert (newPath == newParent.getPath()), 'Path of new parent differs!'
-                    newParent.setParent(self.model.getEntry(group=True, name=name[0:1]))
+#                     newPath = self.model.organizationStrategy.constructPath(name=name)
+#                     newParent = Group.createFromName(self.model, name)
+#                     assert (newPath == newParent.getPath()), 'Path of new parent differs!'
+#                     newParent.setParent(self.model.getEntry(group=True, name=name[0:1]))
+                    newParent = Group.createAndPersist(self.model, name=name)
                     existingEntry.renameTo(classesToRemove=classesToRemove,
                                            name=name, 
                                            scene='1', 
@@ -228,8 +228,9 @@ class Group(Entry, Observer):
             print('   %d subentries' % len(self.subEntriesSorted))
             for subEntry in self.getSubEntries(filtering=False):  
                 newElements = subEntry.getElements()
-                if (elements):
-                    newElements = (newElements.union(elements))
+                if (('elements' in kwargs)
+                    and (kwargs['elements'])):
+                    newElements = (newElements.union(kwargs['elements']))
                 if (removeIllegalElements):
                     newElements.remove(subEntry.getUnknownElements())
                 kwargs2 = kwargs.copy()
@@ -239,9 +240,11 @@ class Group(Entry, Observer):
                                   number=subEntry.getOrganizer().getNumber(), 
                                   removeIllegalElements=removeIllegalElements,
                                   **kwargs2)
-        if (selfToBeDeleted):
+            newSelection = newParent
+        assert (selfToBeDeleted == (0 == len(self.getSubEntries(filtering=False)))), 'Group.renameTo(): Mismatch between subentry and deletion flag!'
+        if (0 == len(self.getSubEntries(filtering=False))):
             if (self.model.getSelectedEntry() == self):
-                self.model.setSelectedEntry(newParent)
+                self.model.setSelectedEntry(newSelection)
             self.remove()
         return(result)
 

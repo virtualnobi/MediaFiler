@@ -79,7 +79,6 @@ class MediaCollection(Observable, Observer):
 
 # Constants
     Logger = logging.getLogger(__name__)
-#    IdentifierSeparator = u'-'  # separates name components such as name, scene, year, month, day
     ReorderTemporaryTag = 'reordering'  # to ensure uniqueness in renameList()
 
 

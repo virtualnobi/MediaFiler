@@ -31,7 +31,7 @@ from Model.MediaOrganization import MediaOrganization
 
 
 
-# Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
+# Internationalization  # requires "PackagePath = __path__[0]" in _init_.py
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)
@@ -550,8 +550,8 @@ class OrganizationByDate(MediaOrganization):
         Return datetime.time or None
         """
         if (not self.timeTaken):
-            if (self.context.getExtension() == 'jpg'): 
-                with open(self.context.getPath(), "rb") as f:
+            if (self.getContext().getExtension() == 'jpg'): 
+                with open(self.getContext().getPath(), "rb") as f:
                     try:
                         exifTags = exifread.process_file(f)
                     except:
@@ -730,6 +730,39 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Other API Funcions
+    def renameMedia(self, classesToRemove=None, elements=set(), removeIllegalElements=False,
+                    year=None, month=None, day=None):
+        """Rename self's context according to the specified changes.
+        
+        Return the Group to which self is moved.
+        """
+        model = self.__class__.ImageFilerModel
+        # ensure new group exists
+        if ((year == self.getYear())
+            or (month == self.getMonth())
+            or (day == self.getDay())):
+            newParent = self.getContext()
+        else:
+            newParent = model.getEntry(group=True, year=year, month=month, day=day)
+            if (not newParent):
+                newParent = Group.createAndPersist(model, 
+                                                   self.__class__.constructPath(year=year, month=month, day=day))
+#                 newPath = self.__class__.constructPath(**kwargs)
+#                 newParent = Group(self.getContext().model, newPath)
+#                 if (not newParent):
+#                     raise logging.error('Group.renameTo(): Cannot create new Group "%s"' % newPath)
+#                     return(False)
+        # move subentries to new group
+        for subEntry in self.getContext().getSubEntries(filtering=True):
+            newElements = subEntry.getElements().union(elements)
+            if (removeIllegalElements):
+                newElements = [element for element in newElements if model.classHandler.isLegal(element)]
+            subEntry.renameTo(classesToRemove=classesToRemove, 
+                              elements=newElements, 
+                              year=year, month=month, day=day)
+        return(newParent)
+
+
     def setValuesInNamePane(self, aMediaNamePane):
         """Set the fields of the MediaNamePane for self.
         """
@@ -833,7 +866,7 @@ class OrganizationByDate(MediaOrganization):
                                _('Undo Reordering?'),
                                (wx.YES_NO | wx.ICON_INFORMATION))
         if (dlg.ShowModal() == wx.ID_YES):
-            if (self.context.model.renameList(self.undoList)):
+            if (self.getContext().model.renameList(self.undoList)):
                 result = _('Reordering undone')
             else:
                 result = _('Undoing reordering failed!')

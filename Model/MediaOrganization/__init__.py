@@ -27,6 +27,7 @@ from ..MediaNameHandler import MediaNameHandler
 from ..MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
+from __builtin__ import classmethod
 
 
 
@@ -191,15 +192,26 @@ class MediaOrganization(object):
     def getGroupFromPath(cls, path):  # @UnusedVariable
         """Retrieve the group into which media at path shall be included.
         
-        Fallback implementation which returns the root node.
-        
         String path contains the media's file path
         Returns a MediaFiler.Group instance
         """
         raise NotImplementedError
-#         return(cls.ImageFilerModel.getRootEntry())
 
 
+    @classmethod
+    def findParentForPath(cls, path):
+        """Find or create the Group which is the parent of the Group representing the given path.
+        
+        String path
+        Return MediaFiler.Group
+        """
+        (head, dummy) = os.path.split(path)
+        group = cls.ImageFilerModel.getEntry(group=True, path=head)
+        if (not group):
+            group = Group.createAndPersist(cls.ImageFilerModel, path=head)
+        return(group)
+     
+        
     @classmethod
     def importImage(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):
         """Import image at sourcePath, i.e. move to new location in model's directory.
@@ -372,7 +384,7 @@ class MediaOrganization(object):
         - if the neighbor numbers are successive (i.e., only +1 apart), use the higher number.
         """
         renumberList = []
-        groupNumbers = self.getNumbersInGroup()
+        groupNumbers = self.getNumbersInGroup()  # TODO: get rid of this as soon as OrganizationByName scenes have their own group
         lastNumber = 0
         for currentNumber in groupNumbers:
             renumberList.append(lastNumber + 1)

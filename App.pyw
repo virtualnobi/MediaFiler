@@ -1,8 +1,4 @@
-'''MediaFiler
-
-A Python 2.7 GUI application which lets you organize media (images and videos). 
-
-(c) by nobisoft 2016-
+'''(c) by nobisoft 2016-
 '''
 
 
@@ -41,8 +37,6 @@ from UI.MediaCanvasPane import MediaCanvas
 from UI.MediaNamePane import MediaNamePane
 from UI.MediaClassificationPane import MediaClassificationPane
 from logging import FileHandler
-#from URLHarvester import URLHarvester
-#import URLHarvester.InputDialog
 
 
 
@@ -62,7 +56,7 @@ def N_(message): return message
 
 
 class MediaFiler (wx.Frame, Observer, Observable):   
-    """
+    """A Python 2.7 GUI application which lets you organize media (images and videos). 
     """
 
 
@@ -230,7 +224,6 @@ class MediaFiler (wx.Frame, Observer, Observable):
         #menu.Append(GUIId.CreatePerspective, 'Create Perspective')
         # TODO: if perspective loaded, add "Remove this perspective" entry
         self._mgr.Update()
-
 
 
     def createStatusBar (self):
@@ -810,13 +803,15 @@ class MediaFiler (wx.Frame, Observer, Observable):
     def setLoggedModules(self):
         """
         """
-        loggedModules = self.model.getConfiguration(GlobalConfigurationOptions.LastLoggedModules).split(' ')
-        if ('' in loggedModules):
-            loggedModules.remove('')
-        for moduleName in loggedModules:
-            print('App.setLoggedModules(): Continuing to log "%s"' % moduleName)
-            self.toolsMenu.Check(self.toolsMenu.FindItem(moduleName), True)
-            logging.getLogger(moduleName).addHandler(MediaFiler.LogHandlerInteractive)
+        loggedModules = self.model.getConfiguration(GlobalConfigurationOptions.LastLoggedModules)
+        if (loggedModules):
+            loggedModules = loggedModules.split(' ')
+            if ('' in loggedModules):
+                loggedModules.remove('')
+            for moduleName in loggedModules:
+                print('App.setLoggedModules(): Continuing to log "%s"' % moduleName)
+                self.toolsMenu.Check(self.toolsMenu.FindItem(moduleName), True)
+                logging.getLogger(moduleName).addHandler(MediaFiler.LogHandlerInteractive)
 
 
 

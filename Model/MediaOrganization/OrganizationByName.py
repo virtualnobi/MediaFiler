@@ -524,20 +524,17 @@ class OrganizationByName(MediaOrganization):
         return(result)
 
 
-    
+
 # Internal - to change without notice
     def convertToGroup(self):
         """Convert the current singleton Single to a Group with the same name.
-        
-        This is probably not needed as the rename function will handle conversion to a Group automatically.
-        #TODO: remove
         """
         print('Converting "%s" to a group' % self.getPath())
-        newGroup = Group.createFromName(self.model, self.getName())
-        self.setParentGroup(newGroup)
+#         newGroup = Group.createFromName(self.model, self.getName())
+#         self.setParentGroup(newGroup)
+        Group.createAndPersist(self.model, name=self.getName())
         self.renameTo(scene='1', number='1')
 
-    
 
     def renameMedia(self, name):
         """Rename self's context media to name specified. 
@@ -546,31 +543,32 @@ class OrganizationByName(MediaOrganization):
         Return
         """
         kwargs = {'name': name}
-        if (not self.context.isGroup()):
+        if (not self.getContext().isGroup()):
             kwargs['elements'] = self.context.getElements()
-            newEntry = self.context.model.getEntry(name=name)
+            newEntry = self.getContext().model.getEntry(name=name)
             if (newEntry): 
                 kwargs['makeUnique'] = True
                 if (newEntry.isGroup()):  # name used by Group
                     kwargs['scene'] = MediaClassHandler.ElementNew
                 else:  # name used by singleton
-                    newGroup = Group.createFromName(self.context.model, name)
-                    parent = self.context.model.getEntry(group=True, name=name[0:1])
-                    assert (parent <> None), ('No Group for "%s" found!' % name[0:1]) 
-                    newGroup.setParentGroup(parent)
+#                     newGroup = Group.createFromName(self.context.model, name)
+#                     parent = self.getContext().model.getEntry(group=True, name=name[0:1])
+#                     assert (parent <> None), ('No Group for "%s" found!' % name[0:1]) 
+#                     newGroup.setParentGroup(parent)
+                    Group.createAndPersist(self.model, name=name)
                     newEntry.renameTo(name=name,
                                       scene=1,
                                       makeUnique=True)
                     kwargs['scene'] = MediaClassHandler.ElementNew
             else:  # name free, create a singleton
                 kwargs['scene'] = None
-        self.context.renameTo(**kwargs)
-        if (self.context.isGroup
-            and (self.context.getParentGroup() == None)):
-            targetGroup = self.context.model.getEntry(group=True, name=name)
+        self.getContext().renameTo(**kwargs)
+        if (self.getContext().isGroup
+            and (self.getContext().getParentGroup() == None)):
+            targetGroup = self.getContext().model.getEntry(group=True, name=name)
             assert (targetGroup <> None), ('Group "%s" not found after merging two groups!' % name)
-            self.context.model.setSelectedEntry(targetGroup)
-        
+            self.getContext().model.setSelectedEntry(targetGroup)
+
 
 
     def askNewName(self, parentWindow):
