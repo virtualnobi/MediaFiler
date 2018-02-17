@@ -82,13 +82,11 @@ class MediaFiler (wx.Frame, Observer, Observable):
     MenuTitlePerspective = _('Perspectiv&e')
     MenuTitleImport = _('&Import')
     MenuTitleTool = _('&Tool')
-#    ConfigurationOptionLastPerspective = 'last-perspective'
-#    ConfigurationOptionMaximizeOnStart = 'maximize-on-start'
-#    ConfigurationOptionTextEditor = 'editor-text'
 
 
 
 # Class Variables
+    Logger = logging.getLogger(__name__)
     LogHandlerInteractive = logging.StreamHandler()  # logging handler to output to visible pane
     LogHandlerFile = None  # logging handler to output to file
 

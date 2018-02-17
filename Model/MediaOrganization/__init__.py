@@ -505,10 +505,11 @@ class MediaOrganization(object):
     def renumberTo(self, newNumber):
         """Renumber Singles in self's parent group so that self can change to the given number.
         """
-        print('MediaOrganization.renumberTo(): Assigning new number %d' % newNumber)
+        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Assigning new number %d' % newNumber)
         currentNumberToEntryMap = {}
         for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
-            currentNumberToEntryMap[entry.getOrganizer().getNumber()] = entry
+            if (entry.getOrganizer().getScene() == self.getScene()):
+                currentNumberToEntryMap[entry.getOrganizer().getNumber()] = entry
         selfNumber = self.getNumber()
         currentNumbers = [i for i in currentNumberToEntryMap.keys() if ((newNumber <= i) and (i <> selfNumber))]
         numberPairList = []
@@ -523,12 +524,12 @@ class MediaOrganization(object):
                 lastUsed = (i+1)
                 numberPairList.append((i, lastUsed))
         numberPairList.append((selfNumber, newNumber))
-        print('MediaOrganization.renumberTo(): Mapping numbers %s' % numberPairList)
+        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Mapping numbers %s' % numberPairList)
         renameList = []
         for (now, then) in numberPairList:
             entry = currentNumberToEntryMap[now]
             renameList.append((entry, entry.getPath(), entry.getOrganizer().constructPathForSelf(number=then)))
-        print('...: Mapping names %s' % renameList)
+        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Mapping names %s' % renameList)
         if (self.__class__.ImageFilerModel.renameList(renameList)):
             return(_('%d media renumbered' % len(renameList)))
         else:

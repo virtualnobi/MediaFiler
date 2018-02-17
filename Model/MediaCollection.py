@@ -433,12 +433,12 @@ class MediaCollection(Observable, Observer):
         for (entry, oldPath, newPath) in renameList:
             if ((entry.getPath() <> oldPath) 
                 or (not os.path.exists(oldPath))):
-                self.__class__.Logger.warning('MediaCollection.renameList(): Entry "%s" was expected to be named "%s"!' % (entry.getPath(), oldPath))
+                MediaCollection.Logger.warning('MediaCollection.renameList(): Entry "%s" was expected to be named "%s"!' % (entry.getPath(), oldPath))
                 return(False)
             if (oldPath == newPath):
-                self.__class__.Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % oldPath)
+                MediaCollection.Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % oldPath)
             elif os.path.exists(newPath):
-                tmpElements = set((self.__class__.ReorderTemporaryTag, )).union(entry.getElements())
+                tmpElements = set((MediaCollection.ReorderTemporaryTag, )).union(entry.getElements())
                 tmpPath = entry.organizer.constructPathForSelf(elements=tmpElements)
                 renameSequence.append((entry, tmpPath))
                 conflicts.append((entry, newPath))
@@ -446,9 +446,9 @@ class MediaCollection(Observable, Observer):
                 renameSequence.append((entry, newPath))
         for (entry, newPath) in conflicts:
             renameSequence.append((entry, newPath))
-        print('Final reordering is')
+        MediaCollection.Logger.debug('MediaCollection.renameList(): Final reordering is:')
         for (k, v) in renameSequence:
-            print('  %s\n->%s\n' % (k.getPath(), v))
+            MediaCollection.Logger.debug('  %s\n->%s\n' % (k.getPath(), v))
         for (entry, newPath) in renameSequence:
             entry.renameToFilename(newPath)
         return(True)

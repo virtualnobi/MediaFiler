@@ -483,8 +483,6 @@ class Entry(PausableObservable):
     def renameTo(self, 
                  classesToRemove=None, elements=None, removeIllegalElements=False,
                  number=None, makeUnique=False,
-                 year=None, month=None, day=None, 
-                 name=None, scene=None, 
                  **kwargs):
         """Rename self's file, replacing the components as specified. 
        
@@ -502,22 +500,6 @@ class Entry(PausableObservable):
             Boolean removeIllegalElements
         Return Boolean indicating success
         """
-        if (isinstance(year, str)
-            or isinstance(year, unicode)):
-            print('Entry.renameTo(): Deprecated usage of String year!')
-            year = int(year)
-        if (isinstance(month, str) 
-            or isinstance(month, unicode)):
-            print('Entry.renameTo(): Deprecated usage of String month!')
-            month = int(month)
-        if (isinstance(day, str) 
-            or isinstance(day, unicode)):
-            print('Entry.renameTo(): Deprecated usage of String day!')
-            day = int(day)
-        if (isinstance(scene, str) 
-            or isinstance(scene, unicode)):
-            print('Entry.renameTo(): Deprecated usage of String scene!')
-            scene = int(scene)
         # elements
         if (classesToRemove):  
             if (elements == None):  # if classes must be removed, elements must be explicit
@@ -536,16 +518,6 @@ class Entry(PausableObservable):
             kwargs['number'] = number
         kwargs['makeUnique'] = makeUnique
         # 
-        if (year): 
-            kwargs['year'] = year
-        if (month):
-            kwargs['month'] = month
-        if (day):
-            kwargs['day'] = day
-        if (name):
-            kwargs['name'] = name
-        if (scene):
-            kwargs['scene'] = scene
         newPath = self.organizer.constructPathForSelf(**kwargs) 
         return(self.renameToFilename(newPath))
 
