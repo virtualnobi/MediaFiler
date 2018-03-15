@@ -23,6 +23,9 @@ class SecureConfigParser(SafeConfigParser):
     constructor (as done currently), or whether it can be derived from calls to .read() and .write(). 
     The second option might end up with the .set() method called before the filename is known, and 
     thus no possibility to save the value immediately.
+    
+    There is no validation of the filenames; it is possible to read the configuration from different
+    files than the one which is used to store the configuration. 
     """
     
 
@@ -34,13 +37,13 @@ class SecureConfigParser(SafeConfigParser):
 # Class Methods
 # Lifecycle
     def __init__(self, filename):
-        """
-         
-        String filename names the file to store the configuration in
+        """Create a new SecureConfigParser.
+
+        String filename specifies the configuration file to write any changes to.
         """
 #         super(SecureConfigParser, self).__init__()
         SafeConfigParser.__init__(self)
-        self.filename = filename  # TODO: ensure this is the filename used for reading
+        self.filename = filename
         return(None)
 
 
@@ -50,7 +53,9 @@ class SecureConfigParser(SafeConfigParser):
 # Event Handlers
 # Inheritance - Superclass
     def set(self, section, option, value):
-        """Set an option in a section to a value, and save the configuration.
+        """Set an option in a section to a value, and save the configuration.4
+        
+        Encodes value as UTF-8.
         
         String section
         String option
@@ -62,8 +67,12 @@ class SecureConfigParser(SafeConfigParser):
         with open(self.filename, 'w') as f:
             self.write(f)
 
-    
+
     def get(self, section, option):
+        """Read the configuration value for option in section. 
+        
+        Returns decoded String
+        """
 #        encodedValue = super(SecureConfigParser, self).get(section, option)
         encodedValue = SafeConfigParser.get(self, section, option, raw=True)
         value = encodedValue.decode(self.EncodingName, 'replace')

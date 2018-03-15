@@ -114,38 +114,8 @@ class Single(Entry):
 
 
 # Setters
-#     def renameTo(self, 
-#                  number=None, makeUnique=False, 
-#                  elements=None, removeIllegalElements=False,
-#                  **kwargs):
-#         """
-#         rootDir=None
-#         
-#         year=None
-#         month=None
-#         day=None 
-#         name=None
-#         scene=None
-#         """
-#         # possibly remove unknown tags/elements
-#         if (elements == None):  # no new elements, re-use existing ones
-#             elements = self.getElements()
-#         if (removeIllegalElements):  
-#             elements = [e for e in elements if self.model.getClassHandler().isLegalElement(e)]
-#         if (number): 
-#             kwargs['number'] = number
-#         kwargs['makeUnique'] = makeUnique
-#         if (elements):
-# #             kwargs['elements'] = self.model.getClassHandler().elementsToString(elements)
-#             kwargs['elements'] = elements
-#         kwargs['removeIllegalElements'] = removeIllegalElements
-#         newPath = self.organizer.constructPathForSelf(**kwargs) 
-#         return(self.renameToFilename(newPath))
-
-
-
 # Getters
-## Inheritance - Entry
+# Inheritance - Entry
     def getEntriesForDisplay (self):
         """Return the list of entries to represent self in an image display.
 
@@ -193,7 +163,7 @@ class Single(Entry):
             or None
         """
         message = None
-        self.__class__.Logger.debug('Single.runContextMenu(): Function %d on "%s"',
+        Single.Logger.debug('Single.runContextMenu(): Function %d on "%s"',
                                     menuId, 
                                     self.getPath())
 #         if ((GUIId.AssignNumber <= menuId)
@@ -326,22 +296,22 @@ class Single(Entry):
         elif ((width <> None) 
               and (height <> None)):  # fit to size given
             if (width < 1): 
-                self.__class__.Logger.warning('Single.getSizeFittedTo(): Corrected width to 1 for "%s"',
+                Single.Logger.warning('Single.getSizeFittedTo(): Corrected width to 1 for "%s"',
                                               self.getPath())
                 width = 1
             if (height < 1): 
-                self.__class__.Logger.warning('Single.getSizeFittedTo(): Corrected height to 1 for "%s"',
+                Single.Logger.warning('Single.getSizeFittedTo(): Corrected height to 1 for "%s"',
                                               self.getPath())
                 height = 1
             if ((self.getRawImageWidth() < width) 
                 and (self.getRawImageHeight() < height)):  # pane larger than image, don't enlarge image
                 width = self.getRawImageWidth()
                 height = self.getRawImageHeight()
-                self.__class__.Logger.debug('    image smaller than pane, using original size')
+                Single.Logger.debug('    image smaller than pane, using original size')
             else:
                 imageRatio = (Decimal(self.getRawImageWidth()) / Decimal(self.getRawImageHeight()))  # aspect of image
                 paneRatio = (Decimal(width) / Decimal(height))  # aspect of frame
-                self.__class__.Logger.debug('Single.getSizeFittedTo(): Image %sx%s (ratio %s), Pane %sx%s (ratio %s)',
+                Single.Logger.debug('Single.getSizeFittedTo(): Image %sx%s (ratio %s), Pane %sx%s (ratio %s)',
                                             self.getRawImageWidth(), 
                                             self.getRawImageHeight(), 
                                             imageRatio, 
@@ -350,11 +320,11 @@ class Single(Entry):
                                             paneRatio)
                 if (paneRatio < imageRatio): # image wider than pane, use full pane width
                     height = int(width / imageRatio)
-                    self.__class__.Logger.debug('    changed height to %s', height)
+                    Single.Logger.debug('    changed height to %s', height)
                 else: # image taller than pane, use full pane height
                     width = int(height * imageRatio)
-                    self.__class__.Logger.debug('    changed width to %s', width)
-            self.__class__.Logger.debug('    using size %sx%s', width, height)
+                    Single.Logger.debug('    changed width to %s', width)
+            Single.Logger.debug('    using size %sx%s', width, height)
             return(width, height)
         else:
             raise ValueError, 'Single.getSizeFittedTo(): Only one of width and height are given!'
@@ -372,11 +342,11 @@ class Single(Entry):
         if ((self.bitmap == None)
             or (self.bitmapWidth <> w)
             or (self.bitmapHeight <> h)):
-            self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
-            self.__class__.Logger.debug('Single.getBitmap(): Creating %dx%d bitmap', w, h)
+            self.releaseCacheWithPriority(Single.CachingLevelThumbnailBitmap)
+            Single.Logger.debug('Single.getBitmap(): Creating %dx%d bitmap', w, h)
             self.bitmap = self.getRawImage().Copy().Rescale(w, h).ConvertToBitmap()
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
-            self.registerCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
+            self.registerCacheWithPriority(Single.CachingLevelThumbnailBitmap)
         return(self.bitmap)
 
 
@@ -389,8 +359,10 @@ class Single(Entry):
         wx.Window parentWindow is the window on which to display an error dialog, if needed
         """
         option = self.__class__.getConfigurationOptionExternalViewer()
+        Single.Logger.debug('Single.runExternalViewer(): Looking for configuration of "%s"' % option)
         viewerName = self.model.getConfiguration(option)
         if (not viewerName):
+            Single.Logger.warn('Single.runExternalViewer(): No external program specified for option "%s"' % option)
             dlg = wx.MessageDialog(parentWindow,
                                    ('No external command specified with the\n"%s" option!' % option),
                                    'Error',
@@ -398,12 +370,14 @@ class Single(Entry):
             dlg.ShowModal()
             dlg.Destroy()
             return
+        Single.Logger.debug('Single.runExternalViewer(): Found external program "%s"' % viewerName)
         viewerName = viewerName.replace(GlobalConfigurationOptions.Parameter, self.getPath())
         viewerName = viewerName.encode(sys.getfilesystemencoding())
         commandArgs = shlex.split(viewerName)  # viewerName.split() will not respect quoting (for whitespace in file names)
-        print('Calling %s' % commandArgs)
+        Single.Logger.debug('Single.runExternalViewer(): Calling "%s"' % commandArgs)
         result = subprocess.call(commandArgs, shell=False)
         if (result <> 0):
+            Single.Logger.warn('Single.runExternalViewer(): External command "%s" failed with %s' % (commandArgs, result))
             dlg = wx.MessageDialog(parentWindow,
                                    ('External command\n"%s"\nfailed with error code %d!' % (viewerName, result)),
                                    'Error',

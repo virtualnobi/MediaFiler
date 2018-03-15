@@ -80,17 +80,21 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Class Variables
+    Logger = logging.getLogger(__name__)
+
+
+
 # Class Methods
 # Lifecycle
     def __init__ (self, parent, style=0):
         # initialize superclass
-        wx.lib.scrolledpanel.ScrolledPanel.__init__ (self, parent, id=-1, size=wx.Size (450, 0), style=(style | wx.FULL_REPAINT_ON_RESIZE))
+        wx.lib.scrolledpanel.ScrolledPanel.__init__ (self, parent, size=wx.Size (450, 0), style=(style | wx.FULL_REPAINT_ON_RESIZE))
         Observer.__init__(self)
         self.SetAutoLayout (1)
         self.SetupScrolling ()
         # init variables
         self.imageModel = None  # ImageFilerModel, to derive filter from
-        self.mediaTypes = sorted(Single.__subclasses__(), key=lambda c:c.__name__)
+        self.mediaTypes = sorted(Single.__subclasses__(), key=lambda c:c.__name__)  # @UndefinedVariable
         self.filterModel = None  # MediaFilter, to manage filter conditions
         self.filterModes = {}  # Dictionary mapping class name to filter mode wx.Choice
         self.filterValues = {}  # Dictionary mapping class name to filter value wx.Choice
@@ -113,7 +117,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def setModel(self, anImageFilerModel):
         """Make anImageFilerModel the model of self, and create widgets on self accordingly.
         """
-        logging.debug('MediaFilterPane.setModel()')
+        MediaFilterPane.Logger.debug('MediaFilterPane.setModel()')
         # store MediaFiler model
         self.releaseModel()
         if (self.imageModel <> None):  # release previous model
@@ -131,14 +135,18 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         classes = self.imageModel.getClassHandler().getClasses()
         gridSizer = wx.GridBagSizer(3, 3)
         row = 0
-        # add clear and apply buttons
+        # add activate and clear buttons
         buttonBox = wx.BoxSizer(wx.HORIZONTAL)
+        self.activateButton = wx.ToggleButton(self, -1, 'Filter')
+        self.activateButton.Bind(wx.EVT_TOGGLEBUTTON, self.onActivate)
+        self.setActivateButtonText()
+        buttonBox.Add(self.activateButton, 0, wx.EXPAND)
         self.clearButton = wx.Button(self, id=GUIId.ClearFilter, label=GUIId.FunctionNames[GUIId.ClearFilter])
         self.clearButton.Bind(wx.EVT_BUTTON, self.onClear, id=GUIId.ClearFilter)
         buttonBox.Add(self.clearButton, 0, wx.EXPAND)
-        self.applyButton = wx.Button(self, id=GUIId.ApplyFilter, label=GUIId.FunctionNames[GUIId.ApplyFilter])
-        self.applyButton.Bind(wx.EVT_BUTTON, self.onApply, id=GUIId.ApplyFilter)
-        buttonBox.Add(self.applyButton, 0, wx.EXPAND)
+#         self.applyButton = wx.Button(self, id=GUIId.ApplyFilter, label=GUIId.FunctionNames[GUIId.ApplyFilter])
+#         self.applyButton.Bind(wx.EVT_BUTTON, self.onApply, id=GUIId.ApplyFilter)
+#         buttonBox.Add(self.applyButton, 0, wx.EXPAND)
         gridSizer.Add(buttonBox, (row, 0), (1, 3))
         gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
         row = (row + 2)
@@ -148,7 +156,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         row = (row + 2)
         # add classes with all their elements
         for aClass in classes:
-            logging.debug('MediaFilterPane.setModel(): creating controls for class %s' % aClass[MediaClassHandler.KeyName])
+            MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): creating controls for class %s' % aClass[MediaClassHandler.KeyName])
             # create choice of class values
             choices = []
             choices.extend(self.imageModel.getClassHandler().getElementsOfClass(aClass))
@@ -165,7 +173,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         gridSizer.Add(wx.BoxSizer(), (row, 0), (1, 1))
         row = (row + 1)
         # add minimum/maximum size filter
-        logging.debug('MediaFilterPane.setModel(): creating filter for media size')
+        MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): creating filter for media size')
         self.addSizeFilter(gridSizer, row)
         gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
         row = (row + 2)
@@ -175,12 +183,12 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         row = (row + 2)
         # add date range
         if (self.imageModel.organizedByDate):
-            logging.debug('MediaFilterPane.setModel(): creating filter for date')
+            MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): creating filter for date')
             self.addDateRangeFilter(gridSizer, row)
             row = (row + 1)
         # add single/group condition
         if (not self.imageModel.organizedByDate):
-            logging.debug('MediaFilterPane.setModel(): creating filter for single/group condition')
+            MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): creating filter for single/group condition')
             singleText = wx.StaticText(self, -1, self.SingleConditionIndex)
             self.addTextFilter(gridSizer, row, self.SingleConditionIndex, singleText)        
             row = (row + 1)
@@ -188,27 +196,30 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.SetSizer(gridSizer) 
         gridSizer.Layout()
         # import filter conditions
-        logging.debug('MediaFilterPane.setModel(): setting up filter')
+        MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): setting up filter')
         self.importAndDisplayFilter()
-        logging.debug('MediaFilterPane.setModel() finished')
+        MediaFilterPane.Logger.debug('MediaFilterPane.setModel() finished')
 
 
 
 # Getters    
 # Event Handlers
     def onClear(self, event):  # @UnusedVariable
-        """User wants to clear the filter.
-        """
         wx.BeginBusyCursor()
         self.filterModel.clear()
         wx.EndBusyCursor()
 
 
     def onApply(self, event):  # @UnusedVariable
-        """
-        """
         wx.BeginBusyCursor()
         self.filterModel.setConditions(active=True)
+        wx.EndBusyCursor()
+
+    
+    def onActivate(self, event):
+        wx.BeginBusyCursor()
+        self.filterModel.setConditions(active=event.GetEventObject().GetValue())
+        self.setActivateButtonText()
         wx.EndBusyCursor()
 
 
@@ -343,6 +354,13 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Internal
+    def setActivateButtonText(self):
+        if (self.activateButton.GetValue()):
+            self.activateButton.SetLabel(_('Filter On'))
+        else:
+            self.activateButton.SetLabel(_('Filter Off'))
+
+
     def addTextFilter(self, sizer, row, filterKey, control):
         '''Add a filter criterion to self, and insert the corresponding controls into self's Sizer.
         
@@ -525,6 +543,6 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexExclude)
         # button activation
         self.clearButton.Enable(enable=(not self.filterModel.isEmpty()))
-        self.applyButton.Enable(enable=(not active))
+#        self.applyButton.Enable(enable=(not active))
 
 

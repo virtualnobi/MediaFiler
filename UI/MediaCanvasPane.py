@@ -67,20 +67,20 @@ class MediaCanvas(wx.Panel, Observer):
         self.lastRightDownImage = None  # last Image on which right mouse button went down, for context menu
         self.rows = 1
         self.cols = 1
-        self.setEntry(self.model.getSelectedEntry())
+        self.setEntryProfiled(self.model.getSelectedEntry())
 
 
     def setEntryProfiled(self, entry, forceUpdate=False):
         profiler = cProfile.Profile()
         profiler.enable()
-        self.setEntryProfiled(entry, forceUpdate)
+        self.setEntry(entry, forceUpdate)
         profiler.disable()
         resultStream = StringIO.StringIO()
         ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
         ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
         ps.sort_stats('time')  # sort according to time per function call, excluding called functions
         ps.print_stats(20)  # print top 20 
-        print('Profiling Results for MediaCanvasPane.setEntry()')
+        print('Profiling Results for MediaCanvas.setEntry()')
         print(resultStream.getvalue())
         print('---')
 
@@ -90,28 +90,25 @@ class MediaCanvas(wx.Panel, Observer):
         
         Boolean forceUpdate redisplays even if the same entry is already selected (after filtering)
         """
-        self.__class__.Logger.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
+        MediaCanvas.Logger.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
         if (entry == self.model.root):  # TODO: remove
-            print('MediaCanvasPane.setEntry() should not get model.root as entry...')
+            MediaCanvas.Logger.error('MediaCanvas.setEntry() should not get model root as entry...')
             entry = self.model.initialEntry
         if (forceUpdate 
             or (self.entry <> entry)):
             wx.BeginBusyCursor()
-#            self.Freeze()
+            self.Freeze() # TODO: must become faster
             column = 1  # count columns when placing images in grid
             (x, y) = (0, 0)  # position of image
             self.clear()  # unbind events and unregister observable
             self.entry = entry
             self.entry.addObserverForAspect(self, 'children')
-            # collect entries to display
             displayedEntries = entry.getEntriesForDisplay()
-            for entry in displayedEntries: 
-                entry.addObserverForAspect(self, 'name')
-            # display entries
             self.calculateGrid(len(displayedEntries))
-            for entry in displayedEntries:
+            for entry in displayedEntries:  # TODO: use multiprocessing.Pool() or similar
+                entry.addObserverForAspect(self, 'name')
                 # place image on canvas
-                self.__class__.Logger.debug('MediaCanvasPane.setEntry(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
+                MediaCanvas.Logger.debug('MediaCanvasPane.setEntry(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
                 bitmap = ImageBitmap(self, 
                                      -1, 
                                      entry, 
@@ -129,11 +126,11 @@ class MediaCanvas(wx.Panel, Observer):
                 else:  
                     x = (x + self.imageWidth + self.ImagePadding)
                     column = (column + 1)
-#            self.Thaw()
+            self.Thaw()
             self.Refresh()
             self.Update()
             wx.EndBusyCursor()
-        self.__class__.Logger.debug('MediaCanvas.setEntry() finished')
+        MediaCanvas.Logger.debug('MediaCanvas.setEntry() finished')
 
 
 # Event Handling

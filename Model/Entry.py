@@ -530,7 +530,6 @@ class Entry(PausableObservable):
         Return Boolean indicating success
         """
         self.__class__.Logger.debug('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
-        print('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
         (newDirectory, dummy) = os.path.split(fname)  # @UnusedVariable
         try:
             if (not os.path.exists(newDirectory)):
@@ -538,7 +537,6 @@ class Entry(PausableObservable):
             os.rename(self.getPath(), fname) 
         except Exception as e:
             self.__class__.Logger.error('Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
-            print('Renaming failed (exception follows)!\n%s' % e)
             return(False)
         else:
             # remove from current group, and add to new group

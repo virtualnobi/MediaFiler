@@ -73,6 +73,8 @@ class MediaCollection(Observable, Observer):
     The following aspects of ImageFilerModel are observable:
     - startFiltering: Filter has changed, starting to filter Entries
     - stopFiltering: Filter has changed, and all Entries have been processed
+    - selection: the selected Entry has changed
+    - size: the collection size has changed (i.e., an Entry has been removed)
     """
 
 
@@ -90,14 +92,14 @@ class MediaCollection(Observable, Observer):
         
         String rootDir specifies the path to the image root directory.
         """
-        self.__class__.Logger.debug('MediaCollection.init()')
+        MediaCollection.Logger.debug('MediaCollection.init()')
         # inheritance
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection', 'size'])
         # internal state
         if (rootDir):
 #            self.setRootDirectoryProfiled(rootDir)
             self.setRootDirectory(rootDir)
-        self.__class__.Logger.debug('MediaCollection.init() finished')
+        MediaCollection.Logger.debug('MediaCollection.init() finished')
         return(None)
 
 
@@ -123,14 +125,14 @@ class MediaCollection(Observable, Observer):
             self.organizationStrategy = OrganizationByDate
         self.organizationStrategy.setModel(self)
         self.classHandler = MediaClassHandler(Installer.getClassFilePath())
-        if (self.classHandler.isLegalElement(self.__class__.ReorderTemporaryTag)):
+        if (self.classHandler.isLegalElement(MediaCollection.ReorderTemporaryTag)):
             index = 1
-            tag = ('%s%d' % (self.__class__.ReorderTemporaryTag, index))
+            tag = ('%s%d' % (MediaCollection.ReorderTemporaryTag, index))
             while (self.classHandler.isLegalElement(tag)):
                 index = (index + 1)
                 tag = ('%s%d' % (tag, index))
-            self.__class__.ReorderTemporaryTag = tag
-            self.__class__.Logger.warning('MediaCollection.setRootDirectory(): Temporary reordering tag changed to "%s"' % tag)
+            MediaCollection.ReorderTemporaryTag = tag
+            MediaCollection.Logger.warning('MediaCollection.setRootDirectory(): Temporary reordering tag changed to "%s"' % tag)
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
         self.loadSubentries(self.root)
@@ -144,13 +146,13 @@ class MediaCollection(Observable, Observer):
         if (path):
             entry = self.getEntry(path=path)
             if (entry):
-                self.__class__.Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run' % entry.getPath())
+                MediaCollection.Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run' % entry.getPath())
                 self.setSelectedEntry(entry)
             else:
-                self.__class__.Logger.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
+                MediaCollection.Logger.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
                 self.setSelectedEntry(self.root)
         else: 
-            self.__class__.Logger.info('MediaCollection.setRootDirectory(): last viewed media not saved')
+            MediaCollection.Logger.info('MediaCollection.setRootDirectory(): last viewed media not saved')
             self.setSelectedEntry(self.root)
 
 
@@ -177,7 +179,7 @@ class MediaCollection(Observable, Observer):
         
         If entry is the (hidden) root entry, the initial image will be selected, if it exists.
         """
-        self.__class__.Logger.debug('MediaCollection.setSelectedEntry(%s)' % (entry.getPath() if entry else entry))
+        MediaCollection.Logger.debug('MediaCollection.setSelectedEntry(%s)' % (entry.getPath() if entry else entry))
         self.selectedEntry = entry
         if (self.selectedEntry):
             self.setConfiguration(GlobalConfigurationOptions.LastMedia, entry.getPath())
@@ -428,7 +430,6 @@ class MediaCollection(Observable, Observer):
         List of (Single, String, String) renameList 
         Return Boolean indicating success 
         """
-        renameSequence = []
         conflicts = []
         for (entry, oldPath, newPath) in renameList:
             if ((entry.getPath() <> oldPath) 
@@ -440,70 +441,16 @@ class MediaCollection(Observable, Observer):
             elif os.path.exists(newPath):
                 tmpElements = set((MediaCollection.ReorderTemporaryTag, )).union(entry.getElements())
                 tmpPath = entry.organizer.constructPathForSelf(elements=tmpElements)
-                renameSequence.append((entry, tmpPath))
+                if (not entry.renameToFilename(tmpPath)):
+                    return(False)
                 conflicts.append((entry, newPath))
             else:
-                renameSequence.append((entry, newPath))
+                if (not entry.renameToFilename(newPath)):
+                    return(False)
         for (entry, newPath) in conflicts:
-            renameSequence.append((entry, newPath))
-        MediaCollection.Logger.debug('MediaCollection.renameList(): Final reordering is:')
-        for (k, v) in renameSequence:
-            MediaCollection.Logger.debug('  %s\n->%s\n' % (k.getPath(), v))
-        for (entry, newPath) in renameSequence:
-            entry.renameToFilename(newPath)
+            if (not entry.renameToFilename(newPath)):
+                return(False)
         return(True)
-
-
-#     def renumberMany(self, pairList):
-#         """Rename many media files at once, in the same group, only changing their numbers.
-# 
-#         The parameter is a list of triples which contain
-#         - the Single to rename (to access rename and update functions)
-#         - the current pathname of the Single (to verify no other changes have been done)
-#         - the new number of the Single
-#         
-#         List of (Single, String, Number) pairList 
-#         Return Boolean indicating success 
-#         """
-#         renameSequence = []
-#         conflicts = {}
-#         for (entry, oldPath, newNumber) in pairList:
-#             if (not os.path.exists(oldPath)):
-#                 self.__class__.Logger.warning('MediaCollection.renameList(): Entry "%s" assumed to be named "%s"!' % (entry.getPath(), oldPath))
-#                 return(False)
-#             newGlob = entry.organizer.constructPathForSelf(number=newNumber, elements=set()) + '*'
-#             newPath = entry.organizer.constructPathForSelf(number=newNumber)
-#             if (oldPath == newPath):
-#                 self.__class__.Logger.warning('MediaCollection.renameList(): Duplicate entry "%s" ignored!' % oldPath)
-#             elif (0 < len(glob.glob(newGlob))):
-#                 conflicts[newPath] = entry
-#             else:
-#                 renameSequence.append((entry, newPath))
-#         print('Conflicts are:')
-#         for (k,v) in conflicts.items():
-#             print('  %s\n->%s' % (v.getPath(), k))
-#         while (1 < len(conflicts)):
-#             (newPath, entry) = conflicts.items()[0]
-#             oldPath = entry.getPath()
-#             print('Resolving (%s, %s)' % (oldPath, newPath))
-#             del conflicts[newPath]
-#             temp = (oldPath + '.reordering')
-#             renameSequence.append((oldPath, temp))
-#             print('Added %s->%s' % (oldPath, temp))
-#             while (oldPath in conflicts):
-#                 (oldPath, newPath) = conflicts[oldPath]
-#                 del conflicts[oldPath]
-#                 renameSequence.append((oldPath, newPath))
-#                 print('Added %s->%s' % (oldPath, newPath))
-#             renameSequence.append((temp, oldPath))
-#             print('Added %s->%s' % (temp, newPath))
-#         if (0 < len(conflicts)):
-#             self.__class__.Logger.error('MediaCollection.renameList(): Not all conflicts could be resolved in %s' % pairList)
-#             return(False)
-#         print('Final reordering is')
-#         for (k, v) in renameSequence:
-#             print('  %s\n->%s' % (k.getPath(), v))
-#         return(True)
 
 
 
@@ -517,7 +464,7 @@ class MediaCollection(Observable, Observer):
     def filterEntries(self):
         """Self's filter has changed. Recalculate the filtered entries. 
         """
-        self.__class__.Logger.debug('MediaCollection.filterEntries() started')
+        MediaCollection.Logger.debug('MediaCollection.filterEntries() started')
         self.changedAspect('startFiltering')
         if (self.getFilter().isEmpty()): 
             for entry in self:
@@ -539,10 +486,10 @@ class MediaCollection(Observable, Observer):
                 and entry.isFiltered()):
                 entry = entry.getParentGroup()
             if (entry == None):
-                self.__class__.Logger.error('MediaCollection.filterEntries(): Root not found!')
+                MediaCollection.Logger.error('MediaCollection.filterEntries(): Root not found!')
             self.setSelectedEntry(entry)
         self.changedAspect('stopFiltering')
-        self.__class__.Logger.debug('MediaCollection.filterEntries() finished')
+        MediaCollection.Logger.debug('MediaCollection.filterEntries() finished')
 
 
 
@@ -589,6 +536,8 @@ class MediaCollection(Observable, Observer):
         Number baseLength gives the length of the constant prefix in sourceDir, to be ignored for name determination
         String targetDir
         Dictionary targetPathInfo describes the target path
+            rootDir
+            <organization-specific> 
         Dictionary illegalElements 
         """
         allFiles = os.listdir(sourceDir)
@@ -658,41 +607,6 @@ class MediaCollection(Observable, Observer):
             parameters.logString('Fixed "%s"\n    to "%s"' % (oldPath, newPath))
             oldPath = newPath
         return(oldPath)
-
-
-#     def deriveElements(self, parameters, oldPath, baseLength, keepIllegals, illegalElements):  # TODO: obsolete
-#         """Create a string containing all elements of oldPath, legal ones first in class sequence, illegal ones second.
-#          
-#         Importing.ImportParameterObject parameters
-#         String oldPath is the absolute path of the file (needed to include into illegalElements)
-#         Integer baseLength is the length of the prefix of oldPath which shall not be considered.
-#         Boolean keepIllegals determines whether illegal elements are included in the result
-#         Dictionary illegalElements associates Strings of illegal elements with path names of files.
-#         
-#         Returns String containing elements. 
-#         """
-#         # split oldPath into elements
-#         elements = set()  # set of class elements in path
-#         words = self.getWordsInPathName(self.fixPathWhileImporting(parameters, oldPath[baseLength:]))  # split into components
-#         for word in words: 
-#             if self.classHandler.isLegalElement(word):  # keep legal elements
-#                 elements.add(self.classHandler.normalizeTag(word))
-#             elif (re.match("^\d+$", word)):  # ignore numbers
-#                 pass  
-#             elif ((not self.organizedByDate)  # TODO: Delegate to Organization.isIgnoredNamePart
-#                   and self.organizationStrategy.nameHandler.isNameLegal(word)):  # ignore names
-#                 #print('ImageFilerModel.deriveElements matched a name!')
-#                 pass
-#             else:  # handle illegal elements
-#                 if (keepIllegals):
-#                     elements.add(word)
-#                 if (word in illegalElements):  # illegal element occurred before
-#                     illegalElements[word].append(oldPath) # add to list of occurrences
-#                 else:  # first occurrence of illegal element
-#                     illegalElements[word] = [oldPath]  # create list of occurrences
-#         # add elements required by any element
-#         elements = self.classHandler.includeRequiredElements(elements)
-#         return(self.classHandler.elementsToString(elements))
 
 
     def deriveTags(self, parameters, oldPath, baseLength, illegalTags):
@@ -790,7 +704,7 @@ class MediaCollection(Observable, Observer):
     def cacheCollectionProperties(self):
         """Calculate and cache properties of the entire collection, to avoid repeated iterations.
         """
-        self.__class__.Logger.info('MediaCollection.cacheCollectionProperties()')
+        MediaCollection.Logger.info('MediaCollection.cacheCollectionProperties()')
         self.cachedCollectionSize = 0
         self.cachedMinimumSize = 0
         self.cachedMaximumSize = 0
@@ -813,8 +727,11 @@ class MediaCollection(Observable, Observer):
                     if ((not self.cachedLatestDate)
                         or (self.cachedLatestDate < entryDate.getLatestDateTime())):
                         self.cachedLatestDate = entryDate.getLatestDateTime()
-        self.__class__.Logger.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
+        MediaCollection.Logger.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
                       % (self.cachedEarliestDate, self.cachedLatestDate))
-        self.__class__.Logger.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 
+        MediaCollection.Logger.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 
                       % (self.cachedMinimumSize, self.cachedMaximumSize))                
-        self.__class__.Logger.info('MediaCollection.cacheCollectionProperties() finished')
+        MediaCollection.Logger.info('MediaCollection.cacheCollectionProperties() finished')
+
+
+

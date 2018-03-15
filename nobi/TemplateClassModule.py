@@ -1,7 +1,7 @@
 #!python
 # -*- coding: latin-1 -*-
 """
-(c) by nobisoft 2017-
+(c) by nobisoft 2018-
 """
 
 

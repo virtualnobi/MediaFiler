@@ -171,6 +171,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 #         self.Thaw()
 
 
+    def EnsureVisible(self, *args, **kwargs):
+        """
+        """
+        if (not self.IsVisible(args[0])):
+            pass
+            return wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
+
 
 # Getters
 # Event Handlers
@@ -204,9 +211,11 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """
         #print('User selected context menu item %s' % event.Id)
         wx.BeginBusyCursor()
+        self.Freeze()
         message = event.EventObject.currentEntry.runContextMenuItem(event.Id, self)
         if (isinstance(message, basestring)):
             self.GetParent().displayInfoMessage(message)
+        self.Thaw()
         wx.EndBusyCursor()
 
 

@@ -23,12 +23,9 @@ from nobi.SortedCollection import SortedCollection
 ## Project
 import UI  # to access UI.PackagePath
 from UI import GUIId
-#from Model.Entry import Entry
-from Model.Group import Group
-#from ..MediaNameHandler import MediaNameHandler
+from ..Group import Group
 from ..MediaClassHandler import MediaClassHandler
-from Model.MediaOrganization import MediaOrganization
-
+from . import MediaOrganization
 
 
 # Internationalization  # requires "PackagePath = __path__[0]" in _init_.py

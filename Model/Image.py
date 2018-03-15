@@ -50,6 +50,12 @@ class Image(Single):
     Logger = logging.getLogger(__name__)
     
 
+
+# Variables
+    Logger = logging.getLogger(__name__)
+
+
+
 ## Inheritance - Entry
     @classmethod
     def getMediaTypeName(cls):
@@ -96,8 +102,16 @@ class Image(Single):
     def isIdentical(self, anEntry):
         """Check whether self and anEntry have the same content.
         """
+#         smallImage = None
         if (super(Image, self).isIdentical(anEntry)):
-            return(self.getRawImage().GetData() == anEntry.getRawImage().GetData())
+            identical = (self.getRawImage().GetData() == anEntry.getRawImage().GetData())
+#             if (not identical):  # TODO: find a normalization of images which works
+#                 if (not smallImage):
+#                     smallImage = self.getRawImage().Rescale(500, 500).GetData()
+#                 if (smallImage == anEntry.getRawImage().Rescale(500, 500).GetData()):
+#                     Image.Logger.info('Image.isIdentical(): Reduced images identical for\n\t%s\n\t%s' % (self.getPath(), anEntry.getPath()))
+#                 pass  # TODO: check whether images resized to 500x500 are identical
+            return(identical)
         else:
             return(False)
 
@@ -119,9 +133,9 @@ class Image(Single):
             if (imageType):
                 self.rawImage = wx.Image(self.getPath(), imageType)
                 if (self.rawImage == None):
-                    logging.warning('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
+                    Image.Logger.warning('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
             else: 
-                logging.warning('Image.getRawImage(): Illegal type in "%s"!' % self.getPath())
+                Image.Logger.warning('Image.getRawImage(): Illegal type in "%s"!' % self.getPath())
             if (self.rawImage == None):
                 self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
                                          wx.BITMAP_TYPE_JPEG)
@@ -152,3 +166,4 @@ class Image(Single):
 # Class Initialization
 for extension in Image.LegalExtensions: 
     Installer.getProductTrader().registerClassFor(Image, extension)
+

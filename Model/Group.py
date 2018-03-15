@@ -6,8 +6,6 @@
 
 # Imports
 ## standard
-# import copy
-import os.path
 import logging
 ## contributed
 import wx
@@ -63,25 +61,6 @@ class Group(Entry, Observer):
         cls.Logger.debug('Group.createAndPersist(): Creating directory "%s"' % path)
         os.mkdir(path)
         return(newGroup)
-
-
-#     @classmethod
-#     def createFromName(cls, model, name):  # TODO: replace by createAndPersist()
-#         """Create a new Group for name.
-#         
-#         model an imageFilerModel 
-#         name a String containing the path of the media file
-#         Returns a Group
-#         """
-#         if (model.organizedByDate):
-#             raise('Named Groups cannot be created when images are organized by date!')
-#         else:  # organized by name
-#             groupDirectory = os.path.join(model.rootDirectory, name[0:1], name)
-#             if (not os.path.exists(groupDirectory)):
-#                 print('Creating new folder "%s"' % groupDirectory)
-#                 os.makedirs(groupDirectory)
-#             newGroup = cls(model, groupDirectory)
-#             return(newGroup)
 
 
 
@@ -180,6 +159,10 @@ class Group(Entry, Observer):
                 name = kwargs['name']
                 existingEntry = self.model.getEntry(name=name)
                 if (existingEntry == None):
+                    if ('elements' in kwargs):
+                        elements = kwargs['elements']
+                    else: 
+                        elements = ''
                     print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.organizer.getName(), elements))
                     return(super(Group, self).renameTo(classesToRemove=classesToRemove,
                                                        elements=[], 
@@ -216,7 +199,7 @@ class Group(Entry, Observer):
                         sceneMap[scene] = ('%02d' % nextFreeScene) 
                         nextFreeScene = (nextFreeScene + 1)
             else:
-                print('Renaming subentries of "%s"' % self.getPath())
+                print('Renaming subentries of "%s" (name unchanged)' % self.getPath())
                 if ('name' in kwargs):
                     del kwargs['name']
                 # construct an identity scene map
@@ -236,10 +219,10 @@ class Group(Entry, Observer):
                 kwargs2 = kwargs.copy()
                 kwargs2['elements'] = newElements
                 kwargs2['scene'] = sceneMap[subEntry.getOrganizer().getScene()]
-                subEntry.renameTo(classesToRemove=classesToRemove,
-                                  number=subEntry.getOrganizer().getNumber(), 
-                                  removeIllegalElements=removeIllegalElements,
-                                  **kwargs2)
+                kwargs2['removeIllegalElements'] = removeIllegalElements
+                kwargs2['number'] = subEntry.getOrganizer().getNumber()
+                kwargs2['classesToRemove'] = classesToRemove
+                newParent = subEntry.renameTo(**kwargs2)
             newSelection = newParent
         assert (selfToBeDeleted == (0 == len(self.getSubEntries(filtering=False)))), 'Group.renameTo(): Mismatch between subentry and deletion flag!'
         if (0 == len(self.getSubEntries(filtering=False))):
@@ -301,21 +284,6 @@ class Group(Entry, Observer):
             return(set())
         else:
             return(result)
-
-
-#     def getNumbersInGroup(self):
-#         """Return an ordered list of numbers used by media directly contained in self.
-#         
-#         At the moment, this is not used, as it will confound numbers of different scenes in the 
-#         OrganizationByName. The Single refers to its getOrganizer() object to derive the numbers, 
-#         which will know about scenes and return only the numbers for the scene of self.
-#
-#         TODO: If needed, can be list comprehension
-#         """
-#         for subentry in self.getSubEntries():
-#             if (not subentry.isGroup()):
-#                 result.append(subentry.getNumber())
-#         return(result)
 
 
     def getScenes(self):  # TODO: remove
@@ -514,7 +482,7 @@ class Group(Entry, Observer):
                         break  # avoid checking pairs twice
                     elif (entry1.isIdentical(entry2)):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
-                        entry1.organizer.deleteDouble(entry2, mergeElements)
+                        entry1.getOrganizer().deleteDouble(entry2, mergeElements)
                         doubles = (doubles + 1)
         PausableObservable.resumeUpdates(Entry, 'name', None)
         #TODO: if self was selected, reselect to make changes visible

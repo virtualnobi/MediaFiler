@@ -27,7 +27,6 @@ from ..MediaNameHandler import MediaNameHandler
 from ..MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from __builtin__ import classmethod
 
 
 
@@ -502,32 +501,98 @@ class MediaOrganization(object):
 
 
 # Internal
+    def getNumberedEntriesMap(self):
+        """Return a dictionary mapping numbers to the subentries of self's parent Group.
+        """
+        result = {}
+        for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
+            if ((self.getContext().model.organizedByDate)
+                or (self.getScene() == entry.getOrganizer().getScene())):
+                result[entry.getOrganizer().getNumber()] = entry
+        return(result)
+
+
+    def findNearestGap(self, origin, numberList):
+        """Find the gap nearest to a number in a list of numbers.
+        
+        Number origin gives the number to start looking at
+        List numberList contains the list of all numbers
+        Return Number between 1 and (len(numberList) + 1)
+        """
+        distance = 0
+        result = 0
+        while (result == 0):
+            if ((0 < (origin - distance))
+                and (not ((origin - distance) in numberList))):
+                    result = (origin - distance)
+            elif ((origin - distance) == self.getNumber()):
+                result = (origin - distance)
+            elif (not ((origin + distance) in numberList)):
+                result = (origin + distance)
+            elif ((origin + distance) == self.getNumber()):
+                result = (origin + distance)
+            distance = (distance + 1)
+        return(result)
+
+    
+    def createReorderSequence(self, target, gap, numberList):
+        """Return a list of number pairs describing the renumbering actions to move self to origin.
+        
+        Number target the new number of self
+        Number gap the gap in numbering nearest to target
+        List numberList the list of existing numbers
+        """
+        moveList = []
+        if (target in numberList):
+            step = (1 if (gap < target) else -1)
+            current = gap
+            while (current <> target):
+                moveList.append(((current + step), current))
+                current = (current + step)
+        if (self.getNumber() == gap):  # special case: gap is the place where self is removed
+            moveList.insert(0, (self.getNumber(), target))
+        else:
+            moveList.append((self.getNumber(), target))
+        return(moveList)
+
+
     def renumberTo(self, newNumber):
         """Renumber Singles in self's parent group so that self can change to the given number.
         """
-        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Assigning new number %d' % newNumber)
-        currentNumberToEntryMap = {}
-        for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
-            if (entry.getOrganizer().getScene() == self.getScene()):
-                currentNumberToEntryMap[entry.getOrganizer().getNumber()] = entry
-        selfNumber = self.getNumber()
-        currentNumbers = [i for i in currentNumberToEntryMap.keys() if ((newNumber <= i) and (i <> selfNumber))]
-        numberPairList = []
-        if (0 < len(currentNumbers)):
-            lastUsed = currentNumbers[0]
-            for i in currentNumbers:
-                if (lastUsed < i):  # a gap where renumbering can stop
-                    break
-                if ((newNumber < selfNumber)  # moving a media to the front
-                    and (selfNumber <= lastUsed)):  # and passing the former number of media, which is a gap
-                    break
-                lastUsed = (i+1)
-                numberPairList.append((i, lastUsed))
-        numberPairList.append((selfNumber, newNumber))
-        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Mapping numbers %s' % numberPairList)
+        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Assigning new number %d to number %d' % (newNumber, self.getNumber()))
+        numberToEntryMap = self.getNumberedEntriesMap()
+        numbersUsed = numberToEntryMap.keys()
+        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Used numbers are %s' % numbersUsed)
+        gap = self.findNearestGap(newNumber, numbersUsed)
+        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Nearest gap is %d' % gap)
+#         currentNumberToEntryMap = {}
+#         for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
+#             if ((self.getContext().model.organizedByDate)  # TODO: remove if scenes are Groups
+#                 or (entry.getOrganizer().getScene() == self.getScene())):
+#                 currentNumberToEntryMap[entry.getOrganizer().getNumber()] = entry
+#         selfNumber = self.getNumber()
+#         currentNumbers = [i for i in currentNumberToEntryMap.keys() if ((newNumber <= i) and (i <> selfNumber))]
+#         numberPairList = []
+#         if (0 < len(currentNumbers)):
+#             lastUsed = currentNumbers[0]
+#             for i in currentNumbers:
+#                 if (lastUsed < i):  # a gap where renumbering can stop
+#                     break
+#                 if ((newNumber < selfNumber)  # moving a media to the front
+#                     and (selfNumber <= lastUsed)):  # and passing the former number of media, which is a gap
+#                     break
+#                 lastUsed = (i+1)
+#                 numberPairList.append((i, lastUsed))
+#         numberPairList.append((selfNumber, newNumber))
+#         MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Reordering 2: %s' % numberPairList)
+#         answer = raw_input('Enter 1 or 2: ')
+#         if (answer == '1'):
+#             numberPairList = self.createReorderSequence(newNumber, gap, numbersUsed)
+        numberPairList = self.createReorderSequence(newNumber, gap, numbersUsed)
+        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Reordering %s' % numberPairList)
         renameList = []
         for (now, then) in numberPairList:
-            entry = currentNumberToEntryMap[now]
+            entry = numberToEntryMap[now]
             renameList.append((entry, entry.getPath(), entry.getOrganizer().constructPathForSelf(number=then)))
         MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Mapping names %s' % renameList)
         if (self.__class__.ImageFilerModel.renameList(renameList)):

@@ -554,7 +554,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
                 logDialog.Maximize(True)  # logDialog.SetSize(wx.Size(1000,600))
                 logDialog.ShowModal()
                 logDialog.Destroy()
-                self.displayInfoMessage(_('%d media imported from "%s"') % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
+                info = (_('%d media imported from "%s"') if (not testRun) else _('%d media would have been imported from "%s"'))
+                self.displayInfoMessage(info % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
             wx.EndBusyCursor()
         dialog.Destroy()  # destroy after getting the user input
     
