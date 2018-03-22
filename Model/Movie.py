@@ -5,6 +5,7 @@
 
 # Imports
 ## standard
+import math
 import datetime
 import re
 import os.path
@@ -165,12 +166,12 @@ class Movie(Single):
         """
         seconds = self.getDuration()
         if (seconds <> None):
-            minutes = (seconds / 60)
-            seconds = (seconds % 60)
-            fmt = _(u'%d secs')
+            minutes = int(seconds / 60)
+            seconds = int(seconds % 60)
+            fmt = _('%d secs')
             numberList = (seconds, )
             if (0 < minutes):
-                fmt = (_(u'%d mins, ') + fmt)
+                fmt = (_('%d mins, ') + fmt)
                 numberList = (minutes, seconds)
             return(fmt % numberList)
         else:

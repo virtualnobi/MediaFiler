@@ -76,6 +76,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         self.model = None  
         self.selectionBeforeFiltering = None  # selected Entry before filtering started, to detect whether it is filtered
         self.ignoreSelectionChanges = False  # flag to stop onSelectionChanged events when mass deleting
+        self.oldSize = self.Size
 
 
 
@@ -222,6 +223,9 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
     def onResize(self, event): 
         """After conventional resizing, ensure selected entry is still visible.
         """
+        if (self.oldSize <> event.GetSize()):
+            print('MediaTreeCtrl.onResize(): Different sizes %s vs %s' % (self.oldSize, event.GetSize()))
+        self.oldSize = event.GetSize()
         if (self.model
             and self.model.getSelectedEntry().getTreeItemID()):
             wx.CallAfter(self.EnsureVisible, self.model.getSelectedEntry().getTreeItemID())

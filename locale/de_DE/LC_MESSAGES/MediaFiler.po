@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: 2018-01-29 21:41+Mitteleuropäische Zeit\n"
-"PO-Revision-Date: 2018-01-29 21:48+0100\n"
+"PO-Revision-Date: 2018-03-22 16:21+0100\n"
 "Last-Translator: nobi <virtualnobi@gmx.de>\n"
 "Language-Team: nobisoft <virtualnobi@gmx.de>\n"
 "Language: de_DE\n"
@@ -259,7 +259,7 @@ msgstr "%d Sek"
 
 #: ..\Model\Movie.py:173
 msgid "%d mins, "
-msgstr "%s Min,"
+msgstr "%s Min, "
 
 #: ..\Model\Movie.py:177
 msgid "unknown duration"
