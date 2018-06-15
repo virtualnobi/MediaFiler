@@ -156,7 +156,7 @@ class MediaCanvas(wx.Panel, Observer):
         
         Route to current Entry.
         """
-        #print('User selected context menu item %s' % event.Id)
+        print('User selected context menu item %s' % event.Id)
         wx.BeginBusyCursor()
         message = event.EventObject.currentEntry.runContextMenuItem(event.Id, self)
         if (isinstance(message, basestring)):

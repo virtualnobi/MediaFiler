@@ -11,6 +11,7 @@ import gettext
 import shutil
 import shlex
 import logging
+#from logging import FileHandler
 import time
 import cProfile
 import pstats
@@ -19,6 +20,7 @@ import pkgutil
 ## contributed
 import wx.aui
 import wx.lib.dialogs
+import wx.lib.agw.advancedsplash as AS
 ## nobi
 from nobi.ObserverPattern import Observable, Observer
 ## project
@@ -36,12 +38,11 @@ from UI.MediaTreePane import MediaTreeCtrl
 from UI.MediaCanvasPane import MediaCanvas
 from UI.MediaNamePane import MediaNamePane
 from UI.MediaClassificationPane import MediaClassificationPane
-from logging import FileHandler
 
 
 
 # Internationalization
-# requires "PackagePath = __path__[0]" in _init_.py
+# requires "PackagePath = __path__[0]" in UI/_init_.py
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)
@@ -55,7 +56,7 @@ def N_(message): return message
 
 
 
-class MediaFiler (wx.Frame, Observer, Observable):   
+class MediaFiler(wx.Frame, Observer, Observable):   
     """A Python 2.7 GUI application which lets you organize media (images and videos). 
     """
 
@@ -86,7 +87,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
 
 
 # Class Variables
-    Logger = logging.getLogger(__name__)
+    LoggerName = 'MediaFiler'
+    Logger = logging.getLogger(LoggerName)
     LogHandlerInteractive = logging.StreamHandler()  # logging handler to output to visible pane
     LogHandlerFile = None  # logging handler to output to file
 
@@ -106,40 +108,40 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.presentationActive = False
         self.presentationTimer = None
         # initialize AuiManager managing this frame        
-        self._mgr = wx.aui.AuiManager() 
-        self._mgr.SetManagedWindow(self)
+        self.paneManager = wx.aui.AuiManager() 
+        self.paneManager.SetManagedWindow(self)
         # create UI components
         # - filter pane, can be hidden, initially hidden
         self.showFilterPane = False     
         self.applyFilter = False
         self.filterPane = MediaFilterPane(self)
-        self._mgr.AddPane(self.filterPane,
-                          wx.aui.AuiPaneInfo().Name('filter').Caption(self.PaneCaptionFilter).BestSize([300,0]).Left().Layer(3).CloseButton(True).Show(self.showFilterPane))
+        self.paneManager.AddPane(self.filterPane,
+                          wx.aui.AuiPaneInfo().Name('filter').Caption(self.PaneCaptionFilter).Left().Layer(3).CloseButton(True).Show(self.showFilterPane))
         # - image tree, can be hidden, initially visible
         self.showTreePane = True
         self.imageTree = MediaTreeCtrl(self, pos=wx.Point(0, 0), size=wx.Size(160, 250))
-        self._mgr.AddPane(self.imageTree,
-                          wx.aui.AuiPaneInfo().Name('tree').Caption(self.PaneCaptionImages).BestSize([400,0]).Left().Layer(2).CloseButton(True).Show(self.showTreePane))
+        self.paneManager.AddPane(self.imageTree,
+                          wx.aui.AuiPaneInfo().Name('tree').Caption(self.PaneCaptionImages).Left().Layer(2).CloseButton(True).Show(self.showTreePane))
         # - canvas, cannot be hidden
         self.canvas = MediaCanvas(self);
-        self._mgr.AddPane(self.canvas,
+        self.paneManager.AddPane(self.canvas,
                           wx.aui.AuiPaneInfo().Name('canvas').CenterPane().MaximizeButton(True))
         # - classification pane, initially visible
         self.showClassificationPane = True
-        self.classificationPane = MediaClassificationPane(self)  #ObsoleteImageClassificationPane.ObsoleteImageClassificationPane(self)
-        self._mgr.AddPane(self.classificationPane,
-                          wx.aui.AuiPaneInfo().Name('classification').Caption(self.PaneCaptionClassification).BestSize((400,0)).Left().Layer(1).CloseButton(True).Show(self.showClassificationPane))
+        self.classificationPane = MediaClassificationPane(self)
+        self.paneManager.AddPane(self.classificationPane,
+                          wx.aui.AuiPaneInfo().Name('classification').Caption(self.PaneCaptionClassification).Left().Layer(1).CloseButton(True).Show(self.showClassificationPane))
         # - name pane
         self.namePane = MediaNamePane(self)
-        self._mgr.AddPane (self.namePane,
-                           wx.aui.AuiPaneInfo().Name('name').Caption(self.PaneCaptionName).BestSize ([0,20]).Top().Layer(2).Show(True))
+        self.paneManager.AddPane (self.namePane,
+                           wx.aui.AuiPaneInfo().Name('name').Caption(self.PaneCaptionName).Top().Layer(2).Show(True))
         # - presentation control pane
         self.presentationPane = PresentationControlPane(self)
-        self._mgr.AddPane(self.presentationPane, 
+        self.paneManager.AddPane(self.presentationPane, 
                           wx.aui.AuiPaneInfo().Name('present').BestSize([0,20]).CenterPane().Bottom().Hide())
 #         # - log pane, initially hidden
 #         self.showLogPane = False
-#         self._mgr.AddPane (self.createLogPane(),
+#         self.paneManager.AddPane (self.createLogPane(),
 #                            wx.aui.AuiPaneInfo().Name('log').Caption(self.__class__.PaneCaptionLog).Bottom().Layer(4).CloseButton(True).MaximizeButton(True).Show(self.showLogPane))
         # - menu bar must be created after adding panes, to ensure panes exist when creating perspectives
         self.createMenuBar ()
@@ -147,7 +149,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         #  bind events to handler functions
         self.bindEvents() 
         # "commit" all changes made to FrameManager   
-        self._mgr.Update()
+        self.paneManager.Update()
 
 
     def populateFileMenu (self, menu):
@@ -169,50 +171,50 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """
         self.perspectives = [None for i in range(GUIId.MaxNumberPerspectives)]  # @UnusedVariable
         # save current perspective
-        self.perspectives[GUIId.MaxNumberPerspectives - 1] = self._mgr.SavePerspective()
+        self.perspectives[GUIId.MaxNumberPerspectives - 1] = self.paneManager.SavePerspective()
         # perspective "Classify" to change classification of media
-        self._mgr.GetPane('filter').Hide()
-        self._mgr.GetPane('tree').Show().Left().BestSize(wx.Size(1000,1))
-        self._mgr.GetPane('classification').Show().Left()
-        self._mgr.GetPane('canvas').Show().Center()
-        self._mgr.GetPane('name').Show().Top()
-        self._mgr.GetPane('present').Hide()
-        self._mgr.GetPane('log').Hide()
-        self.perspectives[self.PerspectiveIndexClassify] = self._mgr.SavePerspective()
+        self.paneManager.GetPane('filter').Hide()
+        self.paneManager.GetPane('tree').Show().Left().BestSize(wx.Size(1000,1))
+        self.paneManager.GetPane('classification').Show().Left()
+        self.paneManager.GetPane('canvas').Show().Center()
+        self.paneManager.GetPane('name').Show().Top()
+        self.paneManager.GetPane('present').Hide()
+        self.paneManager.GetPane('log').Hide()
+        self.perspectives[self.PerspectiveIndexClassify] = self.paneManager.SavePerspective()
         self.perspectives_menu.Append((GUIId.LoadPerspective + self.PerspectiveIndexClassify), 
                                       self.PerspectiveNameClassify)
         # perspective "Filter" to filter media
-        self._mgr.GetPane('filter').Show().Left()
-        self._mgr.GetPane('tree').Show().Left().BestSize(wx.Size(600,1))
-        self._mgr.GetPane('classification').Hide()
-        self._mgr.GetPane('canvas').Show().Center()
-        self._mgr.GetPane('name').Show().Top()
-        self._mgr.GetPane('present').Hide()
-        self._mgr.GetPane('log').Hide()
-        self.perspectives[self.PerspectiveIndexFilter] = self._mgr.SavePerspective()
+        self.paneManager.GetPane('filter').Show().Left()
+        self.paneManager.GetPane('tree').Show().Left().BestSize(wx.Size(600,1))
+        self.paneManager.GetPane('classification').Hide()
+        self.paneManager.GetPane('canvas').Show().Center()
+        self.paneManager.GetPane('name').Show().Top()
+        self.paneManager.GetPane('present').Hide()
+        self.paneManager.GetPane('log').Hide()
+        self.perspectives[self.PerspectiveIndexFilter] = self.paneManager.SavePerspective()
         self.perspectives_menu.Append((GUIId.LoadPerspective + self.PerspectiveIndexFilter), 
                                       self.PerspectiveNameFilter)
         # perspective "Present" to present media
-        self._mgr.GetPane('filter').Hide()
-        self._mgr.GetPane('tree').Hide()
-        self._mgr.GetPane('classification').Hide()
-        self._mgr.GetPane('canvas').Show().Center()
-        self._mgr.GetPane('name').Hide()
-        self._mgr.GetPane('present').Show().Bottom()
-        self._mgr.GetPane('log').Hide()
-        self.perspectives[self.PerspectiveIndexPresent] = self._mgr.SavePerspective()
+        self.paneManager.GetPane('filter').Hide()
+        self.paneManager.GetPane('tree').Hide()
+        self.paneManager.GetPane('classification').Hide()
+        self.paneManager.GetPane('canvas').Show().Center()
+        self.paneManager.GetPane('name').Hide()
+        self.paneManager.GetPane('present').Show().Bottom()
+        self.paneManager.GetPane('log').Hide()
+        self.perspectives[self.PerspectiveIndexPresent] = self.paneManager.SavePerspective()
         self.perspectives_menu.Append((GUIId.LoadPerspective + self.PerspectiveIndexPresent), 
                                       self.PerspectiveNamePresent)
         # perspective "All" containing all panes
         self.perspectives_menu.AppendSeparator()
-        self._mgr.GetPane('filter').Show().Left()
-        self._mgr.GetPane('tree').Show().Left().BestSize(wx.Size(600,1))
-        self._mgr.GetPane('classification').Show().Left()
-        self._mgr.GetPane('canvas').Show().Center()
-        self._mgr.GetPane('name').Show().Top()
-        self._mgr.GetPane('present').Show().Bottom()
-        self._mgr.GetPane('log').Hide()
-        self.perspectives[self.PerspectiveIndexAll] = self._mgr.SavePerspective()
+        self.paneManager.GetPane('filter').Show().Left()
+        self.paneManager.GetPane('tree').Show().Left().BestSize(wx.Size(600,1))
+        self.paneManager.GetPane('classification').Show().Left()
+        self.paneManager.GetPane('canvas').Show().Center()
+        self.paneManager.GetPane('name').Show().Top()
+        self.paneManager.GetPane('present').Show().Bottom()
+        self.paneManager.GetPane('log').Hide()
+        self.perspectives[self.PerspectiveIndexAll] = self.paneManager.SavePerspective()
         self.perspectives_menu.Append((GUIId.LoadPerspective + self.PerspectiveIndexAll), 
                                       self.PerspectiveNameAll)
         # last used perspective 
@@ -221,7 +223,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
                                       self.PerspectiveNameLastUsed)
         #menu.Append(GUIId.CreatePerspective, 'Create Perspective')
         # TODO: if perspective loaded, add "Remove this perspective" entry
-        self._mgr.Update()
+        self.paneManager.Update()
 
 
     def createStatusBar (self):
@@ -414,8 +416,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
         self.displayInfoMessage(_('Closing...'))
         self.imageTree.ignoreSelectionChanges = True
         self.imageTree.destroy()
-        self._mgr.UnInit()
-        del self._mgr
+        self.paneManager.UnInit()
+        del self.paneManager
         self.Destroy()
 
 
@@ -432,8 +434,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
         EVENT is the event raised by the CheckMenuItem
         """
         self.showFilterPane = (event.IsChecked())  # toggling done by CheckMenuItem
-        self._mgr.GetPane(self.filterPane).Show(self.showFilterPane)
-        self._mgr.Update()
+        self.paneManager.GetPane(self.filterPane).Show(self.showFilterPane)
+        self.paneManager.Update()
 
 
     def onToggleFilter (self, event):  # @UnusedVariable
@@ -452,8 +454,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
             EVENT is the event raised by the CheckMenuItem
         """
         self.showTreePane = event.IsChecked()  # toggling is done by CheckMenuItem
-        self._mgr.GetPane(self.imageTree).Show(self.showTreePane) 
-        self._mgr.Update()
+        self.paneManager.GetPane(self.imageTree).Show(self.showTreePane) 
+        self.paneManager.Update()
         
     
     def onToggleClassificationPane (self, event):
@@ -461,8 +463,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
             EVENT is the event raised by the CheckMenuItem
         """
         self.showClassificationPane = event.IsChecked()  # toggling is done by CheckMenuItem
-        self._mgr.GetPane(self.classificationPane).Show(self.showClassificationPane) 
-        self._mgr.Update()
+        self.paneManager.GetPane(self.classificationPane).Show(self.showClassificationPane) 
+        self.paneManager.Update()
 
 
     def onToggleLogPane (self, event):
@@ -470,8 +472,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
             EVENT is the event raised by the CheckMenuItem
         """
         self.showLogPane = event.IsChecked()  # toggling is done by CheckMenuItem
-        self._mgr.GetPane(self.logPane).Show(self.showLogPane)
-        self._mgr.Update()
+        self.paneManager.GetPane(self.logPane).Show(self.showLogPane)
+        self.paneManager.Update()
 
 
     def onStartSlideShow (self, event):  # @UnusedVariable
@@ -484,7 +486,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         dlg = wx.TextEntryDialog(self, "Enter a name for the new perspective:", GUIId.AppTitle)
         dlg.SetValue("Perspective %d" % (len(self.perspectives) + 1))  # TODO: check non-existence of new name
         if (dlg.ShowModal() == wx.ID_OK):  # user entered new perspective name
-            self.perspectives.append(self._mgr.SavePerspective())
+            self.perspectives.append(self.paneManager.SavePerspective())
             self.populatePerspectivesMenu(self.perspectives_menu)
 
 
@@ -492,8 +494,8 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Switch to the perspective selected by the user.
         """
         perspectiveNumber = (event.GetId() - GUIId.LoadPerspective)
-        print('Loading perspective %s = %s' % (perspectiveNumber, self.perspectives[perspectiveNumber]))
-        self._mgr.LoadPerspective(self.perspectives[perspectiveNumber])
+        MediaFiler.Logger.debug('MediaFiler.onRestorePerspective(): Loading perspective %s = %s' % (perspectiveNumber, self.perspectives[perspectiveNumber]))
+        self.paneManager.LoadPerspective(self.perspectives[perspectiveNumber])
         self.model.setConfiguration(GlobalConfigurationOptions.LastPerspective, str(perspectiveNumber))
 
 
@@ -582,7 +584,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         """Rename a class element to another name, in the entire collection. 
         Allows to remove an element if renamed to "".
         """
-        print('NYI: Rename Class Element')
+        MediaFiler.Logger.warn('MediaFiler.onRenameClassElement(): NYI!')
         pass
     
     
@@ -597,7 +599,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
             logging.debug('App.onEditClasses(): Calling %s' % commandArgs)
             retCode = subprocess.call(commandArgs, shell=False)
             if (retCode <> 0):
-                logging.warning('App.onEditClasses(): Call failed with return code %s!' % retCode)
+                MediaFiler.Logger.warn('MediaFiler.onEditClasses(): Call failed with return code %s!' % retCode)
                 dlg = wx.MessageDialog(self, 
                                        (_('The external program failed with return code %s.') % retCode),
                                        _('Warning'),
@@ -607,11 +609,10 @@ class MediaFiler (wx.Frame, Observer, Observable):
                 dlg.Destroy()
             self.onReload(event)
         else:
-            print(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
+            MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
             # TODO: error message, but on which window?
-            pass
-    
-    
+
+
     def onEditNames (self, event):  # @UnusedVariable
         """When image collection is organized by names, start external editor on names list.
         """
@@ -621,10 +622,10 @@ class MediaFiler (wx.Frame, Observer, Observable):
             if (editorName):
                 editorName = editorName.replace(GlobalConfigurationOptions.Parameter, namesFile)
                 commandArgs = shlex.split(editorName)
-                logging.debug('App.onEditNames(): Calling %s' % commandArgs)
+                MediaFiler.Logger.debug('MediaFiler.onEditNames(): Calling %s' % commandArgs)
                 retCode = subprocess.call(commandArgs, shell=False)
             if (retCode <> 0):
-                logging.warning('App.onEditClasses(): Call failed with return code %s!' % retCode)
+                MediaFiler.Logger.warn('App.onEditNames(): Call failed with return code %s!' % retCode)
                 dlg = wx.MessageDialog(self, 
                                        (_('The external program failed with return code %s.') % retCode),
                                        _('Warning'),
@@ -633,10 +634,10 @@ class MediaFiler (wx.Frame, Observer, Observable):
                 dlg.ShowModal()
                 dlg.Destroy()
             else:
-                print(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
+                MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
                 # TODO: error message, but on which window?
         else:
-            print('Not supported!')
+            MediaFiler.Logger.error('MediaFiler.onEditNames(): Only supported when organized by name!')
     
 
     def onLoggingChanged(self, event):
@@ -647,7 +648,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
         state = menu.IsChecked(menuId)
         loggableModules = self.getLoggableModules()
         moduleName = loggableModules[(menuId - GUIId.ManageLogging)]
-        print('Turning logging %s for %s' % (('On' if state else 'Off'), moduleName))
+        MediaFiler.Logger.debug('MediaFiler.onLoggingChanged(): Turning logging %s for %s' % (('On' if state else 'Off'), moduleName))
         if (state):
             logging.getLogger(moduleName).addHandler(self.__class__.LogHandlerInteractive)
             logging.getLogger(moduleName).debug('User turned on logging for %s' % moduleName)
@@ -685,23 +686,22 @@ class MediaFiler (wx.Frame, Observer, Observable):
         If Space, resume automatic presentation.
         """
         keyCode = event.GetKeyCode()
-        print('Registered "down" for key code %s' % keyCode)
+        MediaFiler.Logger.debug('MediaFiler.onKeyDown(): Registered "down" for key code %s' % keyCode)
         if (keyCode == 367):  # PageUp 
-            self.model.setSelectedEntry(self.model.getNextEntry(self.model.getSelectedEntry()))
+            self.model.setSelectedEntry(self.model.getSelectedEntry().getNextEntry())
         elif (keyCode == 366):  # PageDown
-            self.model.setSelectedEntry(self.model.getPreviousEntry(self.model.getSelectedEntry()))
+            self.model.setSelectedEntry(self.model.getSelectedEntry().getPreviousEntry())
         elif (keyCode == 32):  # Space
             self.presentationActive = (not self.presentationActive)
             if (self.presentationActive):
-                print('Resume presentation')
+                MediaFiler.Logger.debug('MediaFiler.onKeyDown(): Resume presentation')
                 self.presentNext()
             else:
-                print('Stop presentation %s' % self.presentationTimer)
+                MediaFiler.Logger.debug('MediaFiler.onKeyDown(): Stop presentation %s' % self.presentationTimer)
                 self.presentationTimer.cancel()
             
 
 
-        
 # Inheritance - ObserverPattern.Observer
     def updateAspect(self, observable, aspect):
         '''ASPECT of OBSERVABLE has changed.
@@ -716,7 +716,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
             self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
             self.statusbar.Show()
         else:
-            print 'Unhandled change of aspect %s in observable %s' % (aspect, observable)
+            MediaFiler.Logger.debug('MediaFiler.updateAspect(): Unhandled change of aspect %s in observable %s' % (aspect, observable))
 
 
 
@@ -736,30 +736,33 @@ class MediaFiler (wx.Frame, Observer, Observable):
         wx.BeginBusyCursor()
         self.statusbar.SetStatusText(directory, GUIId.SB_Organization)
         self.displayInfoMessage(_('Loading...'))
-        logging.debug('App.setModel(): loading app icon "%s"' % Installer.getLogoPath())
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
         self.model = MediaCollection(directory)
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
         self.model.addObserverForAspect(self, 'size')
         self.updateMenuAccordingToModel(self.model)
-        logging.debug('MediaFiler: Setting up name pane')
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up name pane')
         self.namePane.setModel(self.model)
-        logging.debug('MediaFiler: Setting up filter pane')
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up filter pane')
         self.filterPane.setModel(self.model)
-        logging.debug('MediaFiler: Setting up classification pane')
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Filter pane best size is %s' % self.filterPane.GetBestSize())
+        self.paneManager.GetPane('filter').BestSize(self.filterPane.GetBestSize())
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up classification pane')
         self.classificationPane.setModel(self.model)
-        logging.debug('MediaFiler: Setting up canvas pane')
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up canvas pane')
         self.canvas.setModel(self.model)
-        logging.debug('MediaFiler: Setting up presentation pane')
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up presentation pane')
         self.presentationPane.setModel(self.model)
-        logging.debug('MediaFiler: Setting up tree pane')
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up tree pane')
         self.imageTree.setModel(self.model)
         self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
         self.statusbar.Show()
         lastPerspective = self.model.getConfiguration(GlobalConfigurationOptions.LastPerspective)
         if (lastPerspective):
-            self._mgr.LoadPerspective(self.perspectives[int(lastPerspective)])
+            self.paneManager.LoadPerspective(self.perspectives[int(lastPerspective)])
+        self.paneManager.Update()
         self.displayInfoMessage(_('Ready'))
         wx.EndBusyCursor()
 
@@ -782,20 +785,21 @@ class MediaFiler (wx.Frame, Observer, Observable):
     def getLoggableModules(self):
         """Return a list of all MediaFiler modules, for toggling logging on the UI.
         """
-        result = []
+        result = [MediaFiler.LoggerName]  # include app as well
         def findNames(prefix, pathList):
-            print('Looking at %s' % pathList)
+            MediaFiler.Logger.debug('MediaFiler.getLoggableModules(): Looking at %s' % pathList)
             for dummy, moduleName, isPackage in pkgutil.iter_modules(pathList):
                 if (moduleName.find('test') <> 0):
                     result.append(prefix + '.' + moduleName)
                     if (isPackage):
                         findNames((prefix + '.' + moduleName),
                                   [os.path.join(pathList[0], moduleName)])
-        import Model
+        import Model  # @UnusedImport
         findNames('Model', Model.__path__)
-        import UI  # @Reimport
+        import UI  # @Reimport @UnusedImport
         findNames('UI', UI.__path__)
-        print('App.getLoggableModules(): Returning %s' % result)
+        # findNames('', <sourceDirectory>)  does not find the modules
+        MediaFiler.Logger.debug('MediaFiler.getLoggableModules(): Returning %s' % result)
         return(result)
 
 
@@ -808,7 +812,7 @@ class MediaFiler (wx.Frame, Observer, Observable):
             if ('' in loggedModules):
                 loggedModules.remove('')
             for moduleName in loggedModules:
-                print('App.setLoggedModules(): Continuing to log "%s"' % moduleName)
+                MediaFiler.Logger.debug('MediaFiler.setLoggedModules(): Continuing to log "%s"' % moduleName)
                 self.toolsMenu.Check(self.toolsMenu.FindItem(moduleName), True)
                 logging.getLogger(moduleName).addHandler(MediaFiler.LogHandlerInteractive)
 
@@ -822,23 +826,28 @@ if __name__ == "__main__":
     logHandler.setFormatter(logFormatter)
     logging.getLogger().addHandler(logHandler)
     logging.getLogger().setLevel(logging.DEBUG)
-    logging.debug('App.__main__(): Temporarily logging to "%s"' % fname)
+    logging.debug('MediaFiler.__main__(): Temporarily logging to "%s"' % fname)
     app = wx.App(False)    
     frame = MediaFiler(None, title=GUIId.AppTitle)
     if (Installer.ensureInstallationOk(frame)):
+        splash = AS.AdvancedSplash(frame, 
+                                   bitmap=wx.Bitmap(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO), 
+                                   agwStyle=(AS.AS_NOTIMEOUT | AS.AS_CENTER_ON_SCREEN), 
+                                   shadowcolour=wx.WHITE)
         fname = (Installer.getLogFilePath() % 1)
-        logging.debug('App.__main__(): Now permanently logging to "%s"' % fname)
+        logging.debug('MediaFiler.__main__(): Now permanently logging to "%s"' % fname)
         logging.getLogger().removeHandler(logHandler)
         logHandler.close()
-        logHandler = FileHandler(fname, mode='w')
+        logHandler = logging.FileHandler(fname, mode='w')
         logHandler.setFormatter(logFormatter)
         logging.getLogger().addHandler(logHandler)
-        logging.debug('App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
-        frame.Show()
         frame.setModel(Installer.getMediaPath())
-        if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
-            logging.debug('App.__main__(): Maximizing window')
-            frame.Maximize(True)
         frame.setLoggedModules()
+        MediaFiler.Logger.debug('MediaFiler.__main__(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
+        splash.Close()
+        frame.Show()
+        if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
+            MediaFiler.Logger.debug('MediaFiler.__main__(): Maximizing window')
+            frame.Maximize(True)
         app.MainLoop()
-    
+

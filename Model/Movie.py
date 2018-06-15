@@ -5,7 +5,7 @@
 
 # Imports
 ## standard
-import math
+#import math
 import datetime
 import re
 import os.path
@@ -220,6 +220,3 @@ class Movie(Single):
 # Class Initialization
 for extension in Movie.LegalExtensions: 
     Installer.getProductTrader().registerClassFor(Movie, extension)  # register Movie to handle extension
-
-
-

@@ -58,7 +58,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 # section: Lifecycle
     def __init__ (self, parent, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.TR_DEFAULT_STYLE):
         # initialize superclasses
-        wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS))  # | wx.TR_MULTIPLE 
+        wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS ))  # | wx.TR_MULTIPLE)) 
         Observer.__init__(self)
         PausableObservable.__init__(self, ['selection'])
         # define norgy images
@@ -159,7 +159,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """
         self.__class__.Logger.debug('MediaTreeCtrl.setEntry(%s)' % entry.getPath())
 #         self.Freeze()
-        if (entry == self.model.getRootEntry()):
+        if (entry == self.model.getRootEntry()):  # TODO: remove
+            print('MediaTreeCtrl.setEntry(): received root, selected initial entry instead!')
             entry = self.model.getInitialEntry()
         if (entry.getTreeItemID()):
             self.SelectItem(entry.getTreeItemID())
@@ -170,14 +171,6 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         else:
             self.__class__.Logger.error('MediaTreeCtrl.setEntry(): no tree item ID for "%s"' % entry.getPath())
 #         self.Thaw()
-
-
-    def EnsureVisible(self, *args, **kwargs):
-        """
-        """
-        if (not self.IsVisible(args[0])):
-            pass
-            return wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
 
 
 # Getters
@@ -227,10 +220,11 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             print('MediaTreeCtrl.onResize(): Different sizes %s vs %s' % (self.oldSize, event.GetSize()))
         self.oldSize = event.GetSize()
         if (self.model
-            and self.model.getSelectedEntry().getTreeItemID()):
+            and self.model.getSelectedEntry().getTreeItemID()
+            and (not self.IsVisible(self.model.getSelectedEntry().getTreeItemID()))):
             wx.CallAfter(self.EnsureVisible, self.model.getSelectedEntry().getTreeItemID())
-            event.Skip()
             self.__class__.Logger.debug('MediaTreePane.onResize(): Queued "EnsureVisible(%s)"' % self.model.getSelectedEntry().getPath())
+        event.Skip()
 
 
     
@@ -241,7 +235,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         super(MediaTreeCtrl, self).updateAspect(observable, aspect)
         self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(%s)' % aspect)
         if (aspect == 'name'):  # name of an Entry changed
-            #print('MediaTreeCtrl: name change of %s' % observable)
+            self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(): Name changed for %s' % observable.getFilename())
             node = observable.getTreeItemID()
             self.SetItemText(node, observable.getFilename())
             self.SortChildren(self.GetItemParent(node))
@@ -254,16 +248,14 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.__class__.Logger.debug('MediaTreeCtrl.update(): entry "%s" removed' % observable.getPath())
         elif (aspect == 'children'):  # Group changes its children
             node = observable.getTreeItemID()
-            currentSelection = self.model.getSelectedEntry()
             self.ignoreSelectionChanges = True
             self.DeleteChildren(node)
             for subEntry in observable.getSubEntries():
                 self.addSubTree(subEntry, node)
             self.SortChildren(node)
             self.ignoreSelectionChanges = False
-            self.setEntry(currentSelection)
+            self.setEntry(self.model.getSelectedEntry())
             self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(): children of "%s" changed' % observable.getPath())
-            self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(): selection "%s" restored' % currentSelection.getPath())
         elif (aspect == 'selection'):  # model changed selection
             entry = observable.getSelectedEntry()
             self.ignoreSelectionChanges = True
@@ -288,6 +280,16 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 
 
 # Inheritance - wx.TreeCtrl
+    def EnsureVisible(self, *args, **kwargs):
+        """
+        """
+        if (not self.IsVisible(args[0])):
+            print('MediaTreeCtrl.EnsureVisible(%s): item invisible, scrolling to show' % args[0])
+            return wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
+        else:
+            print('MediaTreeCtrl.EnsureVisible(%s): item is visible, no change' % args[0])
+
+
     def GetDescendants (self, treeItemID):
         """Return the set of all descendants (direct children and, recursively, their descendants) of treeItemID.
         """

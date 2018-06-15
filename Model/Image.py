@@ -105,12 +105,12 @@ class Image(Single):
 #         smallImage = None
         if (super(Image, self).isIdentical(anEntry)):
             identical = (self.getRawImage().GetData() == anEntry.getRawImage().GetData())
-#             if (not identical):  # TODO: find a normalization of images which works
+#             if (not identical):  # normalization to small size does not work 
 #                 if (not smallImage):
 #                     smallImage = self.getRawImage().Rescale(500, 500).GetData()
 #                 if (smallImage == anEntry.getRawImage().Rescale(500, 500).GetData()):
 #                     Image.Logger.info('Image.isIdentical(): Reduced images identical for\n\t%s\n\t%s' % (self.getPath(), anEntry.getPath()))
-#                 pass  # TODO: check whether images resized to 500x500 are identical
+#             # TODO: check whether color reduction (or b/w) works 
             return(identical)
         else:
             return(False)

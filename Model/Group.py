@@ -7,6 +7,7 @@
 # Imports
 ## standard
 import logging
+import os
 ## contributed
 import wx
 from nobi.SortedCollection import SortedCollection 
@@ -117,119 +118,128 @@ class Group(Entry, Observer):
 
 
 
-    def renameTo(self, 
-                 classesToRemove=set(),
-                 **kwargs):
+    def renameTo(self, **kwargs):
         """Rename a Group of Entrys. See Entry.renameTo()
         
-        #TODO: refactor/redesign/redo!
+        Will create new group if organizing name parts (such as name, scene, day, month, year) are changed. 
+        Then renames subentries according to tag changes, possibly moving to new group.
+        If remaining group, self, is empty after the move, it will be removed. 
         """
-        if (('number' in kwargs)
-            and kwargs['number']):
-            raise ValueError, 'Group.renameTo(): No number parameter allowed!'
-        result = True
-        selfToBeDeleted = False
-        removeIllegalElements = (kwargs['removeIllegalElements'] if 'removeIllegalElements' in kwargs else None)
-        if (self.model.organizedByDate):  # TODO: move to OrganizationByDate
-            newSelection = self.getOrganizer().renameMedia(**kwargs)
-#             # ensure new group exists
-#             year = (kwargs['year'] if 'year' in kwargs else None)
-#             month = (kwargs['month'] if 'month' in kwargs else None)
-#             day = (kwargs['day'] if 'day' in kwargs else None)
-#             if ((year <> self.organizer.getYear())
-#                 or (month <> self.organizer.getMonth())
-#                 or (day <> self.organizer.getDay())):
-#                 selfToBeDeleted = True
-#                 if (not self.model.getEntry(year=year, month=month, day=day)):
-#                     newPath = self.model.organizationStrategy.constructPath(**kwargs)
-#                     newParent = Group(self.model, newPath)
-#                     if (not newParent):
-#                         logging.error('Group.renameTo(): Cannot create new Group "%s"' % newPath)
-#                         return(False)
-#             # move subentries to new group
-#             for subEntry in self.getSubEntries(filtering=True):
-#                 newElements = subEntry.getElements().union(elements)
-#                 result = (result 
-#                           and subEntry.renameTo(classesToRemove=classesToRemove, 
-#                                                 elements=newElements, 
-#                                                 **kwargs))
-        else:  # organized by name  TODO: move to OrganizationByName
-            if (('name' in kwargs)
-                and (kwargs['name'] <> self.organizer.getName())):
-                name = kwargs['name']
-                existingEntry = self.model.getEntry(name=name)
-                if (existingEntry == None):
-                    if ('elements' in kwargs):
-                        elements = kwargs['elements']
-                    else: 
-                        elements = ''
-                    print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.organizer.getName(), elements))
-                    return(super(Group, self).renameTo(classesToRemove=classesToRemove,
-                                                       elements=[], 
-                                                       name=name, 
-                                                       removeIllegalElements=removeIllegalElements))
-                elif (existingEntry.isGroup()):
-                    print('Group "%s" exists' % name)
-                    newParent = existingEntry
-                    selfToBeDeleted = True
-                else:  # existingEntry is a Single
-                    print('Single "%s" exists' % name)
-#                     newPath = self.model.organizationStrategy.constructPath(name=name)
-#                     newParent = Group.createFromName(self.model, name)
-#                     assert (newPath == newParent.getPath()), 'Path of new parent differs!'
-#                     newParent.setParent(self.model.getEntry(group=True, name=name[0:1]))
-                    newParent = Group.createAndPersist(self.model, name=name)
-                    existingEntry.renameTo(classesToRemove=classesToRemove,
-                                           name=name, 
-                                           scene='1', 
-                                           makeUnique=True)
-                    selfToBeDeleted = True
-                print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newParent.getPath()))
-                # construct mapping from scenes in current group to scenes in existing target group
-                sceneMap = {}
-                nextFreeScene = (len(newParent.getOrganizer().getScenes()) + 1)
-                if ('99' in newParent.getOrganizer().getScenes()):
-                    nextFreeScene = (nextFreeScene - 1)
-                if (MediaClassHandler.ElementNew in newParent.getOrganizer().getScenes()):
-                    nextFreeScene = (nextFreeScene - 1)
-                for scene in self.getOrganizer().getScenes():
-                    if (scene == MediaClassHandler.ElementNew):
-                        sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
-                    else:
-                        sceneMap[scene] = ('%02d' % nextFreeScene) 
-                        nextFreeScene = (nextFreeScene + 1)
-            else:
-                print('Renaming subentries of "%s" (name unchanged)' % self.getPath())
-                if ('name' in kwargs):
-                    del kwargs['name']
-                # construct an identity scene map
-                sceneMap = {}
-                for scene in self.getOrganizer().getScenes():
-                    sceneMap[scene] = scene
-            print('   with scene mapping %s' % sceneMap)
-            # move each subEntry
-            print('   %d subentries' % len(self.subEntriesSorted))
-            for subEntry in self.getSubEntries(filtering=False):  
-                newElements = subEntry.getElements()
-                if (('elements' in kwargs)
-                    and (kwargs['elements'])):
-                    newElements = (newElements.union(kwargs['elements']))
-                if (removeIllegalElements):
-                    newElements.remove(subEntry.getUnknownElements())
-                kwargs2 = kwargs.copy()
-                kwargs2['elements'] = newElements
-                kwargs2['scene'] = sceneMap[subEntry.getOrganizer().getScene()]
-                kwargs2['removeIllegalElements'] = removeIllegalElements
-                kwargs2['number'] = subEntry.getOrganizer().getNumber()
-                kwargs2['classesToRemove'] = classesToRemove
-                newParent = subEntry.renameTo(**kwargs2)
-            newSelection = newParent
-        assert (selfToBeDeleted == (0 == len(self.getSubEntries(filtering=False)))), 'Group.renameTo(): Mismatch between subentry and deletion flag!'
-        if (0 == len(self.getSubEntries(filtering=False))):
-            if (self.model.getSelectedEntry() == self):
-                self.model.setSelectedEntry(newSelection)
-            self.remove()
-        return(result)
+        if ('number' in kwargs):
+            if (kwargs['number']):
+                raise ValueError, 'Group.renameTo(): No number parameter allowed!'
+            del kwargs['number']
+        tagParameters = set(['elements', 'removeIllegalElements', 'classesToRemove'])  # kwargs keys which affect tags of subentries
+        if (tagParameters < set(kwargs.keys())):  # rename group
+            newSelection = self.getOrganizer().renameGroup(**kwargs)
+            if (0 == len(self.getSubEntries(filtering=False))):  # remove self
+                if (self.model.getSelectedEntry() == self):
+                    self.model.setSelectedEntry(entry=newSelection)
+                self.remove()
+        else:  # change only tags of subentries
+            for entry in self.getSubEntries(filtering=True):
+                entry.renameTo(**kwargs)
+        return(True)
+        # old stuff
+#         result = True
+#         selfToBeDeleted = False
+#         removeIllegalElements = (kwargs['removeIllegalElements'] if 'removeIllegalElements' in kwargs else None)
+#         classesToRemove = (kwargs['classesToRemove'] if 'classesToRemove' in kwargs else set())
+#         if (self.model.organizedByDate):  # TODO: move to OrganizationByDate
+#             newSelection = self.getOrganizer().renameGroup(**kwargs)
+# #             # ensure new group exists
+# #             year = (kwargs['year'] if 'year' in kwargs else None)
+# #             month = (kwargs['month'] if 'month' in kwargs else None)
+# #             day = (kwargs['day'] if 'day' in kwargs else None)
+# #             if ((year <> self.organizer.getYear())
+# #                 or (month <> self.organizer.getMonth())
+# #                 or (day <> self.organizer.getDay())):
+# #                 selfToBeDeleted = True
+# #                 if (not self.model.getEntry(year=year, month=month, day=day)):
+# #                     newPath = self.model.organizationStrategy.constructPath(**kwargs)
+# #                     newParent = Group(self.model, newPath)
+# #                     if (not newParent):
+# #                         logging.error('Group.renameTo(): Cannot create new Group "%s"' % newPath)
+# #                         return(False)
+# #             # move subentries to new group
+# #             for subEntry in self.getSubEntries(filtering=True):
+# #                 newElements = subEntry.getElements().union(elements)
+# #                 result = (result 
+# #                           and subEntry.renameTo(classesToRemove=classesToRemove, 
+# #                                                 elements=newElements, 
+# #                                                 **kwargs))
+#         else:  # organized by name  TODO: move to OrganizationByName
+#             if (('name' in kwargs)
+#                 and (kwargs['name'] <> self.organizer.getName())):
+#                 name = kwargs['name']
+#                 existingEntry = self.model.getEntry(name=name)
+#                 if (existingEntry == None):
+#                     if ('elements' in kwargs):
+#                         elements = kwargs['elements']
+#                     else: 
+#                         elements = ''
+#                     print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.organizer.getName(), elements))
+#                     return(super(Group, self).renameTo(classesToRemove=classesToRemove,
+#                                                        name=name, 
+#                                                        removeIllegalElements=removeIllegalElements))
+#                 elif (existingEntry.isGroup()):
+#                     print('Group "%s" exists' % name)
+#                     newParent = existingEntry
+#                     selfToBeDeleted = True
+#                 else:  # existingEntry is a Single
+#                     print('Single "%s" exists' % name)
+#                     newParent = Group.createAndPersist(self.model, name=name)
+#                     existingEntry.renameTo(classesToRemove=classesToRemove,
+#                                            name=name, 
+#                                            scene='1', 
+#                                            makeUnique=True)
+#                     selfToBeDeleted = True
+#                 print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newParent.getPath()))
+#                 # construct mapping from scenes in current group to scenes in existing target group
+#                 sceneMap = {}
+#                 nextFreeScene = (len(newParent.getOrganizer().getScenes()) + 1)
+#                 if ('99' in newParent.getOrganizer().getScenes()):
+#                     nextFreeScene = (nextFreeScene - 1)
+#                 if (MediaClassHandler.ElementNew in newParent.getOrganizer().getScenes()):
+#                     nextFreeScene = (nextFreeScene - 1)
+#                 for scene in self.getOrganizer().getScenes():
+#                     if (scene == MediaClassHandler.ElementNew):
+#                         sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
+#                     else:
+#                         sceneMap[scene] = ('%02d' % nextFreeScene) 
+#                         nextFreeScene = (nextFreeScene + 1)
+#             else:
+#                 print('Renaming subentries of "%s" (name unchanged)' % self.getPath())
+#                 if ('name' in kwargs):
+#                     del kwargs['name']
+#                 # construct an identity scene map
+#                 sceneMap = {}
+#                 for scene in self.getOrganizer().getScenes():
+#                     sceneMap[scene] = scene
+#             print('   with scene mapping %s' % sceneMap)
+#             # move each subEntry
+#             print('   %d subentries' % len(self.subEntriesSorted))
+#             for subEntry in self.getSubEntries(filtering=False):  
+#                 newElements = subEntry.getElements()
+#                 if (('elements' in kwargs)
+#                     and (kwargs['elements'])):
+#                     newElements = (newElements.union(kwargs['elements']))
+#                 if (removeIllegalElements):
+#                     newElements.remove(subEntry.getUnknownElements())
+#                 kwargs2 = kwargs.copy()
+#                 kwargs2['elements'] = newElements
+#                 kwargs2['scene'] = sceneMap[subEntry.getOrganizer().getScene()]
+#                 kwargs2['removeIllegalElements'] = removeIllegalElements
+#                 kwargs2['number'] = subEntry.getOrganizer().getNumber()
+#                 kwargs2['classesToRemove'] = classesToRemove
+#                 newParent = subEntry.renameTo(**kwargs2)
+#             newSelection = newParent
+#         assert (selfToBeDeleted == (0 == len(self.getSubEntries(filtering=False)))), 'Group.renameTo(): Mismatch between subentry and deletion flag!'
+#         if (0 == len(self.getSubEntries(filtering=False))):
+#             if (self.model.getSelectedEntry() == self):
+#                 self.model.setSelectedEntry(entry=newSelection)
+#             self.remove()
+#         return(result)
 
 
 # Getters
@@ -303,14 +313,15 @@ class Group(Entry, Observer):
         return(GUIId.TextGroupSizeString % self.getGroupedMedia())
 
 
-    def getFirstEntry(self):
+    def getFirstEntry(self, filtering=False):
         """Return the first entry in self or its subgroups.
         
+        Boolean filtering
         Return MediaFiler.Single or None
         """
         result = self
         while (result.isGroup()):
-            subEntries = result.getSubEntries(False)
+            subEntries = result.getSubEntries(filtering)
             if (0 < len(subEntries)):
                 result = subEntries[0]
             else:
@@ -318,14 +329,15 @@ class Group(Entry, Observer):
         return(result)
 
 
-    def getLastEntry(self):
+    def getLastEntry(self, filtering=False):
         """Return the last entry in self or its subgroups.
         
+        Boolean filtering 
         Return MediaFiler.Single or None
         """
         result = self
         while (result.isGroup()):
-            subEntries = result.getSubEntries(False)
+            subEntries = result.getSubEntries(filtering)
             if (0 < len(subEntries)):
                 result = subEntries[-1]
             else:
@@ -336,40 +348,48 @@ class Group(Entry, Observer):
         
 # Event Handlers
 # Inheritance - Entry
-    def getNextEntry(self, entry):
+    def getNextEntry(self, entry=None, filtering=False):
         """Return the next entry following entry.
         
         Return MediaFiler.Entry or None
         """
-        if (entry <> self):
+        if (entry):
             index = self.subEntriesSorted.index(entry)
+            if (filtering):
+                while ((self.subEntriesSorted[index].isFiltered()) 
+                       and (index < (len(self.subEntriesSorted) - 1))):
+                    index = (index + 1)
             if (index < (len(self.subEntriesSorted) - 1)):
                 nextEntry = self.subEntriesSorted[index + 1]
                 if (nextEntry.isGroup()):
-                    nextEntry = nextEntry.getFirstEntry()
+                    nextEntry = nextEntry.getFirstEntry(filtering)
                 return(nextEntry)
             else:
-                return(super(Group, self).getNextEntry(self))
+                return(super(Group, self).getNextEntry(self, filtering))
         else:
-            return(self.getFirstEntry())
+            return(super(Group, self).getNextEntry(self, filtering))
 
 
-    def getPreviousEntry(self, entry=None):
+    def getPreviousEntry(self, entry=None, filtering=False):
         """Return the previous entry preceeding entry.
         
         Return MediaFiler.Entry or None
         """
         if (entry):
             index = self.subEntriesSorted.index(entry)
+            if (filtering):
+                while ((self.subEntriesSorted[index].isFiltered()) 
+                       and (0 < index)): 
+                    index = (index - 1)
             if (0 < index):
                 prevEntry = self.subEntriesSorted[index - 1]
                 if (prevEntry.isGroup()):
-                    prevEntry = prevEntry.getLastEntry()
+                    prevEntry = prevEntry.getLastEntry(filtering)
                 return(prevEntry)
             else:
-                return(super(Group, self).getPreviousEntry(self))
+                return(super(Group, self).getPreviousEntry(self, filtering))
         else:
-            return(super(Group, self).getPreviousEntry(self))
+            return(super(Group, self).getPreviousEntry(self, filtering))
 
 
     def releaseCacheWithPriority(self, cachePriority):

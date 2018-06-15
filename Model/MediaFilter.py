@@ -16,14 +16,14 @@ The following aspects of ImageFilter are observable:
 
 ## Imports
 # standard libraries
-import re
+#import re
 import logging
 import copy
 # public libraries 
 # nobi's libraries
 from nobi.ObserverPattern import Observable
 # project 
-from .MediaClassHandler import MediaClassHandler
+#from .MediaClassHandler import MediaClassHandler
 
 
 
@@ -252,41 +252,22 @@ class MediaFilter(Observable):
         """Check whether entry must be filtered. 
         
         Entry entry
-        
         Returns True if entry shall be hidden, or False otherwise
         """
         if (not self.active):
             return(False)
-        entryFiltered = False  # assume entry will pass the filter, i.e., not be hidden
         # keep groups which have unfiltered subentries
         if (entry.isGroup()): 
-            return(len(entry.getSubEntries(True)) == 0)
-        # check for single/group requirement
-        if (not self.model.organizedByDate):
-            if (self.singleCondition == True):
-                if (not entry.isSingleton()):
-                    return(True)
-            elif (self.singleCondition == False):
-                if (entry.isSingleton()):
-                    return(True)
-            else:  # singleCondition == None
-                pass
-        # check for unknown requirement
-        if (self.unknownElementRequired): 
-            if (self.model.organizedByDate):  # TODO: move to Organization
-                entryFiltered = (entry.getYear() <> entry.organizer.__class__.UnknownDateName)
-            else: # organized by name, illegal name will satisfy unknown element requirement
-                match = re.match(r'([^\d]+)\d*', entry.organizer.getName())  # isolate name in name+number identifiers
-                if ((match <> None)
-                    and (entry.getOrganizer().nameHandler.isNameLegal(match.group(1)))  # legal name 
-                    and (entry.getOrganizer().getScene() <> MediaClassHandler.ElementNew)):  # not a "new" scene
-                    entryFiltered = True
-            if (entryFiltered):
-                entryFiltered = (len(entry.getUnknownElements()) == 0)
-        # check known class elements
+            return(len(entry.getSubEntries(filtering=True)) == 0)
+        # for unknown requirement
+        if (self.unknownElementRequired
+            and (0 == len(entry.getUnknownElements()))
+            and (not entry.getOrganizer().isUnknown())):
+            return(True)
+        # known class elements
         if (self.filteredByElements(entry)):
             return(True)
-        # check file size requirements
+        # file size requirements
         if ((0 < self.minimumSize)  # minimum size required 
             and (not entry.isGroup()) 
             and (entry.getFileSize() < self.minimumSize)):   # file smaller than that
@@ -302,20 +283,10 @@ class MediaFilter(Observable):
                     break  # match!
             else:  # no match in the loop
                 return(True)
-        # date range TODO: Move to OrganizationByDate
-        if ((self.fromDate)
-            and (entry.organizer.getDateTaken() <= self.fromDate)):
-            print('MediaFilter.isFiltered(): %s later than "%s"' % (self.fromDate, entry.getPath()))
+        # organization-specific conditions
+        if (entry.getOrganizer().isFilteredBy(self)):
             return(True)
-        if ((self.toDate)
-            and (entry.organizer.getDateTaken() >= self.toDate)):
-            print('MediaFilter.isFiltered(): %s earlier than "%s"' % (self.fromDate, entry.getPath()))
-            return(True)
-        # single/group
-        if (self.singleCondition <> None):
-            if (self.singleCondition == entry.isGroup()):
-                return(True)
-        return(entryFiltered)
+        return(False)
 
 
 

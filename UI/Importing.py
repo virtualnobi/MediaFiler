@@ -456,7 +456,7 @@ class ImportDialog(wx.Dialog):
 
     def onDirectoryChanged(self, event):  # @UnusedVariable
         self.parameters.setImportDirectory(self.importDirectoryField.GetValue())
-        self._class__.Logger.debug('ImportDialog.onDirectoryChanged(): importDirectory set to %s' % self.parameters.getImportDirectory())
+        self.__class__.Logger.debug('ImportDialog.onDirectoryChanged(): importDirectory set to %s' % self.parameters.getImportDirectory())
 
 
     def onBrowse(self, event):  # @UnusedVariable
@@ -476,7 +476,7 @@ class ImportDialog(wx.Dialog):
 
     def onDeleteOriginal(self, event):
         self.parameters.setDeleteOriginals(event.GetEventObject().GetValue())
-        self._class__.Logger.debug('ImportDialog.onDeleteOriginal(): deleteOriginals set to %s' % self.parameters.getDeleteOriginals())
+        self.__class__.Logger.debug('ImportDialog.onDeleteOriginal(): deleteOriginals set to %s' % self.parameters.getDeleteOriginals())
 
 
     def onMaxNumber(self, event):
@@ -486,17 +486,17 @@ class ImportDialog(wx.Dialog):
             pass
         else:
             self.parameters.setMaxFilesToImport(maxFiles)
-            self._class__.Logger.debug('ImportDialog.onMaxNumber(): maxFilesToImport set to %s' % self.parameters.getMaxFilesToImport())
+            self.__class__.Logger.debug('ImportDialog.onMaxNumber(): maxFilesToImport set to %s' % self.parameters.getMaxFilesToImport())
 
 
     def onIgnoreUnknowns(self, event):
         self.parameters.setIgnoreUnhandledTypes(event.GetEventObject().GetValue())
-        self._class__.Logger.debug('ImportDialog.onIgnoreUnknowns(): ignoreUnknowns set to %s' % self.parameters.getIgnoreUnhandledTypes())
+        self.__class__.Logger.debug('ImportDialog.onIgnoreUnknowns(): ignoreUnknowns set to %s' % self.parameters.getIgnoreUnhandledTypes())
 
 
     def onMarkAsNew(self, event):
         self.parameters.setMarkAsNew(event.GetEventObject().GetValue())
-        self._class__.Logger.debug('ImportDialog.onMarksAsNew(): markAsNew set to %s' % self.parameters.getMarkAsNew())
+        self.__class__.Logger.debug('ImportDialog.onMarksAsNew(): markAsNew set to %s' % self.parameters.getMarkAsNew())
 
     
     def onMinimumSize(self, event):
@@ -507,7 +507,7 @@ class ImportDialog(wx.Dialog):
             event.GetEventObject().SetValue(self.parameters.getMinimumFileSizeAsString())
         else:
             self.parameters.setMinimumFileSize(size)
-            self._class__.Logger.debug('ImportDialog.onMinimumSize set to %s' % self.parameters.getMinimumFileSize())
+            self.__class__.Logger.debug('ImportDialog.onMinimumSize set to %s' % self.parameters.getMinimumFileSize())
 
 
     def onKeepUnknown(self, event):
@@ -521,14 +521,14 @@ class ImportDialog(wx.Dialog):
         """
         """
         self.parameters.setReportIllegalElements(event.GetEventObject().GetValue())
-        self._class__.Logger.debug('ImportDialog.onReportIllegal(): reportIllegals set to %s' % self.parameters.getReportIllegalElements())
+        self.__class__.Logger.debug('ImportDialog.onReportIllegal(): reportIllegals set to %s' % self.parameters.getReportIllegalElements())
 
 
     def onPreferPathDate(self, event):
         """
         """
         self.parameters.setPreferPathDateOverExifDate(event.GetEventObject().GetValue())
-        self._class__.Logger.debug('ImportDialog.onPreferPathDate(): preferPathDate set to %s' % self.parameters.getPreferPathDateOverExifDate())
+        self.__class__.Logger.debug('ImportDialog.onPreferPathDate(): preferPathDate set to %s' % self.parameters.getPreferPathDateOverExifDate())
 
 
 

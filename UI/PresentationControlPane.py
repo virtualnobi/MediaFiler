@@ -146,13 +146,13 @@ class PresentationControlPane(wx.Panel, Observer):
         """Select the previous media.
         """
         self.onStopPresentation(event)
-        self.model.setSelectedEntry(self.model.getPreviousEntry(self.model.getSelectedEntry()))
+        self.model.setSelectedEntry(self.model.getSelectedEntry().getPreviousEntry())
 
 
     def onNextImage(self, event):  # @UnusedVariable
         """Select the next media.
         """
-        self.model.setSelectedEntry(self.model.getNextEntry(self.model.getSelectedEntry()))
+        self.model.setSelectedEntry(self.model.getSelectedEntry().getNextEntry())
 
 
     def onResumeSlideshow(self, event):  # @UnusedVariable

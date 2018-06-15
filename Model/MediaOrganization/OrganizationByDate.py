@@ -539,6 +539,30 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Getters
+    def isUnknown(self):
+        """Return whether self is incompletely specified.
+
+        Return Boolean
+        """
+        return(self.getYear == OrganizationByDate.UnknownDateName)
+
+
+    def isFilteredBy(self, aFilter):
+        """Return whether self's context is filtered. 
+        
+        Return True if context shall be hidden, False otherwise
+        """
+        if ((aFilter.fromDate)
+            and (self.getDateTaken() <= aFilter.fromDate)):
+            print('OrganizationByDate.isFilteredBy(): %s later than "%s"' % (aFilter.fromDate, self.getContext().getPath()))
+            return(True)
+        if ((aFilter.toDate)
+            and (self.getDateTaken() >= aFilter.toDate)):
+            print('OrganizationByDate.isFilteredBy(): %s earlier than "%s"' % (aFilter.fromDate, self.getContext().getPath()))
+            return(True)
+        return(False)
+
+
     def getTimeTaken(self):
         """Return the time self was taken. 
         
@@ -727,35 +751,28 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Other API Funcions
-    def renameMedia(self, classesToRemove=None, elements=set(), removeIllegalElements=False,
+    def renameGroup(self, elements=set(), classesToRemove=None, removeIllegalElements=False,
                     year=None, month=None, day=None):
         """Rename self's context according to the specified changes.
         
-        Return the Group to which self is moved.
+        Return the Entry to be selected after the renaming.
         """
         model = self.__class__.ImageFilerModel
         # ensure new group exists
         if ((year == self.getYear())
-            or (month == self.getMonth())
-            or (day == self.getDay())):
+            and (month == self.getMonth())
+            and (day == self.getDay())):
             newParent = self.getContext()
         else:
             newParent = model.getEntry(group=True, year=year, month=month, day=day)
             if (not newParent):
                 newParent = Group.createAndPersist(model, 
                                                    self.__class__.constructPath(year=year, month=month, day=day))
-#                 newPath = self.__class__.constructPath(**kwargs)
-#                 newParent = Group(self.getContext().model, newPath)
-#                 if (not newParent):
-#                     raise logging.error('Group.renameTo(): Cannot create new Group "%s"' % newPath)
-#                     return(False)
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=True):
-            newElements = subEntry.getElements().union(elements)
-            if (removeIllegalElements):
-                newElements = [element for element in newElements if model.classHandler.isLegal(element)]
-            subEntry.renameTo(classesToRemove=classesToRemove, 
-                              elements=newElements, 
+            subEntry.renameTo(elements=elements, 
+                              classesToRemove=classesToRemove,
+                              removeIllegalElements=removeIllegalElements,
                               year=year, month=month, day=day)
         return(newParent)
 

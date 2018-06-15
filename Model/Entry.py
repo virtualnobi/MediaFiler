@@ -13,6 +13,7 @@ import datetime
 ## nobi
 from nobi.PausableObservable import PausableObservable
 from nobi.wx.Menu import Menu
+from nobi.logging import profiledOnLogger
 ## Project
 from UI import GUIId
 import Installer
@@ -223,6 +224,10 @@ class Entry(PausableObservable):
 
 
 # Getters
+    def __repr__(self):
+        return('<%s from %s>' % (self.__class__.__name__, self.getPath()))
+
+
     def isGroup(self):
         """Return true if self represents a Group.
         """
@@ -392,7 +397,7 @@ class Entry(PausableObservable):
         return(self.treeItemID)
 
 
-    def getNextEntry(self, entry=None):  # @UnusedVariable
+    def getNextEntry(self, entry=None, filtering=False):  # @UnusedVariable
         """Return the next entry following self.
         
         Return MediaFiler.Entry or None
@@ -400,12 +405,12 @@ class Entry(PausableObservable):
         if (entry == None):
             entry = self
         if (self.getParentGroup()):
-            return(self.getParentGroup().getNextEntry(entry))
+            return(self.getParentGroup().getNextEntry(entry, filtering))
         else:
             return(None)
 
 
-    def getPreviousEntry(self, entry=None): 
+    def getPreviousEntry(self, entry=None, filtering=False): 
         """Return the previous entry preceeding self.
         
         Return MediaFiler.Entry or None
@@ -413,7 +418,7 @@ class Entry(PausableObservable):
         if (entry == None):
             entry = self
         if (self.getParentGroup()):
-            return(self.getParentGroup().getPreviousEntry(entry))
+            return(self.getParentGroup().getPreviousEntry(entry, filtering))
         else:
             return(None)
 
@@ -480,6 +485,7 @@ class Entry(PausableObservable):
 
 
 # Other API methods
+    @profiledOnLogger(Logger, sort='cumulative')
     def renameTo(self, 
                  classesToRemove=None, elements=None, removeIllegalElements=False,
                  number=None, makeUnique=False,
@@ -552,62 +558,7 @@ class Entry(PausableObservable):
 
 
 
-## Getters for organization by name
-    def getName(self):
-        """Return the name.
-        
-        Returns a String
-        """
-        print('Entry.getName() deprecated!')
-        return(self.organizer.getName())
-
-
-    def getScene(self):
-        """Return the scene, either a number or the new indicator.
-        
-        Return a String
-        """
-        print('Entry.getScene() deprecated!')
-        return(self.organizer.getScene())
-
-
-    def isSingleton(self):
-        """Return whether self is a singleton, i.e., a named Single outside of named Group.
-        
-        Returns a Boolean
-        """ 
-        print('Entry.isSingleton() deprecated!')
-        return(self.organizer.isSingleton())
-
-
 ## Getters for organization by date
-    def getYear(self):
-        """Return the year.
-        
-        Return a String
-        """
-        print('Entry.getYear() deprecated')
-        return(self.organizer.getYear())
-
-
-    def getMonth(self):
-        """Return the month.
-        
-        Return a String
-        """
-        print('Entry.getMonth() deprecated')
-        return(self.organizer.getMonth())
-
-
-    def getDay(self):
-        """Return the day.
-        
-        Return a String
-        """
-        print('Entry.getDay() deprecated')
-        return(self.organizer.getDay())
-
-
     def getDate(self):
         """Return the date the media was captured.
         

@@ -176,10 +176,8 @@ class MediaCollection(Observable, Observer):
 # Setters
     def setSelectedEntry(self, entry):
         """Set the selected entry.
-        
-        If entry is the (hidden) root entry, the initial image will be selected, if it exists.
         """
-        MediaCollection.Logger.debug('MediaCollection.setSelectedEntry(%s)' % (entry.getPath() if entry else entry))
+        MediaCollection.Logger.debug('MediaCollection.setSelectedEntry(%s)' % entry)
         self.selectedEntry = entry
         if (self.selectedEntry):
             self.setConfiguration(GlobalConfigurationOptions.LastMedia, entry.getPath())
@@ -272,7 +270,7 @@ class MediaCollection(Observable, Observer):
         while (len(searching) > 0):
             entry = searching.pop()
             if (((group == None) or (group == entry.isGroup()))
-                and ((path == None) or (path == entry.getPath()))
+                and ((path == None) or (path == entry.getPath()))  # TODO: move to MediaOrganization
                 and ((year == None) or (year == entry.getOrganizer().getYearString()))
                 and ((month == None) or (month == entry.getOrganizer().getMonthString()))
                 and ((day == None) or (day == entry.getOrganizer().getDayString()))
@@ -288,7 +286,11 @@ class MediaCollection(Observable, Observer):
 
 
     def getSelectedEntry(self):
-        """Return the selected entry, or None is the (hidden) root is selected.
+        """Return the selected entry.
+        
+        Will return a special initial entry in case the root entry or no entry is selected.
+        
+        Return Model.Entry
         """
         if ((self.selectedEntry == None)
             or (self.selectedEntry == self.root)):
@@ -343,12 +345,13 @@ class MediaCollection(Observable, Observer):
 
         Return a MediaFiler.Entry or None
         """
+        print('MediaCollection.getNextEntry() deprecated!')
         if ((entry == None)
             or (entry == self.getRootEntry())
             or (entry == self.initialEntry)):
             return(self.root.getFirstEntry())
         else:
-            return(entry.getNextEntry(entry))
+            return(entry.getNextEntry())
 
 
     def getPreviousEntry(self, entry):
@@ -356,12 +359,13 @@ class MediaCollection(Observable, Observer):
 
         Return MediaFiler.Entry or None
         """
+        print('MediaCollection.getPreviousEntry() deprecated!')
         if ((entry == None)
             or (entry == self.getRootEntry())
             or (entry == self.initialEntry)):
             return(self.root.getLastEntry())
         else:
-            return(entry.getPreviousEntry(entry))
+            return(entry.getPreviousEntry())
 
 
     def getConfiguration(self, option):
@@ -411,7 +415,7 @@ class MediaCollection(Observable, Observer):
                     if ('True' == self.getConfiguration(GlobalConfigurationOptions.ShowParentAfterRemove)):
                         self.setSelectedEntry(observable.getParentGroup())
                     else:
-                        self.setSelectedEntry(observable.getNextEntry(observable))
+                        self.setSelectedEntry(observable.getPreviousEntry(filtering=True))
                     break
                 entry = entry.getParentGroup()
             self.changedAspect('size')
@@ -470,7 +474,6 @@ class MediaCollection(Observable, Observer):
             for entry in self:
                 entry.setFilter(False)
         else:  # filters exist
-            print('Filtering entries')
             increment = 100
             number = 0
             entryFilter = self.getFilter()
@@ -478,7 +481,7 @@ class MediaCollection(Observable, Observer):
                 entry.setFilter(entryFilter.isFiltered(entry))
                 number = (number + 1)
                 if ((number % increment) == 0):
-                    print('  reached "%s"' % entry.getPath())
+                    MediaCollection.Logger.debug('MediaCollection.filterEntries() reached "%s"' % entry.getPath())
         # if selected entry is filtered, search for unfiltered parent
         if (self.getSelectedEntry().isFiltered()):
             entry = self.getSelectedEntry().getParentGroup()

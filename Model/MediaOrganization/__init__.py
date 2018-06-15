@@ -71,43 +71,14 @@ class MediaOrganization(object):
     ImageFilerModel = None  # to access legal names 
     MoveToLocations = []  # last move-to locations for repeated moving; no concurrent usage of subclasses!
     
-    
+
+
 # Class Methods
     @classmethod
     def setModel(self, model):
         """Set up the MediaOrganization for use with model.
         """
         self.ImageFilerModel = model
-
-
-#     @classmethod
-#     def getNamePartsInPathName(self, path):
-#         """Return all words in String path.
-#         
-#         Illegal words, such as extension and camera identifiers, are ignored.
-#      
-#         Return List of String
-#         """
-#         words = []
-#         for word in re.split(r'[\W_/\\]+', path, flags=re.UNICODE):
-#             if (not self.isIgnoredNamePart(word)):
-#                 words.append(word)
-#         return(words)
-
-
-#     @classmethod
-#     def isIgnoredNamePart(self, namePart):
-#         """Check whether namePart can be a name element as part of a pathname.
-#         
-#         String namePart        
-#         Returns a Boolean indicating whether namePart can be ignored.
-#         """
-#         if ((namePart == '')  # emtpy string
-#             or Entry.isLegalExtension(namePart)  # known file types
-#             or re.match(r'CAM\d+|IMG|HPIM\d+', namePart, re.IGNORECASE)):  # camera identifiers
-#             return(True)
-#         else:
-#             return(False)
 
 
     @classmethod
@@ -341,6 +312,23 @@ class MediaOrganization(object):
         return(self.context)
 
 
+    def isUnknown(self):
+        """Return whether self is incompletely specified.
+
+        Return Boolean
+        """
+        raise NotImplementedError
+
+
+    def isFilteredBy(self, aFilter):
+        """Return whether self is being filtered.
+        
+        MediaFilter aFilter
+        Return Boolean
+        """
+        raise NotImplementedError
+
+
     def getPath(self):
         return(self.path)
 
@@ -412,29 +400,6 @@ class MediaOrganization(object):
             return(self.renumberTo(number))
         else:
             self.__class__.Logger.error('MediaOrganization.runContextMenu(): Unhandled function %d on "%s"!' % (menuId, self.getContext().getPath()))
-
-    
-    # These getters must be defined in the respective subclasses
-    # OrganizationByName only
-    def getName(self):
-        return(None)
-    def getScene(self):
-        return(None)
-    def isSingleton(self):
-        return(False)
-    # OrganizationByDate only
-    def getYear(self):
-        return(None)
-    def getMonth(self):
-        return(None)
-    def getDay(self):
-        return(None)
-    def getYearString(self):
-        return(None)
-    def getMonthString(self):
-        return(None)
-    def getDayString(self):
-        return(None)
     
 
 
@@ -506,7 +471,7 @@ class MediaOrganization(object):
         """
         result = {}
         for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
-            if ((self.getContext().model.organizedByDate)
+            if ((self.getContext().model.organizedByDate)  # TODO: move to OrganizationByName
                 or (self.getScene() == entry.getOrganizer().getScene())):
                 result[entry.getOrganizer().getNumber()] = entry
         return(result)
@@ -565,29 +530,6 @@ class MediaOrganization(object):
         MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Used numbers are %s' % numbersUsed)
         gap = self.findNearestGap(newNumber, numbersUsed)
         MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Nearest gap is %d' % gap)
-#         currentNumberToEntryMap = {}
-#         for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
-#             if ((self.getContext().model.organizedByDate)  # TODO: remove if scenes are Groups
-#                 or (entry.getOrganizer().getScene() == self.getScene())):
-#                 currentNumberToEntryMap[entry.getOrganizer().getNumber()] = entry
-#         selfNumber = self.getNumber()
-#         currentNumbers = [i for i in currentNumberToEntryMap.keys() if ((newNumber <= i) and (i <> selfNumber))]
-#         numberPairList = []
-#         if (0 < len(currentNumbers)):
-#             lastUsed = currentNumbers[0]
-#             for i in currentNumbers:
-#                 if (lastUsed < i):  # a gap where renumbering can stop
-#                     break
-#                 if ((newNumber < selfNumber)  # moving a media to the front
-#                     and (selfNumber <= lastUsed)):  # and passing the former number of media, which is a gap
-#                     break
-#                 lastUsed = (i+1)
-#                 numberPairList.append((i, lastUsed))
-#         numberPairList.append((selfNumber, newNumber))
-#         MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Reordering 2: %s' % numberPairList)
-#         answer = raw_input('Enter 1 or 2: ')
-#         if (answer == '1'):
-#             numberPairList = self.createReorderSequence(newNumber, gap, numbersUsed)
         numberPairList = self.createReorderSequence(newNumber, gap, numbersUsed)
         MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Reordering %s' % numberPairList)
         renameList = []

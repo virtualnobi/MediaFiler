@@ -8,12 +8,14 @@
 import gettext
 import os.path
 import logging
+#import copy
 ## contributed
 import wx.lib.scrolledpanel
 import wx.calendar
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
+import Model.Installer
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
@@ -41,8 +43,36 @@ def N_(message): return message
 
 
 
-class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
+class ConditionSelectionDialog(wx.Dialog):
+    """A Dialog to let the user select a condition for the filter.
     """
+    def __init__(self, parent, model):
+        """
+        """
+        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=_('Select filter condition'), style=wx.RESIZE_BORDER)
+        s = wx.BoxSizer(wx.VERTICAL)
+        conditionTree = wx.TreeCtrl(self, style=(wx.TR_HAS_BUTTONS|wx.TR_HIDE_ROOT))
+        self.addConditionNodes(model, conditionTree)
+        s.Add(conditionTree, 1, wx.EXPAND)
+        s.Add(self.CreateStdDialogButtonSizer(flags=wx.CANCEL), 0, wx.EXPAND)
+        s.Layout()
+        self.SetSizerAndFit(s)
+
+
+    def addConditionNodes(self, model, treeCtrl):
+        """
+        """
+        root = treeCtrl.AddRoot('')
+        for categoryName in model.getClassHandler().getClassNames():
+            categoryItem = treeCtrl.AppendItem(root, categoryName)
+            for tagName in model.getClassHandler().getElementsOfClassByName(categoryName):
+                treeCtrl.AppendItem(categoryItem, tagName)
+            treeCtrl.Expand(categoryItem)
+
+
+
+class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
+    """A scrollable, observable Pane which visualizes the filter.
     """
 
 
@@ -86,48 +116,31 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 # Class Methods
 # Lifecycle
-    def __init__ (self, parent, style=0):
-        # initialize superclass
-        wx.lib.scrolledpanel.ScrolledPanel.__init__ (self, parent, size=wx.Size (450, 0), style=(style | wx.FULL_REPAINT_ON_RESIZE))
+    def __init__(self, parent, style=0):
+        # inheritance
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, size=wx.Size (450, 0), style=(style | wx.FULL_REPAINT_ON_RESIZE))
+        self.SetAutoLayout(1)
+        self.SetupScrolling()
         Observer.__init__(self)
-        self.SetAutoLayout (1)
-        self.SetupScrolling ()
-        # init variables
+        # internal state
+        self.mediaTypes = sorted(Single.__subclasses__(), key=lambda c:c.__name__)  # @UndefinedVariable  # TODO: remove
         self.imageModel = None  # ImageFilerModel, to derive filter from
-        self.mediaTypes = sorted(Single.__subclasses__(), key=lambda c:c.__name__)  # @UndefinedVariable
         self.filterModel = None  # MediaFilter, to manage filter conditions
-        self.filterModes = {}  # Dictionary mapping class name to filter mode wx.Choice
-        self.filterValues = {}  # Dictionary mapping class name to filter value wx.Choice
+        self.clearModel()
 
 
 
 # Setters
-    def releaseModel(self):
-        """Release all data related to the model, including widgets
-        """
-        if (self.imageModel):
-            self.imageModel.removeObserver(self)
-            self.imageModel = None
-        if (self.filterModel):
-            self.filterModel.removeObserver(self)
-            self.filterModel = None
-        self.DestroyChildren()
-
-
     def setModel(self, anImageFilerModel):
         """Make anImageFilerModel the model of self, and create widgets on self accordingly.
         """
-        MediaFilterPane.Logger.debug('MediaFilterPane.setModel()')
-        # store MediaFiler model
-        self.releaseModel()
-        if (self.imageModel <> None):  # release previous model
-            self.imageModel.removeObserver(self)
+        MediaFilterPane.Logger.debug('MediaFilterPane.setModel(')
+        self.clearModel()
         self.imageModel = anImageFilerModel
-        # store filter model
-        if (self.filterModel <> None):  # release previous filter model
-            self.filterModel.removeObserver(self)
         self.filterModel = self.imageModel.getFilter()
         self.filterModel.addObserverForAspect(self, 'changed')
+        # create map from wx IDs to filter conditions
+        self.constructFilterConditionMap()
         # create empty lists of wx.Choice controls for each class, for modes and values
         self.filterModes = {}
         self.filterValues = {}
@@ -147,6 +160,9 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 #         self.applyButton = wx.Button(self, id=GUIId.ApplyFilter, label=GUIId.FunctionNames[GUIId.ApplyFilter])
 #         self.applyButton.Bind(wx.EVT_BUTTON, self.onApply, id=GUIId.ApplyFilter)
 #         buttonBox.Add(self.applyButton, 0, wx.EXPAND)
+        addConditionButton = wx.Button(self, id=0, label=_('Add Condition'))
+        addConditionButton.Bind(wx.EVT_BUTTON, self.onAddConditionPopup)
+        buttonBox.Add(addConditionButton, 0, wx.EXPAND)
         gridSizer.Add(buttonBox, (row, 0), (1, 3))
         gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
         row = (row + 2)
@@ -192,6 +208,15 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             singleText = wx.StaticText(self, -1, self.SingleConditionIndex)
             self.addTextFilter(gridSizer, row, self.SingleConditionIndex, singleText)        
             row = (row + 1)
+        # add new-style conditions
+        addConditionButton = wx.Button(self, id=0, label=_('Add Condition'))
+        addConditionButton.Bind(wx.EVT_BUTTON, self.onAddCondition)
+        s = wx.BoxSizer(wx.HORIZONTAL)
+        s.Add(addConditionButton)
+        gridSizer.Add(s, (row, 0), (1, 3))
+        row = (row + 1)
+        # add new-style condition panel
+        gridSizer.Add(self.getConditionPanel(self), (row, 0), (1, 3))
         # set overall sizer
         self.SetSizer(gridSizer) 
         gridSizer.Layout()
@@ -201,9 +226,52 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         MediaFilterPane.Logger.debug('MediaFilterPane.setModel() finished')
 
 
+    def clearModel(self):
+        """Release all data related to the model, including widgets
+        """
+        if (self.imageModel):
+            self.imageModel.removeObserver(self)
+            self.imageModel = None
+        if (self.filterModel):
+            self.filterModel.removeObserver(self)
+            self.filterModel = None
+        self.popupMenu = None
+        self.filterModes = {}  # Dictionary mapping class name to filter mode wx.Choice
+        self.filterValues = {}  # Dictionary mapping class name to filter value wx.Choice
+        self.DestroyChildren()
+
+
 
 # Getters    
+    def getPopupMenu(self):
+        """Return a wx.PopupMenu with filter choices.
+        """
+        if (self.popupMenu == None):
+            self.constructFilterConditionMap()
+        return(self.popupMenu)
+
+
 # Event Handlers
+    def onAddConditionPopup(self, event):  # @UnusedVariable  # TODO: remove name part "Popup"
+        self.PopupMenu(self.getPopupMenu())
+
+
+    def onAddConditionSelected(self, event):
+        actionId = event.GetId()
+        self.filterConditionMap[actionId]()
+
+
+    def onAddCondition(self, event):  # @UnusedVariable
+        """
+        """
+        dialog = ConditionSelectionDialog(self, self.imageModel)
+        if (dialog.ShowModal() == wx.ID_OK):
+            print('Condition selected')
+        else:
+            print('nuffin!')
+        dialog.Destroy()
+
+
     def onClear(self, event):  # @UnusedVariable
         wx.BeginBusyCursor()
         self.filterModel.clear()
@@ -354,11 +422,111 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Internal
+    def getConditionPanel(self, parent):
+        """Create and return a wx.Panel showing the current filter conditions
+        
+        wx.Window parent
+        Return wx.Panel
+        """
+        panel = wx.Panel(parent)
+        sizer = wx.BoxSizer()
+        panel.SetSizer(sizer)
+        text = wx.StaticText(panel, 0, 'Conditions go here')
+        sizer.Add(text)
+        return(panel)
+
+
+    def constructFilterConditionMap(self):
+        """Construct a pop-up with all filter options and a map from wx.IDs to appropriate functions.
+        
+        While constructing the pop-up with the filters, a mapping is constructed from wx.IDs 
+        to functions which will apply the appropriate change to the filter. 
+        """
+        classHandler = self.imageModel.getClassHandler()
+        self.filterConditionMap = {}
+        self.popupMenu = wx.Menu()
+        self.Bind(wx.EVT_MENU, self.onAddConditionSelected)
+        # filter for unknown tags
+        actionMenu = wx.Menu()
+        self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+                                      actionMenu, 
+                                      lambda : self.filterModel.setConditions(unknownRequired=True))
+        self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude,
+                                      actionMenu,
+                                      lambda : self.filterModel.setConditions(unknownRequired=False))
+        self.popupMenu.AppendMenu(0, _('<unknown tag>'), actionMenu)
+        # filter for any known tag
+        for category in classHandler.getClassNames():
+            tagMenu = wx.Menu()
+            self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+                                          tagMenu, 
+                                          lambda c=category : self.filterModel.setConditions(required=set([c])))
+            self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
+                                          tagMenu, 
+                                          lambda c=category : self.filterModel.setConditions(prohibited=set([c])))
+            if (1 < len(classHandler.getElementsOfClassByName(category))):
+                tagMenu.AppendSeparator()
+                for tag in classHandler.getElementsOfClassByName(category):
+                    actionMenu = wx.Menu()
+                    self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+                                                  actionMenu, 
+                                                  lambda t=tag : self.filterModel.setConditions(required=set([t])))
+                    self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
+                                                  actionMenu, 
+                                                  lambda t=tag : self.filterModel.setConditions(prohibited=set([t])))
+                    tagMenu.AppendMenu(0, tag, actionMenu)
+            self.popupMenu.AppendMenu(0, category, tagMenu)
+        # filter for media type
+        self.popupMenu.AppendSeparator()
+        typeMenu = wx.Menu()
+        for mediaType in Model.Installer.getProductTrader().getClasses():
+            if (issubclass(mediaType, Model.Single.Single)):
+                actionMenu = wx.Menu()
+                self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+                                              actionMenu, 
+                                              lambda m=mediaType : self.filterModel.setConditions(requiredMediaTypes=set([m])))
+                self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
+                                              actionMenu, 
+                                              lambda m=mediaType : self.filterModel.setConditions(prohibitedMediaTypes=set([m])))
+                typeMenu.AppendMenu(0, mediaType.getMediaTypeName(), actionMenu)
+        self.popupMenu.AppendMenu(0, _('Media Type'), typeMenu)
+        self.popupMenu.Append(0, _('Size'))
+        if (self.imageModel.organizedByDate):  # filter for dates  TODO: move to OrganzationByDate
+            self.popupMenu.AppendSeparator()
+            self.popupMenu.Append(0, _('Date'))
+        else:  # filter for singletons  TODO: move to OrganizationByName
+            self.popupMenu.AppendSeparator()
+            actionMenu = wx.Menu()
+            self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+                                          actionMenu, 
+                                          lambda : self.filterModel.setConditions(single=True))
+            self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
+                                          actionMenu, 
+                                          lambda : self.filterModel.setConditions(single=False))
+            self.popupMenu.AppendMenu(1, _('Singleton'), actionMenu)
+            
+
+    def constructFilterCondition(self, menuString, menu, function):
+        """Store a new filter condition
+        
+        Creates a wx.ID which links the menu with the action, 
+        appends a menu entry with this id, 
+        and puts the function in the instance variable self.filterConditionMap.
+        
+        String menuString contains the menu entry
+        wx.Menu menu is the menu to which the new condition shall be added
+        Callable function contains the function to be executed when the user selects this filter
+        """
+        actionId = wx.NewId()
+        menu.Append(actionId, menuString)
+        self.filterConditionMap[actionId] = function
+
+        
     def setActivateButtonText(self):
         if (self.activateButton.GetValue()):
-            self.activateButton.SetLabel(_('Filter On'))
+            self.activateButton.SetLabel(_('Turn off filter'))
         else:
-            self.activateButton.SetLabel(_('Filter Off'))
+            self.activateButton.SetLabel(_('Turn on filter'))
 
 
     def addTextFilter(self, sizer, row, filterKey, control):
@@ -468,7 +636,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def importAndDisplayFilter(self):
         """Redisplay criteria from self's filter. 
         """
-        (active,
+        (active,  
          requiredElements,
          prohibitedElements,
          unknownElementRequired,

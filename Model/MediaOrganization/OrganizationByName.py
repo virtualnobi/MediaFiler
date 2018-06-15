@@ -363,6 +363,34 @@ class OrganizationByName(MediaOrganization):
 
 
 # Getters
+    def isUnknown(self):
+        """Return whether self is incompletely specified.
+
+        Return Boolean
+        """
+        if (self.getScene() == MediaClassHandler.ElementNew):
+            return(True)
+        match = re.match(r'([^\d]+)\d*', self.getName())  # isolate name in name+number identifiers
+        if (match == None):
+            return(True)
+        else:
+            if (self.nameHandler.isNameLegal(match.group(1))):  # legal name
+                return(False)
+            else:
+                return(True)
+
+    
+    def isFilteredBy(self, aFilter):
+        """Return whether self's context is filtered. 
+        
+        Return True if context shall be hidden, False otherwise
+        """
+        if ((aFilter.singleCondition <> None)
+            and (aFilter.singleCondition <> self.isSingleton())):
+            return(True)
+        return(False)
+
+    
     def getNumbersInGroup(self):
         """Return the (ascending) list of Numbers in self's group.
         
@@ -373,12 +401,6 @@ class OrganizationByName(MediaOrganization):
                 for e in self.getContext().getParentGroup().getSubEntries() 
                 if ((not e.isGroup())
                     and (e.getOrganizer().getScene() == self.getScene()))])
-#         result = []
-#         for subentry in self.getContext().getParentGroup().getSubEntries():
-#             if ((not subentry.isGroup()) 
-#                 and (subentry.getOrganizer().getScene() == self.getScene())):
-#                 result.append(subentry.getOrganizer().getNumber())
-#         return(result)
 
 
     def constructPathForSelf(self, **kwargs):
@@ -439,11 +461,11 @@ class OrganizationByName(MediaOrganization):
             if (menuId == GUIId.ChooseName):
                 newName = self.askNewName(parentWindow)
                 if (newName):
-                    self.renameMedia(name=newName)
+                    self.getContext().renameTo(name=newName)
             else:
                 newName = self.nameHandler.getFreeName()
                 if (newName):
-                    self.renameMedia(name=newName)
+                    self.getContext().renameTo(name=newName)
                 else:
                     message = 'No more free names!'
         elif (menuId == GUIId.ConvertToGroup):
@@ -456,7 +478,7 @@ class OrganizationByName(MediaOrganization):
               and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
             newScene = self.getContext().getParentGroup().getOrganizer().getScenes()[menuId - GUIId.SelectScene]
             logging.debug('OrganizationByName.runContextMenu(): Changing scene of "%s" to %s' % (self.getPath(), newScene))
-            message = self.context.renameTo(makeUnique=True, scene=newScene)
+            message = self.getContext().renameTo(makeUnique=True, scene=newScene)
         else:
             super(OrganizationByName, self).runContextMenuItem(menuId, parentWindow)
         return(message)
@@ -484,23 +506,99 @@ class OrganizationByName(MediaOrganization):
         return(self.scene)
 
     
-    def getScenes(self):
+    def getScenes(self, filtering=False):
         """Return a sorted list of scenes contained in self, if self is a Group.
         
+        Boolean filtering indicates whether to return only filtered or all entries
         Return List of String
         """
         result = []
         if (self.getContext().isGroup()):
-            for subEntry in self.getContext().getSubEntries():
+            for subEntry in self.getContext().getSubEntries(filtering):
                 scene = subEntry.getOrganizer().getScene()
                 if (not (scene in result)):
                     result.append(scene)
             result.sort()
         return(result)
 
-    
+
+    def getFreeScene(self):
+        """Return the string representing the next free scene.
+        
+        Return String
+        """
+        def findHole(x, y):
+            x = int(x)
+            if (x < 0):  # found a hole already
+                return(x)
+            try:  # beware of new indicator
+                y = int(y)
+            except: 
+                return(-(x + 1))
+            if ((x + 1) < y):
+                return(-(x + 1))
+            else:
+                return(y)
+        scenes = self.getScenes(filtering=False)
+        result = reduce(findHole, scenes, 1)
+        if (0 <= result):  # no hole found, append
+            result = (-len(scenes))
+            if (MediaClassHandler.ElementNew in scenes):
+                result = (result + 1)
+        return(OrganizationByName.FormatScene % (-result))
+
 
 # Other API Funcions
+    def renameGroup(self, elements=set(), classesToRemove=None, removeIllegalElements=False,
+                    name=None, scene=None):
+        """Rename self's context (which is a Group) according to the specified changes.
+        
+        Return the Group to be selected after the renaming.
+        """
+        if (scene):
+            raise ValueError, ('Passed illegal parameter for scene "%s" to OrganizationByName.renameGroup()' % scene)
+        model = self.__class__.ImageFilerModel
+        # ensure new group exists
+        if ((name == self.getName())
+            and (scene == self.getScene())):
+            newParent = self.getContext()
+        else:
+            newParent = model.getEntry(name=name)
+            if (newParent):
+                if (not newParent.isGroup()):  # singleton exists
+                    singleton = newParent
+                    newParent = Group.createAndPersist(model, 
+                                                       self.__class__.constructPath(name=name))
+                    singleton.renameTo(name=name, scene='1', makeUnique=True)
+            else:  # name as yet unused
+                newParent = Group.createAndPersist(model, 
+                                                   self.__class__.constructPath(name=name))
+            # move scenes of self to unused scenes of newParent
+            sceneMap = {}
+            existingScenes = newParent.getOrganizer().getScenes(filtering=False)
+            try:
+                existingScenes.remove(MediaClassHandler.ElementNew)
+            except: 
+                pass
+            sceneNumbers = [int(s) for s in existingScenes]
+            nextFreeScene = 1
+            for scene in self.getScenes():
+                if (scene == MediaClassHandler.ElementNew):
+                    sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
+                else:
+                    while (nextFreeScene in sceneNumbers):
+                        nextFreeScene = (nextFreeScene + 1)
+                    sceneMap[scene] = (OrganizationByName.FormatScene % nextFreeScene) 
+        # move subentries to new group
+        for subEntry in self.getContext().getSubEntries(filtering=True):
+            subEntry.renameTo(elements=elements, 
+                              classesToRemove=classesToRemove,
+                              removeIllegalElements=removeIllegalElements,
+                              name=name,
+                              scene=sceneMap[subEntry.getOrganizer().getScene()])
+        return(newParent)
+
+
     def setValuesInNamePane(self, aMediaNamePane):
         """Set the fields of the MediaNamePane for self.
         """
@@ -534,138 +632,6 @@ class OrganizationByName(MediaOrganization):
 #         self.setParentGroup(newGroup)
         Group.createAndPersist(self.model, name=self.getName())
         self.renameTo(scene='1', number='1')
-
-
-    def renameMedia(self, classesToRemove=None, elements=set(), removeIllegalElements=False,
-                    name=None, scene=None):
-        """Rename self's context according to the specified changes.
-        
-        Return the Group to which self is moved.
-        """
-        kwargs = {'name': name}
-        if (not self.getContext().isGroup()):
-            kwargs['elements'] = self.context.getElements()
-            newEntry = self.getContext().model.getEntry(name=name)
-            if (newEntry): 
-                kwargs['makeUnique'] = True
-                if (newEntry.isGroup()):  # name used by Group
-                    kwargs['scene'] = MediaClassHandler.ElementNew
-                else:  # name used by singleton
-#                     newGroup = Group.createFromName(self.context.model, name)
-#                     parent = self.getContext().model.getEntry(group=True, name=name[0:1])
-#                     assert (parent <> None), ('No Group for "%s" found!' % name[0:1]) 
-#                     newGroup.setParentGroup(parent)
-                    Group.createAndPersist(self.model, name=name)
-                    newEntry.renameTo(name=name,
-                                      scene=1,
-                                      makeUnique=True)
-                    kwargs['scene'] = MediaClassHandler.ElementNew
-            else:  # name free, create a singleton
-                kwargs['scene'] = None
-        self.getContext().renameTo(**kwargs)
-        if (self.getContext().isGroup
-            and (self.getContext().getParentGroup() == None)):
-            targetGroup = self.getContext().model.getEntry(group=True, name=name)
-            assert (targetGroup <> None), ('Group "%s" not found after merging two groups!' % name)
-            self.getContext().model.setSelectedEntry(targetGroup)
-
-# # reconstruction
-# preparations         
-#         if (('name' in kwargs) 
-#             and (kwargs['name'] <> None)):
-#             name = kwargs['name']
-#         else:
-#             name = self.getName()
-#         if (('scene' in kwargs)
-#             and (kwargs['scene'] <> None)):
-#             scene = kwargs['scene']
-#         else:
-#             scene = self.getScene()
-# find group to move self to
-#         if ((name <> self.getName())
-#             or (scene <> self.getScene())):
-#             # ensure group to move self to exists
-#             newGroup = model.getGroup(name=name, scene=scene)
-#             if (newGroup == None):
-#                # create group
-#             elif (not newGroup.isGroup()):
-#                # create group and move newGroup into it
-#         else:
-#             newGroup = self.getContext().getParentGroup()
-# move
-#         if (self.getContext().isGroup()):
-#             pass
-#         else:  # self not a group
-
-# taken from Group.renameTo()
-#         if (('name' in kwargs)
-#             and (kwargs['name'] <> self.organizer.getName())):
-#             name = kwargs['name']
-#             existingEntry = self.model.getEntry(name=name)
-#             if (existingEntry == None):
-#                 print('No entry "%s" exists, renaming "%s" (ignoring elements "%s")' % (name, self.organizer.getName(), elements))
-#                 return(super(Group, self).renameTo(classesToRemove=classesToRemove,
-#                                                    elements=[], 
-#                                                    name=name, 
-#                                                    removeIllegalElements=removeIllegalElements))
-#             elif (existingEntry.isGroup()):
-#                 print('Group "%s" exists' % name)
-#                 newParent = existingEntry
-#                 selfToBeDeleted = True
-#             else:  # existingEntry is a Single
-#                 print('Single "%s" exists' % name)
-# #                     newPath = self.model.organizationStrategy.constructPath(name=name)
-# #                     newParent = Group.createFromName(self.model, name)
-# #                     assert (newPath == newParent.getPath()), 'Path of new parent differs!'
-# #                     newParent.setParent(self.model.getEntry(group=True, name=name[0:1]))
-#                 newParent = Group.createAndPersist(self.model, name=name)
-#                 existingEntry.renameTo(classesToRemove=classesToRemove,
-#                                        name=name, 
-#                                        scene='1', 
-#                                        makeUnique=True)
-#                 selfToBeDeleted = True
-#             print('Moving subentries from "%s"\n                     to "%s"' % (self.getPath(), newParent.getPath()))
-#             # construct mapping from scenes in current group to scenes in existing target group
-#             sceneMap = {}
-#             nextFreeScene = (len(newParent.getOrganizer().getScenes()) + 1)
-#             if ('99' in newParent.getOrganizer().getScenes()):
-#                 nextFreeScene = (nextFreeScene - 1)
-#             if (MediaClassHandler.ElementNew in newParent.getOrganizer().getScenes()):
-#                 nextFreeScene = (nextFreeScene - 1)
-#             for scene in self.getOrganizer().getScenes():
-#                 if (scene == MediaClassHandler.ElementNew):
-#                     sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
-#                 else:
-#                     sceneMap[scene] = ('%02d' % nextFreeScene) 
-#                     nextFreeScene = (nextFreeScene + 1)
-#         else:
-#             print('Renaming subentries of "%s"' % self.getPath())
-#             if ('name' in kwargs):
-#                 del kwargs['name']
-#             # construct an identity scene map
-#             sceneMap = {}
-#             for scene in self.getOrganizer().getScenes():
-#                 sceneMap[scene] = scene
-#         print('   with scene mapping %s' % sceneMap)
-#         # move each subEntry
-#         print('   %d subentries' % len(self.subEntriesSorted))
-#         for subEntry in self.getSubEntries(filtering=False):  
-#             newElements = subEntry.getElements()
-#             if (('elements' in kwargs)
-#                 and (kwargs['elements'])):
-#                 newElements = (newElements.union(kwargs['elements']))
-#             if (removeIllegalElements):
-#                 newElements.remove(subEntry.getUnknownElements())
-#             kwargs2 = kwargs.copy()
-#             kwargs2['elements'] = newElements
-#             kwargs2['scene'] = sceneMap[subEntry.getOrganizer().getScene()]
-#             subEntry.renameTo(classesToRemove=classesToRemove,
-#                               number=subEntry.getOrganizer().getNumber(), 
-#                               removeIllegalElements=removeIllegalElements,
-#                               **kwargs2)
-#         newSelection = newParent
-
-
 
 
     def askNewName(self, parentWindow):

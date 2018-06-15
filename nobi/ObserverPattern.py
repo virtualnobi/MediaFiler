@@ -81,7 +81,7 @@ class Observable(object):
                     self.doUpdateAspect(observer, aspect)
             # notify all observers registered for all aspects
             for observer in self.observersAllAspects:
-                observer.doUpdateAspect(observer, aspect)
+                self.doUpdateAspect(observer, aspect)
         else:
             raise KeyError
 
