@@ -12,6 +12,7 @@ import logging
 ## contributed
 import wx.lib.scrolledpanel
 import wx.calendar
+import wx.lib.masked
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
@@ -20,7 +21,7 @@ import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
 from Model.Single import Single
-
+from Model.MediaFilter import MediaFilter
 
 
 # Internationalization
@@ -74,9 +75,6 @@ class ConditionSelectionDialog(wx.Dialog):
 class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     """A scrollable, observable Pane which visualizes the filter.
     """
-
-
-
 # Constants
     # rows in filter pane grid
     RowClear = 0  # row of "Clear" and "Apply" buttons
@@ -85,10 +83,11 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     RowDate = RowSingle  # row for date range condition
     RowUnknown = 3  # row of unknown elements (regular elements follow)
     RowMediaTypes = 4  
-    # 
+    # OrganizationByName
     SingleConditionIndex = N_('single')  # string to access single/group condition
     SingleValueString = _('single')
     GroupValueString = _('group')
+    SceneConditionIndex = N_('Scene')
     # unknown elements
     UnknownElementsIndex = N_('unknown')  # string to access unknown filter in dictionary
     # special element to match any element of a class
@@ -157,9 +156,6 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.clearButton = wx.Button(self, id=GUIId.ClearFilter, label=GUIId.FunctionNames[GUIId.ClearFilter])
         self.clearButton.Bind(wx.EVT_BUTTON, self.onClear, id=GUIId.ClearFilter)
         buttonBox.Add(self.clearButton, 0, wx.EXPAND)
-#         self.applyButton = wx.Button(self, id=GUIId.ApplyFilter, label=GUIId.FunctionNames[GUIId.ApplyFilter])
-#         self.applyButton.Bind(wx.EVT_BUTTON, self.onApply, id=GUIId.ApplyFilter)
-#         buttonBox.Add(self.applyButton, 0, wx.EXPAND)
         addConditionButton = wx.Button(self, id=0, label=_('Add Condition'))
         addConditionButton.Bind(wx.EVT_BUTTON, self.onAddConditionPopup)
         buttonBox.Add(addConditionButton, 0, wx.EXPAND)
@@ -182,8 +178,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             valueChoice = wx.Choice(self, -1, choices=choices)
             valueChoice.SetSelection(self.FilterElementValuesAnyIndex)
             self.Bind(wx.EVT_CHOICE, self.onValueChanged, valueChoice)
-            self.filterValues[aClass[MediaClassHandler.KeyName]] = valueChoice
-            self.addTextFilter(gridSizer, row, aClass[MediaClassHandler.KeyName], valueChoice)
+            self.addTextFilter(gridSizer, row, aClass[MediaClassHandler.KeyName], aClass[MediaClassHandler.KeyName], valueChoice)
             # advance row count
             row = (row + 1)
         gridSizer.Add(wx.BoxSizer(), (row, 0), (1, 1))
@@ -197,17 +192,16 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.addMediaTypeFilter(gridSizer, row)
         gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
         row = (row + 2)
-        # add date range
-        if (self.imageModel.organizedByDate):
-            MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): creating filter for date')
+        # add organization-specific conditions
+        if (self.imageModel.organizedByDate):  # TODO: move to MediaOrganization
             self.addDateRangeFilter(gridSizer, row)
             row = (row + 1)
-        # add single/group condition
         if (not self.imageModel.organizedByDate):
-            MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): creating filter for single/group condition')
             singleText = wx.StaticText(self, -1, self.SingleConditionIndex)
-            self.addTextFilter(gridSizer, row, self.SingleConditionIndex, singleText)        
+            self.addTextFilter(gridSizer, row, MediaFilterPane.SingleConditionIndex, _(MediaFilterPane.SingleConditionIndex), singleText)        
             row = (row + 1)
+            self.addSceneFilter(gridSizer, row)
+            row = (row + 1)            
         # add new-style conditions
         addConditionButton = wx.Button(self, id=0, label=_('Add Condition'))
         addConditionButton.Bind(wx.EVT_BUTTON, self.onAddCondition)
@@ -331,9 +325,9 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 pass
         kwargs['required'] = self.requiredElements
         kwargs['prohibited'] = self.prohibitedElements
-        if (self.imageModel.organizedByDate):
+        if (self.imageModel.organizedByDate):  # TODO: move to MediaOrganization
             # filter for date range
-            pass
+            MediaFilterPane.Logger.warning('NYI: Filtering by dates')
         else:
             # filter for single/group
             modeName = self.filterModes[self.SingleConditionIndex].GetStringSelection()
@@ -344,6 +338,17 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             else:  # must be ignore
                 self.singleCondition = None
             kwargs['single'] = self.singleCondition
+            # filter for scene number
+            modeName = self.filterModes[MediaFilterPane.SceneConditionIndex].GetStringSelection()
+            if (modeName == MediaFilterPane.FilterModeNameRequire):
+                kwargs[MediaFilterPane.SceneConditionIndex] = self.filterValues[MediaFilterPane.SceneConditionIndex].GetValue()
+            else:
+                if (modeName == MediaFilterPane.FilterModeNameExclude):
+                    MediaFilterPane.Logger.warning('NYI: Excluding a scene number')
+                try:
+                    del kwargs[MediaFilterPane.SceneConditionIndex]
+                except: 
+                    pass 
         self.filterModel.setConditions(**kwargs)
         wx.EndBusyCursor()
 
@@ -357,6 +362,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         for key in self.filterValues:
             if (self.filterValues[key] == event.GetEventObject()):
                 if (self.filterModes[key].GetStringSelection() == self.FilterModeNameIgnore):
+                    MediaFilterPane.Logger.debug('MediaFilterPane.onValueChanged(): Setting %s to required' % key)
                     self.filterModes[key].SetStringSelection(self.FilterModeNameRequire)
         return(self.onModeChanged(event))
 
@@ -409,6 +415,20 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.filterModel.setConditions(requiredMediaTypes=required)            
         self.mediaTypePicker.SetSelection(idx)  # put focus on (un)checked type
         wx.EndBusyCursor()
+
+
+    def onSceneChanged(self, event):
+        """
+        """
+        self.onValueChanged(event)
+# 
+#         wx.BeginBusyCursor()
+#         scene = event.GetEventObject().GetValue()
+#         if (scene == 0):
+#             self.filterModel.setConditions(**{MediaFilter.SceneConditionIndex: None})
+#         else:
+#             self.filterModel.setConditions(**{MediaFilter.SceneConditionIndex: scene})
+#         wx.EndBusyCursor()
 
 
 
@@ -529,23 +549,21 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             self.activateButton.SetLabel(_('Turn on filter'))
 
 
-    def addTextFilter(self, sizer, row, filterKey, control):
+    def addTextFilter(self, sizer, row, filterKey, label, control):
         '''Add a filter criterion to self, and insert the corresponding controls into self's Sizer.
         
         wx.GridBagSizer sizer  for layouting   
         Number row             the row to use in sizer
-        String filterkey       "unknown" or the class name
+        String filterkey       index in self.filterValues[] map
+        String label           the label of the condition
         wx.?? control          the control to enter the filter value (TextCtrl or Choice)
         Returns                -
         '''
         # filter label
-        if (filterKey == self.UnknownElementsIndex):
-            label = _(filterKey)
-        else:
-            label = filterKey
         sizer.Add(wx.StaticText(self, -1, (label + ':')), (row, 0), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         # add control to specify value
         sizer.Add(control, (row, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.filterValues[filterKey] = control
         # create choice of mode, linking to the value choice 
         modeChoice = wx.Choice(self, -1, choices=self.FilterModeNames)
         modeChoice.SetSelection(self.FilterModeIndexIgnore)
@@ -559,9 +577,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         unknownElements = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)  # text to enter unknown elements
         unknownElements.Enable(True)
-        self.filterValues[self.UnknownElementsIndex] = unknownElements 
         self.Bind(wx.EVT_TEXT_ENTER, self.onValueChanged, unknownElements)
-        self.addTextFilter(sizer, row, self.UnknownElementsIndex, unknownElements)
+        self.addTextFilter(sizer, row, self.UnknownElementsIndex, _(self.UnknownElementsIndex), unknownElements)
 
 
     def addSizeFilter(self, sizer, row):
@@ -633,10 +650,26 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.Bind(wx.EVT_CHECKLISTBOX, self.onMediaTypesChanged, self.mediaTypePicker)
 
 
+    def addSceneFilter(self, sizer, row):
+        """Add a numeric scene filter for OrganizationByName
+        
+        wx.GridBagSizer sizer for layouting
+        Number row            the row to use in sizer
+        """
+        sceneNumber = wx.lib.masked.NumCtrl(self, 
+                                            -1,
+                                            integerWidth=2,
+                                            fractionWidth=0,
+                                            min=1,
+                                            max=99)
+        self.Bind(wx.lib.masked.EVT_NUM, self.onSceneChanged)
+        self.addTextFilter(sizer, row, MediaFilterPane.SceneConditionIndex, _(MediaFilterPane.SceneConditionIndex), sceneNumber)        
+
+
     def importAndDisplayFilter(self):
         """Redisplay criteria from self's filter. 
         """
-        (active,  
+        (active,  # @UnusedVariable
          requiredElements,
          prohibitedElements,
          unknownElementRequired,
@@ -644,7 +677,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
          maximumFileSize,
          singleCondition,
          fromDate,
-         toDate) = self.filterModel.getFilterConditions()
+         toDate,
+         kwargs) = self.filterModel.getFilterConditions()
         # unknown elements
         self.filterValues[self.UnknownElementsIndex].SetValue('')
         if (unknownElementRequired):
@@ -709,6 +743,9 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexRequire)
             elif (singleCondition == False):
                 self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexExclude)
+            if (MediaFilter.SceneConditionIndex in kwargs):
+                self.filterModes[MediaFilter.SceneConditionIndex].SetSelection(self.FilterModeIndexRequire)
+                self.filterValues[MediaFilter.SceneConditionIndex].SetValue(kwargs[MediaFilter.SceneConditionIndex])
         # button activation
         self.clearButton.Enable(enable=(not self.filterModel.isEmpty()))
 #        self.applyButton.Enable(enable=(not active))

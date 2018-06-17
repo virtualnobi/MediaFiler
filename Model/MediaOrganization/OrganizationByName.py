@@ -19,14 +19,14 @@ import wx
 from nobi.wx.Menu import Menu
 ## Project
 from Model import Installer
-from Model.MediaNameHandler import MediaNameHandler
 from Model.MediaClassHandler import MediaClassHandler
-#from Model.Entry import Entry
+from Model.MediaNameHandler import MediaNameHandler
+from Model.MediaFilter import MediaFilter
+from Model.MediaOrganization import MediaOrganization
 from Model.Group import Group
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from Model.MediaOrganization import MediaOrganization
-
+from UI.MediaFilterPane import MediaFilterPane
 
 
 # Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
@@ -66,15 +66,6 @@ class OrganizationByName(MediaOrganization):
 
 # Class Methods
     @classmethod
-    def getDescription(cls):
-        """Return a description of the organization. 
-        """
-        return(_('organized by name, %d names used, %d free')
-               % (cls.nameHandler.getNumberUsedNames(),
-                  cls.nameHandler.getNumberFreeNames()))
-
-
-    @classmethod
     def setModel(self, model):
         """Also load the legal names. 
         
@@ -86,6 +77,22 @@ class OrganizationByName(MediaOrganization):
         self.nameHandler = MediaNameHandler(Installer.getNamesFilePath())
 
 
+    @classmethod
+    def getDescription(cls):
+        """Return a description of the organization. 
+        """
+        return(_('organized by name, %d names used, %d free')
+               % (cls.nameHandler.getNumberUsedNames(),
+                  cls.nameHandler.getNumberFreeNames()))
+
+
+    @classmethod
+    def getFilterPaneClass(cls):
+        """Return the class to instantiate filter pane.
+        """
+        return(FilterPaneByName)
+
+    
     @classmethod
     def constructPathForOrganization(self, **kwargs):
         """
@@ -146,7 +153,12 @@ class OrganizationByName(MediaOrganization):
                 return                
             else:  # no Single exists, put into the group
                 self.ensureDirectoryExists(importParameters.log, importParameters.getTestRun(), targetDir, None)
-                pathInfo['scene'] = MediaClassHandler.ElementNew
+                match = re.search((pathInfo['name'] + MediaOrganization.IdentifierSeparator + '(\d\d)(?!\d)'),
+                                  sourcePath)
+                if (match): 
+                    pathInfo['scene'] = int(match.group(1))
+                else:
+                    pathInfo['scene'] = MediaClassHandler.ElementNew
                 singleton = False
         # determine extension
         (dummy, extension) = os.path.splitext(sourcePath)  # @UnusedVariable
@@ -387,6 +399,12 @@ class OrganizationByName(MediaOrganization):
         """
         if ((aFilter.singleCondition <> None)
             and (aFilter.singleCondition <> self.isSingleton())):
+            OrganizationByName.Logger.debug('OrganizationByName.isFilteredBy(): Single condition filters %s' % self.getContext())
+            return(True)
+        sceneCondition = aFilter.conditionMap[MediaFilter.SceneConditionIndex]
+        if (sceneCondition
+            and (self.getScene() <> (OrganizationByName.FormatScene % sceneCondition))):
+            OrganizationByName.Logger.debug('OrganizationByName.isFilteredBy(): Scene condition filters %s' % self.getContext())
             return(True)
         return(False)
 
@@ -682,3 +700,59 @@ class OrganizationByName(MediaOrganization):
         return (newSceneString)
 
 
+
+class FilterPaneByName(MediaFilterPane):
+    """Subclass handling organization-specific details.
+    """
+# Class Variables
+    Logger = logging.getLogger(__name__)
+
+
+
+# Class Methods
+    @classmethod
+    def classMethod(clas):
+        """
+        """
+        pass
+
+
+
+# Lifecycle
+    def __init__(self):
+        """
+        """
+        # inheritance
+        super(FilterPaneByName, self).__init__()
+        # internal state
+
+
+
+# Setters
+    def setAttribute(self, value):
+        """
+        """
+        pass
+    
+    
+
+# Getters
+    def getAttribute(self):  # inherited from SuperClass
+        """
+        """
+        pass
+    
+    
+
+# Event Handlers
+    def updateAspect(self, observable, aspect):
+        """
+        """
+        pass
+
+
+
+# Inheritance - Superclass
+# Other API Functions
+# Internal - to change without notice
+    pass

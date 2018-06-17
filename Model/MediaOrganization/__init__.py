@@ -82,6 +82,20 @@ class MediaOrganization(object):
 
 
     @classmethod
+    def getDescription(cls):
+        """Return a description of the organization. 
+        """
+        raise NotImplementedError
+
+
+    @classmethod
+    def getFilterPaneClass(cls):
+        """Return the class to instantiate filter pane.
+        """
+        raise NotImplementedError
+
+
+    @classmethod
     def constructPath(cls, **kwargs):  # TODO: turn elements key into a set, not a string
         """Construct a pathname, given the parameters from kwargs.
         
@@ -183,17 +197,19 @@ class MediaOrganization(object):
      
         
     @classmethod
-    def importImage(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):
+    def importMedia(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):
         """Import image at sourcePath, i.e. move to new location in model's directory.
         
         Importing.ImportParameterObject importParameters
         String sourcePath is the pathname of the image
         Number level counts the embedding from the initial import directory
         Number baseLength gives the length of the constant prefix in sourceDir, to be ignored for name determination
-        String targetDir is the pathname of the directory to import into
+        String targetDir is the pathname of the directory to import into  # TODO: remove
         Dictionary targetPathInfo contains information about the target path
         Dictionary illegalElements collects a mapping of illegal elements to source pathnames
         """
+        if (targetDir <> targetPathInfo['rootDir']):
+            raise ValueError, 'targetDir does not match!'
         newPath = cls.constructPathFromImport(importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements)
         importParameters.logString('Importing "%s"\n       as "%s"\n' % (sourcePath, newPath))
         if (not importParameters.getTestRun()):

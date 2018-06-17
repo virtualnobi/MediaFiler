@@ -31,7 +31,16 @@ from nobi.ObserverPattern import Observable
 class MediaFilter(Observable):
 
 
+
 # Constants
+    Logger = logging.getLogger(__name__)
+    SceneConditionIndex = 'Scene'
+    SingleConditionIndex = 'Singleton'
+    ConditionKeys = [SingleConditionIndex,
+                     SceneConditionIndex]
+
+
+
 # Lifecycle 
     def __init__ (self, model):
         """
@@ -41,6 +50,8 @@ class MediaFilter(Observable):
         # initialize (cannot use self.clear() since instance variables not yet defined)
         self.model = model
         self.active = False
+        self.conditionMap = {MediaFilter.SingleConditionIndex: None,
+                             MediaFilter.SceneConditionIndex: None}
         self.requiredElements = set()
         self.prohibitedElements = set()
         self.unknownElementRequired = False
@@ -61,7 +72,8 @@ class MediaFilter(Observable):
                       required=None, prohibited=None, unknownRequired=None, minimum=None, maximum=None,
                       requiredMediaTypes=None, prohibitedMediaTypes=None, 
                       single=None,
-                      fromDate=None, toDate=None):
+                      fromDate=None, toDate=None,
+                      Scene=None):
         """Set conditions as specified. Not passing an argument does not change conditions.
         
         fromDate and toDate can be cleared by passing False.
@@ -75,9 +87,9 @@ class MediaFilter(Observable):
         Boolean single filters all groups (for organization by name)
         fromDate
         toDate
+        
+        Dictionary kwargs 
         """
-        print('MediaFilter.setConditions: %s +%s, -%s, unknown %s, size %s - %s%s' 
-              % (active, required, prohibited, unknownRequired, minimum, maximum, (', single' if single else '')))
         if ((not self.active) and (active <> True)):
             changed = False
         else:
@@ -91,7 +103,8 @@ class MediaFilter(Observable):
                        or ((prohibitedMediaTypes <> None) and (self.prohibitedMediaTypes <> prohibitedMediaTypes))
                        or ((single <> None) and (self.singleCondition <> single))
                        or ((fromDate <> None) and (self.fromDate <> fromDate))
-                       or ((toDate <> None) and (self.toDate <> toDate)))
+                       or ((toDate <> None) and (self.toDate <> toDate))
+                       or ((Scene <> None) and (Scene <> self.conditionMap[MediaFilter.SceneConditionIndex])))
         if (active <> None):
             self.active = active
         if (required <> None):
@@ -108,31 +121,23 @@ class MediaFilter(Observable):
             self.requiredMediaTypes = requiredMediaTypes
         if (prohibitedMediaTypes <> None):
             self.prohibitedMediaTypes = prohibitedMediaTypes
-        if (single <> None):
-            if (self.model.organizedByDate):
-                logging.error('MediaFilter.setConditions(): Single/group filtering only allowed for media organized by name!')
-            else:  # organized by name
-                self.singleCondition = single
-        if (fromDate == False):
-            self.fromDate = None
-        elif (fromDate <> None):
-            if (self.model.organizedByDate):
+        if (self.model.organizedByDate):  # TODO: move to MediaOrganization
+            if (fromDate == False):
+                self.fromDate = None
+            elif (fromDate <> None):
                 self.fromDate = fromDate
-            else:  # organized by name
-                logging.error('MediaFilter.setConditions(): Only images organized by date can be filtered by date!')
-        if (toDate == False):
-            self.toDate = None
-        elif (toDate <> None):
-            if (self.model.organizedByDate):
+            if (toDate == False):
+                self.toDate = None
+            elif (toDate <> None):
                 self.toDate = toDate
-            else:
-                logging.error('MediaFilter.setConditions(): Only images organized by date can be filtered by date!')
-#         print('         final conditions: %s +%s, -%s, unknown %s, size %s - %s%s' 
-#               % (self.active, self.requiredElements, self.prohibitedElements, self.unknownElementRequired, 
-#                  self.minimumSize, self.maximumSize, (', single' if self.singleCondition else '')))
+        else:
+            if (single <> None):
+                self.singleCondition = single
+            if (Scene <> None):
+                self.conditionMap[MediaFilter.SceneConditionIndex] = Scene
         if (changed): 
             self.changedAspect('changed')
-        print('MediaFilter.setCondition() finished as %s' % self)
+        MediaFilter.Logger.debug('MediaFilter.setCondition() finished as %s' % self)
 
 
     def clear(self):
@@ -148,47 +153,26 @@ class MediaFilter(Observable):
                            single=None,
                            fromDate=False,
                            toDate=False)
-
-
-    def setMediaTypes(self, required=None, prohibited=None):
-        """Set a filter on media types. 
-
-        set or None required
-        set or None prohibited
-        """
-        print('MediaFilter.setMediaTypes() deprecated!')
-        changed = (((required <> None)
-                    and (required <> self.requiredMediaTypes))
-                   or ((prohibited <> None)
-                       and (prohibited <> self.prohibitedMediaTypes)))
-        if (required <> None):
-            self.requiredMediaTypes = required
-        else:
-            self.requiredMediaTypes = set()
-        if (prohibited <> None):
-            self.prohibitedMediaTypes = prohibited
-        else:
-            self.prohibitedMediaTypes = set()
-        if (changed):
-            self.changedAspect('changed')
+        MediaFilter.Logger.debug('MediaFilter.clear() finished as %s' % self)
 
 
 
 # Getters
-    def __str__(self):
+    def __repr__(self):
         """Return a string representing self.
         """
         result = ('MediaFilter(' 
-                  + ('active ' if self.active else '')
-                  + (('requires %s ' % self.requiredElements) if 0 < len(self.requiredElements) else '')
-                  + (('prohibits %s ' % self.prohibitedElements) if 0 < len(self.prohibitedElements) else '')
-                  + ('requires unknown ' if self.unknownElementRequired else '')
+                  + ('active, ' if self.active else '')
+                  + (('requires %s, ' % self.requiredElements) if 0 < len(self.requiredElements) else '')
+                  + (('prohibits %s, ' % self.prohibitedElements) if 0 < len(self.prohibitedElements) else '')
+                  + ('requires unknown, ' if self.unknownElementRequired else '')
                   + (('larger %s ' % self.minimumSize) if self.minimumSize else '')
                   + (('smaller %s ' % self.maximumSize) if self.maximumSize else '')
                   + (('isa %s ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '') 
                   + (('from %s ' % self.fromDate) if self.fromDate else '')
                   + (('to %s ' % self.toDate) if self.toDate else '')
                   + ('single' if self.singleCondition else '')
+                  + (('scene=%d' % self.conditionMap[MediaFilter.SceneConditionIndex]) if self.conditionMap[MediaFilter.SceneConditionIndex] else '')
                   + ')')
         return(result)
 
@@ -215,7 +199,8 @@ class MediaFilter(Observable):
                self.maximumSize,
                self.singleCondition,
                self.fromDate,
-               self.toDate)
+               self.toDate,
+               {k: v for k, v in self.conditionMap.iteritems() if (v)})
 
 
     def getMediaTypes(self):
@@ -243,7 +228,8 @@ class MediaFilter(Observable):
                 or (self.fromDate <> None)
                 or (self.toDate <> None)
                 or (0 < len(self.requiredMediaTypes))
-                or (0 < len(self.prohibitedMediaTypes))):
+                or (0 < len(self.prohibitedMediaTypes))
+                or (self.conditionMap[MediaFilter.SceneConditionIndex])):
                 return(False)
         return(True)
 

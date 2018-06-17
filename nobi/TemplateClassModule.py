@@ -41,8 +41,6 @@ def N_(message): return message
 class ClassName(object): 
     """
     """
-    
-
 # Constants
     Logger = logging.getLogger(__name__)
 

@@ -5,7 +5,6 @@
 
 # Imports
 ## Standard
-from __builtin__ import classmethod
 import datetime
 import re
 import os.path
@@ -21,11 +20,12 @@ from nobi.wx.Menu import Menu
 from nobi.PartialDateTime import PartialDateTime
 from nobi.SortedCollection import SortedCollection
 ## Project
-import UI  # to access UI.PackagePath
-from UI import GUIId
 from ..Group import Group
 from ..MediaClassHandler import MediaClassHandler
 from . import MediaOrganization
+import UI  # to access UI.PackagePath
+from UI import GUIId
+from UI.MediaFilterPane import MediaFilterPane
 
 
 # Internationalization  # requires "PackagePath = __path__[0]" in _init_.py
@@ -46,7 +46,6 @@ else:
 def N_(message): return message
 
 
-
 class OrganizationByDate(MediaOrganization):
     """A strategy to organize media by date.
     
@@ -57,7 +56,7 @@ class OrganizationByDate(MediaOrganization):
 
 
 
-# Constants
+# Class Variables
     Logger = logging.getLogger(__name__)
     # format strings for date output
     FormatYear = '%04d'
@@ -68,7 +67,6 @@ class OrganizationByDate(MediaOrganization):
     UnknownDateName = (FormatYear % 0)
     # RE patterns to recognize dates
     YearString = r'(?:(?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d))'  # 4-digit year
-#    YearString2 = r'(?:' + UnknownDateName + ')|(?:(?:18|19|20)\d\d)'  # 4-digit year
     MonthString = r'[01]\d'  # 2-digit month
     DayString = r'[0123]\d'  # 2-digit day
     SeparatorString = r'[-_:/\.\\]'  # separator characters
@@ -96,7 +94,6 @@ class OrganizationByDate(MediaOrganization):
 
 
 
-# Variables
 # Class Methods
     @classmethod
     def getDescription(cls):
@@ -105,6 +102,13 @@ class OrganizationByDate(MediaOrganization):
         return(_('organized by date'))
 
 
+    @classmethod
+    def getFilterPaneClass(cls):
+        """Return the class to instantiate filter pane.
+        """
+        return(FilterPaneByDate)
+
+    
     @classmethod
     def constructPathForOrganization(self, **kwargs):
         """
@@ -966,3 +970,59 @@ class OrganizationByDate(MediaOrganization):
             return(_('Reordering failed!'))
 
 
+
+class FilterPaneByDate(MediaFilterPane):
+    """Subclass handling organization-specific details.
+    """
+# Class Variables
+    Logger = logging.getLogger(__name__)
+
+
+
+# Class Methods
+    @classmethod
+    def classMethod(clas):
+        """
+        """
+        pass
+
+
+
+# Lifecycle
+    def __init__(self):
+        """
+        """
+        # inheritance
+        super(FilterPaneByDate, self).__init__()
+        # internal state
+
+
+
+# Setters
+    def setAttribute(self, value):
+        """
+        """
+        pass
+    
+    
+
+# Getters
+    def getAttribute(self):  # inherited from SuperClass
+        """
+        """
+        pass
+    
+    
+
+# Event Handlers
+    def updateAspect(self, observable, aspect):
+        """
+        """
+        pass
+
+
+
+# Inheritance - Superclass
+# Other API Functions
+# Internal - to change without notice
+    pass

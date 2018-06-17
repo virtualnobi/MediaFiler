@@ -515,7 +515,7 @@ class MediaCollection(Observable, Observer):
                                          0, 
                                          len(importParameters.getImportDirectory()), 
                                          self.rootDirectory, 
-                                         {},
+                                         {'rootDir': self.rootDirectory},
                                          illegalElements)
         except StopIteration:
             pass
@@ -537,7 +537,7 @@ class MediaCollection(Observable, Observer):
         String sourceDir contains the pathname of the directory whose files shall be imported
         Number level counts the recursion level
         Number baseLength gives the length of the constant prefix in sourceDir, to be ignored for name determination
-        String targetDir
+        String targetDir  # TODO: remove
         Dictionary targetPathInfo describes the target path
             rootDir
             <organization-specific> 
@@ -550,6 +550,9 @@ class MediaCollection(Observable, Observer):
             newTargetPathInfo = copy.copy(targetPathInfo)
             if (os.path.isdir(oldPath)):  # import a directory
                 if (self.organizedByDate):  # TODO: delegate to MediaOrganization
+                    if ((not 'rootDir' in newTargetPathInfo) or
+                        (targetDir <> newTargetPathInfo['rootDir'])):
+                        raise ValueError, 'Target path incorrect!'
                     newPath = targetDir
                     if (not 'rootDir' in newTargetPathInfo):
                         newTargetPathInfo['rootDir'] = targetDir
@@ -557,11 +560,15 @@ class MediaCollection(Observable, Observer):
                     if (0 < level):
                         importParameters.logString('\nCannot import embedded folder "%s"!' % oldPath)
                         return
+                    if ((not 'rootDir' in newTargetPathInfo) or
+                        (targetDir <> newTargetPathInfo['rootDir'])):
+                        raise ValueError, 'Target path incorrect!'
                     if (not 'rootDir' in newTargetPathInfo):
                         newTargetPathInfo['rootDir'] = targetDir
                     newName = self.organizationStrategy.deriveName(importParameters.log, oldPath[baseLength:])
-                    newTargetPathInfo['name'] = newName
                     newPath = self.organizationStrategy.constructPath(rootDir=targetDir, name=newName)  
+                    newTargetPathInfo['name'] = newName
+                    newTargetPathInfo['rootDir'] = newPath
                 self.importImagesRecursively(importParameters,
                                              oldPath, 
                                              (level + 1), 
@@ -581,7 +588,10 @@ class MediaCollection(Observable, Observer):
                     if (importParameters.canImportOneMoreFile()):
                         fileSize = os.stat(oldPath).st_size
                         if (importParameters.getMinimumFileSize() < fileSize):
-                            self.organizationStrategy.importImage(importParameters, 
+                            if ((not 'rootDir' in newTargetPathInfo) or
+                                (targetDir <> newTargetPathInfo['rootDir'])):
+                                raise ValueError, 'Target path incorrect!'
+                            self.organizationStrategy.importMedia(importParameters, 
                                                                   oldPath, 
                                                                   level, 
                                                                   baseLength, 
