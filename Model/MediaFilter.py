@@ -134,7 +134,11 @@ class MediaFilter(Observable):
             if (single <> None):
                 self.singleCondition = single
             if (Scene <> None):
-                self.conditionMap[MediaFilter.SceneConditionIndex] = Scene
+                if (Scene == 0):
+                    if (MediaFilter.SceneConditionIndex in self.conditionMap):
+                        del self.conditionMap[MediaFilter.SceneConditionIndex3]
+                else:
+                    self.conditionMap[MediaFilter.SceneConditionIndex] = Scene
         if (changed): 
             self.changedAspect('changed')
         MediaFilter.Logger.debug('MediaFilter.setCondition() finished as %s' % self)
@@ -152,7 +156,8 @@ class MediaFilter(Observable):
                            prohibitedMediaTypes=set(),
                            single=None,
                            fromDate=False,
-                           toDate=False)
+                           toDate=False,
+                           Scene='')
         MediaFilter.Logger.debug('MediaFilter.clear() finished as %s' % self)
 
 

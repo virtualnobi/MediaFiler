@@ -4,19 +4,20 @@
 
 
 ## Imports
-from __future__ import print_function
 # Standard
+from __future__ import print_function
 import types
 import copy
 import os.path
 import re
 import logging
 import gettext
-import cProfile, pstats, StringIO
+#import cProfile, pstats, StringIO
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer
 from nobi.SecureConfigParser import SecureConfigParser
+from nobi.logging import profiledOnLogger
 # Project 
 import GlobalConfigurationOptions
 from Model import Installer
@@ -97,12 +98,12 @@ class MediaCollection(Observable, Observer):
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection', 'size'])
         # internal state
         if (rootDir):
-#            self.setRootDirectoryProfiled(rootDir)
             self.setRootDirectory(rootDir)
         MediaCollection.Logger.debug('MediaCollection.init() finished')
         return(None)
 
-
+    
+    @profiledOnLogger(Logger, sort='time')
     def setRootDirectory (self, rootDir):
         """Change the root directory to process a different image set.
         """
@@ -146,7 +147,7 @@ class MediaCollection(Observable, Observer):
         if (path):
             entry = self.getEntry(path=path)
             if (entry):
-                MediaCollection.Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run' % entry.getPath())
+                MediaCollection.Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run.' % path)
                 self.setSelectedEntry(entry)
             else:
                 MediaCollection.Logger.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
@@ -156,19 +157,19 @@ class MediaCollection(Observable, Observer):
             self.setSelectedEntry(self.root)
 
 
-    def setRootDirectoryProfiled(self, rootDir):
-        profiler = cProfile.Profile()
-        profiler.enable()
-        self.setRootDirectory(rootDir)
-        profiler.disable()
-        resultStream = StringIO.StringIO()
-        ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
-        #ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
-        ps.sort_stats('time')  # sort according to time per function call, excluding called functions
-        ps.print_stats(20)  # print top 20 
-        print('Profiling Results for MediaCollection.setRootDirectory()')
-        print(resultStream.getvalue())
-        print('---')
+#     def setRootDirectoryProfiled(self, rootDir):
+#         profiler = cProfile.Profile()
+#         profiler.enable()
+#         self.setRootDirectory(rootDir)
+#         profiler.disable()
+#         resultStream = StringIO.StringIO()
+#         ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
+#         #ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
+#         ps.sort_stats('time')  # sort according to time per function call, excluding called functions
+#         ps.print_stats(20)  # print top 20 
+#         print('Profiling Results for MediaCollection.setRootDirectory()')
+#         print(resultStream.getvalue())
+#         print('---')
 
 
 

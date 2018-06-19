@@ -286,10 +286,10 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
     def onModeChanged(self, event):  # @UnusedVariable
-        """User changed a mode in the filter. Update internal state. 
+        """User changed a mode. Update filter. 
         """
-        kwargs = {}  # parameter set to pass to MediaFilter.setConditions()
         wx.BeginBusyCursor()
+        kwargs = {}  # parameter set to pass to MediaFilter.setConditions()
         # TODO: Check whether class definition requires (de)activation of other choices
         self.requiredElements = set()
         self.prohibitedElements = set()
@@ -342,13 +342,10 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             modeName = self.filterModes[MediaFilterPane.SceneConditionIndex].GetStringSelection()
             if (modeName == MediaFilterPane.FilterModeNameRequire):
                 kwargs[MediaFilterPane.SceneConditionIndex] = self.filterValues[MediaFilterPane.SceneConditionIndex].GetValue()
-            else:
-                if (modeName == MediaFilterPane.FilterModeNameExclude):
-                    MediaFilterPane.Logger.warning('NYI: Excluding a scene number')
-                try:
-                    del kwargs[MediaFilterPane.SceneConditionIndex]
-                except: 
-                    pass 
+            elif (modeName == MediaFilterPane.FilterModeNameExclude):
+                MediaFilterPane.Logger.warning('NYI: Excluding a scene number')
+            else:  # must be ignore
+                kwargs[MediaFilterPane.SceneConditionIndex] = 0
         self.filterModel.setConditions(**kwargs)
         wx.EndBusyCursor()
 
@@ -418,17 +415,15 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
     def onSceneChanged(self, event):
+        """User changed scene number in filter. Update internal state.
+
+        In addition to the regular update done in onModeChanged(), 
+        the mode corresponding to the value is set to Require if it was Ignore.
         """
-        """
-        self.onValueChanged(event)
-# 
-#         wx.BeginBusyCursor()
-#         scene = event.GetEventObject().GetValue()
-#         if (scene == 0):
-#             self.filterModel.setConditions(**{MediaFilter.SceneConditionIndex: None})
-#         else:
-#             self.filterModel.setConditions(**{MediaFilter.SceneConditionIndex: scene})
-#         wx.EndBusyCursor()
+        if (self.filterModes[MediaFilterPane.SceneConditionIndex].GetStringSelection() == self.FilterModeNameIgnore):
+            MediaFilterPane.Logger.debug('MediaFilterPane.onSceneChanged(): Setting % to required' % MediaFilterPane.SceneConditionIndex)
+            self.filterModes[MediaFilterPane.SceneConditionIndex].SetStringSelection(self.FilterModeNameRequire)
+        return(self.onModeChanged(event))
 
 
 

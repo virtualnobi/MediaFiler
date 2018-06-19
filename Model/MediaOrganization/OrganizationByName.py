@@ -412,7 +412,7 @@ class OrganizationByName(MediaOrganization):
     def getNumbersInGroup(self):
         """Return the (ascending) list of Numbers in self's group.
         
-        TODO: Remove his when OrganizationByName uses embedded Groups for the scene, and let the Group
+        TODO: Remove this when OrganizationByName uses embedded Groups for the scene, and let the Group
         list the numbers. 
         """
         return([e.getOrganizer().getNumber() 

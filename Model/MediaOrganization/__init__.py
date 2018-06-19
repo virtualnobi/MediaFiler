@@ -209,7 +209,7 @@ class MediaOrganization(object):
         Dictionary illegalElements collects a mapping of illegal elements to source pathnames
         """
         if (targetDir <> targetPathInfo['rootDir']):
-            raise ValueError, 'targetDir does not match!'
+            raise ValueError, ('targetDir %s does not match %s!' % (targetDir, targetPathInfo['rootDir']))
         newPath = cls.constructPathFromImport(importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements)
         importParameters.logString('Importing "%s"\n       as "%s"\n' % (sourcePath, newPath))
         if (not importParameters.getTestRun()):
