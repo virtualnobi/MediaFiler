@@ -421,7 +421,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         the mode corresponding to the value is set to Require if it was Ignore.
         """
         if (self.filterModes[MediaFilterPane.SceneConditionIndex].GetStringSelection() == self.FilterModeNameIgnore):
-            MediaFilterPane.Logger.debug('MediaFilterPane.onSceneChanged(): Setting % to required' % MediaFilterPane.SceneConditionIndex)
+            MediaFilterPane.Logger.debug('MediaFilterPane.onSceneChanged(): Setting %s to required' % MediaFilterPane.SceneConditionIndex)
             self.filterModes[MediaFilterPane.SceneConditionIndex].SetStringSelection(self.FilterModeNameRequire)
         return(self.onModeChanged(event))
 

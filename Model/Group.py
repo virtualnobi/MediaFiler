@@ -8,6 +8,7 @@
 ## standard
 import logging
 import os
+import copy
 ## contributed
 import wx
 from nobi.SortedCollection import SortedCollection 
@@ -18,9 +19,6 @@ from nobi.ObserverPattern import Observer
 import Installer
 from .Entry import Entry
 from UI import GUIId
-from Model.MediaClassHandler import MediaClassHandler
-from __builtin__ import classmethod
-#import MediaFiler.Organization  
 
 
 
@@ -138,7 +136,12 @@ class Group(Entry, Observer):
                 self.remove()
         else:  # change only tags of subentries
             for entry in self.getSubEntries(filtering=True):
-                entry.renameTo(**kwargs)
+                newKwargs = copy.copy(kwargs)
+                if (('elements' in kwargs)
+                    and (kwargs['elements'])):
+                    newElements = entry.getElements().union(kwargs['elements'])
+                    newKwargs['elements'] = newElements
+                entry.renameTo(**newKwargs)
         return(True)
         # old stuff
 #         result = True

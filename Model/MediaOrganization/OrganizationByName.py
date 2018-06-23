@@ -401,9 +401,9 @@ class OrganizationByName(MediaOrganization):
             and (aFilter.singleCondition <> self.isSingleton())):
             OrganizationByName.Logger.debug('OrganizationByName.isFilteredBy(): Single condition filters %s' % self.getContext())
             return(True)
-        sceneCondition = aFilter.conditionMap[MediaFilter.SceneConditionIndex]
-        if (sceneCondition
-            and (self.getScene() <> (OrganizationByName.FormatScene % sceneCondition))):
+        if ((MediaFilter.SceneConditionIndex in aFilter.conditionMap)
+            and aFilter.conditionMap[MediaFilter.SceneConditionIndex]
+            and (self.getScene() <> (OrganizationByName.FormatScene % aFilter.conditionMap[MediaFilter.SceneConditionIndex]))):
             OrganizationByName.Logger.debug('OrganizationByName.isFilteredBy(): Scene condition filters %s' % self.getContext())
             return(True)
         return(False)

@@ -136,7 +136,7 @@ class MediaFilter(Observable):
             if (Scene <> None):
                 if (Scene == 0):
                     if (MediaFilter.SceneConditionIndex in self.conditionMap):
-                        del self.conditionMap[MediaFilter.SceneConditionIndex3]
+                        del self.conditionMap[MediaFilter.SceneConditionIndex]
                 else:
                     self.conditionMap[MediaFilter.SceneConditionIndex] = Scene
         if (changed): 
@@ -177,7 +177,7 @@ class MediaFilter(Observable):
                   + (('from %s ' % self.fromDate) if self.fromDate else '')
                   + (('to %s ' % self.toDate) if self.toDate else '')
                   + ('single' if self.singleCondition else '')
-                  + (('scene=%d' % self.conditionMap[MediaFilter.SceneConditionIndex]) if self.conditionMap[MediaFilter.SceneConditionIndex] else '')
+                  + (('scene=%d' % self.conditionMap[MediaFilter.SceneConditionIndex]) if (MediaFilter.SceneConditionIndex in self.conditionMap) else '')
                   + ')')
         return(result)
 
