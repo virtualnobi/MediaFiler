@@ -55,6 +55,7 @@ ImportFolder = u'import'
 
 
 # Variables
+Logger = logging.getLogger()
 ProductTrader = ProductTraderPattern.SimpleProductTrader()
 
 
@@ -136,31 +137,38 @@ def checkInstallation():
 
     Returns Boolean indicating whether the installation is ok
     """
-    logging.debug('Installer.checkInstallation(): Checking folders at "%s"...' % CurrentPath)
+    Logger.debug('Installer.checkInstallation(): Checking folders at "%s"...' % CurrentPath)
     if (not os.path.isdir(getMediaPath())):
-        logging.debug('Installer.checkInstallation(): Image directory does not exist')
+        Logger.debug('Installer.checkInstallation(): Image directory does not exist')
         return(False)
     if (not os.path.isdir(getLibraryPath())):
-        logging.debug('Installer.checkInstallation(): Library directory does not exist')
+        Logger.debug('Installer.checkInstallation(): Library directory does not exist')
         return(False)
     if (not os.path.exists(getLogoPath())):
-        logging.debug('Installer.checkInstallation(): Logo image does not exist')
+        Logger.debug('Installer.checkInstallation(): Logo image does not exist')
         return(False)
     if (not os.path.exists(getConfigurationFilePath())):
-        logging.debug('Installer.checkInstallation(): Configuration file does not exist')
+        Logger.debug('Installer.checkInstallation(): Configuration file does not exist')
         return(False)
+    else:  # config file exists, check integrity
+        config = SecureConfigParser.SecureConfigParser(getConfigurationFilePath())
+        try:
+            config.read(getConfigurationFilePath())
+        except:
+            Logger.debug('Installer.checkInstallation(): Configuration file corrupt')
+            return(False)
     for c in getProductTrader().getClasses():
         if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
-            logging.debug('Installer.checkInstallation(): No preview image for class %s exists.' % c)
+            Logger.debug('Installer.checkInstallation(): No preview image for class %s exists.' % c)
             print('No preview image for class %s exists.' % c)
             return(False)
     if (not os.path.exists(getClassFilePath())):
-        logging.debug('Installer.checkInstallation(): Tag name file does not exist')
+        Logger.debug('Installer.checkInstallation(): Tag name file does not exist')
         return(False)
     if (not os.path.isdir(getTrashPath())):
-        logging.debug('Installer.checkInstallation(): Trash directory does not exist')
+        Logger.debug('Installer.checkInstallation(): Trash directory does not exist')
         return(False)
-    logging.debug('Installer.checkInstallation(): Folders at "%s" are ok' % CurrentPath)
+    Logger.debug('Installer.checkInstallation(): Installation at "%s" is ok' % CurrentPath)
     return(True)
 
 
@@ -169,44 +177,55 @@ def install():
 
     Return Boolean indicating installation succeeded
     """
-    logging.debug('Installer.install(): Preparing folders at "%s"' % CurrentPath)
+    Logger.debug('Installer.install(): Preparing folders at "%s"' % CurrentPath)
     try:
         if (not os.path.isdir(getMediaPath())):
             os.makedirs(getMediaPath())
-            logging.debug('Installer.install(): Image folder created')
+            Logger.debug('Installer.install(): Image folder created')
         if (not os.path.isdir(getLibraryPath())):
             os.makedirs(getLibraryPath())
-            logging.debug('Installer.install(): Library folder created')
+            Logger.debug('Installer.install(): Library folder created')
         if (not os.path.exists(getLogoPath())):
             shutil.copyfile(os.path.join(InstallationPath, ImageFolder, LogoFilename), 
                             getLogoPath())
-            logging.debug('Installer.install(): Logo file copied')
+            Logger.debug('Installer.install(): Logo file copied')
         if (not os.path.exists(getConfigurationFilePath())):
             config = SecureConfigParser.SecureConfigParser(getConfigurationFilePath())
             config.add_section(GUIId.AppTitle)
             config.set(GUIId.AppTitle, 
                        GlobalConfigurationOptions.TextEditor, 
                        ('notepad /W "%s"' % GlobalConfigurationOptions.Parameter))
-            logging.debug('Installer.install(): Configuration file created')
+            Logger.debug('Installer.install(): Configuration file created')
+        else:  # config file exists, ensure section 
+            config = SecureConfigParser.SecureConfigParser(getConfigurationFilePath())
+            try: 
+                config.read(getConfigurationFilePath())
+            except:
+                config.set(GUIId.AppTitle, 
+                           GlobalConfigurationOptions.TextEditor, 
+                           ('notepad /W "%s"' % GlobalConfigurationOptions.Parameter))
+            if (not config.has_section(GUIId.AppTitle)):
+                config.add_section(GUIId.AppTitle)
+            Logger.debug('Installer.install(): Configuration file repaired')
         for c in getProductTrader().getClasses():
             if (not os.path.exists(os.path.join(getLibraryPath(), c.PreviewImageFilename))):
                 shutil.copyfile(os.path.join(InstallationPath, ImageFolder, c.PreviewImageFilename),
                                 os.path.join(getLibraryPath(), c.PreviewImageFilename))
-                logging.debug('Installer.install(): Preview image %s copied' % c.PreviewImageFilename)
+                Logger.debug('Installer.install(): Preview image %s copied' % c.PreviewImageFilename)
         if (not os.path.exists(getClassFilePath())):
             with open(getClassFilePath(), 'w') as cfile:
                 cfile.write(MediaClassHandler.InitialFileContent)
-            logging.debug('Installer.install(): Tag file created')
+            Logger.debug('Installer.install(): Tag file created')
         if (not os.path.isdir(getTrashPath())):
             os.makedirs(getTrashPath())
-            logging.debug('Installer.install(): Trash folder created')
+            Logger.debug('Installer.install(): Trash folder created')
         if (not os.path.isdir(getImportFolder())):
             os.makedirs(getImportFolder())
-            logging.debug('Installer.install(): Import folder created')
+            Logger.debug('Installer.install(): Import folder created')
     except Exception as e:
-        logging.critical('Installer.install(): Installation failed with exception:\n%s' % e)
+        Logger.critical('Installer.install(): Installation failed with exception:\n%s' % e)
         return(False)
-    logging.debug('Installer.install(): Folders at "%s" are ok' % CurrentPath)
+    Logger.debug('Installer.install(): Folders at "%s" are ok' % CurrentPath)
     return(True)
 
 
@@ -221,6 +240,7 @@ def ensureInstallationOk(window):
     Return Boolean indicating a valid installation. 
     """
     global CurrentPath
+    global Logger
     CurrentPath = os.getcwdu()
     if (not checkInstallation()):
         dlg = wx.DirDialog(window, 
@@ -237,11 +257,12 @@ def ensureInstallationOk(window):
                 dlg.Destroy()
                 CurrentPath = None
         else:
-            logging.debug('Installer.ensureInstallationOk(): Cancelled by user')
+            Logger.debug('Installer.ensureInstallationOk(): Cancelled by user')
         dlg.Destroy()
     if (CurrentPath):
-        logging.debug('Installer.ensureInstallationOk(): Changing working directory to "%s"' % CurrentPath)
+        Logger.debug('Installer.ensureInstallationOk(): Changing working directory to "%s"' % CurrentPath)
         os.chdir(CurrentPath)
+        Logger = logging.getLogger(__name__)
         return(True)
     else:
         return(False)
