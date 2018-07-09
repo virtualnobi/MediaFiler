@@ -110,7 +110,7 @@ class OrganizationByDate(MediaOrganization):
 
     
     @classmethod
-    def constructPathForOrganization(self, **kwargs):
+    def constructPathForOrganization(cls, **kwargs):
         """
         Dictionary kwargs
             Number year
@@ -121,43 +121,51 @@ class OrganizationByDate(MediaOrganization):
             and kwargs['year']):
             year = kwargs['year']
         else:
-            year = int(self.UnknownDateName)
-        result = (self.FormatYear % year)
+            year = int(cls.UnknownDateName)
+        result = (cls.FormatYear % year)
         if (('month' in kwargs)
             and kwargs['month']):
             month = kwargs['month']
-            result = os.path.join(result, (self.FormatYearMonth % (year, month)))
+            result = os.path.join(result, (cls.FormatYearMonth % (year, month)))
             if (('day' in kwargs)
                 and kwargs['day']):
                 result = os.path.join(result, 
-                                      (self.FormatYearMonthDay % (year, month, kwargs['day'])),
-                                      (self.FormatYearMonthDay % (year, month, kwargs['day'])))
+                                      (cls.FormatYearMonthDay % (year, month, kwargs['day'])),
+                                      (cls.FormatYearMonthDay % (year, month, kwargs['day'])))
             else:
                 result = os.path.join(result, 
-                                      (self.FormatYearMonth % (year, month)))
+                                      (cls.FormatYearMonth % (year, month)))
         else:
-            result = os.path.join(result, (self.FormatYear % year))
+            result = os.path.join(result, (cls.FormatYear % year))
         return(result)
 
 
     @classmethod
-    def constructPathFromImport(self, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):  # @UnusedVariable
+    def pathInfoForImport(cls, importParameters, level, oldName, pathInfo):
+        """Return a pathInfo mapping extended according to directory name oldName.
+        """
+        result = MediaOrganization.pathInfoForImport(importParameters, level, oldName, pathInfo)
+        return(result)
+
+        
+    @classmethod
+    def constructPathFromImport(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):  # @UnusedVariable
         """
         """
         # determine date of image
-        (year, month, day) = self.deriveDate(importParameters.log, sourcePath, importParameters.getPreferPathDateOverExifDate())
+        (year, month, day) = cls.deriveDate(importParameters.log, sourcePath, importParameters.getPreferPathDateOverExifDate())
         # determine extension
         (dummy, extension) = os.path.splitext(sourcePath)
         extension = extension.lower() 
         # determine elements
-        tagSet = self.ImageFilerModel.deriveTags(importParameters, 
+        tagSet = cls.ImageFilerModel.deriveTags(importParameters, 
                                                  sourcePath, 
                                                  baseLength,
                                                  illegalElements)
         if (importParameters.getMarkAsNew()):
             tagSet.add(MediaClassHandler.ElementNew)
         # ensure uniqueness via number
-        newPath = self.constructPath(rootDir=targetDir,
+        newPath = cls.constructPath(rootDir=targetDir,
                                      year=year,
                                      month=month,
                                      day=day,
@@ -514,7 +522,7 @@ class OrganizationByDate(MediaOrganization):
         """
         """
         # inheritance
-        super(OrganizationByDate, self).__init__(anEntry, aPath)
+        MediaOrganization.__init__(self, anEntry, aPath)
         # internal state
         self.timeTaken = None  # for Singles: capture time
         self.undoList = None  # for Groups: undo last reordering
@@ -627,7 +635,7 @@ class OrganizationByDate(MediaOrganization):
         if (checkMakeUnique
             and (not 'number' in kwargs)):
             kwargs['makeUnique'] = True
-        return(super(OrganizationByDate, self).constructPathForSelf(**kwargs))
+        return(MediaOrganization.constructPathForSelf(self, **kwargs))
 
 
     def extendContextMenu(self, menu):
@@ -679,7 +687,7 @@ class OrganizationByDate(MediaOrganization):
         elif (menuId == GUIId.UndoReorder):
             return(self.onUndoReorder(parentWindow))
         else:
-            return(super(OrganizationByDate, self).runContextMenuItem(menuId, parentWindow))
+            return(MediaOrganization.runContextMenuItem(self, menuId, parentWindow))
 
 
     def getDateTaken(self):
@@ -784,7 +792,7 @@ class OrganizationByDate(MediaOrganization):
     def setValuesInNamePane(self, aMediaNamePane):
         """Set the fields of the MediaNamePane for self.
         """
-        super(OrganizationByDate, self).setValuesInNamePane(aMediaNamePane)
+        MediaOrganization.setValuesInNamePane(self, aMediaNamePane)
         aMediaNamePane.yearInput.SetValue(self.getYearString())
         aMediaNamePane.monthInput.SetValue(self.getMonthString())
         aMediaNamePane.dayInput.SetValue(self.getDayString())
@@ -796,7 +804,7 @@ class OrganizationByDate(MediaOrganization):
         Return Dictionary mapping String to values
             or None if field values are illegal
         """
-        result = super(OrganizationByDate, self).getValuesFromNamePane(aMediaNamePane)
+        result = MediaOrganization.getValuesFromNamePane(self, aMediaNamePane)
         year = aMediaNamePane.yearInput.GetValue()
         if (year == ''):
             result['year'] = None
@@ -993,7 +1001,7 @@ class FilterPaneByDate(MediaFilterPane):
         """
         """
         # inheritance
-        super(FilterPaneByDate, self).__init__()
+        MediaFilterPane.__init__()
         # internal state
 
 

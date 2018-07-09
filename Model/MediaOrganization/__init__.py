@@ -12,6 +12,7 @@ import os.path
 import glob
 import shutil
 import StringIO
+import copy
 from collections import OrderedDict
 import logging
 import gettext
@@ -96,12 +97,12 @@ class MediaOrganization(object):
 
 
     @classmethod
-    def constructPath(cls, **kwargs):  # TODO: turn elements key into a set, not a string
-        """Construct a pathname, given the parameters from kwargs.
+    def constructPath(cls, **pathInfo):  # TODO: turn elements key into a set, not a string
+        """Construct a pathname, given the parameters from pathInfo.
         
-        If a parameter is not contained in kwargs, it is derived from self's settings.
-        If a parameter is contained in kwargs, but None, it will not be used to construct a path (e.g., scene).
-        If a parameter is contained in kwargs, other than None, it will be used instead of self's setting.
+        If a parameter is not contained in pathInfo, it is derived from self's settings.
+        If a parameter is contained in pathInfo, but None, it will not be used to construct a path (e.g., scene).
+        If a parameter is contained in pathInfo, other than None, it will be used instead of self's setting.
 
         If either makeUnique or number is given, the resulting pathname contains a number. 
         makeUnique takes precedence over the number parameter.
@@ -113,48 +114,56 @@ class MediaOrganization(object):
 
         Return a String containing the path
         """
-        if (('rootDir' in kwargs)
-            and kwargs['rootDir']):
-            result = kwargs['rootDir']
+        if (('rootDir' in pathInfo)
+            and pathInfo['rootDir']):
+            result = pathInfo['rootDir']
         else:
             result = cls.ImageFilerModel.getRootDirectory()
-        result = os.path.join(result, cls.constructPathForOrganization(**kwargs))
+        result = os.path.join(result, cls.constructPathForOrganization(**pathInfo))
         number = None
-        if (('makeUnique' in kwargs)
-            and kwargs['makeUnique']):
+        if (('makeUnique' in pathInfo)
+            and pathInfo['makeUnique']):
             number = 1
             while (0 < len(glob.glob(result + cls.IdentifierSeparator + (cls.FormatNumber % number) + '*'))):
                 number = (number + 1)
-        elif (('number' in kwargs)
-              and kwargs['number']):
-            number = kwargs['number']
+        elif (('number' in pathInfo)
+              and pathInfo['number']):
+            number = pathInfo['number']
         if (number):
             if (isinstance(number, str)
                 or isinstance(number, unicode)):
                 print('MediaOrganization.constructPath(): Deprecated use of non-numeric number!')
                 number = int(number)
             result = (result + cls.IdentifierSeparator + (cls.FormatNumber % number))
-        if (('elements' in kwargs)
-            and kwargs['elements']):
-            tagSpec = kwargs['elements']
+        if (('elements' in pathInfo)
+            and pathInfo['elements']):
+            tagSpec = pathInfo['elements']
             if (isinstance(tagSpec, str)
                 or isinstance(tagSpec, unicode)):
                 print('Organization.constructPath(): Deprecated usage of string parameter for elements!')
                 tagSpec = cls.ImageFilerModel.getClassHandler().stringToElements(tagSpec)
             result = (result + cls.ImageFilerModel.getClassHandler().elementsToString(tagSpec))
-        if (('extension' in kwargs)
-            and kwargs['extension']):
-            result = (result + '.' + kwargs['extension'])
+        if (('extension' in pathInfo)
+            and pathInfo['extension']):
+            result = (result + '.' + pathInfo['extension'])
         return(result)
 
 
     @classmethod
-    def constructPathForOrganization(self, **kwargs):
+    def constructPathForOrganization(cls, **kwargs):
         """Construct the organization-specific part of a media pathname, between root directory and number.
         """
         raise NotImplementedError
 
 
+    @classmethod
+    def pathInfoForImport(cls, importParameters, level, oldName, pathInfo):
+        """Return a pathInfo mapping extended according to directory name oldName.
+        """
+        result = copy.copy(pathInfo)
+        return(result)
+
+        
     @classmethod
     def constructPathFromImport(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):
         """Construct a pathname to import media at sourcePath to. 

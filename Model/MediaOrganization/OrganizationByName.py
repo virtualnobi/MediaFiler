@@ -94,7 +94,7 @@ class OrganizationByName(MediaOrganization):
 
     
     @classmethod
-    def constructPathForOrganization(self, **kwargs):
+    def constructPathForOrganization(cls, **kwargs):
         """
         String name
         Number scene
@@ -111,7 +111,7 @@ class OrganizationByName(MediaOrganization):
         if (('scene' in kwargs)
             and kwargs['scene']):
             try:
-                scene = (self.FormatScene % (int(kwargs['scene'])))
+                scene = (cls.FormatScene % (int(kwargs['scene'])))
             except: 
                 scene = MediaClassHandler.ElementNew
             result = os.path.join(result, scene)
@@ -121,7 +121,15 @@ class OrganizationByName(MediaOrganization):
 
 
     @classmethod
-    def constructPathFromImport(self, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):  
+    def pathInfoForImport(cls, importParameters, level, oldName, pathInfo):
+        """Return a pathInfo mapping extended according to directory name oldName.
+        """
+        result = super(OrganizationByName, self).pathInfoForImport(importParameters, level, oldName, pathInfo)
+        return(result)
+
+        
+    @classmethod
+    def constructPathFromImport(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):  
         """Import image at sourcePath.
         """
         pathInfo = copy.copy(targetPathInfo)
@@ -130,12 +138,12 @@ class OrganizationByName(MediaOrganization):
         singleton = True
         if (level == 0):  # not embedded, is a single
             # determine name of image
-            pathInfo['name'] = self.deriveName(importParameters.log, sourcePath[baseLength:])
+            pathInfo['name'] = cls.deriveName(importParameters.log, sourcePath[baseLength:])
             if (not pathInfo['name']):
                 importParameters.logString('Cannot determine new name for "%s", terminating import!' % sourcePath)
                 return
-            groupExists = os.path.isdir(self.constructPath(**pathInfo))
-            singleExists = (len(glob.glob(self.constructPath(**pathInfo) + MediaOrganization.IdentifierSeparator + '*')) > 0)
+            groupExists = os.path.isdir(cls.constructPath(**pathInfo))
+            singleExists = (len(glob.glob(cls.constructPath(**pathInfo) + MediaOrganization.IdentifierSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
                 importParameters.logString('OrganizationByName: Cannot merge two singles into group (NYI)!')
                 return
@@ -152,7 +160,7 @@ class OrganizationByName(MediaOrganization):
                 importParameters.logString('OrganizationByName: Cannot merge single with group (NYI)!')
                 return                
             else:  # no Single exists, put into the group
-                self.ensureDirectoryExists(importParameters.log, importParameters.getTestRun(), targetDir, None)
+                cls.ensureDirectoryExists(importParameters.log, importParameters.getTestRun(), targetDir, None)
                 match = re.search((pathInfo['name'] + MediaOrganization.IdentifierSeparator + '(\d\d)(?!\d)'),
                                   sourcePath)
                 if (match): 
@@ -164,7 +172,7 @@ class OrganizationByName(MediaOrganization):
         (dummy, extension) = os.path.splitext(sourcePath)  # @UnusedVariable
         pathInfo['extension'] = extension[1:].lower() 
         # determine elements
-        tagSet = self.ImageFilerModel.deriveTags(importParameters,
+        tagSet = cls.ImageFilerModel.deriveTags(importParameters,
                                                  sourcePath,
                                                  baseLength,
                                                  illegalElements)
@@ -177,7 +185,7 @@ class OrganizationByName(MediaOrganization):
         else:  # in a Group, create new number
             pathInfo['makeUnique'] = True
         # rename
-        newPath = self.constructPath(elements=tagSet,
+        newPath = cls.constructPath(elements=tagSet,
                                      **pathInfo)
         return(newPath)
 

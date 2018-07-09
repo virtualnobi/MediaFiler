@@ -48,6 +48,7 @@ ClassFilename = u'classes.txt'
 ConfigurationFilename = (u'%s.ini' % GUIId.AppTitle)
 NamesFilename = u'names.orig'
 InitialFilename = u'initial.jpg'
+SplashFilename = u'splash.bmp'
 LogFilename = u'log-%d.txt'
 TrashFolder = u'trash'
 ImportFolder = u'import'
@@ -62,6 +63,12 @@ ProductTrader = ProductTraderPattern.SimpleProductTrader()
 
 # Setters
 # Getters
+def getSplashPath():
+    """Return the path to the splash bitmap file.
+    """
+    return(os.path.join(InstallationPath, ImageFolder, SplashFilename))
+
+
 def getMediaPath():
     """Return the path to the image directory.
     """

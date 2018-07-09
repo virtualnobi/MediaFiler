@@ -20,9 +20,9 @@ import pkgutil
 ## contributed
 import wx.aui
 import wx.lib.dialogs
-import wx.lib.agw.advancedsplash as AS
 ## nobi
 from nobi.ObserverPattern import Observable, Observer
+from nobi.wx.ProgressSplashApp import ProgressSplashApp
 ## project
 from Model import GlobalConfigurationOptions
 from Model import Installer
@@ -731,15 +731,22 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
 # section: Internal State
-    def setModel(self, directory):
-        """Set the model from its root DIRECTORY. Update status and load initial image.
+    def setModel(self, directory, progressFunction):
+        """Set the model from its root directory.
+
+        Update status and load initial image.
+        
+        String directory
+        Callable progressFunction to show progress
         """
         wx.BeginBusyCursor()
         self.statusbar.SetStatusText(directory, GUIId.SB_Organization)
         self.displayInfoMessage(_('Loading...'))
         MediaFiler.Logger.debug('MediaFiler.setModel(): Loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
-        self.model = MediaCollection(directory)
+        progressFunction(25)
+        self.model = MediaCollection(directory, progressFunction)
+        progressFunction(85)
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
         self.model.addObserverForAspect(self, 'size')
@@ -756,10 +763,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.canvas.setModel(self.model)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up presentation pane')
         self.presentationPane.setModel(self.model)
+        progressFunction(90)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up tree pane')
         self.imageTree.setModel(self.model)
         self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
         self.statusbar.Show()
+        progressFunction(95)
         lastPerspective = self.model.getConfiguration(GlobalConfigurationOptions.LastPerspective)
         if (lastPerspective):
             self.paneManager.LoadPerspective(self.perspectives[int(lastPerspective)])
@@ -819,36 +828,51 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
 
-# section: Executable script
-if __name__ == "__main__":
-    fname = os.path.join(Installer.InstallationPath, (Installer.LogFilename % 1))
-    logFormatter = logging.Formatter(fmt='%(asctime)s| %(message)s', datefmt='%H:%M:%S')
-    logHandler = logging.FileHandler(fname, mode='w')
-    logHandler.setFormatter(logFormatter)
-    logging.getLogger().addHandler(logHandler)
-    logging.getLogger().setLevel(logging.DEBUG)
-    logging.debug('MediaFiler.__main__(): Temporarily logging to "%s"' % fname)
-    app = wx.App(False)    
-    frame = MediaFiler(None, title=GUIId.AppTitle)
-    if (Installer.ensureInstallationOk(frame)):
-        splash = AS.AdvancedSplash(frame, 
-                                   bitmap=wx.Bitmap(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO), 
-                                   agwStyle=(AS.AS_NOTIMEOUT | AS.AS_CENTER_ON_SCREEN), 
-                                   shadowcolour=wx.WHITE)
-        fname = (Installer.getLogFilePath() % 1)
-        logging.debug('MediaFiler.__main__(): Now permanently logging to "%s"' % fname)
-        logging.getLogger().removeHandler(logHandler)
-        logHandler.close()
+
+class MediaFilerApp(ProgressSplashApp):
+    """
+    """
+    def OnInit(self):
+        """
+        """
+        fname = Installer.getSplashPath()
+        ProgressSplashApp.OnInit(self, fname)
+        fname = os.path.join(Installer.InstallationPath, (Installer.LogFilename % 1))
+        logFormatter = logging.Formatter(fmt='%(asctime)s| %(message)s', datefmt='%H:%M:%S')
         logHandler = logging.FileHandler(fname, mode='w')
         logHandler.setFormatter(logFormatter)
         logging.getLogger().addHandler(logHandler)
-        frame.setModel(Installer.getMediaPath())
-        frame.setLoggedModules()
-        MediaFiler.Logger.debug('MediaFiler.__main__(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
-        splash.Close()
-        frame.Show()
-        if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
-            MediaFiler.Logger.debug('MediaFiler.__main__(): Maximizing window')
-            frame.Maximize(True)
-        app.MainLoop()
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.debug('MediaFiler.__main__(): Temporarily logging to "%s"' % fname)
+        self.SetProgress(5)
+        frame = MediaFiler(None, title=GUIId.AppTitle)
+        self.SetTopWindow(frame)
+        self.SetProgress(10)
+        if (Installer.ensureInstallationOk(frame)):
+            self.SetProgress(15)
+            fname = (Installer.getLogFilePath() % 1)
+            logging.debug('MediaFiler.__main__(): Now permanently logging to "%s"' % fname)
+            logging.getLogger().removeHandler(logHandler)
+            logHandler.close()
+            logHandler = logging.FileHandler(fname, mode='w')
+            logHandler.setFormatter(logFormatter)
+            logging.getLogger().addHandler(logHandler)
+            self.SetProgress(20)
+            frame.setModel(Installer.getMediaPath(), self.SetProgress)
+            self.SetProgress(99)
+            frame.setLoggedModules()
+            MediaFiler.Logger.debug('MediaFiler.__main__(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
+            self.SetProgress(101)
+            if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
+                MediaFiler.Logger.debug('MediaFiler.__main__(): Maximizing window')
+                frame.Maximize(True)
+        else:
+            app.Exit()
+        return(True)
+
+
+# section: Executable script
+if __name__ == "__main__":
+    app = MediaFilerApp(False)
+    app.MainLoop()
 

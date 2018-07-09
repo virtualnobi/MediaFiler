@@ -157,7 +157,7 @@ class MediaFilter(Observable):
                            single=None,
                            fromDate=False,
                            toDate=False,
-                           Scene='')
+                           Scene=None)  # TODO: move to MediaOrganization
         MediaFilter.Logger.debug('MediaFilter.clear() finished as %s' % self)
 
 
@@ -177,7 +177,7 @@ class MediaFilter(Observable):
                   + (('from %s ' % self.fromDate) if self.fromDate else '')
                   + (('to %s ' % self.toDate) if self.toDate else '')
                   + ('single' if self.singleCondition else '')
-                  + (('scene=%d' % self.conditionMap[MediaFilter.SceneConditionIndex]) if (MediaFilter.SceneConditionIndex in self.conditionMap) else '')
+                  + (('scene=%s' % self.conditionMap[MediaFilter.SceneConditionIndex]) if (MediaFilter.SceneConditionIndex in self.conditionMap) else '')
                   + ')')
         return(result)
 

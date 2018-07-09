@@ -88,24 +88,28 @@ class MediaCollection(Observable, Observer):
 
 # Class Methods
 # Lifecycle 
-    def __init__ (self, rootDir=None):
+    def __init__ (self, rootDir, progressFunction):
         """Create a new MediaCollection.
         
         String rootDir specifies the path to the image root directory.
+        Callable progressFunction
         """
         MediaCollection.Logger.debug('MediaCollection.init()')
         # inheritance
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection', 'size'])
         # internal state
         if (rootDir):
-            self.setRootDirectory(rootDir)
+            self.setRootDirectory(rootDir, progressFunction)
         MediaCollection.Logger.debug('MediaCollection.init() finished')
         return(None)
 
     
     @profiledOnLogger(Logger, sort='time')
-    def setRootDirectory (self, rootDir):
+    def setRootDirectory (self, rootDir, progressFunction):
         """Change the root directory to process a different image set.
+        
+        String rootDir
+        Callable progressFunction
         """
         self.rootDirectory = os.path.normpath(rootDir)
         # clear all data
@@ -125,6 +129,7 @@ class MediaCollection(Observable, Observer):
             self.organizedByDate = True
             self.organizationStrategy = OrganizationByDate
         self.organizationStrategy.setModel(self)
+        progressFunction(30)
         self.classHandler = MediaClassHandler(Installer.getClassFilePath())
         if (self.classHandler.isLegalElement(MediaCollection.ReorderTemporaryTag)):
             index = 1
@@ -134,9 +139,11 @@ class MediaCollection(Observable, Observer):
                 tag = ('%s%d' % (tag, index))
             MediaCollection.ReorderTemporaryTag = tag
             MediaCollection.Logger.warning('MediaCollection.setRootDirectory(): Temporary reordering tag changed to "%s"' % tag)
+        progressFunction(35)
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
-        self.loadSubentries(self.root)
+        self.loadSubentries(self.root, progressFunction)
+        progressFunction(80)
         self.cacheCollectionProperties()
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'changed')
@@ -157,22 +164,6 @@ class MediaCollection(Observable, Observer):
             self.setSelectedEntry(self.root)
 
 
-#     def setRootDirectoryProfiled(self, rootDir):
-#         profiler = cProfile.Profile()
-#         profiler.enable()
-#         self.setRootDirectory(rootDir)
-#         profiler.disable()
-#         resultStream = StringIO.StringIO()
-#         ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
-#         #ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
-#         ps.sort_stats('time')  # sort according to time per function call, excluding called functions
-#         ps.print_stats(20)  # print top 20 
-#         print('Profiling Results for MediaCollection.setRootDirectory()')
-#         print(resultStream.getvalue())
-#         print('---')
-
-
-
 
 # Setters
     def setSelectedEntry(self, entry):
@@ -185,10 +176,11 @@ class MediaCollection(Observable, Observer):
         self.changedAspect('selection')
 
 
-    def loadSubentries (self, entry):
+    def loadSubentries (self, entry, progressFunction=None):
         """Load, store, and return the children of entry, recursively walking the entire image set. 
 
         MediaFiler.Entry entry the entry to load subentries for 
+        Callable progressFunction of None if recursive call
         Return list of subentries (empty if entry is a MediaFiler.Image)
         """
         #print('loadSubentries(%s)' % entry)
@@ -200,8 +192,16 @@ class MediaCollection(Observable, Observer):
             if (not entry.isGroup()):  # a single image has no subentries
                 return([])
             parentDir = entry.getPath()
+        # determine stepwidth of progress per top-level folder
+        fileList = os.listdir(parentDir)
+        if (progressFunction):
+            start = 30
+            stop = 80
+            steps = len(fileList)
+            stepWidth = (stop - start) / steps
+            step = 1
         # read files in directory
-        for fileName in os.listdir(parentDir):
+        for fileName in fileList:
             fileName = os.path.join(parentDir, fileName)
             subEntry = Entry.createInstance(self, fileName)
             if (subEntry):
@@ -210,6 +210,9 @@ class MediaCollection(Observable, Observer):
                 subEntry.addObserverForAspect(self, 'remove')
                 if subEntry.isGroup():
                     self.loadSubentries(subEntry)
+            if (progressFunction):
+                progressFunction(start + (step * stepWidth))
+                step = (step + 1)
         return(result)
 
 
@@ -550,6 +553,10 @@ class MediaCollection(Observable, Observer):
             oldPath = os.path.join(sourceDir, oldName)
             newTargetPathInfo = copy.copy(targetPathInfo)
             if (os.path.isdir(oldPath)):  # import a directory
+                newTargetPathInfo2 = self.organizationStrategy.pathInfoForImport(importParameters,
+                                                                                 level,
+                                                                                 oldName,
+                                                                                 targetPathInfo)
                 if (self.organizedByDate):  # TODO: delegate to MediaOrganization
                     if ((not 'rootDir' in newTargetPathInfo) or
                         (targetDir <> newTargetPathInfo['rootDir'])):
@@ -570,6 +577,8 @@ class MediaCollection(Observable, Observer):
                     newPath = self.organizationStrategy.constructPath(rootDir=targetDir, name=newName)  
                     newTargetPathInfo['name'] = newName
                     newTargetPathInfo['rootDir'] = newPath
+                if (newTargetPathInfo <> newTargetPathInfo2):
+                    print('MediaCollection.importImagesRecursively(): Target path info not matching!')
                 self.importImagesRecursively(importParameters,
                                              oldPath, 
                                              (level + 1), 
