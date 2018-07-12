@@ -583,38 +583,36 @@ class OrganizationByName(MediaOrganization):
         """
         if (scene):
             raise ValueError, ('Passed illegal parameter for scene "%s" to OrganizationByName.renameGroup()' % scene)
+        if (not name):
+            raise ValueError, 'Passed no name to OrganizationByName.renameGroup()'
         model = self.__class__.ImageFilerModel
         # ensure new group exists
-        if ((name == self.getName())
-            and (scene == self.getScene())):
-            newParent = self.getContext()
-        else:
-            newParent = model.getEntry(name=name)
-            if (newParent):
-                if (not newParent.isGroup()):  # singleton exists
-                    singleton = newParent
-                    newParent = Group.createAndPersist(model, 
-                                                       self.__class__.constructPath(name=name))
-                    singleton.renameTo(name=name, scene='1', makeUnique=True)
-            else:  # name as yet unused
+        newParent = model.getEntry(name=name)
+        if (newParent):
+            if (not newParent.isGroup()):  # singleton exists
+                singleton = newParent
                 newParent = Group.createAndPersist(model, 
                                                    self.__class__.constructPath(name=name))
-            # move scenes of self to unused scenes of newParent
-            sceneMap = {}
-            existingScenes = newParent.getOrganizer().getScenes(filtering=False)
-            try:
-                existingScenes.remove(MediaClassHandler.ElementNew)
-            except: 
-                pass
-            sceneNumbers = [int(s) for s in existingScenes]
-            nextFreeScene = 1
-            for scene in self.getScenes():
-                if (scene == MediaClassHandler.ElementNew):
-                    sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
-                else:
-                    while (nextFreeScene in sceneNumbers):
-                        nextFreeScene = (nextFreeScene + 1)
-                    sceneMap[scene] = (OrganizationByName.FormatScene % nextFreeScene) 
+                singleton.renameTo(name=name, scene='1', makeUnique=True)
+        else:  # name as yet unused
+            newParent = Group.createAndPersist(model, 
+                                               self.__class__.constructPath(name=name))
+        # move scenes of self to unused scenes of newParent
+        sceneMap = {}
+        existingScenes = newParent.getOrganizer().getScenes(filtering=False)
+        try:
+            existingScenes.remove(MediaClassHandler.ElementNew)
+        except: 
+            pass
+        sceneNumbers = [int(s) for s in existingScenes]
+        nextFreeScene = 1
+        for scene in self.getScenes():
+            if (scene == MediaClassHandler.ElementNew):
+                sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
+            else:
+                while (nextFreeScene in sceneNumbers):
+                    nextFreeScene = (nextFreeScene + 1)
+                sceneMap[scene] = (OrganizationByName.FormatScene % nextFreeScene) 
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=True):
             subEntry.renameTo(elements=elements, 

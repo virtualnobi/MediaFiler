@@ -12,7 +12,6 @@ import os.path
 import re
 import logging
 import gettext
-#import cProfile, pstats, StringIO
 # Contributed 
 # nobi
 from nobi.ObserverPattern import Observable, Observer

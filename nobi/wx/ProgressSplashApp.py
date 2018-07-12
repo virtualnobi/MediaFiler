@@ -68,7 +68,7 @@ class ProgressSplashApp(wx.App):
         
         Number percent indicates completion of loading, use 101 to close splash screen
         """
-        print('ProgressSplashApp.SetProgress(%d)' % percent)
+        # print('ProgressSplashApp.SetProgress(%d)' % percent)
         percent = int(percent)
         if (percent < 0):
             raise KeyError

@@ -128,7 +128,7 @@ class Group(Entry, Observer):
                 raise ValueError, 'Group.renameTo(): No number parameter allowed!'
             del kwargs['number']
         tagParameters = set(['elements', 'removeIllegalElements', 'classesToRemove'])  # kwargs keys which affect tags of subentries
-        if (tagParameters < set(kwargs.keys())):  # rename group
+        if (0 < len(set(kwargs.keys()).difference(tagParameters))):  # more to change than only tags, rename group
             newSelection = self.getOrganizer().renameGroup(**kwargs)
             if (0 == len(self.getSubEntries(filtering=False))):  # remove self
                 if (self.model.getSelectedEntry() == self):
