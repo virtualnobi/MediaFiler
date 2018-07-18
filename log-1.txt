@@ -1,0 +1,9 @@
+09:42:57| MediaFiler.__main__(): Temporarily logging to "N:\project\MediaFiler\master\log-1.txt"
+09:42:58| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\master\\Model']
+09:42:58| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\master\\Model\\MediaOrganization']
+09:42:58| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\master\\UI']
+09:42:58| MediaFiler.getLoggableModules(): Returning ['MediaFiler', 'Model.CachingController', 'Model.Entry', 'Model.GlobalConfigurationOptions', 'Model.Group', 'Model.Image', 'Model.Installer', 'Model.MediaClassHandler', 'Model.MediaCollection', 'Model.MediaFilter', 'Model.MediaNameHandler', 'Model.MediaOrganization', 'Model.MediaOrganization.OrganizationByDate', 'Model.MediaOrganization.OrganizationByName', 'Model.Movie', 'Model.Single', 'UI.GUIId', 'UI.Importing', 'UI.MediaCanvasPane', 'UI.MediaClassificationPane', 'UI.MediaFilterPane', 'UI.MediaNamePane', 'UI.MediaTreePane', 'UI.PresentationControlPane']
+09:42:58| Installer.checkInstallation(): Checking folders at "S:\amazonia"...
+09:42:58| Installer.checkInstallation(): Installation at "S:\amazonia09:46:08| Installer.ensureInstallationOk(): Cancelled by user
+orking directory to "S:\amazonia"
+09:42:59| MediaFiler.__main__(): Now permanently logging to "S:\amazonia\lib\log-1.txt"
