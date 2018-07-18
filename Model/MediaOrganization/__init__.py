@@ -475,13 +475,14 @@ class MediaOrganization(object):
         """Return the organization-specific fields in aMediaNamePane as a dictionary
         
         UI.MediaNamePane aMediaNamePane
-        
         Return Dictionary
+            or None if field values are illegal
         """
         result = {}
         number = aMediaNamePane.numberInput.GetValue()
         if (number == ''):
-            result['number'] = None
+#             result['number'] = None
+            pass
         else:
             try:
                 result['number'] = int(number)

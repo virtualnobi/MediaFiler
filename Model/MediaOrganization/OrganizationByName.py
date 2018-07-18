@@ -588,6 +588,7 @@ class OrganizationByName(MediaOrganization):
         model = self.__class__.ImageFilerModel
         # ensure new group exists
         newParent = model.getEntry(name=name)
+        OrganizationByName.Logger.debug('OrganizationByName.renameGroup(): New parent is "%s"' % newParent)
         if (newParent):
             if (not newParent.isGroup()):  # singleton exists
                 singleton = newParent
@@ -612,7 +613,8 @@ class OrganizationByName(MediaOrganization):
             else:
                 while (nextFreeScene in sceneNumbers):
                     nextFreeScene = (nextFreeScene + 1)
-                sceneMap[scene] = (OrganizationByName.FormatScene % nextFreeScene) 
+                sceneMap[scene] = (OrganizationByName.FormatScene % nextFreeScene)
+        OrganizationByName.Logger.debug('OrganizationByName.renameGroup(): Scene map is "%s"' % sceneMap)
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=True):
             subEntry.renameTo(elements=elements, 
@@ -639,9 +641,10 @@ class OrganizationByName(MediaOrganization):
         result = super(OrganizationByName, self).getValuesFromNamePane(aMediaNamePane)
         # result['name'] = aMediaNamePane.identifierString.GetLabel()  TODO: make interactive?
         scene = aMediaNamePane.sceneInput.GetValue()
-        if (scene == ''):
-            result['scene'] = None
-        else: 
+#         if (scene == ''):
+#             result['scene'] = None
+#         else: 
+        if (scene <> ''): 
             result['scene'] = scene
         return(result)
 

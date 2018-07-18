@@ -484,7 +484,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
     def onCreatePerspective (self, event):  # @UnusedVariable
         # Store current window state as perspective.
         dlg = wx.TextEntryDialog(self, "Enter a name for the new perspective:", GUIId.AppTitle)
-        dlg.SetValue("Perspective %d" % (len(self.perspectives) + 1))  # TODO: check non-existence of new name
+        dlg.SetValue("Perspective %d" % (len(self.perspectives) + 1))  # TODO: check non-existence of new perspective name
         if (dlg.ShowModal() == wx.ID_OK):  # user entered new perspective name
             self.perspectives.append(self.paneManager.SavePerspective())
             self.populatePerspectivesMenu(self.perspectives_menu)

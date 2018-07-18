@@ -514,17 +514,23 @@ class Entry(PausableObservable):
                 for tag in self.model.getClassHandler().getElementsOfClassByName(className):
                     elements.discard(tag)
             kwargs['classesToRemove'] = classesToRemove
-        if (elements):
+        if (elements 
+            or removeIllegalElements):
+            if (elements):
+                newElements = elements
+            else:
+                newElements = self.getElements()
             if (removeIllegalElements):
-                elements = filter(self.model.getClassHandler().isLegalElement, elements)
-            kwargs['elements'] = elements
-        kwargs['removeIllegalElements'] = removeIllegalElements
+                kwargs['removeIllegalElements'] = removeIllegalElements
+                newElements = filter(self.model.getClassHandler().isLegalElement, newElements)
+            kwargs['elements'] = newElements
         # number 
         if (number): 
             kwargs['number'] = number
         kwargs['makeUnique'] = makeUnique
         # 
-        newPath = self.organizer.constructPathForSelf(**kwargs) 
+        Entry.Logger.debug('Entry.renameTo(): Path info is %s' % kwargs)
+        newPath = self.organizer.constructPathForSelf(**kwargs)
         return(self.renameToFilename(newPath))
 
 
@@ -535,14 +541,14 @@ class Entry(PausableObservable):
         String fname is the new absolute filename
         Return Boolean indicating success
         """
-        self.__class__.Logger.debug('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
+        Entry.Logger.debug('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
         (newDirectory, dummy) = os.path.split(fname)  # @UnusedVariable
         try:
             if (not os.path.exists(newDirectory)):
                 os.makedirs(newDirectory)
             os.rename(self.getPath(), fname) 
         except Exception as e:
-            self.__class__.Logger.error('Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
+            Entry.Logger.error('Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
             return(False)
         else:
             # remove from current group, and add to new group
