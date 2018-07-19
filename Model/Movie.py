@@ -34,7 +34,7 @@ except BaseException as e:  # likely an IOError because no translation file foun
     def _(message): return message
 else:
     _ = Translation.ugettext
-def N_(message): return message
+def N_(message): return message 
 
 
 

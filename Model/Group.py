@@ -208,15 +208,6 @@ class Group(Entry, Observer):
             return(result)
 
 
-#     def getScenes(self):
-#         """Return a sorted list of scenes.
-#         
-#         Return List of String
-#         """
-#         print('Group.getScenes() deprecated!')
-#         return(self.getOrganizer().getScenes())
-
-
     def getSizeString(self):
         """Return a String describing the size of self.
         
