@@ -234,7 +234,8 @@ class MediaFilter(Observable):
                 or (self.toDate <> None)
                 or (0 < len(self.requiredMediaTypes))
                 or (0 < len(self.prohibitedMediaTypes))
-                or (self.conditionMap[MediaFilter.SceneConditionIndex])):
+                or ((MediaFilter.SceneConditionIndex in self.conditionMap) 
+                    and (self.conditionMap[MediaFilter.SceneConditionIndex]))):
                 return(False)
         return(True)
 

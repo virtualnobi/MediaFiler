@@ -121,7 +121,7 @@ class OrganizationByName(MediaOrganization):
 
 
     @classmethod
-    def pathInfoForImport(cls, importParameters, level, oldName, pathInfo):
+    def pathInfoForImport(self, importParameters, level, oldName, pathInfo):
         """Return a pathInfo mapping extended according to directory name oldName.
         """
         result = super(OrganizationByName, self).pathInfoForImport(importParameters, level, oldName, pathInfo)

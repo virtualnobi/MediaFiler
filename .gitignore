@@ -1,4 +1,10 @@
 #################
+## Project
+#################
+log*.txt
+
+
+#################
 ## Emacs
 #################
 .#*
@@ -10,7 +16,7 @@
 #################
 
 .project
-.settings/
+.settings/*
 *.pydevproject
 .metadata
 bin/

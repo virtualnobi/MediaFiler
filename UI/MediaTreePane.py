@@ -266,7 +266,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.selectionBeforeFiltering = self.model.getSelectedEntry()
             self.storeExpansionState()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
-            self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(): Recreating tree...')
+            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.updateAspect(): Recreating tree...')
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
@@ -274,7 +274,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             else:
                 self.setEntry(self.model.getSelectedEntry())
             self.restoreExpansionState()
-            self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(): Recreating tree finished')
+            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.updateAspect(): Recreating tree finished')
         else:
             super(MediaTreeCtrl, self).update(observable, aspect)
 
@@ -283,11 +283,14 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
     def EnsureVisible(self, *args, **kwargs):
         """
         """
-        if (not self.IsVisible(args[0])):
-            print('MediaTreeCtrl.EnsureVisible(%s): item invisible, scrolling to show' % args[0])
-            return wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
+        if (isinstance(self, MediaTreeCtrl)):
+            if (not self.IsVisible(args[0])):
+                MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible(%s): item invisible, scrolling to show' % args[0])
+                return wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
+            else:
+                MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible(%s): item is visible, no change' % args[0])
         else:
-            print('MediaTreeCtrl.EnsureVisible(%s): item is visible, no change' % args[0])
+            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible(): self is a dead object')
 
 
     def GetDescendants (self, treeItemID):

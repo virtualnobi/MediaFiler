@@ -614,7 +614,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
             # TODO: error message, but on which window?
 
 
-    def onEditNames (self, event):  # @UnusedVariable
+    def onEditNames(self, event):  # @UnusedVariable
         """When image collection is organized by names, start external editor on names list.
         """
         if (not self.model.organizedByDate):
@@ -625,20 +625,26 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 commandArgs = shlex.split(editorName)
                 MediaFiler.Logger.debug('MediaFiler.onEditNames(): Calling %s' % commandArgs)
                 retCode = subprocess.call(commandArgs, shell=False)
-            if (retCode <> 0):
-                MediaFiler.Logger.warn('App.onEditNames(): Call failed with return code %s!' % retCode)
+                if (retCode <> 0):
+                    MediaFiler.Logger.warn('App.onEditNames(): Call failed with return code %s!' % retCode)
+                    dlg = wx.MessageDialog(self, 
+                                           (_('The external program failed with return code %s.') % retCode),
+                                           _('Warning'),
+                                           wx.OK | wx.ICON_WARNING
+                                           )
+                    dlg.ShowModal()
+                    dlg.Destroy()
+            else:
+                MediaFiler.Logger.warn(_('App.onEditNames(): No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
                 dlg = wx.MessageDialog(self, 
-                                       (_('The external program failed with return code %s.') % retCode),
+                                       (_('Define a text editor using configuration option "%s".') % GlobalConfigurationOptions.TextEditor),
                                        _('Warning'),
                                        wx.OK | wx.ICON_WARNING
                                        )
                 dlg.ShowModal()
                 dlg.Destroy()
-            else:
-                MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
-                # TODO: error message, but on which window?
         else:
-            MediaFiler.Logger.error('MediaFiler.onEditNames(): Only supported when organized by name!')
+            MediaFiler.Logger.error('App.onEditNames(): MediaFiler.onEditNames(): Only supported when organized by name!')
     
 
     def onLoggingChanged(self, event):
