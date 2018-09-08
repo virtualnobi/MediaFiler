@@ -549,71 +549,50 @@ class MediaCollection(Observable, Observer):
         allFiles = os.listdir(sourceDir)
         allFiles.sort()  # ensure that existing numbers are respected in new numbering
         for oldName in allFiles:
-            oldPath = os.path.join(sourceDir, oldName)
-            newTargetPathInfo = copy.copy(targetPathInfo)
-            if (os.path.isdir(oldPath)):  # import a directory
-                newTargetPathInfo2 = self.organizationStrategy.pathInfoForImport(importParameters,
-                                                                                 level,
-                                                                                 oldName,
-                                                                                 targetPathInfo)
-                if (self.organizedByDate):  # TODO: delegate to MediaOrganization
-                    if ((not 'rootDir' in newTargetPathInfo) or
-                        (targetDir <> newTargetPathInfo['rootDir'])):
-                        raise ValueError, 'Target path incorrect!'
-                    newPath = targetDir
-                    if (not 'rootDir' in newTargetPathInfo):
-                        newTargetPathInfo['rootDir'] = targetDir
-                else:  # organized by name
-                    if (0 < level):
-                        importParameters.logString('\nCannot import embedded folder "%s"!' % oldPath)
-                        return
-                    if ((not 'rootDir' in newTargetPathInfo) or
-                        (targetDir <> newTargetPathInfo['rootDir'])):
-                        raise ValueError, 'Target path incorrect!'
-                    if (not 'rootDir' in newTargetPathInfo):
-                        newTargetPathInfo['rootDir'] = targetDir
-                    newName = self.organizationStrategy.deriveName(importParameters.log, oldPath[baseLength:])
-                    newPath = self.organizationStrategy.constructPath(rootDir=targetDir, name=newName)  
-                    newTargetPathInfo['name'] = newName
-                    newTargetPathInfo['rootDir'] = newPath
-                if (newTargetPathInfo <> newTargetPathInfo2):
-                    print('MediaCollection.importImagesRecursively(): Target path info not matching!')
+            sourcePath = os.path.join(sourceDir, oldName)
+            newTargetPathInfo = self.organizationStrategy.pathInfoForImport(importParameters,
+                                                                            sourcePath,
+                                                                            level,
+                                                                            oldName,
+                                                                            targetPathInfo)
+            if (os.path.isdir(sourcePath)):  # import a directory
                 self.importImagesRecursively(importParameters,
-                                             oldPath, 
+                                             sourcePath, 
                                              (level + 1), 
                                              baseLength, 
-                                             newPath, 
+                                             targetDir,   # newPath, 
                                              newTargetPathInfo,
                                              illegalElements)
                 if ((not importParameters.getTestRun())
                     and (importParameters.getDeleteOriginals())
-                    and (len(os.listdir(oldPath)) == 0)):
-                    importParameters.logString('Removing empty directory "%s"\n' % oldPath)
-                    os.rmdir(oldPath)
+                    and (len(os.listdir(sourcePath)) == 0)):
+                    importParameters.logString('Removing empty directory "%s"\n' % sourcePath)
+                    os.rmdir(sourcePath)
             else:  # import a media file
-                (dummy, extension) = os.path.splitext(oldPath)
+                (dummy, extension) = os.path.splitext(sourcePath)
                 if (Entry.isLegalExtension(extension[1:]) 
                     or (not importParameters.getIgnoreUnhandledTypes())):
                     if (importParameters.canImportOneMoreFile()):
-                        fileSize = os.stat(oldPath).st_size
+                        fileSize = os.stat(sourcePath).st_size
                         if (importParameters.getMinimumFileSize() < fileSize):
-                            if ((not 'rootDir' in newTargetPathInfo) or
-                                (targetDir <> newTargetPathInfo['rootDir'])):
-                                raise ValueError, 'Target path incorrect!'
                             self.organizationStrategy.importMedia(importParameters, 
-                                                                  oldPath, 
+                                                                  sourcePath, 
                                                                   level, 
                                                                   baseLength, 
                                                                   targetDir,
                                                                   newTargetPathInfo,
                                                                   illegalElements)
+                            if ((not importParameters.getTestRun())
+                                and (importParameters.getDeleteOriginals())):
+                                importParameters.logString('Removing imported file "%s"\n' % sourcePath)
+                                os.remove(sourcePath)
                         else:
-                            importParameters.logString('Ignoring small %sb file "%s"\n' % (fileSize, oldPath))
+                            importParameters.logString('Ignoring small %sb file "%s"\n' % (fileSize, sourcePath))
                     else:
                         importParameters.logString('Maximum number of %s files for import reached!\n' % importParameters.getMaxFilesToImport())
                         raise StopIteration
                 else:
-                    importParameters.logString('Ignoring unhandled file "%s"\n' % oldPath)
+                    importParameters.logString('Ignoring unhandled file "%s"\n' % sourcePath)
 
 
     def fixPathWhileImporting(self, parameters, oldPath):

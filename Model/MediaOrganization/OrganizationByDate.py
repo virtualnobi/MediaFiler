@@ -141,10 +141,10 @@ class OrganizationByDate(MediaOrganization):
 
 
     @classmethod
-    def pathInfoForImport(cls, importParameters, level, oldName, pathInfo):
+    def pathInfoForImport(self, importParameters, sourcePath, level, oldName, pathInfo):
         """Return a pathInfo mapping extended according to directory name oldName.
         """
-        result = MediaOrganization.pathInfoForImport(importParameters, level, oldName, pathInfo)
+        result = super(OrganizationByDate, self).pathInfoForImport(importParameters, sourcePath, level, oldName, pathInfo)
         return(result)
 
         
@@ -159,9 +159,9 @@ class OrganizationByDate(MediaOrganization):
         extension = extension.lower() 
         # determine elements
         tagSet = cls.ImageFilerModel.deriveTags(importParameters, 
-                                                 sourcePath, 
-                                                 baseLength,
-                                                 illegalElements)
+                                                sourcePath, 
+                                                baseLength,
+                                                illegalElements)
         if (importParameters.getMarkAsNew()):
             tagSet.add(MediaClassHandler.ElementNew)
         # ensure uniqueness via number

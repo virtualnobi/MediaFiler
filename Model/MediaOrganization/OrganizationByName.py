@@ -121,10 +121,19 @@ class OrganizationByName(MediaOrganization):
 
 
     @classmethod
-    def pathInfoForImport(self, importParameters, level, oldName, pathInfo):
+    def pathInfoForImport(self, importParameters, sourcePath, level, oldName, pathInfo):
         """Return a pathInfo mapping extended according to directory name oldName.
         """
-        result = super(OrganizationByName, self).pathInfoForImport(importParameters, level, oldName, pathInfo)
+        if ((0 < level)
+            and os.path.isdir(sourcePath)):
+            importParameters.logString('\nCannot import embedded folder "%s"!' % sourcePath)
+            result = None
+        else:
+            result = super(OrganizationByName, self).pathInfoForImport(importParameters, sourcePath, level, oldName, pathInfo)
+            if (not 'name' in result):
+                baseLength = 0  # TODO: for safety, recover length of import directory
+                newName = self.deriveName(importParameters.log, sourcePath[baseLength:])
+                result['name'] = newName
         return(result)
 
         
@@ -135,13 +144,15 @@ class OrganizationByName(MediaOrganization):
         pathInfo = copy.copy(targetPathInfo)
         if ('elements' in pathInfo):
             raise ('OrganizationByName.constructPathFromImport(): targetPathInfo may not contain "elements"!')
+        if (not 'name' in pathInfo):
+            raise ('OrganizationByName.constructPathFromImport(): targetPathInfo must contain "name"!')
         singleton = True
         if (level == 0):  # not embedded, is a single
-            # determine name of image
-            pathInfo['name'] = cls.deriveName(importParameters.log, sourcePath[baseLength:])
-            if (not pathInfo['name']):
-                importParameters.logString('Cannot determine new name for "%s", terminating import!' % sourcePath)
-                return
+#             # determine name of image
+#             pathInfo['name'] = cls.deriveName(importParameters.log, sourcePath[baseLength:])
+#             if (not pathInfo['name']):
+#                 importParameters.logString('Cannot determine new name for "%s", terminating import!' % sourcePath)
+#                 return
             groupExists = os.path.isdir(cls.constructPath(**pathInfo))
             singleExists = (len(glob.glob(cls.constructPath(**pathInfo) + MediaOrganization.IdentifierSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it

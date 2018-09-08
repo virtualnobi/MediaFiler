@@ -384,7 +384,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
     def onReload (self, event):  # @UnusedVariable
         """Reload from current root directory.
         """
-        self.setModel(self.model.rootDirectory)
+        self.setModel(self.model.rootDirectory, lambda x: None)
 
 
     def onExport(self, event):  # @UnusedVariable
@@ -403,6 +403,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                     and (not entry.filteredFlag)):
                     #print('Exporting "%s" to "%s"' % (entry.getPath(), destination))
                     shutil.copy(entry.getPath(), dialog.GetPath())
+                    # TODO: check for failure, e.g. device full
                     count = (count + 1)
             wx.EndBusyCursor()
             self.displayInfoMessage(_('%d media exported to "%s"') % (count, dialog.GetPath()))
@@ -873,7 +874,7 @@ class MediaFilerApp(ProgressSplashApp):
                 MediaFiler.Logger.debug('MediaFiler.__main__(): Maximizing window')
                 frame.Maximize(True)
         else:
-            app.Exit()
+            self.Exit()
         return(True)
 
 

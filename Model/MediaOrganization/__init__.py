@@ -157,7 +157,7 @@ class MediaOrganization(object):
 
 
     @classmethod
-    def pathInfoForImport(cls, importParameters, level, oldName, pathInfo):
+    def pathInfoForImport(cls, importParameters, sourcePath, level, oldName, pathInfo):
         """Return a pathInfo mapping extended according to directory name oldName.
         """
         result = copy.copy(pathInfo)
@@ -227,10 +227,8 @@ class MediaOrganization(object):
                 if (not os.path.exists(head)):
                     os.makedirs(head)
                 shutil.copy2(sourcePath, newPath)
-                if (importParameters.getDeleteOriginals()):
-                    os.remove(sourcePath)
             except Exception as e:
-                print('Error renaming "%s"\n            to "%s". Complete error:\n%s' % (sourcePath, newPath, e))
+                print('Error importing "%s"\n            to "%s". Complete error:\n%s' % (sourcePath, newPath, e))
 
 
     @classmethod
