@@ -157,10 +157,10 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         # TODO: replace fixed entries by dynamic history
         index = GUIId.LoadRecentDirectory;
-        self.recentRootDirectories = ['N:\\shared\\images\\images', 
-                                      'Y:\\home\\Lars\\LarsBilder\\images', 
-                                      'Y:\\home\\Paul\\PaulsBilder\\images', 
-                                      'Y:\\home\\Gilla\\GillasBilder\\images']
+        self.recentRootDirectories = ['N:\\shared\\images', 
+                                      'Y:\\home\\Lars\\LarsBilder', 
+                                      'Y:\\home\\Paul\\PaulsBilder', 
+                                      'Y:\\home\\Gilla\\GillasBilder']
         for name in self.recentRootDirectories:
             menu.Append (index, name)
             index = (index + 1)
