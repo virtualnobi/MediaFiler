@@ -752,7 +752,10 @@ class MediaFiler(wx.Frame, Observer, Observable):
         MediaFiler.Logger.debug('MediaFiler.setModel(): Loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
         progressFunction(25)
-        self.model = MediaCollection(directory, progressFunction)
+        try:
+            self.model = MediaCollection(directory, progressFunction)
+        except:
+            pass  # TODO: show error dialog, and return to previous model
         progressFunction(85)
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')

@@ -279,20 +279,20 @@ class Group(Entry, Observer):
         Return MediaFiler.Entry or None
         """
         if (entry):
-            index = self.subEntriesSorted.index(entry)
+            index = (self.subEntriesSorted.index(entry) - 1)
             if (filtering):
                 while ((self.subEntriesSorted[index].isFiltered()) 
                        and (0 < index)): 
                     index = (index - 1)
-            if (0 < index):
-                prevEntry = self.subEntriesSorted[index - 1]
+            if (0 <= index):
+                prevEntry = self.subEntriesSorted[index]
                 if (prevEntry.isGroup()):
-                    prevEntry = prevEntry.getLastEntry(filtering)
+                    prevEntry = prevEntry.getLastEntry(filtering=filtering)
                 return(prevEntry)
             else:
-                return(super(Group, self).getPreviousEntry(self, filtering))
+                return(super(Group, self).getPreviousEntry(self, filtering=filtering))
         else:
-            return(super(Group, self).getPreviousEntry(self, filtering))
+            return(super(Group, self).getPreviousEntry(self, filtering=filtering))
 
 
     def releaseCacheWithPriority(self, cachePriority):
