@@ -71,7 +71,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSelectionChanged, self)
         self.Bind(wx.EVT_TREE_ITEM_MENU, self.onContextMenuRequest, self)
         self.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)  # context menu actions on Entry objects
-        self.Bind(wx.EVT_SIZE, self.onResize)
+        #self.Bind(wx.EVT_SIZE, self.onResize)  # called too often
         # internal state
         self.model = None  
         self.selectionBeforeFiltering = None  # selected Entry before filtering started, to detect whether it is filtered
@@ -216,13 +216,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """After conventional resizing, ensure selected entry is still visible.
         """
         if (self.oldSize <> event.GetSize()):
-            print('MediaTreeCtrl.onResize(): Different sizes %s vs %s' % (self.oldSize, event.GetSize()))
+            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.onResize: Resizing from %s to %s' % (self.oldSize, event.GetSize()))
         self.oldSize = event.GetSize()
         if (self.model
             and self.model.getSelectedEntry().getTreeItemID()
             and (not self.IsVisible(self.model.getSelectedEntry().getTreeItemID()))):
             wx.CallAfter(self.EnsureVisible, self.model.getSelectedEntry().getTreeItemID())
-            self.__class__.Logger.debug('MediaTreePane.onResize(): Queued "EnsureVisible(%s)"' % self.model.getSelectedEntry().getPath())
+            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.onResize: Queued "EnsureVisible(%s)"' % self.model.getSelectedEntry().getPath())
         event.Skip()
 
 
@@ -283,11 +283,18 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """
         """
         if (isinstance(self, MediaTreeCtrl)):
-            if (not self.IsVisible(args[0])):
-                MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible(%s): item invisible, scrolling to show' % args[0])
-                return wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
+            if (not self.GetItemData(args[0])):
+                print('MediaTreeCtrl.EnsureVisible: No data found for entry %s' % args[0])
+            entry = self.GetItemData(args[0]).GetData()
+            boundingRect = self.GetBoundingRect(args[0], textOnly=True)
+            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible: bounding rect is %s' % boundingRect)
+            if ((boundingRect[0] < 0) 
+                or (boundingRect[1] < 0)):  # (not self.IsVisible(args[0])):
+                MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible: invisible item, scrolling to show %s' % entry)
+                wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
+                wx.TreeCtrl.ScrollTo(self, args[0]) 
             else:
-                MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible(%s): item is visible, no change' % args[0])
+                MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible: visible %s, no change' % entry)
         else:
             MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible(): self is a dead object')
 
