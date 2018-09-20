@@ -151,6 +151,8 @@ class MediaCollection(Observable, Observer):
             self.initialEntry = Entry.createInstance(self, Installer.getInitialFilePath())
         path = self.getConfiguration(GlobalConfigurationOptions.LastMedia)
         if (path):
+            if (not os.path.isabs(path)):  # TODO: unconditional when relative path is stored for last media
+                path = os.path.join(Installer.getMediaPath(), path)
             entry = self.getEntry(path=path)
             if (entry):
                 MediaCollection.Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run.' % path)
@@ -171,7 +173,9 @@ class MediaCollection(Observable, Observer):
         MediaCollection.Logger.debug('MediaCollection.setSelectedEntry(%s)' % entry)
         self.selectedEntry = entry
         if (self.selectedEntry):
-            self.setConfiguration(GlobalConfigurationOptions.LastMedia, entry.getPath())
+            path = entry.getPath()
+            path = path[len(Installer.getMediaPath())+1:]  # remove "/" as well
+            self.setConfiguration(GlobalConfigurationOptions.LastMedia, path)  # entry.getPath())
         self.changedAspect('selection')
 
 
