@@ -7,7 +7,7 @@
 # Standard
 from __future__ import print_function
 import types
-import copy
+# import copy
 import os.path
 import re
 import logging
@@ -100,7 +100,6 @@ class MediaCollection(Observable, Observer):
         if (rootDir):
             self.setRootDirectory(rootDir, progressFunction)
         MediaCollection.Logger.debug('MediaCollection.init() finished')
-        return(None)
 
     
     @profiledOnLogger(Logger, sort='time')
@@ -145,7 +144,7 @@ class MediaCollection(Observable, Observer):
         progressFunction(80)
         self.cacheCollectionProperties()
         self.filter = MediaFilter(self)
-        self.filter.addObserverForAspect(self, 'changed')
+        self.filter.addObserverForAspect(self, 'filterChanged')
         # select initial entry
         if (os.path.exists(Installer.getInitialFilePath())):
             self.initialEntry = Entry.createInstance(self, Installer.getInitialFilePath())
@@ -197,7 +196,8 @@ class MediaCollection(Observable, Observer):
             parentDir = entry.getPath()
         # determine stepwidth of progress per top-level folder
         fileList = os.listdir(parentDir)
-        if (progressFunction):
+        if (progressFunction
+            and (0 < len(fileList))):
             start = 30
             stop = 80
             steps = len(fileList)

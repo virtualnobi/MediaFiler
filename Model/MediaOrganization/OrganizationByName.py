@@ -14,7 +14,8 @@ import glob
 import logging
 import gettext
 ## Contributed 
-import wx
+#import wx
+import wx.lib.masked
 ## nobi
 from nobi.wx.Menu import Menu
 ## Project
@@ -24,9 +25,11 @@ from Model.MediaNameHandler import MediaNameHandler
 from Model.MediaFilter import MediaFilter
 from Model.MediaOrganization import MediaOrganization
 from Model.Group import Group
+from UI.MediaFilterPane import MediaFilterPane, FilterConditionWithMode
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from UI.MediaFilterPane import MediaFilterPane
+
+
 
 
 # Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
@@ -45,6 +48,12 @@ except BaseException as e:  # likely an IOError because no translation file foun
 else:
     _ = Translation.ugettext
 def N_(message): return message
+
+
+
+
+# Package Variables
+Logger = logging.getLogger(__name__)
 
 
 
@@ -86,11 +95,11 @@ class OrganizationByName(MediaOrganization):
                   cls.nameHandler.getNumberFreeNames()))
 
 
-    @classmethod
-    def getFilterPaneClass(cls):
-        """Return the class to instantiate filter pane.
-        """
-        return(FilterPaneByName)
+#     @classmethod
+#     def getFilterPaneClass(cls):
+#         """Return the class to instantiate filter pane.
+#         """
+#         return(FilterPaneByName)
 
     
     @classmethod
@@ -103,6 +112,12 @@ class OrganizationByName(MediaOrganization):
         if (('name' in kwargs)
             and (kwargs['name'] <> None)
             and (kwargs['name'] <> '')):
+#             group = self.context.model.getEntry(name=kwargs['name'], group=True)  # FIXME: how to determine the model in a class method?
+#             if (group):
+#                 raise NotImplementedError
+#             else:
+#                 letter = kwargs['name'][0]
+#                 result = os.path.join(letter, kwargs['name'])
             letter = kwargs['name'][0]
             result = os.path.join(letter, kwargs['name'])
         else:
@@ -148,11 +163,6 @@ class OrganizationByName(MediaOrganization):
             raise ('OrganizationByName.constructPathFromImport(): targetPathInfo must contain "name"!')
         singleton = True
         if (level == 0):  # not embedded, is a single
-#             # determine name of image
-#             pathInfo['name'] = cls.deriveName(importParameters.log, sourcePath[baseLength:])
-#             if (not pathInfo['name']):
-#                 importParameters.logString('Cannot determine new name for "%s", terminating import!' % sourcePath)
-#                 return
             groupExists = os.path.isdir(cls.constructPath(**pathInfo))
             singleExists = (len(glob.glob(cls.constructPath(**pathInfo) + MediaOrganization.IdentifierSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
@@ -260,8 +270,6 @@ class OrganizationByName(MediaOrganization):
         else:
             path = path[len(self.ImageFilerModel.getRootDirectory()):]
         newName = None # safe start state
-#         # split old path into elements
-#         words = self.getNamePartsInPathName(path)
         # search for legal name in path
         words = self.ImageFilerModel.getWordsInPathName(path)
         for word in words: 
@@ -311,6 +319,16 @@ class OrganizationByName(MediaOrganization):
         MediaOrganization.initNamePane(aMediaNamePane)
 
 
+    @classmethod
+    def initFilterPane(cls, aMediaFilterPane):
+        """Add date filter to filter pane.
+        """
+        super(OrganizationByName, cls).initFilterPane(aMediaFilterPane)
+        aMediaFilterPane.addCondition(SingletonFilter(aMediaFilterPane))
+        aMediaFilterPane.addCondition(SceneFilter(aMediaFilterPane))
+        aMediaFilterPane.addSeparator()
+
+    
 
 # Lifecycle
     def __init__(self, anEntry, aPath):
@@ -334,15 +352,18 @@ class OrganizationByName(MediaOrganization):
 
         path String relative pathname of file, with leading model root directory and trailing extension removed
         
+        TODO: make independent from OS-dependent separator characters (/ vs. \)
+        TODO: allow capitalized names (while letter groups should be normalized to lower-case) 
+        
         Returns a String 
         """
         self.name = ''
         self.scene = ''
-        # first try: '/letter/name/scene-' is a Single inside a Group
-        match = re.search(r"""([a-z])               # single-letter directory = \1
+        # first try: 'letter/name/scene-' is a Single inside a Group
+        match = re.search(r"""([a-z])                  # single-letter directory = \1
                               \\((\1[a-z]+)[0-9]?)  # directory with name = \3 and optional digit, all captured in \2
-                              \\((\d\d)|new)        # two-digit number or "new" = \4
-                              ([^\\]*)$             # non-directories until EOL = \6
+                              \\((\d\d)|new)           # two-digit number or "new" = \4
+                              ([^\\]*)$                # non-directories until EOL = \6
                            """, 
                           path,
                           re.VERBOSE)
@@ -351,10 +372,10 @@ class OrganizationByName(MediaOrganization):
             self.name = match.group(2)
             self.scene = match.group(4)
             rest = match.group(6)
-        else:  # second try: '/letter/name' is a singleton Single
-            match = re.search(r"""([a-z])               # single-letter directory = \1 
+        else:  # second try: 'letter/name' is a singleton Single
+            match = re.search(r"""([a-z])                  # single-letter directory = \1 
                                   \\((\1[a-z]+)[0-9]?)  # directory with name = \3 and optional digit, all captured in \2
-                                  ([^\\]*)$             # non-directories until EOL = \4
+                                  ([^\\]*)$                # non-directories until EOL = \4
                                """, 
                               path, 
                               re.VERBOSE)
@@ -362,7 +383,7 @@ class OrganizationByName(MediaOrganization):
                 and self.nameHandler.isNameLegal(match.group(3))):  # and name is legal
                 self.name = match.group(2)
                 rest = match.group(4)
-            else:  # third try: '/letter' is a Group
+            else:  # third try: 'letter' is a Group
                 match = re.search(r'''^([a-z])$         # single letter directory = \1 
                                    ''', 
                                    path, 
@@ -374,7 +395,7 @@ class OrganizationByName(MediaOrganization):
                     self.name = ''
                     rest = ''
                 else:  # no match, or illegal name
-                    logging.info('OrganizationByName.setIdentifiersFromPath(): Cannot extract identifiers from "%s"' % path)
+                    Logger.info('OrganizationByName.setIdentifiersFromPath(): Cannot extract identifiers from "%s"' % path)
                     rest = path  # neither image nor group, nothing consumed
         return(rest)
 
@@ -418,12 +439,12 @@ class OrganizationByName(MediaOrganization):
         """
         if ((aFilter.singleCondition <> None)
             and (aFilter.singleCondition <> self.isSingleton())):
-            OrganizationByName.Logger.debug('OrganizationByName.isFilteredBy(): Single condition filters %s' % self.getContext())
+            Logger.debug('OrganizationByName.isFilteredBy(): Single condition filters %s' % self.getContext())
             return(True)
-        if ((MediaFilter.SceneConditionIndex in aFilter.conditionMap)
-            and aFilter.conditionMap[MediaFilter.SceneConditionIndex]
-            and (self.getScene() <> (OrganizationByName.FormatScene % aFilter.conditionMap[MediaFilter.SceneConditionIndex]))):
-            OrganizationByName.Logger.debug('OrganizationByName.isFilteredBy(): Scene condition filters %s' % self.getContext())
+        if ((MediaFilter.SceneConditionKey in aFilter.conditionMap)
+            and aFilter.conditionMap[MediaFilter.SceneConditionKey]
+            and (self.getScene() <> (OrganizationByName.FormatScene % aFilter.conditionMap[MediaFilter.SceneConditionKey]))):
+            Logger.debug('OrganizationByName.isFilteredBy(): Scene condition filters %s' % self.getContext())
             return(True)
         return(False)
 
@@ -599,7 +620,7 @@ class OrganizationByName(MediaOrganization):
         model = self.__class__.ImageFilerModel
         # ensure new group exists
         newParent = model.getEntry(name=name)
-        OrganizationByName.Logger.debug('OrganizationByName.renameGroup(): New parent is "%s"' % newParent)
+        Logger.debug('OrganizationByName.renameGroup(): New parent is "%s"' % newParent)
         if (newParent):
             if (not newParent.isGroup()):  # singleton exists
                 singleton = newParent
@@ -625,7 +646,7 @@ class OrganizationByName(MediaOrganization):
                 while (nextFreeScene in sceneNumbers):
                     nextFreeScene = (nextFreeScene + 1)
                 sceneMap[scene] = (OrganizationByName.FormatScene % nextFreeScene)
-        OrganizationByName.Logger.debug('OrganizationByName.renameGroup(): Scene map is "%s"' % sceneMap)
+        Logger.debug('OrganizationByName.renameGroup(): Scene map is "%s"' % sceneMap)
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=True):
             subEntry.renameTo(elements=elements, 
@@ -652,9 +673,6 @@ class OrganizationByName(MediaOrganization):
         result = super(OrganizationByName, self).getValuesFromNamePane(aMediaNamePane)
         # result['name'] = aMediaNamePane.identifierString.GetLabel()  TODO: make interactive?
         scene = aMediaNamePane.sceneInput.GetValue()
-#         if (scene == ''):
-#             result['scene'] = None
-#         else: 
         if (scene <> ''): 
             result['scene'] = scene
         return(result)
@@ -665,9 +683,7 @@ class OrganizationByName(MediaOrganization):
     def convertToGroup(self):
         """Convert the current singleton Single to a Group with the same name.
         """
-        print('Converting "%s" to a group' % self.getPath())
-#         newGroup = Group.createFromName(self.model, self.getName())
-#         self.setParentGroup(newGroup)
+        Logger.debug('OrganizationByName.convertToGroup(): Converting "%s" to a group' % self.getPath())
         Group.createAndPersist(self.model, name=self.getName())
         self.renameTo(scene='1', number='1')
 
@@ -721,58 +737,96 @@ class OrganizationByName(MediaOrganization):
 
 
 
-class FilterPaneByName(MediaFilterPane):
-    """Subclass handling organization-specific details.
+class SingletonFilter(FilterConditionWithMode):
+    """Represents a filter for singletons (media not in a named group).
     """
-# Class Variables
-    Logger = logging.getLogger(__name__)
+    def __init__(self, parent):
+        FilterConditionWithMode.__init__(self, parent, _('Single'))
 
 
-
-# Class Methods
-    @classmethod
-    def classMethod(clas):
-        """
-        """
-        pass
+    def getConditionControls(self):
+        return([self.modeChoice])
 
 
+    def onChange(self, event):  # @UnusedVariable
+        wx.BeginBusyCursor()
+        newMode = self.modeChoice.GetSelection()
+        if (newMode == FilterConditionWithMode.FilterModeIndexRequire):
+            newFilterValue = True
+        elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
+            newFilterValue = False
+        else:
+            newFilterValue = None
+        Logger.debug('SingletonFilter.onChange(): Changing mode to %s' % newFilterValue)
+        self.filterModel.setConditions(single=newFilterValue)
+        wx.EndBusyCursor()
 
-# Lifecycle
-    def __init__(self):
-        """
-        """
-        # inheritance
-        super(FilterPaneByName, self).__init__()
-        # internal state
 
-
-
-# Setters
-    def setAttribute(self, value):
-        """
-        """
-        pass
-    
-    
-
-# Getters
-    def getAttribute(self):  # inherited from SuperClass
-        """
-        """
-        pass
-    
-    
-
-# Event Handlers
     def updateAspect(self, observable, aspect):
-        """
-        """
-        pass
+        if (aspect == 'changed'):
+            Logger.debug('SingletonFilter.updateAspect(): Processing change of filter')
+            newFilterValue = self.filterModel.getSingleton()
+            if (newFilterValue == True):
+                self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexRequire)
+            elif (newFilterValue == False):
+                self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexExclude)
+            else:
+                self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexIgnore)
+            Logger.debug('SingletonFilter.updateAspect(): Setting to %s' % newFilterValue)
+        else:
+            Logger.error('SingletonFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
 
 
+class SceneFilter(FilterConditionWithMode):
+    """Represents a filter for scene numbers.
+    """
+    def __init__(self, parent):
+        FilterConditionWithMode.__init__(self, parent, _('Scene'))
+        self.sceneNumber = wx.lib.masked.NumCtrl(parent, 
+                                                 -1,
+                                                 integerWidth=2,
+                                                 fractionWidth=0,
+                                                 min=1,
+                                                 max=99)
+        self.sceneNumber.Bind(wx.lib.masked.EVT_NUM, self.onChange, self.sceneNumber)
 
-# Inheritance - Superclass
-# Other API Functions
-# Internal - to change without notice
-    pass
+
+    def getConditionControls(self):
+        return([self.sceneNumber, self.modeChoice])
+
+
+    def onChange(self, event):  # @UnusedVariable
+        wx.BeginBusyCursor()
+        scene = self.sceneNumber.GetValue()
+        if (scene == 0):
+            newMode = FilterConditionWithMode.FilterModeIndexIgnore
+            Logger.debug('SceneFilter.onChange(): Ignoring scene filter 0')
+        else:
+            newMode = self.modeChoice.GetSelection()
+        if (newMode == FilterConditionWithMode.FilterModeIndexRequire):
+            self.filterModel.setConditions(Scene=scene)
+            Logger.debug('SceneFilter.onChange(): Setting scene filter to %s' % scene)
+        elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
+            self.filterModel.setConditions(Scene=False)
+            self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
+            Logger.info('SceneFilter.onChange(): Excluding scenes NYI, clearing scene filter!')
+        else:
+            self.filterModel.setConditions(Scene=False)
+            Logger.debug('SceneFilter.onChange(): Clearing scene filter')
+        wx.EndBusyCursor()
+
+
+    def updateAspect(self, observable, aspect):
+        if (aspect == 'changed'):
+            Logger.debug('SceneFilter.updateAspect(): Processing change of filter')
+            filterValue = self.filterModel.getFilterValueFor(MediaFilter.SceneConditionKey)
+            if (filterValue):
+                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
+                self.sceneNumber.SetValue(filterValue)
+                Logger.debug('SceneFilter.updateAspect(): Setting to %s' % filterValue)
+            else: 
+                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
+                Logger.debug('SceneFilter.updateAspect(): Clearing filter')
+        else:
+            Logger.error('SceneFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
+

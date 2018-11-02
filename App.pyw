@@ -114,31 +114,31 @@ class MediaFiler(wx.Frame, Observer, Observable):
         # - filter pane, can be hidden, initially hidden
         self.showFilterPane = False     
         self.applyFilter = False
-        self.filterPane = MediaFilterPane(self)
+        self.filterPane = MediaFilterPane(self, size=wx.Size(310, 0))
         self.paneManager.AddPane(self.filterPane,
-                          wx.aui.AuiPaneInfo().Name('filter').Caption(self.PaneCaptionFilter).Left().Layer(3).CloseButton(True).Show(self.showFilterPane))
+                                 wx.aui.AuiPaneInfo().Name('filter').Caption(self.PaneCaptionFilter).Left().Layer(3).CloseButton(True).Show(self.showFilterPane))
         # - image tree, can be hidden, initially visible
         self.showTreePane = True
-        self.imageTree = MediaTreeCtrl(self, pos=wx.Point(0, 0), size=wx.Size(160, 250))
+        self.imageTree = MediaTreeCtrl(self, pos=wx.Point(0, 0), size=wx.Size(350, 0))
         self.paneManager.AddPane(self.imageTree,
-                          wx.aui.AuiPaneInfo().Name('tree').Caption(self.PaneCaptionImages).Left().Layer(2).CloseButton(True).Show(self.showTreePane))
+                                 wx.aui.AuiPaneInfo().Name('tree').Caption(self.PaneCaptionImages).Left().Layer(2).CloseButton(True).Show(self.showTreePane))
         # - canvas, cannot be hidden
         self.canvas = MediaCanvas(self);
         self.paneManager.AddPane(self.canvas,
-                          wx.aui.AuiPaneInfo().Name('canvas').CenterPane().MaximizeButton(True))
+                                 wx.aui.AuiPaneInfo().Name('canvas').CenterPane().MaximizeButton(True))
         # - classification pane, initially visible
         self.showClassificationPane = True
         self.classificationPane = MediaClassificationPane(self)
         self.paneManager.AddPane(self.classificationPane,
-                          wx.aui.AuiPaneInfo().Name('classification').Caption(self.PaneCaptionClassification).Left().Layer(1).CloseButton(True).Show(self.showClassificationPane))
+                                 wx.aui.AuiPaneInfo().Name('classification').Caption(self.PaneCaptionClassification).Left().Layer(1).CloseButton(True).Show(self.showClassificationPane))
         # - name pane
         self.namePane = MediaNamePane(self)
         self.paneManager.AddPane (self.namePane,
-                           wx.aui.AuiPaneInfo().Name('name').Caption(self.PaneCaptionName).Top().Layer(2).Show(True))
+                                  wx.aui.AuiPaneInfo().Name('name').Caption(self.PaneCaptionName).Top().Layer(2).Show(True))
         # - presentation control pane
         self.presentationPane = PresentationControlPane(self)
         self.paneManager.AddPane(self.presentationPane, 
-                          wx.aui.AuiPaneInfo().Name('present').BestSize([0,20]).CenterPane().Bottom().Hide())
+                                 wx.aui.AuiPaneInfo().Name('present').BestSize([0,20]).CenterPane().Bottom().Hide())
 #         # - log pane, initially hidden
 #         self.showLogPane = False
 #         self.paneManager.AddPane (self.createLogPane(),
@@ -659,14 +659,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
         MediaFiler.Logger.debug('MediaFiler.onLoggingChanged(): Turning logging %s for %s' % (('On' if state else 'Off'), moduleName))
         if (state):
             logging.getLogger(moduleName).addHandler(self.__class__.LogHandlerInteractive)
-            logging.getLogger(moduleName).debug('User turned on logging for %s' % moduleName)
         else:
-            logging.getLogger(moduleName).debug('User turned off logging for %s' % moduleName)
             logging.getLogger(moduleName).removeHandler(self.__class__.LogHandlerInteractive)
         loggedModules = [name for name in loggableModules if menu.IsChecked(menu.FindItem(name))]
         self.model.setConfiguration(GlobalConfigurationOptions.LastLoggedModules,
                                     ' '.join(loggedModules))
-    
+
 
 
     def onHarvestURLs(self, event):  # @UnusedVariable
@@ -751,11 +749,11 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.displayInfoMessage(_('Loading...'))
         MediaFiler.Logger.debug('MediaFiler.setModel(): Loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
-        progressFunction(25)
+        progressFunction(15)
         try:
             self.model = MediaCollection(directory, progressFunction)
-        except:
-            pass  # TODO: show error dialog, and return to previous model
+        except Exception as e:
+            raise BaseException("Could not create MediaCollection model! \n%s" % e)
         progressFunction(85)
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
@@ -854,12 +852,12 @@ class MediaFilerApp(ProgressSplashApp):
         logging.getLogger().addHandler(logHandler)
         logging.getLogger().setLevel(logging.DEBUG)
         logging.debug('MediaFiler.__main__(): Temporarily logging to "%s"' % fname)
-        self.SetProgress(5)
+        self.SetProgress(3)
         frame = MediaFiler(None, title=GUIId.AppTitle)
         self.SetTopWindow(frame)
-        self.SetProgress(10)
+        self.SetProgress(6)
         if (Installer.ensureInstallationOk(frame)):
-            self.SetProgress(15)
+            self.SetProgress(9)
             fname = (Installer.getLogFilePath() % 1)
             logging.debug('MediaFiler.__main__(): Now permanently logging to "%s"' % fname)
             logging.getLogger().removeHandler(logHandler)
@@ -867,7 +865,7 @@ class MediaFilerApp(ProgressSplashApp):
             logHandler = logging.FileHandler(fname, mode='w')
             logHandler.setFormatter(logFormatter)
             logging.getLogger().addHandler(logHandler)
-            self.SetProgress(20)
+            self.SetProgress(12)
             frame.setModel(Installer.getMediaPath(), self.SetProgress)
             self.SetProgress(99)
             frame.setLoggedModules()

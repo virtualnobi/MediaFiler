@@ -165,7 +165,9 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         if (entry.getTreeItemID()):
             self.SelectItem(entry.getTreeItemID())
             if (expand):
-                self.Expand(entry.getTreeItemID())                
+                self.Expand(entry.getTreeItemID())         
+            if (entry <> self.GetItemData(entry.getTreeItemID()).GetData()):
+                print('MediaTreeCtrl.setEntry(): Inconsistent data (%sfiltered) for %s' % (('un' if entry.isFiltered() else ''), entry))     
             self.EnsureVisible(entry.getTreeItemID())
         else:
             self.__class__.Logger.error('MediaTreeCtrl.setEntry(): no tree item ID for "%s"' % entry.getPath())
@@ -327,6 +329,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """
         entry1 = self.GetItemData(item1).GetData()
         entry2 = self.GetItemData(item2).GetData()
+#         # this will put singles before groups, which is not correct for organization by name
+#         if (entry1.isGroup() == entry2.isGroup()):
+#             return(cmp(entry1.getPath().lower(), entry2.getPath().lower()))
+#         elif (entry1.isGroup()):  # put groups after single media
+#             return(1)
+#         else:  # entry2 is a group
+#             return(-1)
         return(cmp(entry1.getPath().lower(), entry2.getPath().lower()))
 
 

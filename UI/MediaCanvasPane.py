@@ -67,7 +67,7 @@ class MediaCanvas(wx.Panel, Observer):
         self.lastRightDownImage = None  # last Image on which right mouse button went down, for context menu
         self.rows = 1
         self.cols = 1
-        self.setEntryProfiled(self.model.getSelectedEntry())
+        self.setEntry(self.model.getSelectedEntry())
 
 
     def setEntryProfiled(self, entry, forceUpdate=False):
@@ -97,7 +97,7 @@ class MediaCanvas(wx.Panel, Observer):
         if (forceUpdate 
             or (self.entry <> entry)):
             wx.BeginBusyCursor()
-            self.Freeze() # TODO: must become faster
+            self.Freeze() 
             column = 1  # count columns when placing images in grid
             (x, y) = (0, 0)  # position of image
             self.clear()  # unbind events and unregister observable

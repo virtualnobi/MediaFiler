@@ -22,6 +22,11 @@ from Model.CachingController import CachingController
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
+
 # Class 
 class Entry(PausableObservable):
     """An Entry is an PausableObservable representing a (group of) media in the directory tree. 
@@ -43,7 +48,6 @@ class Entry(PausableObservable):
 
 
 # Constants
-    Logger = logging.getLogger(__name__)
     SpecificationGroup = 'directory'  # Specification for ProductTrader, registering to handle directories
     CachingLevelThumbnailBitmap = 0
     CachingLevelFullsizeBitmap = 1
@@ -100,13 +104,14 @@ class Entry(PausableObservable):
         # inheritance
         super(Entry, self).__init__(['name', 'remove', 'children'])  # legal aspects to observe
         # internal state
-        self.model = model  # store creator for later reference
-        self.parentGroup = None  # not known yet
+        self.model = model  
+        self.parentGroup = None  
         self.filteredFlag = False  # initially, no entry is filtered
         self.treeItemID = None  # not inserted into MediaTreePane yet
         self.bitmap = None
         #path = self.fixNumber(path)
         self.initFromPath(path)
+        Logger.debug('Entry(): Created %s' % self)
 
 
     def initFromPath(self, path):
@@ -216,11 +221,11 @@ class Entry(PausableObservable):
                                    Installer.getTrashPath(),  # self.TrashDirectory,
                                    (self.getFilename() + '-' + str(count) + '.' + self.getExtension()))
             count = (count + 1)
-        self.__class__.Logger.debug('Trashing "%s" (into "%s")' % (oldName, newName))
+        Logger.debug('Trashing "%s" (into "%s")' % (oldName, newName))
         try:
             os.rename(oldName, newName)
         except Exception as e: 
-            self.__class__.Logger.error('Trashing "%s" failed:\n%s' % (oldName, e))
+            Logger.error('Trashing "%s" failed:\n%s' % (oldName, e))
 
 
 # Getters
@@ -529,7 +534,7 @@ class Entry(PausableObservable):
             kwargs['number'] = number
         kwargs['makeUnique'] = makeUnique
         # 
-        Entry.Logger.debug('Entry.renameTo(): Path info is %s' % kwargs)
+        Logger.debug('Entry.renameTo(): Path info is %s' % kwargs)
         newPath = self.organizer.constructPathForSelf(**kwargs)
         return(self.renameToFilename(newPath))
 
@@ -541,14 +546,14 @@ class Entry(PausableObservable):
         String fname is the new absolute filename
         Return Boolean indicating success
         """
-        Entry.Logger.debug('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
+        Logger.debug('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
         (newDirectory, dummy) = os.path.split(fname)  # @UnusedVariable
         try:
             if (not os.path.exists(newDirectory)):
                 os.makedirs(newDirectory)
             os.rename(self.getPath(), fname) 
         except Exception as e:
-            Entry.Logger.error('Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
+            Logger.error('Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
             return(False)
         else:
             # remove from current group, and add to new group
@@ -606,7 +611,7 @@ class Entry(PausableObservable):
             or None
         """
         message = None
-        self.__class__.Logger.debug('Entry.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
+        Logger.debug('Entry.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.FilterIdentical):
             self.filterImages(True)
         elif (menuId == GUIId.FilterSimilar):

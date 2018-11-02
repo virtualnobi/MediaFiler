@@ -8,20 +8,19 @@
 import gettext
 import os.path
 import logging
-#import copy
+import re
 ## contributed
 import wx.lib.scrolledpanel
-import wx.calendar
 import wx.lib.masked
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
-import Model.Installer
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
 from Model.Single import Single
 from Model.MediaFilter import MediaFilter
+
 
 
 # Internationalization
@@ -44,50 +43,312 @@ def N_(message): return message
 
 
 
-class ConditionSelectionDialog(wx.Dialog):
-    """A Dialog to let the user select a condition for the filter.
+# Package Variables
+Logger = logging.getLogger(__name__)
+# filtering modes
+TagFilterModeNameIgnore = _('ignore')
+TagFilterModeNameRequire = _('require')
+TagFilterModeNameExclude = _('exclude')
+TagFilterModeNames = [TagFilterModeNameIgnore, TagFilterModeNameRequire, TagFilterModeNameExclude]
+TagFilterModeIndexIgnore = TagFilterModeNames.index(TagFilterModeNameIgnore)
+TagFilterModeIndexRequire = TagFilterModeNames.index(TagFilterModeNameRequire)
+TagFilterModeIndexExclude = TagFilterModeNames.index(TagFilterModeNameExclude)
+
+
+
+class FilterCondition(Observer):
+    """Displays a filter condition. 
     """
-    def __init__(self, parent, model):
+    def __init__(self, parent, label):  # @UnusedVariable
+        """Create a filter condition.
+        
+        Create input controls as needed to define the filter condition. These controls must
+        be returned by getConditionControls() to be added to the MediaFilterPane. Register
+        onChange() as handler for these controls, and update the filterModel accordingly.
+        When the filterModel changes, updateAspect() will be called and needs to change the
+        input controls. 
+        
+        The instance variables collectionModel and filterModel will be set after __init__ when 
+        self is added to the MediaFilterPane. 
+        
+        wx.Window parent specifies the parent window for filtering controls
+        String label specifies the field label
         """
+        self.label = label
+        self.collectionModel = None
+        self.filterModel = None
+
+
+    def getLabel(self):
+        """Return the string to be used as filter label
         """
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=_('Select filter condition'), style=wx.RESIZE_BORDER)
-        s = wx.BoxSizer(wx.VERTICAL)
-        conditionTree = wx.TreeCtrl(self, style=(wx.TR_HAS_BUTTONS|wx.TR_HIDE_ROOT))
-        self.addConditionNodes(model, conditionTree)
-        s.Add(conditionTree, 1, wx.EXPAND)
-        s.Add(self.CreateStdDialogButtonSizer(flags=wx.CANCEL), 0, wx.EXPAND)
-        s.Layout()
-        self.SetSizerAndFit(s)
+        return(self.label)
 
 
-    def addConditionNodes(self, model, treeCtrl):
+    def getConditionControls(self):
+        """Return an array containing 1 or 2 controls to input self's condition.
+        
+        These controls will be added to the MediaFilterPane during initialization. 
         """
-        """
-        root = treeCtrl.AddRoot('')
-        for categoryName in model.getClassHandler().getClassNames():
-            categoryItem = treeCtrl.AppendItem(root, categoryName)
-            for tagName in model.getClassHandler().getElementsOfClassByName(categoryName):
-                treeCtrl.AppendItem(categoryItem, tagName)
-            treeCtrl.Expand(categoryItem)
+        raise NotImplementedError
+
+
+    def setCollectionModel(self, aMediaCollection):
+        self.collectionModel = aMediaCollection
+
+
+    def setFilterModel(self, aMediaFilter):
+        try:
+            self.filterModel.removeObserver(self)
+        except: 
+            pass
+        self.filterModel = aMediaFilter
+        self.filterModel.addObserverForAspect(self, 'changed')
+
+
+    def onChange(self, event):
+        raise NotImplementedError
+
+
+    def updateAspect(self, aspect, observable):
+        raise NotImplementedError
 
 
 
-class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
+class FilterConditionWithMode(FilterCondition):
+    """Represents a filter condition with a mode choice control (ignore, required, prohibited).
+    
+    self.modeChoice contains a wx.Choice with these three options.
+    """
+    FilterModeNameIgnore = _('ignore')
+    FilterModeIndexIgnore = 0
+    FilterModeNameRequire = _('require')
+    FilterModeIndexRequire = 1
+    FilterModeNameExclude = _('exclude')
+    FilterModeIndexExclude = 2
+    FilterModeNames = [FilterModeNameIgnore, FilterModeNameRequire, FilterModeNameExclude]
+
+
+    def __init__(self, parent, label):
+        FilterCondition.__init__(self, parent, label)
+        self.modeChoice = wx.Choice(parent, wx.ID_ANY, choices=FilterConditionWithMode.FilterModeNames)
+        self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
+        self.modeChoice.Bind(wx.EVT_CHOICE, self.onChange, self.modeChoice)
+
+
+    
+class TagFilter(FilterConditionWithMode):
+    """Represents a tag filter.
+    """
+    def __init__(self, parent, tagClass, tagList):
+        FilterConditionWithMode.__init__(self, parent, tagClass)
+        self.valueChoice = wx.Choice(parent, -1, choices=tagList)
+        self.valueChoice.SetSelection(self.FilterElementValuesAnyIndex)
+
+
+    def getConditionControls(self):
+        return([self.valueChoice, self.modeChoice])
+
+
+
+class UnknownTagFilter(FilterConditionWithMode):
+    """Represents a filter for unknown tags
+    """
+    def __init__(self, parent):
+        FilterConditionWithMode.__init__(self, parent, _('Unknown Tag'))
+        self.tagInput = wx.TextCtrl(parent, style=wx.TE_PROCESS_ENTER)
+        self.tagInput.Enable(True)
+        self.tagInput.Bind(wx.EVT_TEXT_ENTER, self.onChange, self.tagInput)
+
+
+    def getConditionControls(self):
+        return([self.tagInput, self.modeChoice])
+
+
+    def onChange(self, event):  # @UnusedVariable
+        wx.BeginBusyCursor()
+        source = event.GetEventObject()
+        textValue = self.tagInput.GetValue()
+        newMode = self.modeChoice.GetSelection()
+        newTags = re.split('\W+', textValue)
+        if ('' in newTags):
+            newTags.remove('')
+        if (source == self.tagInput):
+            Logger.debug('UnknownTagFilter.onChange(): Processing change of tag to "%s"' % textValue)
+        elif (source == self.modeChoice):
+            Logger.debug('UnknownTagFilter.onChange(): Processing change of mode to "%s"' % newMode)
+        else:
+            raise ValueError, 'UnknownTagFilter.onChange(): Unknown event source!'
+        if (newMode == TagFilterModeIndexIgnore):
+            self.filterModel.setConditions(requiredUnknownTags=set(),
+                                           prohibitedUnknownTags=set(),
+                                           unknownRequired=False)
+        elif (newMode == TagFilterModeIndexRequire):
+            self.filterModel.setConditions(requiredUnknownTags=newTags,
+                                           prohibitedUnknownTags=set(),
+                                           unknownRequired=(0 == len(newTags)))
+        elif (newMode == TagFilterModeIndexExclude):
+            if (0 == len(newTags)):
+                Logger.debug('UnknownTagFilter.onChange(): NYI: Prohibiting any unknown tag.')
+                self.filterModel.setConditions(requiredUnknownTags=set(),
+                                               prohibitedUnknownTags=set(),
+                                               unknownRequired=False)
+            else:
+                self.filterModel.setConditions(requiredUnknownTags=set(),
+                                               prohibitedUnknownTags=newTags,
+                                               unknownRequired=False)
+        wx.EndBusyCursor()
+
+
+    def updateAspect(self, observable, aspect):
+        if (aspect == 'changed'):
+            Logger.debug('UnknownTagfilter.updateAspect(): Processing change of filter')
+            requiredUnknownTags = observable.getRequiredUnknownTags()
+            prohibitedUnknownTags = observable.getProhibitedUnknownTags()
+            unknownRequired = observable.getAnyUnknownTag()
+            if (0 < len(requiredUnknownTags)):
+                Logger.debug('UnknownTagfilter.updateAspect(): Setting to require unknown tags')
+                self.tagInput.SetValue(' '.join(requiredUnknownTags))
+                self.modeChoice.SetSelection(TagFilterModeIndexRequire)
+            elif (0 < len(prohibitedUnknownTags)):
+                Logger.debug('UnknownTagfilter.updateAspect(): Setting to exclude unknown tags')
+                self.tagInput.SetValue(' '.join(prohibitedUnknownTags))
+                self.modeChoice.SetSelection(TagFilterModeIndexExclude)
+            elif (unknownRequired):
+                Logger.debug('UnknownTagfilter.updateAspect(): Setting to unknown required')
+                self.tagInput.SetValue('')
+                self.modeChoice.SetSelection(TagFilterModeIndexRequire)
+            else:
+                Logger.debug('UnknownTagfilter.updateAspect(): Neither unknown tags, nor unknown required, setting to ignore')
+                self.modeChoice.SetSelection(TagFilterModeIndexIgnore)
+        else:
+            Logger.error('UnknownTagFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
+
+
+
+class MediaTypeFilter(FilterCondition):
+    """Represents a filter for the media type
+    """
+    def __init__(self, parent):
+        FilterCondition.__init__(self, parent, _('Media Type'))
+        self.mediaTypes = sorted(Single.__subclasses__(), key=lambda c:c.__name__)  # @UndefinedVariable
+        mediaTypeNames = [cls.getMediaTypeName() for cls in self.mediaTypes]
+        self.typeChoice = wx.CheckListBox(parent, -1, wx.DefaultPosition, wx.DefaultSize, mediaTypeNames)
+        self.typeChoice.Bind(wx.EVT_CHECKLISTBOX, self.onChange, self.typeChoice)
+
+
+    def getConditionControls(self):
+        return([self.typeChoice])
+
+
+    def onChange(self, event):
+        wx.BeginBusyCursor()
+        source = event.GetEventObject()
+        changedIndex = event.GetSelection()
+        changedMediaType = self.mediaTypes[changedIndex]
+        (required, prohibited) = self.filterModel.getMediaTypes()  # @UnusedVariable
+        if (source.IsChecked(changedIndex)):
+            required.add(changedMediaType)
+        else:
+            if (changedMediaType in required):
+                required.remove(changedMediaType)
+            else:
+                logging.error('MediaTypeFilter.onChange(): media type %s not in filter!' % changedMediaType.__name__)
+        self.filterModel.setConditions(requiredMediaTypes=required)
+        source.SetSelection(changedIndex)  # put focus on (un)checked type
+        wx.EndBusyCursor()
+
+
+    def updateAspect(self, observable, aspect):
+        if (aspect == 'changed'):
+            Logger.debug('MediaTypeFilter.updateAspect(): Processing change of filter')
+            self.typeChoice.SetChecked([]) 
+            (required, prohibited) = self.filterModel.getMediaTypes()  # @UnusedVariable
+            requiredTypeIndices = [self.mediaTypes.index(mediaType) for mediaType in required]
+            self.typeChoice.SetChecked(requiredTypeIndices)
+            Logger.debug('MediaTypeFilter.updateAspect(): Set %d required types' % len(requiredTypeIndices))
+        else:
+            Logger.error('MediaTypeFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
+
+
+
+class MediaSizeFilter(FilterCondition):
+    """Represents a filter for media size
+    """
+    def __init__(self, parent):
+        FilterCondition.__init__(self, parent, _('Size (%)'))
+        self.minimumPercent = 0
+        self.maximumPercent = 100
+        # minimum
+        self.minimumSlider = wx.Slider(parent, -1, 
+                                       self.minimumPercent,  # initial slider value 
+                                       self.minimumPercent,  # slider minimum
+                                       self.maximumPercent,  # slider maximum
+                                       (30, 60),  # ?
+                                       (100, -1),  # size
+                                       (wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_BOTTOM))  # styles, wx.SL_SELRANGE only on Windows95
+        self.minimumSlider.SetTickFreq(10, 1)
+        self.minimumSlider.Bind(wx.EVT_SCROLL_CHANGED, self.onChange)
+        # maximum
+        self.maximumSlider = wx.Slider(parent, -1, 
+                                       self.maximumPercent,  # initial slider value 
+                                       self.minimumPercent,  # slider minimum
+                                       self.maximumPercent,  # slider maximum
+                                       (30, 60),  # ?
+                                       (100, -1),  # size
+                                       (wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_BOTTOM))  # styles, wx.SL_SELRANGE only on Windows95
+        self.maximumSlider.SetTickFreq(10, 1)
+        self.maximumSlider.Bind(wx.EVT_SCROLL_CHANGED, self.onChange)
+
+
+    def getConditionControls(self):
+        return([self.minimumSlider, self.maximumSlider])
+
+
+    def onChange(self, event):
+        wx.BeginBusyCursor()
+        source = event.GetEventObject()
+        sizeVariation = (self.collectionModel.getMaximumSize() - self.collectionModel.getMinimumSize())
+        Logger.debug('MediaSizeFilter.onChange(): File size changed to %s' % source.GetValue())
+        if (source == self.minimumSlider):
+            self.minimumPercent = source.GetValue()
+            self.maximumSlider.SetMin(source.GetValue())
+            minimumSize = (self.collectionModel.getMinimumSize() + (self.minimumPercent / 100.0 * sizeVariation))
+            Logger.debug('MediaSizeFilter.onChange(): File size minimum set to %s from %s%%' % (minimumSize, self.minimumPercent))
+            self.filterModel.setConditions(minimum=minimumSize)
+        else:
+            self.maximumPercent = source.GetValue()
+            self.minimumSlider.SetMax(self.maximumPercent)
+            maximumSize = (self.collectionModel.getMinimumSize() + (self.maximumPercent / 100.0 * sizeVariation))
+            Logger.debug('MediaSizeFilter.onChange(): File size maximum set to %s from %s%%' % (maximumSize, self.maximumPercent))
+            self.filterModel.setConditions(maximum=maximumSize)
+        # self.minimumSlider.GetParent().GetSizer().Layout()  # TODO: Does not relayout. How to do? 
+        wx.EndBusyCursor()
+
+
+    def updateAspect(self, observable, aspect):
+        if (aspect == 'changed'):
+            Logger.debug('MediaSizeFilter.updateAspect(): Processing change of filter')
+            sizeVariation = (self.collectionModel.getMaximumSize() - self.collectionModel.getMinimumSize())
+            (minimumSize, maximumSize) = self.filterModel.getFilterConditions()[4:6]
+            minimumPercent = ((minimumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
+            maximumPercent = ((maximumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
+            self.minimumSlider.SetValue(minimumPercent)
+            self.minimumSlider.SetMax(maximumPercent)
+            self.maximumSlider.SetValue(maximumPercent)
+            self.maximumSlider.SetMin(minimumPercent)
+            Logger.debug('MediaSizeFilter.updateAspect(): Set file size to %s - %s' % (minimumPercent, maximumPercent))
+        else:
+            Logger.error('MediaSizeFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
+
+
+
+
+class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     """A scrollable, observable Pane which visualizes the filter.
     """
 # Constants
-    # rows in filter pane grid
-    RowClear = 0  # row of "Clear" and "Apply" buttons
-    RowSize = 1  # row of size sliders
-    RowSingle = 2  # row of single/group condition
-    RowDate = RowSingle  # row for date range condition
-    RowUnknown = 3  # row of unknown elements (regular elements follow)
-    RowMediaTypes = 4  
-    # OrganizationByName
-    SingleConditionIndex = N_('single')  # string to access single/group condition
-    SingleValueString = _('single')
-    GroupValueString = _('group')
-    SceneConditionIndex = N_('Scene')
+    SceneConditionKey = N_('Scene')
     # unknown elements
     UnknownElementsIndex = N_('unknown')  # string to access unknown filter in dictionary
     # special element to match any element of a class
@@ -101,53 +362,59 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
     FilterModeNameExclude = _('exclude')
     FilterModeIndexExclude = 2
     FilterModeNames = [FilterModeNameIgnore, FilterModeNameRequire, FilterModeNameExclude]
-    # Labels
-    FileSizeLabel = _('Size:')
-    DateRangeLabel = _('Date Range:')
-    MediaTypeLabel = _('Media Type:')
 
 
 
 # Class Variables
-    Logger = logging.getLogger(__name__)
-
-
-
 # Class Methods
 # Lifecycle
-    def __init__(self, parent, style=0):
+    def __init__(self, parent, style=0, size=wx.Size(450,0)):
         # inheritance
-        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, size=wx.Size (450, 0), style=(style | wx.FULL_REPAINT_ON_RESIZE))
-        self.SetAutoLayout(1)
-        self.SetupScrolling()
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, size=size, style=(style | wx.FULL_REPAINT_ON_RESIZE))
         Observer.__init__(self)
         # internal state
-        self.mediaTypes = sorted(Single.__subclasses__(), key=lambda c:c.__name__)  # @UndefinedVariable  # TODO: remove
-        self.imageModel = None  # ImageFilerModel, to derive filter from
-        self.filterModel = None  # MediaFilter, to manage filter conditions
+        self.SetAutoLayout(1)
+        self.SetupScrolling()
         self.clearModel()
 
 
 
 # Setters
+    def clearModel(self):
+        """Release all data related to the model, including widgets
+        """
+        # clear dependencies
+        try: 
+            self.imageModel.removeObserver(self)
+        except: 
+            pass
+        self.imageModel = None
+        try:
+            self.filterModel.removeObserver(self)
+        except:
+            pass
+        self.filterModel = None
+        # clear widgets
+        self.DestroyChildren()
+        self.gridSizer = wx.GridBagSizer(2, 3)
+        self.usedGridRows = 0
+        # clear internal state
+        self.filterConditions = {}
+#         self.popupMenu = None
+        self.filterModes = {}  # Dictionary mapping class name to filter mode wx.Choice
+        self.filterValues = {}  # Dictionary mapping class name to filter value wx.Choice
+
+
     def setModel(self, anImageFilerModel):
         """Make anImageFilerModel the model of self, and create widgets on self accordingly.
         """
-        MediaFilterPane.Logger.debug('MediaFilterPane.setModel(')
+        Logger.debug('MediaFilterPane.setModel(')
         self.clearModel()
         self.imageModel = anImageFilerModel
         self.filterModel = self.imageModel.getFilter()
         self.filterModel.addObserverForAspect(self, 'changed')
-        # create map from wx IDs to filter conditions
-        self.constructFilterConditionMap()
-        # create empty lists of wx.Choice controls for each class, for modes and values
-        self.filterModes = {}
-        self.filterValues = {}
-        # create one row per class with class name, value, and mode
         classes = self.imageModel.getClassHandler().getClasses()
-        gridSizer = wx.GridBagSizer(3, 3)
-        row = 0
-        # add activate and clear buttons
+        # add button toolbar
         buttonBox = wx.BoxSizer(wx.HORIZONTAL)
         self.activateButton = wx.ToggleButton(self, -1, 'Filter')
         self.activateButton.Bind(wx.EVT_TOGGLEBUTTON, self.onActivate)
@@ -156,19 +423,16 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.clearButton = wx.Button(self, id=GUIId.ClearFilter, label=GUIId.FunctionNames[GUIId.ClearFilter])
         self.clearButton.Bind(wx.EVT_BUTTON, self.onClear, id=GUIId.ClearFilter)
         buttonBox.Add(self.clearButton, 0, wx.EXPAND)
-        addConditionButton = wx.Button(self, id=0, label=_('Add Condition'))
-        addConditionButton.Bind(wx.EVT_BUTTON, self.onAddConditionPopup)
-        buttonBox.Add(addConditionButton, 0, wx.EXPAND)
-        gridSizer.Add(buttonBox, (row, 0), (1, 3))
-        gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
-        row = (row + 2)
-        # add "unknown elements" condition
-        self.addUnknownFilter(gridSizer, row)
-        gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
-        row = (row + 2)
-        # add classes with all their elements
+        self.gridSizer.Add(buttonBox, (self.usedGridRows, 0), (1, 3))
+        self.usedGridRows = (self.usedGridRows + 1)
+        self.addSeparator()
+        # filter area
+#         self.constructFilterConditionMap()  # create map from wx IDs to filter conditions
+        self.unknownFilterRow = self.addCondition(UnknownTagFilter(self))
+        self.addSeparator()
+        # create one row per class with class name, value, and mode
         for aClass in classes:
-            MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): creating controls for class %s' % aClass[MediaClassHandler.KeyName])
+            Logger.debug('MediaFilterPane.setModel(): creating controls for class %s' % aClass[MediaClassHandler.KeyName])
             # create choice of class values
             choices = []
             choices.extend(self.imageModel.getClassHandler().getElementsOfClass(aClass))
@@ -178,92 +442,100 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
             valueChoice = wx.Choice(self, -1, choices=choices)
             valueChoice.SetSelection(self.FilterElementValuesAnyIndex)
             self.Bind(wx.EVT_CHOICE, self.onValueChanged, valueChoice)
-            self.addTextFilter(gridSizer, row, aClass[MediaClassHandler.KeyName], aClass[MediaClassHandler.KeyName], valueChoice)
+            self.addTextFilter(self.gridSizer, self.usedGridRows, aClass[MediaClassHandler.KeyName], aClass[MediaClassHandler.KeyName], valueChoice)
             # advance row count
-            row = (row + 1)
-        gridSizer.Add(wx.BoxSizer(), (row, 0), (1, 1))
-        row = (row + 1)
+            self.usedGridRows = (self.usedGridRows + 1)
+        self.addSeparator()
         # add minimum/maximum size filter
-        MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): creating filter for media size')
-        self.addSizeFilter(gridSizer, row)
-        gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
-        row = (row + 2)
-        # add media type filter
-        self.addMediaTypeFilter(gridSizer, row)
-        gridSizer.Add(wx.BoxSizer(), (row + 1, 0), (1, 1))
-        row = (row + 2)
-        # add organization-specific conditions
-        if (self.imageModel.organizedByDate):  # TODO: move to MediaOrganization
-            self.addDateRangeFilter(gridSizer, row)
-            row = (row + 1)
-        if (not self.imageModel.organizedByDate):
-            singleText = wx.StaticText(self, -1, self.SingleConditionIndex)
-            self.addTextFilter(gridSizer, row, MediaFilterPane.SingleConditionIndex, _(MediaFilterPane.SingleConditionIndex), singleText)        
-            row = (row + 1)
-            self.addSceneFilter(gridSizer, row)
-            row = (row + 1)            
-        # add new-style conditions
-        addConditionButton = wx.Button(self, id=0, label=_('Add Condition'))
-        addConditionButton.Bind(wx.EVT_BUTTON, self.onAddCondition)
-        s = wx.BoxSizer(wx.HORIZONTAL)
-        s.Add(addConditionButton)
-        gridSizer.Add(s, (row, 0), (1, 3))
-        row = (row + 1)
-        # add new-style condition panel
-        gridSizer.Add(self.getConditionPanel(self), (row, 0), (1, 3))
+        self.sizeFilterRow = self.addCondition(MediaSizeFilter(self))
+        self.addSeparator()
+        self.mediaTypeFilterRow = self.addCondition(MediaTypeFilter(self))
+        self.addSeparator()
+        self.imageModel.organizationStrategy.initFilterPane(self)
+#         # add new-style conditions
+#         addConditionButton = wx.Button(self, id=0, label=_('Add Condition'))
+#         addConditionButton.Bind(wx.EVT_BUTTON, self.onAddCondition)
+#         s = wx.BoxSizer(wx.HORIZONTAL)
+#         s.Add(addConditionButton)
+#         self.gridSizer.Add(s, (self.usedGridRows, 0), (1, 3))
+#         self.usedGridRows = (self.usedGridRows + 1)
+#         # add new-style condition panel
+#         self.gridSizer.Add(self.getConditionPanel(self), (self.usedGridRows, 0), (1, 3))
         # set overall sizer
-        self.SetSizer(gridSizer) 
-        gridSizer.Layout()
+        self.SetSizer(self.gridSizer)
+        self.gridSizer.Layout()
         # import filter conditions
-        MediaFilterPane.Logger.debug('MediaFilterPane.setModel(): setting up filter')
+        Logger.debug('MediaFilterPane.setModel(): setting up filter')
         self.importAndDisplayFilter()
-        MediaFilterPane.Logger.debug('MediaFilterPane.setModel() finished')
+        Logger.debug('MediaFilterPane.setModel() finished')
 
 
-    def clearModel(self):
-        """Release all data related to the model, including widgets
+    def addCondition(self, aFilterCondition):
+        """Add a new condition to self.
+        
+        Add the controls to the filter pane, make values settable and retrievable.
+        
+        Return a Number used as index to set and retrieve filter values.
         """
-        if (self.imageModel):
-            self.imageModel.removeObserver(self)
-            self.imageModel = None
-        if (self.filterModel):
-            self.filterModel.removeObserver(self)
-            self.filterModel = None
-        self.popupMenu = None
-        self.filterModes = {}  # Dictionary mapping class name to filter mode wx.Choice
-        self.filterValues = {}  # Dictionary mapping class name to filter value wx.Choice
-        self.DestroyChildren()
+        conditionIndex = (len(self.filterConditions) + 1)
+        self.filterConditions[conditionIndex] = aFilterCondition
+        aFilterCondition.setCollectionModel(self.imageModel)
+        aFilterCondition.setFilterModel(self.filterModel)
+        # add filter controls
+        self.gridSizer.Add(wx.StaticText(self, -1, (aFilterCondition.getLabel() + ':')), (self.usedGridRows, 0), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        controls = aFilterCondition.getConditionControls()
+        controlColumn = 1
+        for control in controls:
+            self.gridSizer.Add(control, (self.usedGridRows, controlColumn), flag=wx.ALIGN_CENTER_VERTICAL)
+            controlColumn = (controlColumn + 1)
+        self.usedGridRows = (self.usedGridRows + 1)
+        return(conditionIndex)
 
 
-
-# Getters    
-    def getPopupMenu(self):
-        """Return a wx.PopupMenu with filter choices.
+    def addSeparator(self):
+        """Add a separating whitespace to the filter list
         """
-        if (self.popupMenu == None):
-            self.constructFilterConditionMap()
-        return(self.popupMenu)
+        self.gridSizer.Add((20, 20), (self.usedGridRows, 0), (1, 1))
+        self.usedGridRows = (self.usedGridRows + 1)
+
+
+
+# Getters
+#     def getCondition(self, filterRow):
+#         """Return the controls registered under filterRow.
+#         
+#         Use this to set and retrieve values for the filter condition.
+#         """
+#         pass
+
+
+#     def getPopupMenu(self):
+#         """Return a wx.PopupMenu with filter choices.
+#         """
+#         if (self.popupMenu == None):
+#             self.constructFilterConditionMap()
+#         return(self.popupMenu)
 
 
 # Event Handlers
-    def onAddConditionPopup(self, event):  # @UnusedVariable  # TODO: remove name part "Popup"
-        self.PopupMenu(self.getPopupMenu())
+#     def onAddConditionPopup(self, event):  # @UnusedVariable  # TODO: remove name part "Popup"
+#         self.PopupMenu(self.getPopupMenu())
 
 
-    def onAddConditionSelected(self, event):
-        actionId = event.GetId()
-        self.filterConditionMap[actionId]()
+#     def onAddConditionSelected(self, event):
+#         actionId = event.GetId()
+#         self.filterConditionMap[actionId]()
 
 
-    def onAddCondition(self, event):  # @UnusedVariable
-        """
-        """
-        dialog = ConditionSelectionDialog(self, self.imageModel)
-        if (dialog.ShowModal() == wx.ID_OK):
-            print('Condition selected')
-        else:
-            print('nuffin!')
-        dialog.Destroy()
+#     def onAddCondition(self, event):  # @UnusedVariable
+#         """
+#         """
+#         dialog = ConditionSelectionDialog(self, self.imageModel)
+#         if (dialog.ShowModal() == wx.ID_OK):
+#             print('Condition selected')
+#         else:
+#             print('nuffin!')
+#         dialog.Destroy()
 
 
     def onClear(self, event):  # @UnusedVariable
@@ -272,12 +544,6 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         wx.EndBusyCursor()
 
 
-    def onApply(self, event):  # @UnusedVariable
-        wx.BeginBusyCursor()
-        self.filterModel.setConditions(active=True)
-        wx.EndBusyCursor()
-
-    
     def onActivate(self, event):
         wx.BeginBusyCursor()
         self.filterModel.setConditions(active=event.GetEventObject().GetValue())
@@ -293,22 +559,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # TODO: Check whether class definition requires (de)activation of other choices
         self.requiredElements = set()
         self.prohibitedElements = set()
-        # filter for unknown values
-        modeName = self.filterModes[self.UnknownElementsIndex].GetStringSelection()
-        valueName = self.filterValues[self.UnknownElementsIndex].GetValue()
-        unknownElementRequired = False
-        if (modeName == self.FilterModeNameRequire):
-            if (valueName == ''):
-                unknownElementRequired = True
-            else:
-                self.requiredElements.add(valueName)
-        elif (modeName == self.FilterModeNameExclude):
-            if (valueName <> ''):
-                self.prohibitedElements.add(valueName)
-        kwargs['unknownRequired'] = unknownElementRequired
         # for all classes, set up value filters
         for className in self.imageModel.getClassHandler().getClassNames():
-            # TODO: make checkbox conditions work
             modeName = self.filterModes[className].GetStringSelection()
             valueName = self.filterValues[className].GetStringSelection()
             if (modeName == self.FilterModeNameRequire):
@@ -325,27 +577,6 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 pass
         kwargs['required'] = self.requiredElements
         kwargs['prohibited'] = self.prohibitedElements
-        if (self.imageModel.organizedByDate):  # TODO: move to MediaOrganization
-            # filter for date range
-            MediaFilterPane.Logger.warning('NYI: Filtering by dates')
-        else:
-            # filter for single/group
-            modeName = self.filterModes[self.SingleConditionIndex].GetStringSelection()
-            if (modeName == self.FilterModeNameRequire):
-                self.singleCondition = True
-            elif (modeName == self.FilterModeNameExclude):
-                self.singleCondition = False
-            else:  # must be ignore
-                self.singleCondition = None
-            kwargs['single'] = self.singleCondition
-            # filter for scene number
-            modeName = self.filterModes[MediaFilterPane.SceneConditionIndex].GetStringSelection()
-            if (modeName == MediaFilterPane.FilterModeNameRequire):
-                kwargs[MediaFilterPane.SceneConditionIndex] = self.filterValues[MediaFilterPane.SceneConditionIndex].GetValue()
-            elif (modeName == MediaFilterPane.FilterModeNameExclude):
-                MediaFilterPane.Logger.warning('NYI: Excluding a scene number')
-            else:  # must be ignore
-                kwargs[MediaFilterPane.SceneConditionIndex] = 0
         self.filterModel.setConditions(**kwargs)
         wx.EndBusyCursor()
 
@@ -359,70 +590,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         for key in self.filterValues:
             if (self.filterValues[key] == event.GetEventObject()):
                 if (self.filterModes[key].GetStringSelection() == self.FilterModeNameIgnore):
-                    MediaFilterPane.Logger.debug('MediaFilterPane.onValueChanged(): Setting %s to required' % key)
+                    Logger.debug('MediaFilterPane.onValueChanged(): Setting %s to required' % key)
                     self.filterModes[key].SetStringSelection(self.FilterModeNameRequire)
-        return(self.onModeChanged(event))
-
-
-    def onSliderChanged(self, event):
-        """User changed the size slider.
-        """
-        wx.BeginBusyCursor()
-        print('File size changed to %d' % event.GetEventObject().GetValue())
-        if (event.EventObject == self.minimumSlider):
-            self.maximumSliderMinimum = event.GetEventObject().GetValue()  # minimum slider position is new minimum for maximum slider
-            self.maximumSlider.SetMin(self.maximumSliderMinimum)
-            self.filterModel.setConditions(minimum=self.maximumSliderMinimum)
-        else:
-            self.minimumSliderMaximum = event.GetEventObject().GetValue()  # maximum slider position is new maximum for minimum slider
-            self.minimumSlider.SetMax(self.minimumSliderMaximum)
-            self.filterModel.setConditions(maximum=self.minimumSliderMaximum)
-        wx.EndBusyCursor()
-
-
-    def onDateChanged(self, event):
-        """
-        """
-        if (event.GetEventObject() == self.fromDatePicker):
-            wxDate = self.fromDatePicker.GetValue()
-            dateTime = wx.calendar._wxdate2pydate(wxDate)
-            self.filterModel.setConditions(fromDate=dateTime)
-            print('fromDate changed')
-        elif (event.GetEventObject() == self.toDatePicker):
-            wxDate = self.toDatePicker.GetValue()
-            dateTime = wx.calendar._wxdate2pydate(wxDate)
-            self.filterModel.setConditions(toDate=dateTime)
-            print('toDate changed')
-
-
-    def onMediaTypesChanged(self, event):
-        """
-        """
-        wx.BeginBusyCursor()
-        idx = event.GetSelection()  # TODO: assemble condition across all types, and interpret "all unselected" as "all selected"
-        mediaType = self.mediaTypes[idx]
-        (required, prohibited) = self.filterModel.getMediaTypes()  # @UnusedVariable
-        if (self.mediaTypePicker.IsChecked(idx)):
-            required.add(mediaType)
-        else:
-            if (mediaType in required):
-                required.remove(mediaType)
-            else:
-                logging.error('MediaFilterPane.onMediaTypesChanged(): media type %s not in filter!' % mediaType.__name__)
-        self.filterModel.setConditions(requiredMediaTypes=required)            
-        self.mediaTypePicker.SetSelection(idx)  # put focus on (un)checked type
-        wx.EndBusyCursor()
-
-
-    def onSceneChanged(self, event):
-        """User changed scene number in filter. Update internal state.
-
-        In addition to the regular update done in onModeChanged(), 
-        the mode corresponding to the value is set to Require if it was Ignore.
-        """
-        if (self.filterModes[MediaFilterPane.SceneConditionIndex].GetStringSelection() == self.FilterModeNameIgnore):
-            MediaFilterPane.Logger.debug('MediaFilterPane.onSceneChanged(): Setting %s to required' % MediaFilterPane.SceneConditionIndex)
-            self.filterModes[MediaFilterPane.SceneConditionIndex].SetStringSelection(self.FilterModeNameRequire)
         return(self.onModeChanged(event))
 
 
@@ -437,104 +606,104 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Internal
-    def getConditionPanel(self, parent):
-        """Create and return a wx.Panel showing the current filter conditions
-        
-        wx.Window parent
-        Return wx.Panel
-        """
-        panel = wx.Panel(parent)
-        sizer = wx.BoxSizer()
-        panel.SetSizer(sizer)
-        text = wx.StaticText(panel, 0, 'Conditions go here')
-        sizer.Add(text)
-        return(panel)
+#     def getConditionPanel(self, parent):
+#         """Create and return a wx.Panel showing the current filter conditions
+#         
+#         wx.Window parent
+#         Return wx.Panel
+#         """
+#         panel = wx.Panel(parent)
+#         sizer = wx.BoxSizer()
+#         panel.SetSizer(sizer)
+#         text = wx.StaticText(panel, 0, 'Conditions go here')
+#         sizer.Add(text)
+#         return(panel)
 
 
-    def constructFilterConditionMap(self):
-        """Construct a pop-up with all filter options and a map from wx.IDs to appropriate functions.
-        
-        While constructing the pop-up with the filters, a mapping is constructed from wx.IDs 
-        to functions which will apply the appropriate change to the filter. 
-        """
-        classHandler = self.imageModel.getClassHandler()
-        self.filterConditionMap = {}
-        self.popupMenu = wx.Menu()
-        self.Bind(wx.EVT_MENU, self.onAddConditionSelected)
-        # filter for unknown tags
-        actionMenu = wx.Menu()
-        self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-                                      actionMenu, 
-                                      lambda : self.filterModel.setConditions(unknownRequired=True))
-        self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude,
-                                      actionMenu,
-                                      lambda : self.filterModel.setConditions(unknownRequired=False))
-        self.popupMenu.AppendMenu(0, _('<unknown tag>'), actionMenu)
-        # filter for any known tag
-        for category in classHandler.getClassNames():
-            tagMenu = wx.Menu()
-            self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-                                          tagMenu, 
-                                          lambda c=category : self.filterModel.setConditions(required=set([c])))
-            self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
-                                          tagMenu, 
-                                          lambda c=category : self.filterModel.setConditions(prohibited=set([c])))
-            if (1 < len(classHandler.getElementsOfClassByName(category))):
-                tagMenu.AppendSeparator()
-                for tag in classHandler.getElementsOfClassByName(category):
-                    actionMenu = wx.Menu()
-                    self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-                                                  actionMenu, 
-                                                  lambda t=tag : self.filterModel.setConditions(required=set([t])))
-                    self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
-                                                  actionMenu, 
-                                                  lambda t=tag : self.filterModel.setConditions(prohibited=set([t])))
-                    tagMenu.AppendMenu(0, tag, actionMenu)
-            self.popupMenu.AppendMenu(0, category, tagMenu)
-        # filter for media type
-        self.popupMenu.AppendSeparator()
-        typeMenu = wx.Menu()
-        for mediaType in Model.Installer.getProductTrader().getClasses():
-            if (issubclass(mediaType, Model.Single.Single)):
-                actionMenu = wx.Menu()
-                self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-                                              actionMenu, 
-                                              lambda m=mediaType : self.filterModel.setConditions(requiredMediaTypes=set([m])))
-                self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
-                                              actionMenu, 
-                                              lambda m=mediaType : self.filterModel.setConditions(prohibitedMediaTypes=set([m])))
-                typeMenu.AppendMenu(0, mediaType.getMediaTypeName(), actionMenu)
-        self.popupMenu.AppendMenu(0, _('Media Type'), typeMenu)
-        self.popupMenu.Append(0, _('Size'))
-        if (self.imageModel.organizedByDate):  # filter for dates  TODO: move to OrganzationByDate
-            self.popupMenu.AppendSeparator()
-            self.popupMenu.Append(0, _('Date'))
-        else:  # filter for singletons  TODO: move to OrganizationByName
-            self.popupMenu.AppendSeparator()
-            actionMenu = wx.Menu()
-            self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-                                          actionMenu, 
-                                          lambda : self.filterModel.setConditions(single=True))
-            self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
-                                          actionMenu, 
-                                          lambda : self.filterModel.setConditions(single=False))
-            self.popupMenu.AppendMenu(1, _('Singleton'), actionMenu)
+#     def constructFilterConditionMap(self):
+#         """Construct a pop-up with all filter options and a map from wx.IDs to appropriate functions.
+#         
+#         While constructing the pop-up with the filters, a mapping is constructed from wx.IDs 
+#         to functions which will apply the appropriate change to the filter. 
+#         """
+#         classHandler = self.imageModel.getClassHandler()
+#         self.filterConditionMap = {}
+#         self.popupMenu = wx.Menu()
+#         self.Bind(wx.EVT_MENU, self.onAddConditionSelected)
+#         # filter for unknown tags
+#         actionMenu = wx.Menu()
+#         self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+#                                       actionMenu, 
+#                                       lambda : self.filterModel.setConditions(unknownRequired=True))
+#         self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude,
+#                                       actionMenu,
+#                                       lambda : self.filterModel.setConditions(unknownRequired=False))
+#         self.popupMenu.AppendMenu(0, _('<unknown tag>'), actionMenu)
+#         # filter for any known tag
+#         for category in classHandler.getClassNames():
+#             tagMenu = wx.Menu()
+#             self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+#                                           tagMenu, 
+#                                           lambda c=category : self.filterModel.setConditions(required=set([c])))
+#             self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
+#                                           tagMenu, 
+#                                           lambda c=category : self.filterModel.setConditions(prohibited=set([c])))
+#             if (1 < len(classHandler.getElementsOfClassByName(category))):
+#                 tagMenu.AppendSeparator()
+#                 for tag in classHandler.getElementsOfClassByName(category):
+#                     actionMenu = wx.Menu()
+#                     self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+#                                                   actionMenu, 
+#                                                   lambda t=tag : self.filterModel.setConditions(required=set([t])))
+#                     self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
+#                                                   actionMenu, 
+#                                                   lambda t=tag : self.filterModel.setConditions(prohibited=set([t])))
+#                     tagMenu.AppendMenu(0, tag, actionMenu)
+#             self.popupMenu.AppendMenu(0, category, tagMenu)
+#         # filter for media type
+#         self.popupMenu.AppendSeparator()
+#         typeMenu = wx.Menu()
+#         for mediaType in Model.Installer.getProductTrader().getClasses():
+#             if (issubclass(mediaType, Model.Single.Single)):
+#                 actionMenu = wx.Menu()
+#                 self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+#                                               actionMenu, 
+#                                               lambda m=mediaType : self.filterModel.setConditions(requiredMediaTypes=set([m])))
+#                 self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
+#                                               actionMenu, 
+#                                               lambda m=mediaType : self.filterModel.setConditions(prohibitedMediaTypes=set([m])))
+#                 typeMenu.AppendMenu(0, mediaType.getMediaTypeName(), actionMenu)
+#         self.popupMenu.AppendMenu(0, _('Media Type'), typeMenu)
+#         self.popupMenu.Append(0, _('Size'))
+#         if (self.imageModel.organizedByDate):  # filter for dates  TODO: move to OrganzationByDate
+#             self.popupMenu.AppendSeparator()
+#             self.popupMenu.Append(0, _('Date'))
+#         else:  # filter for singletons  TODO: move to OrganizationByName
+#             self.popupMenu.AppendSeparator()
+#             actionMenu = wx.Menu()
+#             self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
+#                                           actionMenu, 
+#                                           lambda : self.filterModel.setConditions(single=True))
+#             self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
+#                                           actionMenu, 
+#                                           lambda : self.filterModel.setConditions(single=False))
+#             self.popupMenu.AppendMenu(1, _('Singleton'), actionMenu)
             
 
-    def constructFilterCondition(self, menuString, menu, function):
-        """Store a new filter condition
-        
-        Creates a wx.ID which links the menu with the action, 
-        appends a menu entry with this id, 
-        and puts the function in the instance variable self.filterConditionMap.
-        
-        String menuString contains the menu entry
-        wx.Menu menu is the menu to which the new condition shall be added
-        Callable function contains the function to be executed when the user selects this filter
-        """
-        actionId = wx.NewId()
-        menu.Append(actionId, menuString)
-        self.filterConditionMap[actionId] = function
+#     def constructFilterCondition(self, menuString, menu, function):
+#         """Store a new filter condition
+#         
+#         Creates a wx.ID which links the menu with the action, 
+#         appends a menu entry with this id, 
+#         and puts the function in the instance variable self.filterConditionMap.
+#         
+#         String menuString contains the menu entry
+#         wx.Menu menu is the menu to which the new condition shall be added
+#         Callable function contains the function to be executed when the user selects this filter
+#         """
+#         actionId = wx.NewId()
+#         menu.Append(actionId, menuString)
+#         self.filterConditionMap[actionId] = function
 
         
     def setActivateButtonText(self):
@@ -566,100 +735,6 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
         sizer.Add(modeChoice, (row, 2), flag=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         self.Bind(wx.EVT_CHOICE, self.onModeChanged, modeChoice)
 
-    
-    def addUnknownFilter(self, sizer, row):
-        """Add a textfield to require/prohibit unknown elements. 
-        """
-        unknownElements = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)  # text to enter unknown elements
-        unknownElements.Enable(True)
-        self.Bind(wx.EVT_TEXT_ENTER, self.onValueChanged, unknownElements)
-        self.addTextFilter(sizer, row, self.UnknownElementsIndex, _(self.UnknownElementsIndex), unknownElements)
-
-
-    def addSizeFilter(self, sizer, row):
-        """
-        """
-        imageMinimumSize = self.imageModel.getMinimumSize()
-        imageMaximumSize = self.imageModel.getMaximumSize()
-        if (imageMinimumSize == imageMaximumSize):  # min and max of wx.Slider must be different
-            imageMaximumSize = (imageMinimumSize + 1)
-        # label
-        sizer.Add(wx.StaticText(self, -1, self.FileSizeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
-        # minimum
-        if (0 < self.filterModel.maximumSize):  # maximum size requirement
-            self.minimumSliderMaximum = self.filterModel.maximumSize  # minimum can only move to max requirement 
-        else:  # no max requirement
-            self.minimumSliderMaximum = imageMaximumSize
-        self.minimumSlider = wx.Slider(self, -1, 
-                                       self.filterModel.minimumSize,  # initial slider value 
-                                       imageMinimumSize,  # slider minimum
-                                       self.minimumSliderMaximum,  # slider maximum
-                                       (30, 60),  # ?
-                                       (100, -1),  # size
-                                       (wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_BOTTOM))  # styles, wx.SL_SELRANGE only on Windows95
-        self.minimumSlider.SetTickFreq(500, 1)
-        self.minimumSlider.Bind(wx.EVT_SCROLL_CHANGED, self.onSliderChanged)
-        sizer.Add(self.minimumSlider, (row, 1), (1, 1), flag=wx.ALIGN_LEFT)
-        # add size sliders - maximum
-        if (0 < self.filterModel.minimumSize):  # minimum size requirement
-            self.maximumSliderMinimum = self.filterModel.minimumSize  # maximum can only move to min requirement
-        else:  # no min requirement
-            self.maximumSliderMinimum = imageMinimumSize
-        self.maximumSlider = wx.Slider(self, -1, 
-                                       self.filterModel.maximumSize,  # initial slider value 
-                                       self.maximumSliderMinimum,  # slider minimum
-                                       imageMaximumSize,  # slider maximum
-                                       (30, 60),  # ?
-                                       (100, -1),  # size
-                                       (wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_BOTTOM))  # styles, wx.SL_SELRANGE only on Windows95
-        self.maximumSlider.SetTickFreq(500, 1)
-        self.maximumSlider.Bind(wx.EVT_SCROLL_CHANGED, self.onSliderChanged)
-        sizer.Add(self.maximumSlider, (row, 2), (1, 1), flag=wx.ALIGN_RIGHT)
-
-
-    def addDateRangeFilter(self, sizer, row):
-        """Add a date range filter to sizer and bind to self
-
-        wx.GridBagSizer sizer  for layouting   
-        Number row             the row to use in sizer
-        """
-        sizer.Add(wx.StaticText(self, -1, self.DateRangeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
-        self.fromDatePicker = wx.DatePickerCtrl(self, style=(wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
-        sizer.Add(self.fromDatePicker, (row, 1), (1, 1))
-        self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.fromDatePicker)
-        self.toDatePicker = wx.DatePickerCtrl(self, style=(wx.DP_DROPDOWN | wx.DP_SHOWCENTURY | wx.DP_ALLOWNONE))
-        sizer.Add(self.toDatePicker, (row, 2), (1, 1))
-        self.Bind(wx.EVT_DATE_CHANGED, self.onDateChanged, self.toDatePicker)
-        
-
-    def addMediaTypeFilter(self, sizer, row):
-        """Add a multi-selection filter for the media types
-        
-        wx.GridBagSizer sizer for layouting
-        Number row            the row to use in sizer
-        """
-        mediaTypes = [cls.getMediaTypeName() for cls in self.mediaTypes]        
-        sizer.Add(wx.StaticText(self, -1, self.MediaTypeLabel), (row, 0), (1,1), flag=wx.ALIGN_RIGHT)
-        self.mediaTypePicker = wx.CheckListBox(self, -1, wx.DefaultPosition, wx.DefaultSize, mediaTypes)
-        sizer.Add(self.mediaTypePicker, (row, 1), (1, 2))
-        self.Bind(wx.EVT_CHECKLISTBOX, self.onMediaTypesChanged, self.mediaTypePicker)
-
-
-    def addSceneFilter(self, sizer, row):
-        """Add a numeric scene filter for OrganizationByName
-        
-        wx.GridBagSizer sizer for layouting
-        Number row            the row to use in sizer
-        """
-        sceneNumber = wx.lib.masked.NumCtrl(self, 
-                                            -1,
-                                            integerWidth=2,
-                                            fractionWidth=0,
-                                            min=1,
-                                            max=99)
-        self.Bind(wx.lib.masked.EVT_NUM, self.onSceneChanged)
-        self.addTextFilter(sizer, row, MediaFilterPane.SceneConditionIndex, _(MediaFilterPane.SceneConditionIndex), sceneNumber)        
-
 
     def importAndDisplayFilter(self):
         """Redisplay criteria from self's filter. 
@@ -671,30 +746,8 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
          minimumFileSize,
          maximumFileSize,
          singleCondition,
-         fromDate,
-         toDate,
          kwargs) = self.filterModel.getFilterConditions()
-        # unknown elements
-        self.filterValues[self.UnknownElementsIndex].SetValue('')
-        if (unknownElementRequired):
-            self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexRequire)
-        else:
-            self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexIgnore)
-        unknownTags = ''
-        for tag in requiredElements: 
-            if (not self.imageModel.getClassHandler().isLegalElement(tag)):
-                unknownTags = ' '.join([unknownTags, tag])
-        if (unknownTags <> ''):
-            self.filterValues[self.UnknownElementsIndex].SetValue(unknownTags)
-            self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexRequire)
-        unknownTags = ''
-        for tag in prohibitedElements:
-            if (not self.imageModel.getClassHandler().isLegalElement(tag)):
-                unknownTags = ' '.join([unknownTags, tag])
-        if (unknownTags <> ''):
-            self.filterValues[self.UnknownElementsIndex].SetValue(unknownTags)
-            self.filterModes[self.UnknownElementsIndex].SetSelection(self.FilterModeIndexExclude)    
-        # class elements
+        # tags
         for className in self.imageModel.getClassHandler().getClassNames():
             # reset to no filtering
             self.filterModes[className].SetSelection(self.FilterModeIndexIgnore)
@@ -715,34 +768,7 @@ class MediaFilterPane (wx.lib.scrolledpanel.ScrolledPanel, Observer):
                         #print('Showing prohibited "%s" in "%s"' % (element, className))
                         self.filterModes[className].SetSelection(self.FilterModeIndexExclude)
                         self.filterValues[className].SetStringSelection(element)
-        # file sizes
-        self.minimumSlider.SetValue(minimumFileSize)
-        self.maximumSlider.SetValue(maximumFileSize)
-        if (self.imageModel.organizedByDate):
-            # date range - need to map partial dates to real ones
-            if (not fromDate):
-                wxDate = wx.DateTime()
-            else:
-                wxDate = wx.calendar._pydate2wxdate(fromDate)
-            self.fromDatePicker.SetValue(wxDate)
-            if (not toDate):
-                wxDate = wx.DateTime()
-            else:
-                wxDate = wxDate = wx.calendar._pydate2wxdate(toDate)
-            self.toDatePicker.SetValue(wxDate)
-        else:
-        # single/group condition
-            if (singleCondition == None):
-                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexIgnore)
-            elif (singleCondition == True):
-                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexRequire)
-            elif (singleCondition == False):
-                self.filterModes[self.SingleConditionIndex].SetSelection(self.FilterModeIndexExclude)
-            if (MediaFilter.SceneConditionIndex in kwargs):
-                self.filterModes[MediaFilter.SceneConditionIndex].SetSelection(self.FilterModeIndexRequire)
-                self.filterValues[MediaFilter.SceneConditionIndex].SetValue(kwargs[MediaFilter.SceneConditionIndex])
         # button activation
         self.clearButton.Enable(enable=(not self.filterModel.isEmpty()))
-#        self.applyButton.Enable(enable=(not active))
 
 

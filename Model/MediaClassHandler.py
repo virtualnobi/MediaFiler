@@ -218,46 +218,44 @@ class MediaClassHandler(object):
         Elements are introduced by TagSeparator (meaning the result is either empty or starts with a TagSeparator).
         """
         elements = self.orderElements(elementSet)
-        result = (self.__class__.TagSeparator.join(elements))
+        result = (MediaClassHandler.TagSeparator.join(elements))
         if (not (result == '')):
-            result = (self.__class__.TagSeparator + result)
+            result = (MediaClassHandler.TagSeparator + result)
         return (result)
 
 
     def stringToElements(self, elementString):
-        """Turn a string into a set of elements.
+        """Turn a (unicode) string into a set of (unicode) tags.
         
         String elementString contains a string of words
         Return a Set with all elements from ELEMENTSTRING   
         """
-        elements = set(re.split(self.__class__.RETagSeparatorsRecognized, elementString))
-        if ('' in elements):
-            elements.remove('')
-        #print('"%s" split into %s' % (elementString, elements))
-        return(elements)
+        elements = set(re.split(MediaClassHandler.RETagSeparatorsRecognized, elementString))
+        if (u'' in elements):
+            elements.remove(u'')
+        return(elements) 
 
 
     def stringToKnownAndUnknownElements(self, elementString):
-        """Distribute elements in ELEMENTSTRING to known and unknown elements.
+        """Turn a (unicode) string into (unicode) tags.
         
-        Return (KNOWN, UNKNOWN) where
-            KNOWN is a dictionary mapping class names to elements
-            UNKNOWN is a set containing all remaining elements from ELEMENTSTRING   
+        Return (known, unknown) where
+            Dictionary known maps class names to (unicode) tags
+            Set unknown contains all remaining tags from elementString  
         """
-        elements = self.stringToElements(elementString)
+        remainingElements = self.stringToElements(elementString)
         knownElements = {}
         # sort elements into class sequence
         for aClass in self.getClasses():
             className = aClass[self.KeyName]
             for classElement in self.getElementsOfClass(aClass):
-                if (classElement in elements):
-                    elements.remove(classElement)
+                if (classElement in remainingElements):
+                    remainingElements.remove(classElement)
                     if (className in knownElements.keys()):  # add known element...
                         knownElements[className].append(classElement)  # ...to an existing list
                     else:
                         knownElements[className] = [classElement]  # ...as a single-entry list
-        unknownElements = set(elements)
-        return(knownElements, unknownElements)
+        return(knownElements, remainingElements)
 
 
 # Event Handlers

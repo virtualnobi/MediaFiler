@@ -219,6 +219,10 @@ def install():
                 shutil.copyfile(os.path.join(InstallationPath, ImageFolder, c.PreviewImageFilename),
                                 os.path.join(getLibraryPath(), c.PreviewImageFilename))
                 Logger.debug('Installer.install(): Preview image %s copied' % c.PreviewImageFilename)
+        if (not os.path.exists(getInitialFilePath())):
+            shutil.copy(os.path.join(InstallationPath, ImageFolder, InitialFilename),
+                        getInitialFilePath())
+            Logger.debug('Installer.install(): Copied initial file')
         if (not os.path.exists(getClassFilePath())):
             with open(getClassFilePath(), 'w') as cfile:
                 cfile.write(MediaClassHandler.InitialFileContent)

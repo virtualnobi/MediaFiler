@@ -1,0 +1,3 @@
+# Classname Element+  # for classes with single-choice elements
+# Classname [] Element+  # for classes with multiple-choice elements
+# Classname +Element1 Element2+  # for a class which applies only if Element1 has been assigned

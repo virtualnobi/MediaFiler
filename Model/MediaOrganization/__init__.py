@@ -50,6 +50,10 @@ def N_(message): return message
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
 class MediaOrganization(object):
     """Defines two organizations for media, by name and by date.
 
@@ -68,7 +72,6 @@ class MediaOrganization(object):
 
 
 # Class Variables
-    Logger = logging.getLogger(__name__)
     ImageFilerModel = None  # to access legal names 
     MoveToLocations = []  # last move-to locations for repeated moving; no concurrent usage of subclasses!
     
@@ -89,11 +92,11 @@ class MediaOrganization(object):
         raise NotImplementedError
 
 
-    @classmethod
-    def getFilterPaneClass(cls):
-        """Return the class to instantiate filter pane.
-        """
-        raise NotImplementedError
+#     @classmethod
+#     def getFilterPaneClass(cls):
+#         """Return the class to instantiate filter pane.
+#         """
+#         raise NotImplementedError
 
 
     @classmethod
@@ -253,6 +256,13 @@ class MediaOrganization(object):
         aMediaNamePane.GetSizer().Add(aMediaNamePane.numberInput, flag=(wx.ALIGN_CENTER_VERTICAL))
 
 
+    @classmethod
+    def initFilterPane(cls, aMediaFilterPane):
+        """Add controls to aMediaFilterPane to filter according to the organization.
+        """
+        pass
+
+
 
 # Lifecycle
     def __init__(self, anEntry, aPath):
@@ -268,7 +278,7 @@ class MediaOrganization(object):
         self.number = ''
         unconsumed = self.setIdentifiersFromPath(self.context.getOrganizationIdentifier())
         if (unconsumed == self.context.getOrganizationIdentifier()):
-            logging.warning('MediaOrganization(): "%s" may contain illegal identifier' % aPath)
+            Logger.warning('MediaOrganization(): "%s" may contain illegal identifier' % aPath)
         unconsumed = self.setNumberFromPath(unconsumed)
         return(None)
 
@@ -419,10 +429,10 @@ class MediaOrganization(object):
         if ((GUIId.AssignNumber <= menuId)
             and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
             number = (menuId - GUIId.AssignNumber)
-            self.__class__.Logger.debug('MediaOrganization.runContextMenu(): Renaming to number %d' % number)
+            Logger.debug('MediaOrganization.runContextMenu(): Renaming to number %d' % number)
             return(self.renumberTo(number))
         else:
-            self.__class__.Logger.error('MediaOrganization.runContextMenu(): Unhandled function %d on "%s"!' % (menuId, self.getContext().getPath()))
+            Logger.error('MediaOrganization.runContextMenu(): Unhandled function %d on "%s"!' % (menuId, self.getContext().getPath()))
     
 
 
@@ -548,19 +558,20 @@ class MediaOrganization(object):
     def renumberTo(self, newNumber):
         """Renumber Singles in self's parent group so that self can change to the given number.
         """
-        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Assigning new number %d to number %d' % (newNumber, self.getNumber()))
+        Logger.debug('MediaOrganization.renumberTo(): Assigning new number %d to number %d' % (newNumber, self.getNumber()))
         numberToEntryMap = self.getNumberedEntriesMap()
         numbersUsed = numberToEntryMap.keys()
-        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Used numbers are %s' % numbersUsed)
+        Logger.debug('MediaOrganization.renumberTo(): Used numbers are %s' % numbersUsed)
         gap = self.findNearestGap(newNumber, numbersUsed)
-        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Nearest gap is %d' % gap)
+        Logger.debug('MediaOrganization.renumberTo(): Nearest gap is %d' % gap)
         numberPairList = self.createReorderSequence(newNumber, gap, numbersUsed)
-        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Reordering %s' % numberPairList)
+        Logger.debug('MediaOrganization.renumberTo(): Reordering %s' % numberPairList)
         renameList = []
         for (now, then) in numberPairList:
             entry = numberToEntryMap[now]
             renameList.append((entry, entry.getPath(), entry.getOrganizer().constructPathForSelf(number=then)))
-        MediaOrganization.Logger.debug('MediaOrganization.renumberTo(): Mapping names %s' % renameList)
+            print(entry.getPath(), entry.getOrganizer().constructPathForSelf(number=then))
+        Logger.debug('MediaOrganization.renumberTo(): Mapping names %s' % renameList)
         if (self.__class__.ImageFilerModel.renameList(renameList)):
             return(_('%d media renumbered' % len(renameList)))
         else:

@@ -1,6 +1,6 @@
 '''MediaFilter
 
-A observable which describes filter conditions for images.  
+A observable which describes filter conditions for images.
 
 It should be possible to display and set filters without having complete data on the media. 
 I.e., the media size filter must be definable independent of knowledge of all media sizes. 
@@ -8,22 +8,26 @@ This will allow to make the media set lazy-loading, and only if the size filter 
 used, all media must be read. 
 
 The following aspects of ImageFilter are observable:
-- changed: Filter has changed
+- changed: Filter has changed (including changes to an inactive filter)
+- filterChanged: Filter has changed in a way that may change the filtered media items
 
 (c) by nobisoft 2016-
 '''
 
 
 ## Imports
-# standard libraries
-#import re
+# standard
 import logging
 import copy
-# public libraries 
-# nobi's libraries
+# contributed 
+# nobi
 from nobi.ObserverPattern import Observable
 # project 
-#from .MediaClassHandler import MediaClassHandler
+
+
+
+# Package Variables
+Logger = logging.getLogger(__name__)
 
 
 
@@ -33,11 +37,14 @@ class MediaFilter(Observable):
 
 
 # Constants
-    Logger = logging.getLogger(__name__)
-    SceneConditionIndex = 'Scene'
-    SingleConditionIndex = 'Singleton'
-    ConditionKeys = [SingleConditionIndex,
-                     SceneConditionIndex]
+    SceneConditionKey = 'Scene'
+    SingleConditionKey = 'Singleton'
+    DateFromConditionKey = 'DateFrom'
+    DateToConditionKey = 'DateTo'
+    ConditionKeys = [SingleConditionKey,
+                     SceneConditionKey,
+                     DateFromConditionKey,
+                     DateToConditionKey]
 
 
 
@@ -46,22 +53,23 @@ class MediaFilter(Observable):
         """
         """
         # inheritance
-        Observable.__init__(self, ['changed'])
+        Observable.__init__(self, ['changed', 'filterChanged'])
         # initialize (cannot use self.clear() since instance variables not yet defined)
         self.model = model
         self.active = False
-        self.conditionMap = {MediaFilter.SingleConditionIndex: None,
-                             MediaFilter.SceneConditionIndex: None}
+        self.conditionMap = {MediaFilter.SingleConditionKey: None,
+                             MediaFilter.SceneConditionKey: None,
+                             MediaFilter.DateFromConditionKey: None,
+                             MediaFilter.DateToConditionKey: None}
         self.requiredElements = set()
         self.prohibitedElements = set()
         self.unknownElementRequired = False
+        self.requiredUnknownTags = set()
+        self.prohibitedUnknownTags = set()
         self.minimumSize = self.model.getMinimumSize()
         self.maximumSize = self.model.getMaximumSize()
         self.requiredMediaTypes = set()
         self.prohibitedMediaTypes = set()
-        # special conditions for OrganizationByDate
-        self.fromDate = None
-        self.toDate = None
         # special conditions for OrganzationByName
         self.singleCondition = None
         return(None)
@@ -69,48 +77,64 @@ class MediaFilter(Observable):
 
 # Setters
     def setConditions(self, active=None, 
-                      required=None, prohibited=None, unknownRequired=None, minimum=None, maximum=None,
+                      required=None, prohibited=None, 
+                      requiredUnknownTags=None, prohibitedUnknownTags=None, unknownRequired=None, 
+                      minimum=None, maximum=None,
                       requiredMediaTypes=None, prohibitedMediaTypes=None, 
-                      single=None,
                       fromDate=None, toDate=None,
-                      Scene=None):
+                      single=None, Scene=None):
         """Set conditions as specified. Not passing an argument does not change conditions.
+
+        Setting conditions must be done in a single call/method as it will trigger filtering of media.
         
+        TODO: Organization-specific conditions shall be captured in **kwargs and passed on to the respective organization.
+    
         fromDate and toDate can be cleared by passing False.
-        
-        Boolean active
-        Set of String required
-        Set of String prohibited
-        Boolean unknownRequired
-        Number minimum
-        Number maximum
-        Boolean single filters all groups (for organization by name)
+
+        Boolean         active
+        Set of String   required
+        Set of String   prohibited
+        Boolean         unknownRequired
+        Number          minimum
+        Number          maximum
+        Boolean         single filters all groups (for organization by name)
         fromDate
         toDate
         
         Dictionary kwargs 
         """
+        changed = (((active <> None) and (self.active <> active)) 
+                   or ((required <> None) and (self.requiredElements <> required))
+                   or ((prohibited <> None) and (self.prohibitedElements <> prohibited))
+                   or ((requiredUnknownTags <> None) and (self.requiredUnknownTags <> requiredUnknownTags))
+                   or ((prohibitedUnknownTags <> None) and (self.prohibitedUnknownTags <> prohibitedUnknownTags))
+                   or ((unknownRequired <> None) and (self.unknownElementRequired <> unknownRequired))
+                   or ((minimum <> None) and (self.minimumSize <> minimum))
+                   or ((maximum <> None) and (self.maximumSize <> maximum))
+                   or ((requiredMediaTypes <> None) and (self.requiredMediaTypes <> requiredMediaTypes))
+                   or ((prohibitedMediaTypes <> None) and (self.prohibitedMediaTypes <> prohibitedMediaTypes))
+                   or ((single <> None) and (self.singleCondition <> single))
+                   or (self.setDateRange(DateFrom=fromDate, DateTo=toDate))
+#                    or ((Scene <> None) 
+#                        and (MediaFilter.SceneConditionKey in self.conditionMap) 
+#                        and (Scene <> self.conditionMap[MediaFilter.SceneConditionKey]))
+                   or (self.setScene(Scene=Scene)))
         if ((not self.active) and (active <> True)):
-            changed = False
+            filterChanged = False
         else:
-            changed = (((active <> None) and (self.active <> active)) 
-                       or ((required <> None) and (self.requiredElements <> required))
-                       or ((prohibited <> None) and (self.prohibitedElements <> prohibited))
-                       or ((unknownRequired <> None) and (self.unknownElementRequired <> unknownRequired))
-                       or ((minimum <> None) and (self.minimumSize <> minimum))
-                       or ((maximum <> None) and (self.maximumSize <> maximum))
-                       or ((requiredMediaTypes <> None) and (self.requiredMediaTypes <> requiredMediaTypes))
-                       or ((prohibitedMediaTypes <> None) and (self.prohibitedMediaTypes <> prohibitedMediaTypes))
-                       or ((single <> None) and (self.singleCondition <> single))
-                       or ((fromDate <> None) and (self.fromDate <> fromDate))
-                       or ((toDate <> None) and (self.toDate <> toDate))
-                       or ((Scene <> None) and (Scene <> self.conditionMap[MediaFilter.SceneConditionIndex])))
+            filterChanged = changed
         if (active <> None):
             self.active = active
         if (required <> None):
             self.requiredElements = required
+            self.prohibitedElements.difference_update(required)
         if (prohibited <> None):
             self.prohibitedElements = prohibited
+            self.requiredElements.difference_update(prohibited)
+        if (requiredUnknownTags <> None):
+            self.requiredUnknownTags = requiredUnknownTags
+        if (prohibitedUnknownTags <> None):
+            self.prohibitedUnknownTags = prohibitedUnknownTags
         if (unknownRequired <> None):
             self.unknownElementRequired = unknownRequired
         if (minimum <> None):
@@ -119,29 +143,28 @@ class MediaFilter(Observable):
             self.maximumSize = maximum
         if (requiredMediaTypes <> None):
             self.requiredMediaTypes = requiredMediaTypes
+            self.prohibitedMediaTypes.difference_update(requiredMediaTypes)
         if (prohibitedMediaTypes <> None):
             self.prohibitedMediaTypes = prohibitedMediaTypes
+            self.requiredMediaTypes.difference_update(prohibitedMediaTypes)
         if (self.model.organizedByDate):  # TODO: move to MediaOrganization
-            if (fromDate == False):
-                self.fromDate = None
-            elif (fromDate <> None):
-                self.fromDate = fromDate
-            if (toDate == False):
-                self.toDate = None
-            elif (toDate <> None):
-                self.toDate = toDate
+            pass
         else:
             if (single <> None):
                 self.singleCondition = single
-            if (Scene <> None):
-                if (Scene == 0):
-                    if (MediaFilter.SceneConditionIndex in self.conditionMap):
-                        del self.conditionMap[MediaFilter.SceneConditionIndex]
-                else:
-                    self.conditionMap[MediaFilter.SceneConditionIndex] = Scene
+#             if (Scene <> None):
+#                 if (Scene == 0):
+#                     if (MediaFilter.SceneConditionKey in self.conditionMap):
+#                         del self.conditionMap[MediaFilter.SceneConditionKey]
+#                 else:
+#                     self.conditionMap[MediaFilter.SceneConditionKey] = Scene
         if (changed): 
+            Logger.debug('MediaFiler.setConditions(): Throwing "changed"')
             self.changedAspect('changed')
-        MediaFilter.Logger.debug('MediaFilter.setCondition() finished as %s' % self)
+            if (filterChanged):  # can only change the filtered media if it has changed at all
+                Logger.debug('MediaFiler.setConditions(): Throwing "filterChanged"')
+                self.changedAspect('filterChanged')
+        Logger.debug('MediaFilter.setConditions() finished as %s' % self)
 
 
     def clear(self):
@@ -149,6 +172,8 @@ class MediaFilter(Observable):
         """
         self.setConditions(required=set(), 
                            prohibited=set(), 
+                           requiredUnknownTags=set(),
+                           prohibitedUnknownTags=set(),
                            unknownRequired=False, 
                            minimum=self.model.getMinimumSize(), 
                            maximum=self.model.getMaximumSize(),
@@ -157,8 +182,55 @@ class MediaFilter(Observable):
                            single=None,
                            fromDate=False,
                            toDate=False,
-                           Scene=None)  # TODO: move to MediaOrganization
-        MediaFilter.Logger.debug('MediaFilter.clear() finished as %s' % self)
+                           Scene=False)  # TODO: move to MediaOrganization
+        Logger.debug('MediaFilter.clear() finished as %s' % self)
+
+
+    def setDateRange(self, **kwargs):
+        """
+        TODO: Move to OrganizationByDate
+        
+        Return Boolean indicating the filter has changed
+        """
+        changed = False
+        if ((MediaFilter.DateFromConditionKey in kwargs)
+            and (kwargs[MediaFilter.DateFromConditionKey])):
+            if (self.conditionMap[MediaFilter.DateFromConditionKey] <> kwargs[MediaFilter.DateFromConditionKey]):
+                changed = True
+            self.conditionMap[MediaFilter.DateFromConditionKey] = kwargs[MediaFilter.DateFromConditionKey]
+        else:
+            if (self.conditionMap[MediaFilter.DateFromConditionKey] <> None):
+                changed = True
+            self.conditionMap[MediaFilter.DateFromConditionKey] = None
+        if ((MediaFilter.DateToConditionKey in kwargs)
+            and (kwargs[MediaFilter.DateToConditionKey])):
+            if (self.conditionMap[MediaFilter.DateToConditionKey] <> kwargs[MediaFilter.DateToConditionKey]):
+                changed = True
+            self.conditionMap[MediaFilter.DateToConditionKey] = kwargs[MediaFilter.DateToConditionKey]
+        else:
+            if (self.conditionMap[MediaFilter.DateToConditionKey] <> None):
+                changed = True
+            self.conditionMap[MediaFilter.DateToConditionKey] = None
+        return(changed)
+
+
+    def setScene(self, **kwargs):
+        """
+        TODO: Move to OrganizationByName
+        
+        Return Boolean indicating the filter has changed
+        """
+        changed = False
+        if ((MediaFilter.SceneConditionKey in kwargs)
+            and (kwargs[MediaFilter.SceneConditionKey])):
+            if (self.conditionMap[MediaFilter.SceneConditionKey] <> kwargs[MediaFilter.SceneConditionKey]):
+                changed = True
+            self.conditionMap[MediaFilter.SceneConditionKey] = kwargs[MediaFilter.SceneConditionKey]
+        else:
+            if (self.conditionMap[MediaFilter.SceneConditionKey] <> None):
+                changed = True
+            self.conditionMap[MediaFilter.SceneConditionKey] = None
+        return(changed)
 
 
 
@@ -166,20 +238,28 @@ class MediaFilter(Observable):
     def __repr__(self):
         """Return a string representing self.
         """
-        result = ('MediaFilter(' 
-                  + ('active, ' if self.active else '')
+        result = (('active, ' if self.active else '')
                   + (('requires %s, ' % self.requiredElements) if 0 < len(self.requiredElements) else '')
                   + (('prohibits %s, ' % self.prohibitedElements) if 0 < len(self.prohibitedElements) else '')
                   + ('requires unknown, ' if self.unknownElementRequired else '')
-                  + (('larger %s ' % self.minimumSize) if self.minimumSize else '')
-                  + (('smaller %s ' % self.maximumSize) if self.maximumSize else '')
-                  + (('isa %s ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '') 
-                  + (('from %s ' % self.fromDate) if self.fromDate else '')
-                  + (('to %s ' % self.toDate) if self.toDate else '')
-                  + ('single' if self.singleCondition else '')
-                  + (('scene=%s' % self.conditionMap[MediaFilter.SceneConditionIndex]) if (MediaFilter.SceneConditionIndex in self.conditionMap) else '')
-                  + ')')
+                  + (('larger %s, ' % self.minimumSize) if self.minimumSize else '')
+                  + (('smaller %s, ' % self.maximumSize) if self.maximumSize else '')
+                  + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '') 
+                  + (('from %s, ' % self.conditionMap[MediaFilter.DateFromConditionKey]) if self.conditionMap[MediaFilter.DateFromConditionKey] else '')  # TODO: Move to MediaOrganization
+                  + (('to %s, ' % self.conditionMap[MediaFilter.DateToConditionKey]) if self.conditionMap[MediaFilter.DateToConditionKey] else '')
+                  + ('single, ' if self.singleCondition else '')
+                  + (('scene=%s, ' % self.conditionMap[MediaFilter.SceneConditionKey]) if (MediaFilter.SceneConditionKey in self.conditionMap) else '')
+                  )
+        if (result <> ''):
+            result = result[:-2]
+        result = ('MediaFilter(' + result + ')') 
         return(result)
+
+
+    def isActive(self):
+        """Return whether the filter should be applied.
+        """
+        return(self.active)
 
 
     def getFilterConditions(self):
@@ -203,9 +283,30 @@ class MediaFilter(Observable):
                self.minimumSize,
                self.maximumSize,
                self.singleCondition,
-               self.fromDate,
-               self.toDate,
                {k: v for k, v in self.conditionMap.iteritems() if (v)})
+
+
+    def getFilterValueFor(self, filterConditionKey):
+        """Return filter value for a filter condition
+        
+        filterConditionKey is of the strings in MediaFilter.ConditionKeys[]
+        
+        String filterConditionKey 
+        Return object
+        """
+        return(self.conditionMap[filterConditionKey])
+
+
+    def getRequiredUnknownTags(self):
+        return(copy.copy(self.requiredUnknownTags))
+
+
+    def getProhibitedUnknownTags(self):
+        return(copy.copy(self.prohibitedUnknownTags))
+
+
+    def getAnyUnknownTag(self):
+        return(self.unknownElementRequired)
 
 
     def getMediaTypes(self):
@@ -216,7 +317,20 @@ class MediaFilter(Observable):
         """
         return(copy.copy(self.requiredMediaTypes), 
                copy.copy(self.prohibitedMediaTypes))
-    
+
+
+    def getDateRange(self):
+        """TODO: Move to MediaOrganization
+        """
+#         return(self.fromDate, self.toDate)
+        return(self.conditionMap[MediaFilter.DateFromConditionKey], self.conditionMap[MediaFilter.DateToConditionKey])
+
+
+    def getSingleton(self):
+        """TODO: Move to MediaOrganization
+        """
+        return(self.singleCondition)
+
 
     def isEmpty(self):
         """Check whether the filter will reduce the set of media.
@@ -226,16 +340,18 @@ class MediaFilter(Observable):
         if (self.active):
             if ((len(self.requiredElements) > 0)
                 or (len(self.prohibitedElements) > 0)
+                or (len(self.requiredUnknownTags) > 0)
+                or (len (self.prohibitedUnknownTags) > 0)
                 or self.unknownElementRequired
                 or (self.minimumSize > self.model.getMinimumSize())
                 or (self.maximumSize < self.model.getMaximumSize())
                 or (self.singleCondition <> None)
-                or (self.fromDate <> None)
-                or (self.toDate <> None)
+                or (self.conditionMap[MediaFilter.DateFromConditionKey])  # TODO: Move to MediaOrganization
+                or (self.conditionMap[MediaFilter.DateToConditionKey])
                 or (0 < len(self.requiredMediaTypes))
                 or (0 < len(self.prohibitedMediaTypes))
-                or ((MediaFilter.SceneConditionIndex in self.conditionMap) 
-                    and (self.conditionMap[MediaFilter.SceneConditionIndex]))):
+                or ((MediaFilter.SceneConditionKey in self.conditionMap) 
+                    and (self.conditionMap[MediaFilter.SceneConditionKey]))):
                 return(False)
         return(True)
 
@@ -255,6 +371,7 @@ class MediaFilter(Observable):
         if (self.unknownElementRequired
             and (0 == len(entry.getUnknownElements()))
             and (not entry.getOrganizer().isUnknown())):
+            Logger.debug('MediaFilter.isFiltered(): No unknown element in "%s" of "%s"' % (entry.getUnknownElements(), entry))
             return(True)
         # known class elements
         if (self.filteredByElements(entry)):
@@ -290,7 +407,7 @@ class MediaFilter(Observable):
         """
         classHandler = self.model.getClassHandler()
         # check whether all required elements are contained
-        for required in self.requiredElements:
+        for required in (self.requiredElements.union(self.requiredUnknownTags)):
             if (required in classHandler.getClassNames()):  # class required, check whether one element of class is present
                 if (len(set(classHandler.getElementsOfClassByName(required)).intersection(set(entry.getKnownElements()))) == 0):  # no common elements
                     #print ("%s filtered because it does not contain an element from class %s" % (entry.getPath(), required))
@@ -300,7 +417,7 @@ class MediaFilter(Observable):
                     #print (u'"%s" filtered because it does not contain %s' % (entry.getPath(), required))
                     return (True)
         # check whether no prohibited element is contained
-        for prohibited in self.prohibitedElements:
+        for prohibited in (self.prohibitedElements.union(self.prohibitedUnknownTags)):
             if (prohibited in classHandler.getClassNames()):  # class prohibited, check that none of its elements is present
                 if (len(set(classHandler.getElementsOfClassByName(prohibited)).intersection(set(entry.getKnownElements()))) > 0):  # common element
                     #print ("%s filtered because it contains an element from class %s" % (entry.getPath(), prohibited))

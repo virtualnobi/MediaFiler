@@ -41,7 +41,6 @@ class SecureConfigParser(SafeConfigParser):
 
         String filename specifies the configuration file to write any changes to.
         """
-#         super(SecureConfigParser, self).__init__()
         SafeConfigParser.__init__(self)
         self.filename = filename
         return(None)
@@ -53,7 +52,7 @@ class SecureConfigParser(SafeConfigParser):
 # Event Handlers
 # Inheritance - Superclass
     def set(self, section, option, value):
-        """Set an option in a section to a value, and save the configuration.4
+        """Set an option in a section to a value, and save the configuration.
         
         Encodes value as UTF-8.
         
@@ -62,7 +61,6 @@ class SecureConfigParser(SafeConfigParser):
         unicode value
         """
         encodedValue = unicode(value).encode(self.EncodingName, 'replace')
-#        super(SecureConfigParser, self).set(section, option, encodedValue)
         SafeConfigParser.set(self, section, option, encodedValue)
         with open(self.filename, 'w') as f:
             self.write(f)
@@ -73,7 +71,6 @@ class SecureConfigParser(SafeConfigParser):
         
         Returns decoded String
         """
-#        encodedValue = super(SecureConfigParser, self).get(section, option)
         encodedValue = SafeConfigParser.get(self, section, option, raw=True)
         value = encodedValue.decode(self.EncodingName, 'replace')
         return(value)

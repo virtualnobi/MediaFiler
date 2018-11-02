@@ -7,6 +7,7 @@
 # Imports
 ## standard
 import logging
+import sys
 ## contributed
 import wx
 ## nobi
@@ -184,6 +185,7 @@ class MediaNamePane(wx.Panel, Observer):
         pathInfo = self.entry.organizer.getValuesFromNamePane(self)
         if (removeUnknownTags == False):
             tagString = self.elementInput.GetValue()
+            tagString = unicode(tagString).encode(sys.getfilesystemencoding(), 'replace')
             tagSet = self.model.getClassHandler().stringToElements(tagString)
             pathInfo['elements'] = tagSet 
         pathInfo['removeIllegalElements'] = removeUnknownTags
