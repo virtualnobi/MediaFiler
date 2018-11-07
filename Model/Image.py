@@ -35,6 +35,10 @@ def N_(message): return message
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
 
 # Class 
 class Image(Single):
@@ -47,11 +51,6 @@ class Image(Single):
     LegalExtensions = ['jpg', 'png', 'gif', 'tif', 'jpeg']
     ConfigurationOptionViewer = 'viewer-image'
     PreviewImageFilename = 'Image.jpg'
-    Logger = logging.getLogger(__name__)
-    
-
-
-# Variables
     Logger = logging.getLogger(__name__)
 
 
@@ -75,6 +74,36 @@ class Image(Single):
         return(set(cls.LegalExtensions))
 
     
+    @classmethod
+    def getRawImageFromPath(cls, aMediaCollection, path):
+        """Return a raw image to represent the media content of the given file.
+        
+        Model.MediaCollection aMediaCollection
+        String path
+        Return wx.Image or None
+        """
+        (_, extension) = os.path.splitext(path)
+        extension = extension[1:].lower()
+        imageType = None
+        rawImage = None
+        if ((extension == 'jpg')
+            or (extension == 'jpeg')):
+            imageType = wx.BITMAP_TYPE_JPEG
+        elif (extension == 'png'):
+            imageType = wx.BITMAP_TYPE_PNG
+        elif (extension == 'gif'):
+            imageType = wx.BITMAP_TYPE_GIF
+        elif (extension == 'tif'):
+            imageType = wx.BITMAP_TYPE_TIF
+        if (imageType):
+            rawImage = wx.Image(path, imageType)
+            if (rawImage == None):
+                Logger.warning('Image.getRawImageFromPath(): Failed to load "%s"!' % path)
+        else: 
+            Logger.warning('Image.getRawImageFromPath(): Illegal type in "%s"!' % path)
+        return(rawImage)
+
+
     @classmethod
     def getConfigurationOptionExternalViewer(cls):
         """Return the configuration option to retrieve the command string for an external viewer of self.

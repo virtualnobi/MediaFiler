@@ -216,6 +216,16 @@ class Group(Entry, Observer):
         return(GUIId.TextGroupSizeString % self.getGroupedMedia())
 
 
+    def isIdentical(self, anEntry):
+        """Check whether self and anEntry are identical.
+        
+        For Groups, do not check all subentries, just check object identity.
+        
+        Return Boolean indicating anEntry is identical to self.
+        """
+        return(self == anEntry)
+
+    
     def getFirstEntry(self, filtering=False):
         """Return the first entry in self or its subgroups.
         

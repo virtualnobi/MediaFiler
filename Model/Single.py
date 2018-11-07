@@ -32,6 +32,11 @@ from .MediaClassHandler import MediaClassHandler
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
+
 class ImageBitmap(wx.StaticBitmap):
     """An extension to wx.StaticBitmap which remembers the Entry it displays. 
      
@@ -71,7 +76,6 @@ class Single(Entry):
 
 
 # Constants
-    Logger = logging.getLogger(__name__)
     ConfigurationOptionEmailClient = 'editor-email'
 
 
@@ -83,6 +87,20 @@ class Single(Entry):
         """Return a translatable name for the subclasses of Single, for filter creation.
         """
         raise NotImplementedError
+
+
+    @classmethod
+    def getRawImageFromPath(cls, aMediaCollection, path):
+        """Return a raw image to represent the media content of the given file.
+        
+        Model.MediaCollection aMediaCollection
+        String path
+        Return 
+        """
+#         raise NotImplementedError
+        Logger.error('Single.getRawImageFromPath(): Subclass should implement this method!')
+        return(None)
+
 
 
     @classmethod
@@ -135,13 +153,6 @@ class Single(Entry):
         Return wx.Menu
         """
         menu = super(Single, self).getContextMenu()
-#         # renumber
-#         assignNumberMenu = wx.Menu()
-#         for i in self.deriveRenumberList():
-#             assignNumberMenu.Append((GUIId.AssignNumber + i), str(i))
-#             if (i == self.getOrganizer().getNumber()):
-#                 assignNumberMenu.Enable((GUIId.AssignNumber + i), False)
-#         menu.AppendSubMenu(assignNumberMenu, GUIId.FunctionNames[GUIId.AssignNumber])
         # external viewer
         menu.insertAfterId(GUIId.FilterSimilar, newText=GUIId.FunctionNames[GUIId.StartExternalViewer], newId=GUIId.StartExternalViewer)
         if ((not self.__class__.getConfigurationOptionExternalViewer()) 
@@ -163,9 +174,7 @@ class Single(Entry):
             or None
         """
         message = None
-        Single.Logger.debug('Single.runContextMenu(): Function %d on "%s"',
-                                    menuId, 
-                                    self.getPath())
+        Logger.debug('Single.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
 #         if ((GUIId.AssignNumber <= menuId)
 #             and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
 #             self.renumberTo(menuId - GUIId.AssignNumber)
@@ -240,11 +249,19 @@ class Single(Entry):
         
         Subclasses have to check for content, but this provides a quick check based on class and filesize.
         
-        Returns a Boolean indicating that self and anEntry may be identical
+        Returns a Boolean indicating that self and anEntry are identical
         """
-        super(Single, self).isIdentical(anEntry)  # ignore result, but do logging
-        return((self.__class__ == anEntry.__class__) 
+        return(super(Single, self).isIdentical(anEntry) 
                and (self.getFileSize() == anEntry.getFileSize()))
+
+
+    def isIdenticalContent(self, pathName):
+        """Check whether self's media contains the same as another file. 
+        
+        Boolean pathName specifies the file to compare to.
+        Return Boolean indicated whether the two media are identical
+        """
+        return(False)  # TODO: 
 
 
     def getRawImage(self, debug=False):
@@ -296,35 +313,32 @@ class Single(Entry):
         elif ((width <> None) 
               and (height <> None)):  # fit to size given
             if (width < 1): 
-                Single.Logger.warning('Single.getSizeFittedTo(): Corrected width to 1 for "%s"',
-                                              self.getPath())
+                Logger.warning('Single.getSizeFittedTo(): Corrected width to 1 for "%s"', self.getPath())
                 width = 1
             if (height < 1): 
-                Single.Logger.warning('Single.getSizeFittedTo(): Corrected height to 1 for "%s"',
-                                              self.getPath())
+                Logger.warning('Single.getSizeFittedTo(): Corrected height to 1 for "%s"', self.getPath())
                 height = 1
             if ((self.getRawImageWidth() < width) 
                 and (self.getRawImageHeight() < height)):  # pane larger than image, don't enlarge image
                 width = self.getRawImageWidth()
                 height = self.getRawImageHeight()
-                Single.Logger.debug('    image smaller than pane, using original size')
+                Logger.debug('    image smaller than pane, using original size')
             else:
                 imageRatio = (Decimal(self.getRawImageWidth()) / Decimal(self.getRawImageHeight()))  # aspect of image
                 paneRatio = (Decimal(width) / Decimal(height))  # aspect of frame
-                Single.Logger.debug('Single.getSizeFittedTo(): Image %sx%s (ratio %s), Pane %sx%s (ratio %s)',
-                                            self.getRawImageWidth(), 
-                                            self.getRawImageHeight(), 
-                                            imageRatio, 
-                                            width, 
-                                            height, 
-                                            paneRatio)
+                Logger.debug('Single.getSizeFittedTo(): Image %sx%s (ratio %s), Pane %sx%s (ratio %s)' % (self.getRawImageWidth(), 
+                                                                                                          self.getRawImageHeight(), 
+                                                                                                          imageRatio, 
+                                                                                                          width, 
+                                                                                                          height, 
+                                                                                                          paneRatio))
                 if (paneRatio < imageRatio): # image wider than pane, use full pane width
                     height = int(width / imageRatio)
-                    Single.Logger.debug('    changed height to %s', height)
+                    Logger.debug('    changed height to %s' % height)
                 else: # image taller than pane, use full pane height
                     width = int(height * imageRatio)
-                    Single.Logger.debug('    changed width to %s', width)
-            Single.Logger.debug('    using size %sx%s', width, height)
+                    Logger.debug('    changed width to %s' % width)
+            Logger.debug('    using size %sx%s' % (width, height))
             return(width, height)
         else:
             raise ValueError, 'Single.getSizeFittedTo(): Only one of width and height are given!'
@@ -347,7 +361,7 @@ class Single(Entry):
                 w = 1
             if (h == 0):
                 h = 1
-            Single.Logger.debug('Single.getBitmap(): Creating %dx%d bitmap', w, h)
+            Logger.debug('Single.getBitmap(): Creating %dx%d bitmap' % (w, h))
             self.bitmap = self.getRawImage().Copy().Rescale(w, h).ConvertToBitmap()
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
             self.registerCacheWithPriority(Single.CachingLevelThumbnailBitmap)
@@ -363,10 +377,10 @@ class Single(Entry):
         wx.Window parentWindow is the window on which to display an error dialog, if needed
         """
         option = self.__class__.getConfigurationOptionExternalViewer()
-        Single.Logger.debug('Single.runExternalViewer(): Looking for configuration of "%s"' % option)
+        Logger.debug('Single.runExternalViewer(): Looking for configuration of "%s"' % option)
         viewerName = self.model.getConfiguration(option)
         if (not viewerName):
-            Single.Logger.warn('Single.runExternalViewer(): No external program specified for option "%s"' % option)
+            Logger.warn('Single.runExternalViewer(): No external program specified for option "%s"' % option)
             dlg = wx.MessageDialog(parentWindow,
                                    ('No external command specified with the\n"%s" option!' % option),
                                    'Error',
@@ -374,14 +388,14 @@ class Single(Entry):
             dlg.ShowModal()
             dlg.Destroy()
             return
-        Single.Logger.debug('Single.runExternalViewer(): Found external program "%s"' % viewerName)
+        Logger.debug('Single.runExternalViewer(): Found external program "%s"' % viewerName)
         viewerName = viewerName.replace(GlobalConfigurationOptions.Parameter, self.getPath())
         viewerName = viewerName.encode(sys.getfilesystemencoding())
         commandArgs = shlex.split(viewerName)  # viewerName.split() will not respect quoting (for whitespace in file names)
-        Single.Logger.debug('Single.runExternalViewer(): Calling "%s"' % commandArgs)
+        Logger.debug('Single.runExternalViewer(): Calling "%s"' % commandArgs)
         result = subprocess.call(commandArgs, shell=False)
         if (result <> 0):
-            Single.Logger.warn('Single.runExternalViewer(): External command "%s" failed with %s' % (commandArgs, result))
+            Logger.warn('Single.runExternalViewer(): External command "%s" failed with %s' % (commandArgs, result))
             dlg = wx.MessageDialog(parentWindow,
                                    ('External command\n"%s"\nfailed with error code %d!' % (viewerName, result)),
                                    'Error',

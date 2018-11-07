@@ -290,7 +290,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             entry = self.GetItemData(args[0]).GetData()
             boundingRect = self.GetBoundingRect(args[0], textOnly=True)
             MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible: bounding rect is %s' % boundingRect)
-            if ((boundingRect[0] < 0) 
+            if ((boundingRect == None)
+                or (boundingRect[0] < 0) 
                 or (boundingRect[1] < 0)):  # (not self.IsVisible(args[0])):
                 MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible: invisible item, scrolling to show %s' % entry)
                 wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)

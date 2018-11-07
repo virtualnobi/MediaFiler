@@ -380,12 +380,17 @@ class MediaOrganization(object):
     def getNumbersInGroup(self):
         """Return the (ascending) list of Numbers in self's group.
          
-        TODO: Remove his when OrganizationByName uses embedded Groups for the scene, and let the Group
-        list the numbers. 
+        TODO: Remove this when OrganizationByName uses embedded Groups for the scene, and let the Group
+        list the numbers.
+        
+        Return Sequence of Numbers (empty if self is not a Group) 
         """
-        return([e.getOrganizer().getNumber() 
-                for e in self.getContext().getParentGroup().getSubEntries() 
-                if (not e.isGroup())])
+        if (self.context.isGroup()):
+            return([e.getOrganizer().getNumber() 
+                    for e in self.getContext().getParentGroup().getSubEntries() 
+                    if (not e.isGroup())])
+        else:
+            return([])
 
 
     def extendContextMenu(self, menu):

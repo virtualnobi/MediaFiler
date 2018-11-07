@@ -37,18 +37,16 @@ def N_(message): return message
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
 
 class ClassName(object): 
     """
     """
 # Constants
-    Logger = logging.getLogger(__name__)
-
-
 # Class Variables
-
-
-
 # Class Methods
     @classmethod
     def classMethod(clas):

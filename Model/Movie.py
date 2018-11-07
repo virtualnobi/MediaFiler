@@ -38,6 +38,10 @@ def N_(message): return message
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
 
 # Class 
 class Movie(Single):
@@ -51,7 +55,7 @@ class Movie(Single):
     ConfigurationOptionViewer = 'viewer-movie'
     ConfigurationOptionFfmpeg = 'ffmpeg'
     CaptureFramePosition = 0.1  # percentage of movie duration to take capture as placeholder
-    PreviewImageFilename = 'Movie.jpg'  # image shown as placeholder for movie if ffmpeg doesn't work
+    PreviewImageFilename = 'Movie.jpg'  # image shown as placeholder for movie if no capture can be taken
 
 
 
@@ -62,7 +66,7 @@ class Movie(Single):
         """
         return(_('Movie'))
 
-    
+
     @classmethod
     def getLegalExtensions(cls):
         """Return a set of file extensions which cls can display.
@@ -74,6 +78,86 @@ class Movie(Single):
         return(set(cls.LegalExtensions))
 
     
+    @classmethod
+    def getDurationFromPath(self, aMediaCollection, path):
+        """Determine the duration of the given movie, in seconds.
+        
+        Model.MediaCollection aMediaCollection
+        String path
+        Return Number or None
+        """
+        ffmpeg = aMediaCollection.getConfiguration(Movie.ConfigurationOptionFfmpeg)
+        if (ffmpeg):
+            try:
+                args = [ffmpeg, 
+                        '-i',
+                        path]
+                Logger.debug('Movie.getDurationFromPath(): Calling "%s"' % args)
+                proc = subprocess.Popen(args, stderr=subprocess.PIPE)
+                (_, result) = proc.communicate()
+                m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', result)
+                if (m == None):
+                    Logger.warning('Movie.getDurationFromPath(): Cannot determine duration for "%s"!' % path)
+                else:
+                    # Avoiding strptime here because it has some issues handling milliseconds.
+                    m = [int(m.group(i)) for i in range(1, 5)]
+                    self.duration = datetime.timedelta(hours=m[0],
+                                                       minutes=m[1],
+                                                       seconds=m[2],
+                                                       # * 10 because truncated to 2 decimal places
+                                                       milliseconds=m[3] * 10
+                                                       ).total_seconds()
+            except Exception as e:
+                Logger.warning('Movie.getDurationFromPath(): Cannot determine duration due to error:\n%s' % e)
+        else:
+            Logger.warning('Movie.getDurationFromPath(): No ffmpeg specified with option "%s"' % Movie.ConfigurationOptionFfmpeg)
+        return(self.duration)
+
+
+    @classmethod
+    def getRawImageFromPath(cls, aMediaCollection, path):
+        """Return a raw image to represent the media content of the given file.
+        
+        Model.MediaCollection aMediaCollection
+        String path
+        Return wx.Image or None
+        """
+        rawImage = None
+        ffmpeg = aMediaCollection.getConfiguration(Movie.ConfigurationOptionFfmpeg)
+        if (ffmpeg):
+            try:
+                Logger.debug('Movie.getRawImageFromPath(): Using "%s"' % ffmpeg)                
+                duration = cls.getDurationFromPath(aMediaCollection, path)
+                if (duration):
+                    target = max(0, min(duration * Movie.CaptureFramePosition, duration - 0.1))
+                else:
+                    target = 5 
+                    logging.warning('Movie.getRawImageFromPath(): Cannot determine duration, using %s secs as offset for "%s"' % (target, path))
+                targetString = "{:.3f}".format(target)
+                logging.debug('Movie.getRawImageFromPath(): Duration is %s, target frame is %s' % (duration, target))            
+                args = [ffmpeg,
+                        "-ss", targetString,
+                        "-i", path,
+                        "-map", "v:0",     # first video stream
+                        "-frames:v", "1",  # 1 frame
+                        "-f", "mjpeg",     # motion jpeg (aka. jpeg since 1 frame) output
+                        "pipe:"            # pipe output to stdout
+                        ]
+                proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                (output, _) = proc.communicate()
+                if (proc.returncode):
+                    raise subprocess.CalledProcessError(proc.returncode, args)
+                if (not output):
+                    raise subprocess.CalledProcessError(-2, args)
+                stream = cStringIO.StringIO(output)
+                rawImage = wx.ImageFromStream(stream)
+            except Exception as e:
+                Logger.error('Movie.getRawImageFromPath(): Cannot retrieve frame from "%s" due to error:\n%s' % (path, e))
+        else:
+            Logger.warning('Movie.getRawImageFromPath(): No ffmpeg specified with option "%s"' % Movie.ConfigurationOptionFfmpeg)
+        return(rawImage)
+
+
     @classmethod
     def getConfigurationOptionExternalViewer(cls):
         """Return the configuration option to retrieve the command string for an external viewer of self.

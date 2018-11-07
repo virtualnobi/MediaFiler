@@ -34,6 +34,7 @@ ImportDeleteOriginals = 'import-delete-originals'
 ImportMarkAsNew = 'import-mark-as-new'
 ImportKeepUnknownTags = 'import-keep-unknown-tags'
 ImportReportIllegals = 'import-report-illegals'
+ImportCheckForDuplicates = 'import-check-duplicates'
 ImportPreferExif = 'import-prefer-exif'
 
 

@@ -43,6 +43,11 @@ else:
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
+
 class ImportParameterObject(object):
     """A ParameterObject pattern to collect import control parameters.
     
@@ -66,6 +71,7 @@ class ImportParameterObject(object):
         self.illegalElements = {}
         self.testRun = True
         self.numberOfImportedFiles = 0
+        self.mediaMap = None
         # the following are options on the UI, which are defaulted to last used values
         self.importDirectory = self.model.getConfiguration(GlobalConfigurationOptions.ImportPath)
         if (self.importDirectory == None):
@@ -99,12 +105,17 @@ class ImportParameterObject(object):
         if (stringValue == None):
             self.keepUnknownTags = (self.model.organizationStrategy == OrganizationByDate)
         else:
-            self.keepUnknownTags = (stringValue == 'True')                    
+            self.keepUnknownTags = (stringValue == 'True')
         stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportReportIllegals)
         if (stringValue == None):
             self.reportIllegalElements = False
         else: 
-            self.reportIllegalElements = (stringValue == 'True')            
+            self.reportIllegalElements = (stringValue == 'True')         
+        stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportCheckForDuplicates)
+        if (stringValue == None):
+            self.checkForDuplicates = False
+        else: 
+            self.checkForDuplicates = (stringValue == 'True')
         # parameters for OrganizationByDate
         stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportPreferExif)
         if (stringValue == None):
@@ -148,6 +159,14 @@ class ImportParameterObject(object):
 
     def setReportIllegalElements(self, value):
         self.reportIllegalElements = value
+
+
+    def setCheckForDuplicates(self, value):
+        self.checkForDuplicates = value
+
+
+    def setMediaMap(self, value):
+        self.mediaMap = value
 
 
     def setPreferPathDateOverExifDate(self, value):
@@ -196,6 +215,14 @@ class ImportParameterObject(object):
         return(self.reportIllegalElements)
 
 
+    def getCheckForDuplicates(self):
+        return(self.checkForDuplicates)
+
+
+    def getMediaMap(self):
+        return(self.mediaMap)
+
+
     def getPreferPathDateOverExifDate(self):
         return(self.preferPathDateOverExifDate)
 
@@ -241,6 +268,8 @@ class ImportParameterObject(object):
                                     self.keepUnknownTags)        
         self.model.setConfiguration(GlobalConfigurationOptions.ImportReportIllegals,
                                     self.reportIllegalElements)
+        self.model.setConfiguration(GlobalConfigurationOptions.ImportCheckForDuplicates,
+                                    self.checkForDuplicates)
         # parameters for OrganizationByDate
         self.model.setConfiguration(GlobalConfigurationOptions.ImportPreferExif,
                                     self.preferPathDateOverExifDate)
@@ -263,8 +292,6 @@ class ImportDialog(wx.Dialog):
     
 
 # Constants
-    Logger = logging.getLogger(__name__)
-    # dialog texts
     TitleTestRun = _('Test Import')
     TitleImport = _('Import')
     FieldLabelImportDirectory = _('Directory')
@@ -276,6 +303,7 @@ class ImportDialog(wx.Dialog):
     FieldLabelMarkAsNew = (_('Mark Imported Files as "%s"') % MediaClassHandler.ElementNew)
     FieldLabelKeepUnknown = _('Keep Unknown Tags')
     FieldLabelReportIllegal = _('Report Illegal Elements')
+    FieldLabelCheckForDuplicates = _('Check For Duplicates')
     FieldLabelPreferPathDate = _('Prefer Date in Pathname over EXIF Date')
 
 
@@ -377,7 +405,6 @@ class ImportDialog(wx.Dialog):
               (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL))
         checkbox = wx.CheckBox(self)
         checkbox.SetValue(self.parameters.getMarkAsNew())
-#        checkbox.Enable(model.organizedByDate)
         self.Bind(wx.EVT_CHECKBOX, self.onMarkAsNew, checkbox)
         s.Add(checkbox, 
               (6, 1),
@@ -407,20 +434,32 @@ class ImportDialog(wx.Dialog):
               (8, 1),
               (1, 1),
               (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
-        # row 10 - preferPathDateOverExifDate
+        # row 10 - checkForDuplicates
+        s.Add(wx.StaticText(self, -1, self.FieldLabelCheckForDuplicates),
+              (9, 0),
+              (1, 1),
+              (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)) 
+        checkbox = wx.CheckBox(self)
+        checkbox.SetValue(self.parameters.getCheckForDuplicates())
+        self.Bind(wx.EVT_CHECKBOX, self.onCheckForDuplicates, checkbox)
+        s.Add(checkbox, 
+              (9, 1),
+              (1, 1),
+              (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
+        # row 11 - preferPathDateOverExifDate
         if (model.organizedByDate):
             s.Add(wx.StaticText(self, -1, self.FieldLabelPreferPathDate),
-                  (9, 0),
+                  (10, 0),
                   (1, 1),
                   (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)) 
             checkbox = wx.CheckBox(self)
             checkbox.SetValue(self.parameters.getPreferPathDateOverExifDate())
             self.Bind(wx.EVT_CHECKBOX, self.onPreferPathDate, checkbox)
             s.Add(checkbox, 
-                  (9, 1),
+                  (10, 1),
                   (1, 1),
                   (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
-        # row 11 - buttons
+        # row 12 - buttons
         btnsizer = wx.StdDialogButtonSizer()
         btn = wx.Button(self, wx.ID_OK)
         btn.SetDefault()
@@ -429,7 +468,7 @@ class ImportDialog(wx.Dialog):
         btnsizer.AddButton(btn)
         btnsizer.Realize() 
         s.Add(btnsizer, 
-              (10, 0),
+              (11, 0),
               (1,2), 
               (wx.ALIGN_RIGHT|wx.ALL))
         # events
@@ -451,12 +490,12 @@ class ImportDialog(wx.Dialog):
 # Event Handlers
     def onResize(self, event):  # @UnusedVariable
         #event.GetEventObject().GetSizer().Layout()
-        self.__class__.Logger.warning('ImportDialog.onResize(): Resize event ignored')
+        Logger.warning('ImportDialog.onResize(): Resize event ignored')
 
 
     def onDirectoryChanged(self, event):  # @UnusedVariable
         self.parameters.setImportDirectory(self.importDirectoryField.GetValue())
-        self.__class__.Logger.debug('ImportDialog.onDirectoryChanged(): importDirectory set to %s' % self.parameters.getImportDirectory())
+        Logger.debug('ImportDialog.onDirectoryChanged(): importDirectory set to %s' % self.parameters.getImportDirectory())
 
 
     def onBrowse(self, event):  # @UnusedVariable
@@ -476,7 +515,7 @@ class ImportDialog(wx.Dialog):
 
     def onDeleteOriginal(self, event):
         self.parameters.setDeleteOriginals(event.GetEventObject().GetValue())
-        self.__class__.Logger.debug('ImportDialog.onDeleteOriginal(): deleteOriginals set to %s' % self.parameters.getDeleteOriginals())
+        Logger.debug('ImportDialog.onDeleteOriginal(): deleteOriginals set to %s' % self.parameters.getDeleteOriginals())
 
 
     def onMaxNumber(self, event):
@@ -486,17 +525,17 @@ class ImportDialog(wx.Dialog):
             pass
         else:
             self.parameters.setMaxFilesToImport(maxFiles)
-            self.__class__.Logger.debug('ImportDialog.onMaxNumber(): maxFilesToImport set to %s' % self.parameters.getMaxFilesToImport())
+            Logger.debug('ImportDialog.onMaxNumber(): maxFilesToImport set to %s' % self.parameters.getMaxFilesToImport())
 
 
     def onIgnoreUnknowns(self, event):
         self.parameters.setIgnoreUnhandledTypes(event.GetEventObject().GetValue())
-        self.__class__.Logger.debug('ImportDialog.onIgnoreUnknowns(): ignoreUnknowns set to %s' % self.parameters.getIgnoreUnhandledTypes())
+        Logger.debug('ImportDialog.onIgnoreUnknowns(): ignoreUnknowns set to %s' % self.parameters.getIgnoreUnhandledTypes())
 
 
     def onMarkAsNew(self, event):
         self.parameters.setMarkAsNew(event.GetEventObject().GetValue())
-        self.__class__.Logger.debug('ImportDialog.onMarksAsNew(): markAsNew set to %s' % self.parameters.getMarkAsNew())
+        Logger.debug('ImportDialog.onMarksAsNew(): markAsNew set to %s' % self.parameters.getMarkAsNew())
 
     
     def onMinimumSize(self, event):
@@ -507,28 +546,27 @@ class ImportDialog(wx.Dialog):
             event.GetEventObject().SetValue(self.parameters.getMinimumFileSizeAsString())
         else:
             self.parameters.setMinimumFileSize(size)
-            self.__class__.Logger.debug('ImportDialog.onMinimumSize set to %s' % self.parameters.getMinimumFileSize())
+            Logger.debug('ImportDialog.onMinimumSize set to %s' % self.parameters.getMinimumFileSize())
 
 
     def onKeepUnknown(self, event):
-        """
-        """
         self.parameters.setKeepUnknownTags(event.GetEventObject().GetValue())
-        self.__class__.Logger.debug('ImportDialog.onKeepUnknown(): keepUnknownTags set to %s' % self.parameters.getKeepUnknownTags())
+        Logger.debug('ImportDialog.onKeepUnknown(): keepUnknownTags set to %s' % self.parameters.getKeepUnknownTags())
 
 
     def onReportIllegal(self, event):
-        """
-        """
         self.parameters.setReportIllegalElements(event.GetEventObject().GetValue())
-        self.__class__.Logger.debug('ImportDialog.onReportIllegal(): reportIllegals set to %s' % self.parameters.getReportIllegalElements())
+        Logger.debug('ImportDialog.onReportIllegal(): reportIllegals set to %s' % self.parameters.getReportIllegalElements())
+
+
+    def onCheckForDuplicates(self, event):
+        self.parameters.setCheckForDuplicates(event.GetEventObject().GetValue())
+        Logger.debug('ImportDialog.onCheckForDuplicates(): checkForDuplicates set to %s' % self.parameters.getCheckForDuplicates())
 
 
     def onPreferPathDate(self, event):
-        """
-        """
         self.parameters.setPreferPathDateOverExifDate(event.GetEventObject().GetValue())
-        self.__class__.Logger.debug('ImportDialog.onPreferPathDate(): preferPathDate set to %s' % self.parameters.getPreferPathDateOverExifDate())
+        Logger.debug('ImportDialog.onPreferPathDate(): preferPathDate set to %s' % self.parameters.getPreferPathDateOverExifDate())
 
 
 

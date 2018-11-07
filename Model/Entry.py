@@ -72,14 +72,11 @@ class Entry(PausableObservable):
 
 
     @classmethod
-    def createInstance(self, model, path):
-        """Return an instance of (a subclass of) Entry to represent a media file.
+    def getSubclassForPath(self, path):
+        """Return the subclass of Entry to create an entry for the specified file.
 
-        Raise BaseException when no subclass of Entry registered to handle the file's type
-        
-        model imageFilerModel
         path String
-        Returns an instance of (a subclass of) Entry 
+        Returns a subclass of Entry 
         """
         if (os.path.isdir(path)):
             clas = Installer.getProductTrader().getClassFor(self.SpecificationGroup)
@@ -88,10 +85,36 @@ class Entry(PausableObservable):
             extension = extension[1:].lower()  # remove leading '.'
             try:
                 clas = Installer.getProductTrader().getClassFor(extension)
-            except:  # probably extension has no class registered to handle it
-                logging.error('Entry.createInstance(): No class registered to instantiate "%s" media "%s"!' % (extension, path))
+            except:  
+                Logger.error('Entry.getSubclassForPath(): No class registered to instantiate "%s" media "%s"!' % (extension, path))
                 return(None)
-        return(clas(model, path))
+        return(clas)
+
+
+    @classmethod
+    def createInstance(self, model, path):
+        """Return an instance of (a subclass of) Entry to represent the given media file.
+
+        model imageFilerModel
+        path String
+        Returns an instance of (a subclass of) Entry 
+        """
+        subclass = self.getSubclassForPath(path)
+        if (subclass):
+            return(subclass(model, path))
+        else:
+            return(None)
+#         if (os.path.isdir(path)):
+#             clas = Installer.getProductTrader().getClassFor(self.SpecificationGroup)
+#         else:
+#             (dummy, extension) = os.path.splitext(path) 
+#             extension = extension[1:].lower()  # remove leading '.'
+#             try:
+#                 clas = Installer.getProductTrader().getClassFor(extension)
+#             except:  
+#                 logging.error('Entry.createInstance(): No class registered to instantiate "%s" media "%s"!' % (extension, path))
+#                 return(None)
+#         return(clas(model, path))
 
 
 
@@ -247,13 +270,13 @@ class Entry(PausableObservable):
         return(self.filteredFlag)
 
         
-    def isIdentical(self, anEntry):
+    def isIdentical(self, anEntry):  # TODO: rename, as it's about content equality, not about identity
         """Check whether self and anEntry have the same content.
         
         Returns True iff self and anEntry are identical
         """
-        #print('isIdentical(%s, %s)' % (self.getPath(), anEntry.getPath()))
-        return(self == anEntry) 
+#         return(self == anEntry)
+        return(self.__class__ == anEntry.__class__)
 
 
     def getPath(self):

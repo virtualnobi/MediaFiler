@@ -777,6 +777,7 @@ class SingletonFilter(FilterConditionWithMode):
             Logger.error('SingletonFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
 
 
+
 class SceneFilter(FilterConditionWithMode):
     """Represents a filter for scene numbers.
     """

@@ -11,7 +11,7 @@ import logging
 import re
 ## contributed
 import wx.lib.scrolledpanel
-import wx.lib.masked
+# import wx.lib.masked
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
@@ -19,7 +19,7 @@ import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
 from Model.Single import Single
-from Model.MediaFilter import MediaFilter
+# from Model.MediaFilter import MediaFilter
 
 
 

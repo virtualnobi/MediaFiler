@@ -23,6 +23,7 @@ from Model import Installer
 from Model.MediaClassHandler import MediaClassHandler 
 from Model.MediaFilter import MediaFilter
 from Model.Entry import Entry
+from Model.MediaMap import MediaMap
 from Model.MediaOrganization.OrganizationByDate import OrganizationByDate
 from Model.MediaOrganization.OrganizationByName import OrganizationByName
 from Model.CachingController import CachingController
@@ -511,6 +512,8 @@ class MediaCollection(Observable, Observer):
         
         Return a String containing the log.
         """
+        if (importParameters.getCheckForDuplicates()):
+            importParameters.setMediaMap(MediaMap(self))
         illegalElements = {}  # mapping illegal element strings to file names
         importParameters.logString('Importing by %s from "%s" into "%s"\n' 
                                    % (('date' if (self.organizationStrategy == OrganizationByDate) else 'name'),
@@ -579,17 +582,23 @@ class MediaCollection(Observable, Observer):
                     if (importParameters.canImportOneMoreFile()):
                         fileSize = os.stat(sourcePath).st_size
                         if (importParameters.getMinimumFileSize() < fileSize):
-                            self.organizationStrategy.importMedia(importParameters, 
-                                                                  sourcePath, 
-                                                                  level, 
-                                                                  baseLength, 
-                                                                  targetDir,
-                                                                  newTargetPathInfo,
-                                                                  illegalElements)
-                            if ((not importParameters.getTestRun())
-                                and (importParameters.getDeleteOriginals())):
-                                importParameters.logString('Removing imported file "%s"\n' % sourcePath)
-                                os.remove(sourcePath)
+                            duplicate = None
+                            if (importParameters.getCheckForDuplicates()):
+                                duplicate = importParameters.getMediaMap().getDuplicate(sourcePath, fileSize)
+                            if (duplicate == None):
+                                self.organizationStrategy.importMedia(importParameters, 
+                                                                      sourcePath, 
+                                                                      level, 
+                                                                      baseLength, 
+                                                                      targetDir,
+                                                                      newTargetPathInfo,
+                                                                      illegalElements)
+                                if ((not importParameters.getTestRun())
+                                    and (importParameters.getDeleteOriginals())):
+                                    importParameters.logString('Removing imported file "%s"\n' % sourcePath)
+                                    os.remove(sourcePath)
+                            else:
+                                importParameters.logString('Duplicate media in "%s"' % sourcePath)
                         else:
                             importParameters.logString('Ignoring small %sb file "%s"\n' % (fileSize, sourcePath))
                     else:
