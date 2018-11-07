@@ -15,7 +15,7 @@ log*.txt
 ## Eclipse
 #################
 .project
-.settings
+.settings/
 .metadata
 bin/
 tmp/

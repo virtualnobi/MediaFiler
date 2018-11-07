@@ -1,9 +1,9 @@
-21:53:41| MediaFiler.__main__(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
-21:53:41| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model']
-21:53:41| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model\\MediaOrganization']
-21:53:41| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\UI']
-21:53:41| MediaFiler.getLoggableModules(): Returning ['MediaFiler', 'Model.CachingController', 'Model.Entry', 'Model.GlobalConfigurationOptions', 'Model.Group', 'Model.Image', 'Model.Installer', 'Model.MediaClassHandler', 'Model.MediaCollection', 'Model.MediaFilter', 'Model.MediaNameHandler', 'Model.MediaOrganization', 'Model.MediaOrganization.OrganizationByDate', 'Model.MediaOrganization.OrganizationByName', 'Model.Movie', 'Model.Single', 'UI.GUIId', 'UI.Importing', 'UI.MediaCanvasPane', 'UI.MediaClassificationPane', 'UI.MediaFilterPane', 'UI.MediaNamePane', 'UI.MediaTreePane', 'UI.PresentationControlPane']
-21:53:42| Installer.checkInstallation(): Checking folders at "N:\shared\images"...
-21:53:42| Installer.checkInstallation(): Installation at "N:\shared\images" is ok
-21:53:42| Installer.ensureInstallationOk(): Changing working directory to "N:\shared\images"
-21:53:42| MediaFiler.__main__(): Now permanently logging to "N:\shared\images\lib\log-1.txt"
+19:09:46| MediaFiler.__main__(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
+19:09:47| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model']
+19:09:47| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model\\MediaOrganization']
+19:09:47| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\UI']
+19:09:47| MediaFiler.getLoggableModules(): Returning ['MediaFiler', 'Model.CachingController', 'Model.Entry', 'Model.GlobalConfigurationOptions', 'Model.Group', 'Model.Image', 'Model.Installer', 'Model.MediaClassHandler', 'Model.MediaCollection', 'Model.MediaFilter', 'Model.MediaMap', 'Model.MediaNameHandler', 'Model.MediaOrganization', 'Model.MediaOrganization.OrganizationByDate', 'Model.MediaOrganization.OrganizationByName', 'Model.Movie', 'Model.Single', 'UI.GUIId', 'UI.Importing', 'UI.MediaCanvasPane', 'UI.MediaClassificationPane', 'UI.MediaFilterPane', 'UI.MediaNamePane', 'UI.MediaTreePane', 'UI.PresentationControlPane']
+19:09:48| Installer.checkInstallation(): Checking folders at "N:\shared\images"...
+19:09:48| Installer.checkInstallation(): Installation at "N:\shared\images" is ok
+19:09:48| Installer.ensureInstallationOk(): Changing working directory to "N:\shared\images"
+19:09:48| MediaFiler.__main__(): Now permanently logging to "N:\shared\images\lib\log-1.txt"
