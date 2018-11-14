@@ -405,7 +405,7 @@ class Single(Entry):
         viewerName = viewerName.encode(sys.getfilesystemencoding())
         commandArgs = shlex.split(viewerName)  # viewerName.split() will not respect quoting (for whitespace in file names)
         Logger.debug('Single.runExternalViewer(): Calling "%s"' % commandArgs)
-        result = subprocess.call(commandArgs, shell=False)
+        result = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
         if (result <> 0):
             Logger.warn('Single.runExternalViewer(): External command "%s" failed with %s' % (commandArgs, result))
             dlg = wx.MessageDialog(parentWindow,
@@ -423,6 +423,6 @@ class Single(Entry):
         if (emailClient):
             emailClient = emailClient.replace(GlobalConfigurationOptions.Parameter, self.getPath())
             commandArgs = shlex.split(emailClient)
-            subprocess.call(commandArgs, shell=False)
+            subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
 
 

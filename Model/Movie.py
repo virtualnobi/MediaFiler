@@ -5,7 +5,6 @@
 
 # Imports
 ## standard
-import sys
 import datetime
 import re
 import os.path
@@ -14,6 +13,7 @@ import subprocess
 import logging
 import cStringIO
 ## contributed
+import nobi.win_subprocess  # @UnusedImport - this broken subprocess.popen() to handle unicode 
 import wx
 ## nobi
 ## project
@@ -156,6 +156,7 @@ class Movie(Single):
                 Logger.error('Movie.getRawImageFromPath(): Cannot retrieve frame from "%s" due to error:\n%s' % (path, e))
         else:
             Logger.warning('Movie.getRawImageFromPath(): No ffmpeg specified with option "%s"' % Movie.ConfigurationOptionFfmpeg)
+        if (rawImage == None):
             rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
                                 wx.BITMAP_TYPE_JPEG)
             if (rawImage == None):
@@ -185,66 +186,6 @@ class Movie(Single):
         # internal state
         self.duration = None
         return(None)
-
-
-
-## Inheritance - Entry
-#     def runContextMenuItem(self, menuId, parentWindow):
-#         """User selected menuId from context menu on self. Execute this function.
-#         
-#         menuId Number from GUIId function numbers
-#         parentWindow wx.Window to open dialogs on
-#         Returns
-#         """
-#         print('Running function %d on "%s"' % (menuId, self.getPath()))
-#         return(super(Movie, self).runContextMenuItem(menuId, parentWindow))
-
-
-
-## Inheritance - Single
-#     def getRawImage(self):
-#         """Retrieve raw data (JPG or PNG or GIF) for image.
-#         """
-#         print('Movie.getRawImage(): Deprecated!')
-#         if (self.rawImage <> None):
-#             return(self.rawImage)
-#         ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
-#         if (ffmpeg):
-#             try:
-#                 logging.debug('Movie.getRawImage(): Using "%s"' % ffmpeg)                
-#                 duration = self.getDuration()
-#                 if (duration):
-#                     target = max(0, min(duration * self.__class__.CaptureFramePosition, duration - 0.1))
-#                 else:
-#                     target = 5 
-#                     logging.warning('Movie.getRawImage(): Cannot determine duration, using %s secs as offset for "%s"' % (target, self.getPath()))
-#                 targetString = "{:.3f}".format(target)
-#                 logging.debug('Movie.getRawImage(): Duration is %s, target frame is %s' % (duration, target))            
-#                 args = [ffmpeg,
-#                         "-ss", targetString,
-#                         "-i", self.getPath(),
-#                         "-map", "v:0",     # first video stream
-#                         "-frames:v", "1",  # 1 frame
-#                         "-f", "mjpeg",     # motion jpeg (aka. jpeg since 1 frame) output
-#                         "pipe:"            # pipe output to stdout
-#                         ]
-#                 proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#                 (output, _) = proc.communicate()
-#                 if (proc.returncode):
-#                     raise subprocess.CalledProcessError(proc.returncode, args)
-#                 if (not output):
-#                     raise subprocess.CalledProcessError(-2, args)
-#                 stream = cStringIO.StringIO(output)
-#                 self.rawImage = wx.ImageFromStream(stream)
-#             except Exception as e:
-#                 logging.error('Movie.getRawImage(): Cannot retrieve frame from "%s"; error follows:\n%s' % (self.getPath(), e))
-#         if (self.rawImage == None):
-#             self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
-#                                      wx.BITMAP_TYPE_JPEG)
-#             assert (self.rawImage <> None), ('Cannot load default image for "%s"' % self.getPath())
-#         self.rawImageWidth = self.rawImage.GetWidth()
-#         self.rawImageHeight = self.rawImage.GetHeight()
-#         return(self.rawImage)
 
 
 

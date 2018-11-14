@@ -599,7 +599,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
             editorName = editorName.replace(GlobalConfigurationOptions.Parameter, classFile)
             commandArgs = shlex.split(editorName)  # editorName.split() does not respect quotes
             logging.debug('App.onEditClasses(): Calling %s' % commandArgs)
-            retCode = subprocess.call(commandArgs, shell=False)
+            retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
             if (retCode <> 0):
                 MediaFiler.Logger.warn('MediaFiler.onEditClasses(): Call failed with return code %s!' % retCode)
                 dlg = wx.MessageDialog(self, 
@@ -625,7 +625,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 editorName = editorName.replace(GlobalConfigurationOptions.Parameter, namesFile)
                 commandArgs = shlex.split(editorName)
                 MediaFiler.Logger.debug('MediaFiler.onEditNames(): Calling %s' % commandArgs)
-                retCode = subprocess.call(commandArgs, shell=False)
+                retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
                 if (retCode <> 0):
                     MediaFiler.Logger.warn('App.onEditNames(): Call failed with return code %s!' % retCode)
                     dlg = wx.MessageDialog(self, 
