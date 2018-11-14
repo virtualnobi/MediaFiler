@@ -147,7 +147,8 @@ class Group(Entry, Observer):
                 newKwargs = copy.copy(kwargs)
                 if (('elements' in kwargs)
                     and (kwargs['elements'])):
-                    newElements = entry.getElements().union(kwargs['elements'])
+#                     newElements = entry.getElements().union(kwargs['elements'])
+                    newElements = self.model.getClassHandler().combineTagsWithPriority(entry.getElements(), kwargs['elements'])
                     newKwargs['elements'] = newElements
                 Group.Logger.debug('Group.renameTo(): Path info "%s" used for renaming entry "%s"' % (newKwargs, entry))
                 entry.renameTo(**newKwargs)

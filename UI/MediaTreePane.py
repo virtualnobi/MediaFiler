@@ -41,6 +41,11 @@ def N_(message): return message
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
+
 class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
     """The MediaTreeCtrl displays a hierarchy of all media in its model, an ImageFilerModel.
 
@@ -51,7 +56,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
 
 
 # Constants
-    Logger = logging.getLogger(__name__)
+#     Logger = logging.getLogger(__name__)
 
 
 
@@ -101,7 +106,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
                 index = self.GetImageList().Add(icon)
                 self.typeIconsIndices[c] = index
             except Exception as e:
-                self.__class__.Logger.warning('MediaTreePane.setModel(): Cannot find type icon for class "%s"' % c)
+                Logger.warning('MediaTreeCtrl.setModel(): Cannot find type icon for class "%s"' % c)
                 self.typeIconsIndices[c] = self.fallBackTypeIconIndex
         #
         self.addSubTree(self.model.getRootEntry(), None)
@@ -157,7 +162,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         
         Boolean expand indicates that the selected node shall be expanded.
         """
-        self.__class__.Logger.debug('MediaTreeCtrl.setEntry(%s)' % entry.getPath())
+        Logger.debug('MediaTreeCtrl.setEntry(%s)' % entry)
         self.Freeze()
 #         if (entry == self.model.getRootEntry()):  # TODO: remove
 #             print('MediaTreeCtrl.setEntry(): received root, selected initial entry instead!')
@@ -165,12 +170,15 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         if (entry.getTreeItemID()):
             self.SelectItem(entry.getTreeItemID())
             if (expand):
-                self.Expand(entry.getTreeItemID())         
-            if (entry <> self.GetItemData(entry.getTreeItemID()).GetData()):
-                print('MediaTreeCtrl.setEntry(): Inconsistent data (%sfiltered) for %s' % (('un' if entry.isFiltered() else ''), entry))     
+                self.Expand(entry.getTreeItemID())
+            if (self.GetItemData(entry.getTreeItemID())):
+                if (entry <> self.GetItemData(entry.getTreeItemID()).GetData()):
+                    Logger.error('MediaTreeCtrl.setEntry(): Inconsistent data (%sfiltered) for %s' % (('un' if entry.isFiltered() else ''), entry))     
+            else: 
+                Logger.error('MediaTreeCtrl.setEntry(): No item data for tree item "%s"' % entry)
             self.EnsureVisible(entry.getTreeItemID())
         else:
-            self.__class__.Logger.error('MediaTreeCtrl.setEntry(): no tree item ID for "%s"' % entry.getPath())
+            Logger.error('MediaTreeCtrl.setEntry(): No tree item ID for "%s"' % entry.getPath())
         self.Thaw()
 
 
@@ -182,9 +190,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         if (self.ignoreSelectionChanges): 
             pass
         else:
-            #self.__class__.Logger.debug('MediaTreeCtrl.onSelectionChanged(): Received event %s with item %s' % (event, event.GetItem()))
             entry = self.GetItemData(event.GetItem()).GetData()
-            self.__class__.Logger.debug('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry.getPath())
+            Logger.debug('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry)
             self.ignoreSelectionChanges = True
             self.model.setSelectedEntry(entry)
             self.ignoreSelectionChanges = False
@@ -218,13 +225,13 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """After conventional resizing, ensure selected entry is still visible.
         """
         if (self.oldSize <> event.GetSize()):
-            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.onResize: Resizing from %s to %s' % (self.oldSize, event.GetSize()))
+            Logger.debug('MediaTreeCtrl.onResize: Resizing from %s to %s' % (self.oldSize, event.GetSize()))
         self.oldSize = event.GetSize()
         if (self.model
             and self.model.getSelectedEntry().getTreeItemID()
             and (not self.IsVisible(self.model.getSelectedEntry().getTreeItemID()))):
             wx.CallAfter(self.EnsureVisible, self.model.getSelectedEntry().getTreeItemID())
-            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.onResize: Queued "EnsureVisible(%s)"' % self.model.getSelectedEntry().getPath())
+            Logger.debug('MediaTreeCtrl.onResize: Queued "EnsureVisible(%s)"' % self.model.getSelectedEntry().getPath())
         event.Skip()
 
 
@@ -234,19 +241,18 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """ASPECT of OBSERVABLE changed. 
         """
         super(MediaTreeCtrl, self).updateAspect(observable, aspect)
-        self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(%s)' % aspect)
+        Logger.debug('MediaTreeCtrl.updateAspect(%s)' % aspect)
         if (aspect == 'name'):  # name of an Entry changed
-            self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(): Name changed for %s' % observable.getFilename())
+            Logger.debug('MediaTreeCtrl.updateAspect(): Name changed for %s' % observable)
             node = observable.getTreeItemID()
             self.SetItemText(node, observable.getFilename())
             self.SortChildren(self.GetItemParent(node))
             self.EnsureVisible(node)  # to keep node visible after sorting
         elif (aspect == 'remove'):  # Entry deleted
-            #print('MediaTreeCtrl: entry %s removed' % observable)
             observable.removeObserver(self)
             node = observable.getTreeItemID()
             self.Delete(node)
-            self.__class__.Logger.debug('MediaTreeCtrl.update(): entry "%s" removed' % observable.getPath())
+            Logger.debug('MediaTreeCtrl.update(): entry "%s" removed' % observable)
         elif (aspect == 'children'):  # Group changes its children
             node = observable.getTreeItemID()
             self.ignoreSelectionChanges = True
@@ -256,18 +262,18 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             self.SortChildren(node)
             self.ignoreSelectionChanges = False
             self.setEntry(self.model.getSelectedEntry())
-            self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(): children of "%s" changed' % observable.getPath())
+            Logger.debug('MediaTreeCtrl.updateAspect(): children of "%s" changed' % observable.getPath())
         elif (aspect == 'selection'):  # model changed selection
             entry = observable.getSelectedEntry()
             self.ignoreSelectionChanges = True
             self.setEntry(entry)
             self.ignoreSelectionChanges = False
-            self.__class__.Logger.debug('MediaTreeCtrl.updateAspect(): selected entry "%s"' % entry.getPath())
+            Logger.debug('MediaTreeCtrl.updateAspect(): selected entry "%s"' % entry.getPath())
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.selectionBeforeFiltering = self.model.getSelectedEntry()
             self.storeExpansionState()
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
-            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.updateAspect(): Recreating tree...')
+            Logger.debug('MediaTreeCtrl.updateAspect(): Recreating tree...')
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
@@ -275,7 +281,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
             else:
                 self.setEntry(self.model.getSelectedEntry())
             self.restoreExpansionState()
-            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.updateAspect(): Recreating tree finished')
+            Logger.debug('MediaTreeCtrl.updateAspect(): Recreating tree finished')
         else:
             super(MediaTreeCtrl, self).update(observable, aspect)
 
@@ -289,17 +295,17 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
                 print('MediaTreeCtrl.EnsureVisible: No data found for entry %s' % args[0])
             entry = self.GetItemData(args[0]).GetData()
             boundingRect = self.GetBoundingRect(args[0], textOnly=True)
-            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible: bounding rect is %s' % boundingRect)
+            Logger.debug('MediaTreeCtrl.EnsureVisible: bounding rect is %s' % boundingRect)
             if ((boundingRect == None)
                 or (boundingRect[0] < 0) 
                 or (boundingRect[1] < 0)):  # (not self.IsVisible(args[0])):
-                MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible: invisible item, scrolling to show %s' % entry)
+                Logger.debug('MediaTreeCtrl.EnsureVisible: invisible item, scrolling to show %s' % entry)
                 wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
                 wx.TreeCtrl.ScrollTo(self, args[0]) 
             else:
-                MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible: visible %s, no change' % entry)
+                Logger.debug('MediaTreeCtrl.EnsureVisible: visible %s, no change' % entry)
         else:
-            MediaTreeCtrl.Logger.debug('MediaTreeCtrl.EnsureVisible(): self is a dead object')
+            Logger.debug('MediaTreeCtrl.EnsureVisible(): self is a dead object')
 
 
     def GetDescendants (self, treeItemID):

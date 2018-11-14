@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2018-01-27 16:29+Mitteleuropäische Zeit\n"
+"POT-Creation-Date: 2018-11-14 08:12+Mitteleuropäische Zeit\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,234 +15,303 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 
-#: ..\App.py:69 ..\App.pyw:69
+#: ..\App.pyw:66
 msgid "Filter"
 msgstr ""
 
-#: ..\App.py:70 ..\App.pyw:70
+#: ..\App.pyw:67
 msgid "Media"
 msgstr ""
 
-#: ..\App.py:71 ..\App.pyw:71 ..\UI\PresentationControlPane.py:55
+#: ..\App.pyw:68 ..\UI\PresentationControlPane.py:55
 msgid "Name"
 msgstr ""
 
-#: ..\App.py:72 ..\App.pyw:72
+#: ..\App.pyw:69
 msgid "Classification"
 msgstr ""
 
-#: ..\App.py:73 ..\App.pyw:73
+#: ..\App.pyw:70
 msgid "Log"
 msgstr ""
 
-#: ..\App.py:75 ..\App.pyw:75
+#: ..\App.pyw:72
 msgid "Classify"
 msgstr ""
 
-#: ..\App.py:77 ..\App.pyw:77
+#: ..\App.pyw:74
 msgid "Search"
 msgstr ""
 
-#: ..\App.py:79 ..\App.pyw:79
+#: ..\App.pyw:76
 msgid "Present"
 msgstr ""
 
-#: ..\App.py:81 ..\App.pyw:81
+#: ..\App.pyw:78
 msgid "All Views"
 msgstr ""
 
-#: ..\App.py:82 ..\App.pyw:82
+#: ..\App.pyw:79
 msgid "Last Used"
 msgstr ""
 
-#: ..\App.py:83 ..\App.pyw:83
+#: ..\App.pyw:80
 msgid "&Program"
 msgstr ""
 
-#: ..\App.py:84 ..\App.pyw:84
+#: ..\App.pyw:81
 msgid "&Media"
 msgstr ""
 
-#: ..\App.py:85 ..\App.pyw:85
+#: ..\App.pyw:82
 msgid "&View"
 msgstr ""
 
-#: ..\App.py:86 ..\App.pyw:86
+#: ..\App.pyw:83
 msgid "Perspectiv&e"
 msgstr ""
 
-#: ..\App.py:87 ..\App.pyw:87
+#: ..\App.pyw:84
 msgid "&Import"
 msgstr ""
 
-#: ..\App.py:88 ..\App.pyw:88
+#: ..\App.pyw:85
 msgid "&Tool"
 msgstr ""
 
-#: ..\App.py:360 ..\App.pyw:360
+#: ..\App.pyw:378
 msgid "Select New Image Directory:"
 msgstr ""
 
-#: ..\App.py:377 ..\App.pyw:377
+#: ..\App.pyw:395
 msgid "Select Directory to Export into:"
 msgstr ""
 
-#: ..\App.py:390 ..\App.pyw:390
+#: ..\App.pyw:409
 msgid "%d media exported to \"%s\""
 msgstr ""
 
-#: ..\App.py:398 ..\App.pyw:398
+#: ..\App.pyw:417
 msgid "Closing..."
 msgstr ""
 
-#: ..\App.py:510 ..\App.pyw:510
+#: ..\App.pyw:529
 msgid "Testing import from %s"
 msgstr ""
 
-#: ..\App.py:513 ..\App.pyw:513
+#: ..\App.pyw:532
 msgid "Importing from %s"
 msgstr ""
 
-#: ..\App.py:526 ..\App.pyw:526
+#: ..\App.pyw:545
 msgid "Empty Directory"
 msgstr ""
 
-#: ..\App.py:526 ..\App.pyw:526
+#: ..\App.pyw:545
 msgid "No files to import!"
 msgstr ""
 
-#: ..\App.py:533 ..\App.py:535 ..\App.pyw:533 ..\App.pyw:535
+#: ..\App.pyw:552 ..\App.pyw:554
 msgid "Import Report"
 msgstr ""
 
-#: ..\App.py:535 ..\App.pyw:535
+#: ..\App.pyw:554
 msgid ""
 "Import log too large to display.\n"
 "\n"
 "Import has succeeded."
 msgstr ""
 
-#: ..\App.py:541 ..\App.pyw:541
+#: ..\App.pyw:561
 msgid "%d media imported from \"%s\""
 msgstr ""
 
-#: ..\App.py:585 ..\App.py:612 ..\App.pyw:585 ..\App.pyw:612
+#: ..\App.pyw:561
+msgid "%d media would have been imported from \"%s\""
+msgstr ""
+
+#: ..\App.pyw:606 ..\App.pyw:632
 msgid "The external program failed with return code %s."
 msgstr ""
 
-#: ..\App.py:586 ..\App.py:613 ..\App.pyw:586 ..\App.pyw:613
+#: ..\App.pyw:607 ..\App.pyw:633 ..\App.pyw:642
 msgid "Warning"
 msgstr ""
 
-#: ..\App.py:593 ..\App.py:619 ..\App.pyw:593 ..\App.pyw:619
+#: ..\App.pyw:614 ..\App.pyw:639
 msgid "No editor defined with \"%s\" configuration option!"
 msgstr ""
 
-#: ..\App.py:701 ..\App.pyw:701
+#: ..\App.pyw:641
+msgid "Define a text editor using configuration option \"%s\"."
+msgstr ""
+
+#: ..\App.pyw:749
 msgid "Loading..."
 msgstr ""
 
-#: ..\App.py:726 ..\App.pyw:726
+#: ..\App.pyw:752
+msgid "Reading media"
+msgstr ""
+
+#: ..\App.pyw:757
+msgid "Setting up MVC models"
+msgstr ""
+
+#: ..\App.pyw:774
+msgid "Setting up tree model"
+msgstr ""
+
+#: ..\App.pyw:779
+msgid "Loading perspective"
+msgstr ""
+
+#: ..\App.pyw:784
 msgid "Ready"
 msgstr ""
 
-#: ..\Model\Image.py:58
+#: ..\App.pyw:855
+msgid "Creating window"
+msgstr ""
+
+#: ..\App.pyw:858
+msgid "Checking installation"
+msgstr ""
+
+#: ..\App.pyw:860
+msgid "Setting up temporary logging"
+msgstr ""
+
+#: ..\App.pyw:868
+msgid "Creating media collection"
+msgstr ""
+
+#: ..\App.pyw:870
+msgid "Finalizing"
+msgstr ""
+
+#: ..\Model\Image.py:63
 msgid "Image"
 msgstr ""
 
-#: ..\Model\Installer.py:227
+#: ..\Model\Installer.py:258
 msgid "The current working directory for this program is not a valid media directory. Choose a media directory:"
 msgstr ""
 
-#: ..\Model\Installer.py:235
+#: ..\Model\Installer.py:266
 msgid "Creation of required folders and files failed."
 msgstr ""
 
-#: ..\Model\Installer.py:235
+#: ..\Model\Installer.py:266
 msgid "Error"
 msgstr ""
 
-#: ..\Model\MediaCollection.py:386
+#: ..\Model\MediaCollection.py:131
+msgid "Reading tag definitions"
+msgstr ""
+
+#: ..\Model\MediaCollection.py:144
+msgid "Calculating collection properties"
+msgstr ""
+
+#: ..\Model\MediaCollection.py:398
 msgid "media"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:96
+#: ..\Model\MediaOrganization\OrganizationByDate.py:99
 msgid "at top"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:97
+#: ..\Model\MediaOrganization\OrganizationByDate.py:100
 msgid "with predecessor"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:98
+#: ..\Model\MediaOrganization\OrganizationByDate.py:101
 msgid "at bottom"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:108
+#: ..\Model\MediaOrganization\OrganizationByDate.py:110
 msgid "organized by date"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:783 ..\UI\GUIId.py:96
+#: ..\Model\MediaOrganization\OrganizationByDate.py:856 ..\UI\GUIId.py:96
 msgid "Reorder by Time Taken"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:789
+#: ..\Model\MediaOrganization\OrganizationByDate.py:862
 msgid "Media without capture time placed"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:801
+#: ..\Model\MediaOrganization\OrganizationByDate.py:874
 msgid "Step Width for Renumbering:"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:830
+#: ..\Model\MediaOrganization\OrganizationByDate.py:903
 msgid "Undo the last reorder by time command?"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:831
+#: ..\Model\MediaOrganization\OrganizationByDate.py:904
 msgid "Undo Reordering?"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:835
+#: ..\Model\MediaOrganization\OrganizationByDate.py:908
 msgid "Reordering undone"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:837
+#: ..\Model\MediaOrganization\OrganizationByDate.py:910
 msgid "Undoing reordering failed!"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:915
+#: ..\Model\MediaOrganization\OrganizationByDate.py:988
 msgid "%s media reordered"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByDate.py:917
+#: ..\Model\MediaOrganization\OrganizationByDate.py:990
 msgid "Reordering failed!"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByName.py:72
+#: ..\Model\MediaOrganization\OrganizationByDate.py:998
+msgid "Date Taken"
+msgstr ""
+
+#: ..\Model\MediaOrganization\OrganizationByName.py:93
 msgid "organized by name, %d names used, %d free"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByName.py:560
+#: ..\Model\MediaOrganization\OrganizationByName.py:696
 msgid "Choose Name"
 msgstr ""
 
-#: ..\Model\MediaOrganization\OrganizationByName.py:560
+#: ..\Model\MediaOrganization\OrganizationByName.py:696
 msgid "Enter New Name"
 msgstr ""
 
-#: ..\Model\Movie.py:62
+#: ..\Model\MediaOrganization\OrganizationByName.py:744
+msgid "Single"
+msgstr ""
+
+#: ..\Model\MediaOrganization\OrganizationByName.py:785
+#: ..\UI\MediaFilterPane.py:351
+msgid "Scene"
+msgstr ""
+
+#: ..\Model\MediaOrganization\__init__.py:589
+msgid "Renumbering failed!"
+msgstr ""
+
+#: ..\Model\Movie.py:67
 msgid "Movie"
 msgstr ""
 
-#: ..\Model\Movie.py:170
+#: ..\Model\Movie.py:262
 msgid "%d secs"
 msgstr ""
 
-#: ..\Model\Movie.py:173
+#: ..\Model\Movie.py:265
 msgid "%d mins, "
 msgstr ""
 
-#: ..\Model\Movie.py:177
+#: ..\Model\Movie.py:269
 msgid "unknown duration"
 msgstr ""
 
@@ -390,11 +459,11 @@ msgstr ""
 msgid "Present Slowly"
 msgstr ""
 
-#: ..\UI\GUIId.py:139 ..\UI\Importing.py:268
+#: ..\UI\GUIId.py:139 ..\UI\Importing.py:295
 msgid "Test Import"
 msgstr ""
 
-#: ..\UI\GUIId.py:140 ..\UI\Importing.py:269
+#: ..\UI\GUIId.py:140 ..\UI\Importing.py:296
 msgid "Import"
 msgstr ""
 
@@ -422,111 +491,122 @@ msgstr ""
 msgid "Harvest from URL..."
 msgstr ""
 
-#: ..\UI\GUIId.py:151
-msgid "Browse"
+#: ..\UI\GUIId.py:149
+msgid "Manage Logging..."
 msgstr ""
 
 #: ..\UI\GUIId.py:154
+msgid "Browse"
+msgstr ""
+
+#: ..\UI\GUIId.py:157
 msgid "Rename"
 msgstr ""
 
-#: ..\UI\GUIId.py:155
+#: ..\UI\GUIId.py:158
 msgid "Reuse Last"
 msgstr ""
 
-#: ..\UI\Importing.py:270
+#: ..\UI\Importing.py:297
 msgid "Directory"
 msgstr ""
 
-#: ..\UI\Importing.py:271
+#: ..\UI\Importing.py:298
 msgid "Test Only"
 msgstr ""
 
-#: ..\UI\Importing.py:272
+#: ..\UI\Importing.py:299
 msgid "Delete Originals"
 msgstr ""
 
-#: ..\UI\Importing.py:273
+#: ..\UI\Importing.py:300
 msgid "Maximum Number of Files to Import"
 msgstr ""
 
-#: ..\UI\Importing.py:274
-msgid "Ignore Files of Unknown Type"
+#: ..\UI\Importing.py:301
+msgid "Do not Import Files of Unknown Type"
 msgstr ""
 
-#: ..\UI\Importing.py:275
-msgid "Minimum File Size"
+#: ..\UI\Importing.py:302
+msgid "Do not Import Files Smaller Than"
 msgstr ""
 
-#: ..\UI\Importing.py:276
+#: ..\UI\Importing.py:303
 msgid "Mark Imported Files as \"%s\""
 msgstr ""
 
-#: ..\UI\Importing.py:277
+#: ..\UI\Importing.py:304
 msgid "Keep Unknown Tags"
 msgstr ""
 
-#: ..\UI\Importing.py:278
-msgid "Report Illegal Elements"
+#: ..\UI\Importing.py:305
+msgid "Report Unknown Tags"
 msgstr ""
 
-#: ..\UI\Importing.py:279
-msgid "Prefer Date in Pathname over EXIF Date"
+#: ..\UI\Importing.py:306
+msgid "Do not Import Duplicates"
 msgstr ""
 
-#: ..\UI\Importing.py:466
+#: ..\UI\Importing.py:307
+msgid "Prefer Date in Filename over EXIF Date"
+msgstr ""
+
+#: ..\UI\Importing.py:505
 msgid "Choose a directory to test import:"
 msgstr ""
 
-#: ..\UI\Importing.py:468
+#: ..\UI\Importing.py:507
 msgid "Choose a directory to import from:"
 msgstr ""
 
-#: ..\UI\MediaClassificationPane.py:52
+#: ..\UI\MediaClassificationPane.py:50
 msgid "(no change)"
 msgstr ""
 
-#: ..\UI\MediaClassificationPane.py:54
+#: ..\UI\MediaClassificationPane.py:52
 msgid "(none)"
 msgstr ""
 
-#: ..\UI\MediaFilterPane.py:62 ..\UI\MediaFilterPane.py:63
-msgid "single"
-msgstr ""
-
-#: ..\UI\MediaFilterPane.py:64
-msgid "group"
-msgstr ""
-
-#: ..\UI\MediaFilterPane.py:66
-msgid "unknown"
-msgstr ""
-
-#: ..\UI\MediaFilterPane.py:69
-msgid "any"
-msgstr ""
-
-#: ..\UI\MediaFilterPane.py:71
+#: ..\UI\MediaFilterPane.py:49 ..\UI\MediaFilterPane.py:123
+#: ..\UI\MediaFilterPane.py:358
 msgid "ignore"
 msgstr ""
 
-#: ..\UI\MediaFilterPane.py:73
+#: ..\UI\MediaFilterPane.py:50 ..\UI\MediaFilterPane.py:125
+#: ..\UI\MediaFilterPane.py:360
 msgid "require"
 msgstr ""
 
-#: ..\UI\MediaFilterPane.py:75
+#: ..\UI\MediaFilterPane.py:51 ..\UI\MediaFilterPane.py:127
+#: ..\UI\MediaFilterPane.py:362
 msgid "exclude"
 msgstr ""
 
-#: ..\UI\MediaFilterPane.py:79
-msgid "Size:"
+#: ..\UI\MediaFilterPane.py:158
+msgid "Unknown Tag"
 msgstr ""
 
-#: ..\UI\MediaFilterPane.py:80
-msgid "Date Range:"
+#: ..\UI\MediaFilterPane.py:233
+msgid "Media Type"
 msgstr ""
 
-#: ..\UI\MediaFilterPane.py:81
-msgid "Media Type:"
+#: ..\UI\MediaFilterPane.py:279
+msgid "Size (%)"
+msgstr ""
+
+#: ..\UI\MediaFilterPane.py:353
+msgid "unknown"
+msgstr ""
+
+#: ..\UI\MediaFilterPane.py:356
+msgid "any"
+msgstr ""
+
+#: ..\UI\MediaFilterPane.py:711
+msgid "Turn off filter"
+msgstr ""
+
+#: ..\UI\MediaFilterPane.py:713
+msgid "Turn on filter"
 msgstr ""
 

@@ -128,7 +128,7 @@ class MediaCollection(Observable, Observer):
             self.organizedByDate = True
             self.organizationStrategy = OrganizationByDate
         self.organizationStrategy.setModel(self)
-        progressFunction(30)
+        progressFunction(30, _('Reading tag definitions'))
         self.classHandler = MediaClassHandler(Installer.getClassFilePath())
         if (self.classHandler.isLegalElement(MediaCollection.ReorderTemporaryTag)):
             index = 1
@@ -138,11 +138,10 @@ class MediaCollection(Observable, Observer):
                 tag = ('%s%d' % (tag, index))
             MediaCollection.ReorderTemporaryTag = tag
             MediaCollection.Logger.warning('MediaCollection.setRootDirectory(): Temporary reordering tag changed to "%s"' % tag)
-        progressFunction(35)
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
         self.loadSubentries(self.root, progressFunction)
-        progressFunction(80)
+        progressFunction(80, _('Calculating collection properties'))
         self.cacheCollectionProperties()
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'filterChanged')
@@ -215,7 +214,7 @@ class MediaCollection(Observable, Observer):
                 if subEntry.isGroup():
                     self.loadSubentries(subEntry)
             if (progressFunction):
-                progressFunction(start + (step * stepWidth))
+                progressFunction(start + (step * stepWidth), ('Reading media from %s' % fileName))
                 step = (step + 1)
         return(result)
 
@@ -556,6 +555,7 @@ class MediaCollection(Observable, Observer):
         allFiles = os.listdir(sourceDir)
         allFiles.sort()  # ensure that existing numbers are respected in new numbering
         for oldName in allFiles:
+            importParameters.logString(' ')
             sourcePath = os.path.join(sourceDir, oldName)
             newTargetPathInfo = self.organizationStrategy.pathInfoForImport(importParameters,
                                                                             sourcePath,
@@ -573,7 +573,7 @@ class MediaCollection(Observable, Observer):
                 if ((not importParameters.getTestRun())
                     and (importParameters.getDeleteOriginals())
                     and (len(os.listdir(sourcePath)) == 0)):
-                    importParameters.logString('Removing empty directory "%s"\n' % sourcePath)
+                    importParameters.logString('Removing empty directory "%s"' % sourcePath)
                     os.rmdir(sourcePath)
             else:  # import a media file
                 (dummy, extension) = os.path.splitext(sourcePath)
@@ -595,17 +595,17 @@ class MediaCollection(Observable, Observer):
                                                                       illegalElements)
                                 if ((not importParameters.getTestRun())
                                     and (importParameters.getDeleteOriginals())):
-                                    importParameters.logString('Removing imported file "%s"\n' % sourcePath)
+                                    importParameters.logString('Removing imported file "%s"' % sourcePath)
                                     os.remove(sourcePath)
                             else:
                                 importParameters.logString('Duplicate media in "%s"' % sourcePath)
                         else:
-                            importParameters.logString('Ignoring small %sb file "%s"\n' % (fileSize, sourcePath))
+                            importParameters.logString('Ignoring small %sb file "%s"' % (fileSize, sourcePath))
                     else:
-                        importParameters.logString('Maximum number of %s files for import reached!\n' % importParameters.getMaxFilesToImport())
+                        importParameters.logString('Maximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
                         raise StopIteration
                 else:
-                    importParameters.logString('Ignoring unhandled file "%s"\n' % sourcePath)
+                    importParameters.logString('Ignoring unhandled file "%s"' % sourcePath)
 
 
     def fixPathWhileImporting(self, parameters, oldPath):

@@ -5,6 +5,7 @@
 
 # Imports
 ## Standard
+import sys
 import re
 import os.path
 import logging
@@ -104,17 +105,6 @@ class Entry(PausableObservable):
             return(subclass(model, path))
         else:
             return(None)
-#         if (os.path.isdir(path)):
-#             clas = Installer.getProductTrader().getClassFor(self.SpecificationGroup)
-#         else:
-#             (dummy, extension) = os.path.splitext(path) 
-#             extension = extension[1:].lower()  # remove leading '.'
-#             try:
-#                 clas = Installer.getProductTrader().getClassFor(extension)
-#             except:  
-#                 logging.error('Entry.createInstance(): No class registered to instantiate "%s" media "%s"!' % (extension, path))
-#                 return(None)
-#         return(clas(model, path))
 
 
 
@@ -513,9 +503,9 @@ class Entry(PausableObservable):
 
 
 # Other API methods
-    @profiledOnLogger(Logger, sort='cumulative')
+    # @profiledOnLogger(Logger, sort='cumulative')
     def renameTo(self, 
-                 classesToRemove=None, elements=None, removeIllegalElements=False,
+                 elements=None, removeIllegalElements=False,
                  number=None, makeUnique=False,
                  **kwargs):
         """Rename self's file, replacing the components as specified. 
@@ -523,7 +513,6 @@ class Entry(PausableObservable):
         If a parameter is None or not given in pathInfo, leave it unchanged. 
         If makeUnique is True, find another number to ensure a unique filename.
         
-        Set of String classesToRemove contains the names of classes whose tags shall be removed
         Dictionary pathInfo may contain the following keys:
             <organization-specific keys>
                 String year, month, day 
@@ -532,16 +521,10 @@ class Entry(PausableObservable):
             Boolean makeUnique 
             Set of String elements 
             Boolean removeIllegalElements
+            Set of String classesToRemove contains the names of classes whose tags shall be removed
         Return Boolean indicating success
         """
         # elements
-        if (classesToRemove):  
-            if (elements == None):  # if classes must be removed, elements must be explicit
-                elements = self.getElements()
-            for className in classesToRemove: 
-                for tag in self.model.getClassHandler().getElementsOfClassByName(className):
-                    elements.discard(tag)
-            kwargs['classesToRemove'] = classesToRemove
         if (elements 
             or removeIllegalElements):
             if (elements):

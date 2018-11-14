@@ -267,7 +267,19 @@ class Single(Entry):
     def getRawImage(self, debug=False):
         """Retrieve raw data (JPG or PNG or GIF) for media.
         """
-        raise NotImplementedError
+        if (self.rawImage):
+            return(self.rawImage)
+        encodedPath = self.getPath()  # .encode(sys.getfilesystemencoding())
+        print('reading %s\n  for raw' % encodedPath)
+        self.rawImage = self.__class__.getRawImageFromPath(self.model, encodedPath)
+        self.rawImageHeight = self.rawImage.GetHeight()
+        self.rawImageWidth = self.rawImage.GetWidth()
+        CachingController.allocateMemory(self, 
+                                         self.getRawDataMemoryUsage(), 
+                                         cachePriority=Entry.CachingLevelRawData)
+        self.releaseCacheWithPriority(Entry.CachingLevelFullsizeBitmap)
+        self.releaseCacheWithPriority(Entry.CachingLevelThumbnailBitmap)
+        return(self.rawImage)
 
 
     def getRawImageWidth(self):

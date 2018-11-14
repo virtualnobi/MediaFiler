@@ -384,7 +384,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
     def onReload (self, event):  # @UnusedVariable
         """Reload from current root directory.
         """
-        self.setModel(self.model.rootDirectory, lambda x: None)
+        self.setModel(self.model.rootDirectory, lambda x, y: None)
 
 
     def onExport(self, event):  # @UnusedVariable
@@ -636,7 +636,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                     dlg.ShowModal()
                     dlg.Destroy()
             else:
-                MediaFiler.Logger.warn(_('App.onEditNames(): No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
+                MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
                 dlg = wx.MessageDialog(self, 
                                        (_('Define a text editor using configuration option "%s".') % GlobalConfigurationOptions.TextEditor),
                                        _('Warning'),
@@ -749,12 +749,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.displayInfoMessage(_('Loading...'))
         MediaFiler.Logger.debug('MediaFiler.setModel(): Loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
-        progressFunction(15)
+        progressFunction(15, _('Reading media'))
         try:
             self.model = MediaCollection(directory, progressFunction)
         except Exception as e:
             raise BaseException("Could not create MediaCollection model! \n%s" % e)
-        progressFunction(85)
+        progressFunction(85, _('Setting up MVC models'))
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
         self.model.addObserverForAspect(self, 'size')
@@ -771,12 +771,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.canvas.setModel(self.model)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up presentation pane')
         self.presentationPane.setModel(self.model)
-        progressFunction(90)
+        progressFunction(90, _('Setting up tree model'))
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up tree pane')
         self.imageTree.setModel(self.model)
         self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
         self.statusbar.Show()
-        progressFunction(95)
+        progressFunction(95, _('Loading perspective'))
         lastPerspective = self.model.getConfiguration(GlobalConfigurationOptions.LastPerspective)
         if (lastPerspective):
             self.paneManager.LoadPerspective(self.perspectives[int(lastPerspective)])
@@ -852,12 +852,12 @@ class MediaFilerApp(ProgressSplashApp):
         logging.getLogger().addHandler(logHandler)
         logging.getLogger().setLevel(logging.DEBUG)
         logging.debug('MediaFiler.__main__(): Temporarily logging to "%s"' % fname)
-        self.SetProgress(3)
+        self.SetProgress(3, _('Creating window'))
         frame = MediaFiler(None, title=GUIId.AppTitle)
         self.SetTopWindow(frame)
-        self.SetProgress(6)
+        self.SetProgress(6, _('Checking installation'))
         if (Installer.ensureInstallationOk(frame)):
-            self.SetProgress(9)
+            self.SetProgress(9, _('Setting up temporary logging'))
             fname = (Installer.getLogFilePath() % 1)
             logging.debug('MediaFiler.__main__(): Now permanently logging to "%s"' % fname)
             logging.getLogger().removeHandler(logHandler)
@@ -865,9 +865,9 @@ class MediaFilerApp(ProgressSplashApp):
             logHandler = logging.FileHandler(fname, mode='w')
             logHandler.setFormatter(logFormatter)
             logging.getLogger().addHandler(logHandler)
-            self.SetProgress(12)
-            frame.setModel(Installer.getMediaPath(), self.SetProgress)
-            self.SetProgress(99)
+            self.SetProgress(12, _('Creating media collection'))
+            frame.setModel(unicode(Installer.getMediaPath()), self.SetProgress)
+            self.SetProgress(99, _('Finalizing'))
             frame.setLoggedModules()
             MediaFiler.Logger.debug('MediaFiler.__main__(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
             self.SetProgress(101)

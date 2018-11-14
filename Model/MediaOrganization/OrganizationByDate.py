@@ -213,7 +213,7 @@ class OrganizationByDate(MediaOrganization):
                 newDir = os.path.join(newDir, "%s-%s" % (year, month))
                 if (day):
                     newDir = os.path.join(newDir, "%s-%s-%s" % (year, month, day))
-        #log.write('Ensuring existence of "%s"\n' % newDir)
+        Logger.debug('OrganizationByDate.ensureDirectoryExists(): Creating "%s"' % newDir)
         if (not testRun):
             if (not os.path.exists(newDir)):
                 os.makedirs(newDir)
@@ -269,9 +269,9 @@ class OrganizationByDate(MediaOrganization):
             elif (pathDate[0] <> self.UnknownDateName):
                 (year, month, day, dummy) = pathDate
         if (exifMoreSpecific):
-            log.write('EXIF (%s) more specific than path (%s) in file "%s"\n' % (exifDate, pathDate, path))
+            Logger.debug('OrganizationByDate.deriveDate(): EXIF (%s) more specific than path (%s) in file "%s"\n' % (exifDate, pathDate, path))
         elif (datesDiffer):
-            log.write('EXIF (%s) and path (%s) differ in file "%s"\n' % (exifDate, pathDate, path))
+            Logger.debug('OrganizationByDate.deriveDate(): EXIF (%s) and path (%s) differ in file "%s"\n' % (exifDate, pathDate, path))
         if (year):
             year = int(year)
         if (month):
@@ -292,6 +292,7 @@ class OrganizationByDate(MediaOrganization):
             which either contains year, month, and day as String
             or contains None for each entry
         """
+        # TODO: Make the exclusion conditions configurable
         exclusions = {'Model': 'MS Scanner',
                       'Software': 'Paint Shop Photo Album'}
         if ((os.path.isfile(path)) 
@@ -300,22 +301,22 @@ class OrganizationByDate(MediaOrganization):
                 try:
                     exifTags = exifread.process_file(f)
                 except:
-                    log.write('OrganizationByDate.deriveDateFromFile(): Cannot read EXIF data from "%s"!' % path)
+                    Logger.debug('OrganizationByDate.deriveDateFromFile(): Cannot read EXIF data from "%s"!' % path)
                     return(None, None, None)
             for (tag, value) in exclusions.items():
                 if ((tag in exifTags)
                     and (0 <= exifTags[tag].find(value))):
-                    log.write('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data for "%s"\n  because %s=%s' % (path, tag, value))
+                    Logger.debug('OrganizationByDate.deriveDateFromFile(): Ignoring EXIF data for "%s"\n  because %s=%s' % (path, tag, value))
                     return(None, None, None)
             dateTags = set((tag for tag in exifTags.keys() if ('Date' in tag)))
             digitizedTags = set(tag for tag in dateTags if (('Original' in tag) or ('Digitized' in tag)))
             if (0 == len(digitizedTags)):
                 digitizedTags = dateTags
             if (0 == len(digitizedTags)):
-                log.write('OrganizationByDate.deriveDateFromFile(): No tag named "*Date*" found')
+                Logger.debug('OrganizationByDate.deriveDateFromFile(): No tag named "*Date*" found')
                 return(None, None, None)
             for key in digitizedTags:
-                log.write('OrganizationByDate.deriveDateFromFile(): Relevant EXIF tag "%s" in "%s"' % (key, path))
+                Logger.debug('OrganizationByDate.deriveDateFromFile(): Relevant EXIF tag "%s" in "%s"' % (key, path))
                 value = exifTags[key]
                 match = self.DayPattern.search(str(value))
                 if (match):
@@ -325,11 +326,11 @@ class OrganizationByDate(MediaOrganization):
                     if (year == self.UnknownDateName):
                         month = None
                         day = None
-                    log.write('OrganizationByDate.deriveDateFromFile(): Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
+                    Logger.debug('OrganizationByDate.deriveDateFromFile(): Recognized date (%s, %s, %s) in EXIF data of file "%s"\n' % (year, month, day, path)) 
                     return(year, month, day)
                 else:
-                    log.write('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, value))
-        log.write('OrganizationByDate.deriveDateFromFile(): No date found in EXIF data')
+                    Logger.debug('OrganizationByDate.deriveDateFromFile(): EXIF tag %s contains illegal date %s' % (key, value))
+        Logger.debug('OrganizationByDate.deriveDateFromFile(): No date found in EXIF data')
         return(None, None, None)
 
 
@@ -483,7 +484,7 @@ class OrganizationByDate(MediaOrganization):
     def registerMoveToLocation(cls, path):
         """
         """
-        print('OrganizationByDate.registerMoveToLocation(): Registering "%s"' % path)
+        Logger.debug('OrganizationByDate.registerMoveToLocation(): NYI Registering "%s"' % path)
 #         (year, month, day, dummy) = cls.deriveDateFromPath(StringIO.StringIO(), path)
 #         (dummy, menuText) = os.path.split(path)
 #         if (not menuText in cls.MoveToLocations):
@@ -576,12 +577,12 @@ class OrganizationByDate(MediaOrganization):
         fromDate = aFilter.getFilterValueFor(MediaFilter.DateFromConditionKey)
         if ((fromDate)
             and (self.getDateTaken() <= fromDate)):
-            print('OrganizationByDate.isFilteredBy(): %s later than "%s"' % (fromDate, self.getContext().getPath()))
+            Logger.debug('OrganizationByDate.isFilteredBy(): %s later than "%s"' % (fromDate, self.getContext().getPath()))
             return(True)
         toDate = aFilter.getFilterValueFor(MediaFilter.DateToConditionKey)
         if ((toDate)
             and (self.getDateTaken() >= toDate)):
-            print('OrganizationByDate.isFilteredBy(): %s earlier than "%s"' % (toDate, self.getContext().getPath()))
+            Logger.debug('OrganizationByDate.isFilteredBy(): %s earlier than "%s"' % (toDate, self.getContext().getPath()))
             return(True)
         return(False)
 
@@ -688,7 +689,7 @@ class OrganizationByDate(MediaOrganization):
         if ((GUIId.SelectMoveTo <= menuId)
             and (menuId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations))):
             mtlIndex = (menuId - GUIId.SelectMoveTo)
-            print('NYI: Moving "%s" to "%s"' % (self.context.getPath(), self.__class__.MoveToLocations[mtlIndex]))
+            print('NYI: Moving "%s" to "%s"' % (self.context.getPath(), OrganizationByDate.MoveToLocations[mtlIndex]))
 #             mtlText = sorted(self.__class__.MoveToLocations.keys())[mtlIndex]
 #             mtl = self.__class__.MoveToLocations[mtlText]
 #             print('Moving "%s" to %s' % (self.getPath(), mtl))
@@ -723,9 +724,9 @@ class OrganizationByDate(MediaOrganization):
     def getYearString(self):
         if (self.dateTaken
             and self.dateTaken.getYear()):
-            return(self.__class__.FormatYear % self.dateTaken.getYear())
+            return(OrganizationByDate.FormatYear % self.dateTaken.getYear())
         else:
-            return(self.__class__.UnknownDateName)
+            return(OrganizationByDate.UnknownDateName)
 
 
     def getMonth(self):
@@ -745,7 +746,7 @@ class OrganizationByDate(MediaOrganization):
     def getMonthString(self):
         if (self.dateTaken
             and self.dateTaken.getMonth()):
-            return(self.__class__.FormatMonth % self.dateTaken.getMonth())
+            return(OrganizationByDate.FormatMonth % self.dateTaken.getMonth())
         else:
             return(u'')
 
@@ -767,7 +768,7 @@ class OrganizationByDate(MediaOrganization):
     def getDayString(self):
         if (self.dateTaken
             and self.dateTaken.getDay()):
-            return(self.__class__.FormatDay % self.dateTaken.getDay())
+            return(OrganizationByDate.FormatDay % self.dateTaken.getDay())
         else:
             return(u'')
 
@@ -859,12 +860,12 @@ class OrganizationByDate(MediaOrganization):
 #         fldSizer.Add(padRect)
         rb = wx.RadioBox(dlg,
                          label=_('Media without capture time placed'), 
-                         choices=[self.__class__.ReorderLabelTop,
-                                  self.__class__.ReorderLabelFollow,
-                                  self.__class__.ReorderLabelBottom],
+                         choices=[OrganizationByDate.ReorderLabelTop,
+                                  OrganizationByDate.ReorderLabelFollow,
+                                  OrganizationByDate.ReorderLabelBottom],
                          majorDimension=1, 
                          style=(wx.RA_SPECIFY_COLS))
-        rb.SetSelection(self.__class__.ReorderSelectFollow)
+        rb.SetSelection(OrganizationByDate.ReorderSelectFollow)
 #         fldSizer.Add(padRect)
 #         dlgSizer.Add(fldSizer, border=5)
         dlgSizer.Add(rb, border=5)
@@ -941,27 +942,27 @@ class OrganizationByDate(MediaOrganization):
         for entry in [e for e in self.context.getSubEntries(False) if (not e.isGroup())]:
             sortTime = entry.organizer.getTimeTaken()
             if (sortTime):
-                if (handleUntimedPolicy == self.__class__.ReorderSelectFollow):
+                if (handleUntimedPolicy == OrganizationByDate.ReorderSelectFollow):
                     nextTimeForUntimedMedia = datetime.time(hour=sortTime.hour,
                                                             minute=sortTime.minute,
                                                             second=sortTime.second,
                                                             microsecond=1)
             else:
-                if (handleUntimedPolicy == self.__class__.ReorderSelectTop):
+                if (handleUntimedPolicy == OrganizationByDate.ReorderSelectTop):
                     sortTime = nextTimeForUntimedMedia
                     nextTimeForUntimedMedia = datetime.time(hour=nextTimeForUntimedMedia.hour,
                                                             minute=nextTimeForUntimedMedia.minute,
                                                             second=nextTimeForUntimedMedia.second,
                                                             microsecond=(nextTimeForUntimedMedia.microsecond + 1))
                     Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (sortTime, entry.getPath()))
-                elif (handleUntimedPolicy == self.__class__.ReorderSelectFollow):                    
+                elif (handleUntimedPolicy == OrganizationByDate.ReorderSelectFollow):                    
                     sortTime = nextTimeForUntimedMedia
                     nextTimeForUntimedMedia = datetime.time(hour=nextTimeForUntimedMedia.hour,
                                                             minute=nextTimeForUntimedMedia.minute,
                                                             second=nextTimeForUntimedMedia.second,
                                                             microsecond=(nextTimeForUntimedMedia.microsecond + 1))
                     Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (sortTime, entry.getPath()))
-                elif (handleUntimedPolicy == self.__class__.ReorderSelectBottom):
+                elif (handleUntimedPolicy == OrganizationByDate.ReorderSelectBottom):
                     untimedMediaAtBottom.append(entry)
                 else:
                     raise ValueError, ('Illegal policy %d to handle media without timestamp!' % handleUntimedPolicy)

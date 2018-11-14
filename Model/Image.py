@@ -145,38 +145,39 @@ class Image(Single):
             return(False)
 
 
-    def getRawImage(self):
-        """Retrieve raw data (JPG or PNG or GIF) for image.
-        """
-        if (self.rawImage == None):  # lazily load raw image
-            imageType = None
-            if ((self.getExtension() == 'jpg')
-                or (self.getExtension() == 'jpeg')):
-                imageType = wx.BITMAP_TYPE_JPEG
-            elif (self.getExtension() == 'png'):
-                imageType = wx.BITMAP_TYPE_PNG
-            elif (self.getExtension() == 'gif'):
-                imageType = wx.BITMAP_TYPE_GIF
-            elif (self.getExtension() == 'tif'):
-                imageType = wx.BITMAP_TYPE_TIF
-            if (imageType):
-                self.rawImage = wx.Image(self.getPath(), imageType)
-                if (self.rawImage == None):
-                    Image.Logger.warning('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
-            else: 
-                Image.Logger.warning('Image.getRawImage(): Illegal type in "%s"!' % self.getPath())
-            if (self.rawImage == None):
-                self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
-                                         wx.BITMAP_TYPE_JPEG)
-                assert(self.rawImage <> None), ('Cannot load default image for "%s"!' % self.getPath())
-            self.rawImageWidth = self.rawImage.GetWidth()
-            self.rawImageHeight = self.rawImage.GetHeight()
-            CachingController.allocateMemory(self, 
-                                             self.getRawDataMemoryUsage(), 
-                                             cachePriority=self.__class__.CachingLevelRawData)
-            self.releaseCacheWithPriority(self.__class__.CachingLevelFullsizeBitmap)
-            self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
-        return(self.rawImage)
+#     def getRawImage(self):
+#         """Retrieve raw data (JPG or PNG or GIF) for image.
+#         """
+#         print('Image.getRawImage(): Deprecated!')
+#         if (self.rawImage == None):  # lazily load raw image
+#             imageType = None
+#             if ((self.getExtension() == 'jpg')
+#                 or (self.getExtension() == 'jpeg')):
+#                 imageType = wx.BITMAP_TYPE_JPEG
+#             elif (self.getExtension() == 'png'):
+#                 imageType = wx.BITMAP_TYPE_PNG
+#             elif (self.getExtension() == 'gif'):
+#                 imageType = wx.BITMAP_TYPE_GIF
+#             elif (self.getExtension() == 'tif'):
+#                 imageType = wx.BITMAP_TYPE_TIF
+#             if (imageType):
+#                 self.rawImage = wx.Image(self.getPath(), imageType)
+#                 if (self.rawImage == None):
+#                     Image.Logger.warning('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
+#             else: 
+#                 Image.Logger.warning('Image.getRawImage(): Illegal type in "%s"!' % self.getPath())
+#             if (self.rawImage == None):
+#                 self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
+#                                          wx.BITMAP_TYPE_JPEG)
+#                 assert(self.rawImage <> None), ('Cannot load default image for "%s"!' % self.getPath())
+#             self.rawImageWidth = self.rawImage.GetWidth()
+#             self.rawImageHeight = self.rawImage.GetHeight()
+#             CachingController.allocateMemory(self, 
+#                                              self.getRawDataMemoryUsage(), 
+#                                              cachePriority=self.__class__.CachingLevelRawData)
+#             self.releaseCacheWithPriority(self.__class__.CachingLevelFullsizeBitmap)
+#             self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
+#         return(self.rawImage)
 
 
 

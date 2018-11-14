@@ -16,9 +16,12 @@ import wx
 
 
 class ProgressSplashApp(wx.App):
-    """A wx.App which shows a splash screen with a progress indicator.
+    """A wx.App which shows a splash screen with a progress indicator and phase string.
     
-    Override OnInit() and call SetProgress() for loading indicator.
+    Use a background image with white background in lower area, as the wx.StaticText used for the
+    phase text does not allow a transparent background, and so is set to white. 
+    
+    Override OnInit() and call SetProgress(percent, text) for loading indicator.
     """
 
 
@@ -43,12 +46,18 @@ class ProgressSplashApp(wx.App):
                 (0 < height)):
                 self.splashScreen = wx.SplashScreen(splashBitmap,
                                                     (wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_NO_TIMEOUT),
-                                                    1, # timeout must be integer, but is ignored due to SPLASH_NO_TIMEOUT 
+                                                    1,  # timeout must be integer, but is ignored due to SPLASH_NO_TIMEOUT 
                                                     None, 
                                                     -1, 
                                                     wx.DefaultPosition, 
                                                     wx.DefaultSize,
                                                     wx.BORDER_SIMPLE)
+                self.splashText = wx.StaticText(self.splashScreen,
+                                                -1,
+                                                label='Processing...',
+                                                pos=(5, (height - 30)),
+                                                size=((width - 10), 20))
+                self.splashText.SetBackgroundColour('white')
                 self.splashGauge = wx.Gauge(self.splashScreen, 
                                             -1,
                                             pos=(0, (height-10)),
@@ -60,15 +69,18 @@ class ProgressSplashApp(wx.App):
 
 
 # Setters
-    def SetProgress(self, percent):
+    def SetProgress(self, percent, phase=None):
         """Set the progress of loading to percent (0..100).
         
         Shall be called during wx.App.OnInit() to display loading progress.
         Will close the splash screen and show the app's top window is called with percent above 100. 
         
         Number percent indicates completion of loading, use 101 to close splash screen
+        String phase describes the phase currently running
         """
-        # print('ProgressSplashApp.SetProgress(%d)' % percent)
+        if (phase == None):
+            phase = ('Processing... %d%%' % percent)
+        self.splashText.SetLabel(phase)
         percent = int(percent)
         if (percent < 0):
             raise KeyError

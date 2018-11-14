@@ -39,7 +39,7 @@ def N_(message): return message
 
 
 # Constants
-InstallationPath = os.path.normpath(os.path.join(os.path.split(__file__)[0], '..')) 
+InstallationPath = os.path.normpath(os.path.join(os.path.split(__file__)[0], '..'))
 CurrentPath = None
 ImageFolder = u'images'
 LibraryFolder = u'lib'

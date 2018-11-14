@@ -298,13 +298,13 @@ class ImportDialog(wx.Dialog):
     FieldLabelTestRun = _('Test Only')
     FieldLabelDeleteOriginal = _('Delete Originals')
     FieldLabelMaxNumber = _('Maximum Number of Files to Import')
-    FieldLabelIgnoreUnknowns = _('Ignore Files of Unknown Type')
-    FieldLabelMinimumSize = _('Minimum File Size')
+    FieldLabelIgnoreUnknowns = _('Do not Import Files of Unknown Type')
+    FieldLabelMinimumSize = _('Do not Import Files Smaller Than')
     FieldLabelMarkAsNew = (_('Mark Imported Files as "%s"') % MediaClassHandler.ElementNew)
     FieldLabelKeepUnknown = _('Keep Unknown Tags')
-    FieldLabelReportIllegal = _('Report Illegal Elements')
-    FieldLabelCheckForDuplicates = _('Check For Duplicates')
-    FieldLabelPreferPathDate = _('Prefer Date in Pathname over EXIF Date')
+    FieldLabelReportIllegal = _('Report Unknown Tags')
+    FieldLabelCheckForDuplicates = _('Do not Import Duplicates')
+    FieldLabelPreferPathDate = _('Prefer Date in Filename over EXIF Date')
 
 
 

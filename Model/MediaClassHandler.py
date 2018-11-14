@@ -78,16 +78,33 @@ class MediaClassHandler(object):
         return(None)
 
 
+    def getClassOfTag(self, tagName):
+        """Return the class to which the given tag belongs.
+
+        String tagName
+        Return Dictionary describing the class
+            or None if tagName belongs to no class
+        """
+        for aClass in self.classes:
+            if (tagName in self.getElementsOfClass(aClass)):
+                return(aClass)
+        return(None)
+
+
+    def isMultipleClass(self, aClass):
+        """Return True if multiple elements of CLASSNAME may be selected. 
+           Return False if at most one element of CLASSNAME may be selected. 
+        """
+        return((aClass <> None) 
+               and (self.KeyMultiple in aClass)
+               and (aClass[self.KeyMultiple]))
+
+    
     def isMultipleClassByName(self, className):
         """Return True if multiple elements of CLASSNAME may be selected. 
            Return False if at most one element of CLASSNAME may be selected. 
-           Return None if CLASSNAME does not exist.
         """
-        aClass = self.getClassByName(className)
-        if (aClass <> None):
-            return(aClass[self.KeyMultiple])
-        else: 
-            return(None)
+        return(self.isMultipleClass(self.getClassByName(className)))
 
     
     def getKnownElements(self):
@@ -172,6 +189,23 @@ class MediaClassHandler(object):
             if (knownTag.lower() == tag.lower()):
                 return(knownTag)
         return(tag)
+
+
+    def combineTagsWithPriority(self, tagSet, priorityTagSet):
+        """Return the union of the two tag sets, except for single-selection tag classes where the second set has priority.
+        
+        Set of String tagSet
+        Set of String priorityTagSet
+        Return Set of String
+        """
+        result = set(tagSet)
+        singleSelectionClasses = filter(lambda c: (not self.isMultipleClass(c)), self.getClasses())
+        for priorityTag in priorityTagSet:
+            priorityClass = self.getClassOfTag(priorityTag)
+            if (priorityClass in singleSelectionClasses):
+                result.difference_update(self.getElementsOfClass(priorityClass))
+            result.add(priorityTag)
+        return(result)
 
 
 

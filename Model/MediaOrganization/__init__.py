@@ -145,6 +145,21 @@ class MediaOrganization(object):
                 or isinstance(tagSpec, unicode)):
                 print('Organization.constructPath(): Deprecated usage of string parameter for elements!')
                 tagSpec = cls.ImageFilerModel.getClassHandler().stringToElements(tagSpec)
+            if (('classesToRemove' in pathInfo)
+                and pathInfo['classesToRemove']):
+                for tagClass in pathInfo['classesToRemove']:
+                    for tag in cls.ImageFilerModel.getClassHandler().getElementsOfClassByName(tagClass):
+                        tagSpec.discard(tag)
+# 
+#             for tagClass in cls.ImageFilerModel.getClassHandler().getClassNames():
+#                 tags = cls.ImageFilerModel.getClassHandler().getElementsOfClassByName(tagClass)
+#                 
+#                 for tag in cls.ImageFilerModel.getClassHandler().getElementsOfClassByName(tagClass):
+#                     if (tagClass in pathInfo['classesToRemove']):
+#                         tagSpec.discard(tag)
+#                     if 
+#             for tag in tagSpec:
+#                 if (cls.ImageFilerModel.getClassHandler().)
             result = (result + cls.ImageFilerModel.getClassHandler().elementsToString(tagSpec))
         if (('extension' in pathInfo)
             and pathInfo['extension']):
@@ -223,7 +238,7 @@ class MediaOrganization(object):
         if (targetDir <> targetPathInfo['rootDir']):
             raise ValueError, ('targetDir %s does not match %s!' % (targetDir, targetPathInfo['rootDir']))
         newPath = cls.constructPathFromImport(importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements)
-        importParameters.logString('Importing "%s"\n       as "%s"\n' % (sourcePath, newPath))
+        importParameters.logString('Importing "%s"\n  as "%s"' % (sourcePath, newPath))
         if (not importParameters.getTestRun()):
             try:
                 (head, tail) = os.path.split(newPath)  # @UnusedVariable
@@ -231,7 +246,8 @@ class MediaOrganization(object):
                     os.makedirs(head)
                 shutil.copy2(sourcePath, newPath)
             except Exception as e:
-                print('Error importing "%s"\n            to "%s". Complete error:\n%s' % (sourcePath, newPath, e))
+                Logger.error('MediaOrganisation.importMedia(): Error importing "%s" to "%s" (%s)' % (sourcePath, newPath, e))
+                importParameters.logString('Error importing "%s"\n  to "%s":\n%s' % (sourcePath, newPath, e))
 
 
     @classmethod
