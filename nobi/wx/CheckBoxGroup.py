@@ -260,6 +260,14 @@ class CheckBoxGroup(wx.Panel):
         raise RuntimeError, ('CheckBoxGroup.findItemLabel() should never reach this statement!')
 
 
+    def getAllItemLabels(self):
+        """Return a Set of all item labels.
+        
+        Return Set of String
+        """
+        return[self.labels[i] for i in range(self.getCount())]
+
+
     def getItemLabel(self, index):
         """Return the label of the indicated item in self.
 

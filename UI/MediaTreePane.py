@@ -11,8 +11,8 @@ import logging
 ## contributed
 import wx
 ## nobi
-from nobi.ObserverPattern import Observer
-from nobi.PausableObservable import PausableObservable
+from nobi.ObserverPattern import Observer, Observable
+#from nobi.PausableObservable import PausableObservable
 ## project
 import UI
 from UI import GUIId
@@ -46,7 +46,7 @@ Logger = logging.getLogger(__name__)
 
 
 
-class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
+class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
     """The MediaTreeCtrl displays a hierarchy of all media in its model, an ImageFilerModel.
 
     ObserverPattern aspects:
@@ -65,7 +65,7 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         # initialize superclasses
         wx.TreeCtrl.__init__(self, parent, pos=pos, size=size, style=(style | wx.NO_BORDER | wx.TR_HIDE_ROOT | wx.TR_TWIST_BUTTONS ))  # | wx.TR_MULTIPLE)) 
         Observer.__init__(self)
-        PausableObservable.__init__(self, ['selection'])
+        Observable.__init__(self, ['selection'])
         # define norgy images
         imglist = wx.ImageList(16, 16, True, 3)
         self.closedFolderIcon = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16)))
@@ -292,7 +292,8 @@ class MediaTreeCtrl (wx.TreeCtrl, PausableObservable, Observer):
         """
         if (isinstance(self, MediaTreeCtrl)):
             if (not self.GetItemData(args[0])):
-                print('MediaTreeCtrl.EnsureVisible: No data found for entry %s' % args[0])
+                print('MediaTreeCtrl.EnsureVisible: No data found for tree item %s' % args[0])
+                return
             entry = self.GetItemData(args[0]).GetData()
             boundingRect = self.GetBoundingRect(args[0], textOnly=True)
             Logger.debug('MediaTreeCtrl.EnsureVisible: bounding rect is %s' % boundingRect)

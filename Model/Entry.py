@@ -5,16 +5,17 @@
 
 # Imports
 ## Standard
-import sys
+#import sys
 import re
 import os.path
 import logging
 import datetime
 ## Contributed
 ## nobi
-from nobi.PausableObservable import PausableObservable
+from nobi.ObserverPattern import Observable
 from nobi.wx.Menu import Menu
-from nobi.logging import profiledOnLogger
+#from nobi.logging import profiledOnLogger
+from nobi.os import makeUnique
 ## Project
 from UI import GUIId
 import Installer
@@ -29,8 +30,8 @@ Logger = logging.getLogger(__name__)
 
 
 # Class 
-class Entry(PausableObservable):
-    """An Entry is an PausableObservable representing a (group of) media in the directory tree. 
+class Entry(Observable):
+    """An Entry is an Observable representing a (group of) media in the directory tree. 
     A group can either be a folder (based on directory structure) or be based on special naming of image files.
     
     The filename of the entry consists of its path, its name, and its extension.
@@ -228,12 +229,16 @@ class Entry(PausableObservable):
         newName = os.path.join(self.model.rootDirectory, 
                                Installer.getTrashPath(), 
                                (self.getFilename() + '.' + self.getExtension()))
-        count = 1  # TODO: re-use MediaOrganization function?
-        while (os.path.exists(newName)):
-            newName = os.path.join(self.model.rootDirectory,
-                                   Installer.getTrashPath(),  # self.TrashDirectory,
-                                   (self.getFilename() + '-' + str(count) + '.' + self.getExtension()))
-            count = (count + 1)
+#         unqualified = newName
+#         count = 1  
+#         while (os.path.exists(newName)):
+#             newName = os.path.join(self.model.rootDirectory,
+#                                    Installer.getTrashPath(),  # self.TrashDirectory,
+#                                    (self.getFilename() + '-' + str(count) + '.' + self.getExtension()))
+#             count = (count + 1)
+#         if (newName <> makeUnique(unqualified)):
+#             print('"%s" different from "%s" as returned by nobi.os.makeUnique()' % (newName, makeUnique(unqualified)))
+        newName = makeUnique(newName)
         Logger.debug('Trashing "%s" (into "%s")' % (oldName, newName))
         try:
             os.rename(oldName, newName)
@@ -265,7 +270,6 @@ class Entry(PausableObservable):
         
         Returns True iff self and anEntry are identical
         """
-#         return(self == anEntry)
         return(self.__class__ == anEntry.__class__)
 
 
@@ -347,11 +351,11 @@ class Entry(PausableObservable):
             return(self.getFilename())
 
 
-    def getNumber(self):  # TODO: remove as it's defined in Single
-        """Return the number of self.
-        """
-        print('Entry.getNumber() deprecated')
-        return(self.getOrganizer().getNumber())
+#     def getNumber(self):  # TODO: remove as it's defined in Single
+#         """Return the number of self.
+#         """
+#         print('Entry.getNumber() deprecated')
+#         return(self.getOrganizer().getNumber())
 
 
     def getKnownElementsDictionary(self):
@@ -523,6 +527,12 @@ class Entry(PausableObservable):
             Boolean removeIllegalElements
             Set of String classesToRemove contains the names of classes whose tags shall be removed
         Return Boolean indicating success
+        
+        #TODO: restructure to move element handling from MediaOrganization to MediaClassHandler.
+        1-root directory
+        2-organization middle
+        3-element string
+        4-file extension
         """
         # elements
         if (elements 

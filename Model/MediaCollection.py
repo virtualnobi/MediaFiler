@@ -255,34 +255,24 @@ class MediaCollection(Observable, Observer):
         return(self.initialEntry)
 
 
-    def getEntry(self, 
-                 filtering=False, group=None,
-                 path=None,
-                 year=None, month=None, day=None,  
-                 name=None, scene=None):
+    def getEntry(self, filtering=False, group=None, path=None, **kwargs):
         """Return the (first) Entry (Single or Group) which fits the given criteria, or None if none exists.
         
-        Boolean filtering determines whether the search is restricted to filtered Groups (True) or all Groups (False)
+        Boolean filtering determines whether the search is restricted to filtered Entries (True) or all Entries (False)
         Boolean group limits the search to only Groups (True) or Singles (False) or both (None)
         String path contains the pathname of the Entry to retrieve
-        String year
-        String month
-        String day
-        String name
-        String scene
-        
+        Dictionary kwargs contains organization-specific conditions
+            year, month, day
+            name, scene
+
         Returns an Entry, or None
         """
         searching = self.getRootEntry().getSubEntries(filtering)
         while (len(searching) > 0):
             entry = searching.pop()
             if (((group == None) or (group == entry.isGroup()))
-                and ((path == None) or (path == entry.getPath()))  # TODO: move to MediaOrganization
-                and ((year == None) or (year == entry.getOrganizer().getYearString()))
-                and ((month == None) or (month == entry.getOrganizer().getMonthString()))
-                and ((day == None) or (day == entry.getOrganizer().getDayString()))
-                and ((name == None) or (name == entry.getOrganizer().getName()))
-                and ((scene == None) or (scene == entry.getOrganizer().getScene()))):
+                and ((path == None) or (path == entry.getPath()))
+                and entry.getOrganizer().matches(**kwargs)):
                 return (entry)
             if (entry.isGroup()):
                 # TODO: possible performance improvement
@@ -528,6 +518,8 @@ class MediaCollection(Observable, Observer):
                                          illegalElements)
         except StopIteration:
             pass
+        except Exception as e:
+            importParameters.logString('\nImport was cancelled due to an error:\n%s' % e)
         if (importParameters.getReportIllegalElements()):
             for key in illegalElements:  
                 count = len(illegalElements[key])
@@ -596,9 +588,19 @@ class MediaCollection(Observable, Observer):
                                 if ((not importParameters.getTestRun())
                                     and (importParameters.getDeleteOriginals())):
                                     importParameters.logString('Removing imported file "%s"' % sourcePath)
-                                    os.remove(sourcePath)
+                                    try:
+                                        os.remove(sourcePath)
+                                    except Exception as e:
+                                        importParameters.logString('Can''t remove "%s":\n%s' % (sourcePath, e))
                             else:
-                                importParameters.logString('Duplicate media in "%s"' % sourcePath)
+                                importParameters.logString('Duplicate of "%s"\n  found in "%s"' % (sourcePath, duplicate))
+                                if ((not importParameters.getTestRun())
+                                    and (importParameters.getDeleteOriginals())):
+                                    importParameters.logString('Removing duplicate media "%s"' % sourcePath)
+                                    try:
+                                        os.remove(sourcePath)
+                                    except Exception as e:
+                                        importParameters.logString('Can''t remove "%s":\n%s' % (sourcePath, e))
                         else:
                             importParameters.logString('Ignoring small %sb file "%s"' % (fileSize, sourcePath))
                     else:

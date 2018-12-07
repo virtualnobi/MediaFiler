@@ -561,7 +561,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 info = (_('%d media imported from "%s"') if (not testRun) else _('%d media would have been imported from "%s"'))
                 self.displayInfoMessage(info % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
             wx.EndBusyCursor()
-        dialog.Destroy()  # destroy after getting the user input
+        dialog.Destroy() 
     
 
     def onRemoveNew(self, event):  # @UnusedVariable

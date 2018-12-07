@@ -139,16 +139,18 @@ class OrganizationByName(MediaOrganization):
     def pathInfoForImport(self, importParameters, sourcePath, level, oldName, pathInfo):
         """Return a pathInfo mapping extended according to directory name oldName.
         """
-        if ((0 < level)
-            and os.path.isdir(sourcePath)):
-            importParameters.logString('\nCannot import embedded folder "%s"!' % sourcePath)
-            result = None
-        else:
-            result = super(OrganizationByName, self).pathInfoForImport(importParameters, sourcePath, level, oldName, pathInfo)
-            if (not 'name' in result):
-                baseLength = 0  # TODO: for safety, recover length of import directory
-                newName = self.deriveName(importParameters.log, sourcePath[baseLength:])
-                result['name'] = newName
+#         if ((0 < level)
+#             and os.path.isdir(sourcePath)):
+#             raise ValueError, ('Cannot import embedded folder "%s"' % sourcePath)
+        result = super(OrganizationByName, self).pathInfoForImport(importParameters, sourcePath, level, oldName, pathInfo)
+        if (not 'name' in result):
+            if ('rootDir' in pathInfo):
+                baseLength = len(pathInfo['rootDir'])
+            else: 
+                print('OrganizationByName.pathInfoForImport(): Missing parameter "rootDir"!')
+                baseLength = 0
+            newName = self.deriveName(importParameters.log, sourcePath[baseLength:])
+            result['name'] = newName
         return(result)
 
         
@@ -432,6 +434,17 @@ class OrganizationByName(MediaOrganization):
                 return(True)
 
     
+    def matches(self, **kwargs):
+        """override MediaOrganization.matches
+        """
+        return(((not 'name' in kwargs)
+                or (kwargs['name'] == None)
+                or (kwargs['name'] == self.getName()))
+               and ((not 'scene' in kwargs)
+                or (kwargs['scene'] == None)
+                or (kwargs['scene'] == self.getScene())))
+
+
     def isFilteredBy(self, aFilter):
         """Return whether self's context is filtered. 
         
@@ -448,7 +461,7 @@ class OrganizationByName(MediaOrganization):
             return(True)
         return(False)
 
-    
+
     def getNumbersInGroup(self):
         """Return the (ascending) list of Numbers in self's group.
         
@@ -628,8 +641,7 @@ class OrganizationByName(MediaOrganization):
                                                    self.__class__.constructPath(name=name))
                 singleton.renameTo(name=name, scene='1', makeUnique=True)
         else:  # name as yet unused
-            newParent = Group.createAndPersist(model, 
-                                               self.__class__.constructPath(name=name))
+            newParent = Group.createAndPersist(model, name=name)
         # move scenes of self to unused scenes of newParent
         sceneMap = {}
         existingScenes = newParent.getOrganizer().getScenes(filtering=False)
@@ -798,22 +810,26 @@ class SceneFilter(FilterConditionWithMode):
 
     def onChange(self, event):  # @UnusedVariable
         wx.BeginBusyCursor()
-        scene = self.sceneNumber.GetValue()
-        if (scene == 0):
+        newScene = self.sceneNumber.GetValue()
+        if (newScene == 0):
             newMode = FilterConditionWithMode.FilterModeIndexIgnore
-            Logger.debug('SceneFilter.onChange(): Ignoring scene filter 0')
+            Logger.debug('SceneFilter.onChange(): Ignoring newScene filter 0')
         else:
             newMode = self.modeChoice.GetSelection()
+            oldScene = self.filterModel.getScene()
+            if ((newMode == FilterConditionWithMode.FilterModeIndexIgnore)
+                and (newScene <> oldScene)):
+                newMode = FilterConditionWithMode.FilterModeIndexRequire
         if (newMode == FilterConditionWithMode.FilterModeIndexRequire):
-            self.filterModel.setConditions(Scene=scene)
-            Logger.debug('SceneFilter.onChange(): Setting scene filter to %s' % scene)
+            self.filterModel.setConditions(Scene=newScene)
+            Logger.debug('SceneFilter.onChange(): Setting newScene filter to %s' % newScene)
         elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
             self.filterModel.setConditions(Scene=False)
             self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
-            Logger.info('SceneFilter.onChange(): Excluding scenes NYI, clearing scene filter!')
-        else:
+            Logger.warn('SceneFilter.onChange(): Excluding scenes NYI, clearing newScene filter!')
+        else:  # mode = ignore
             self.filterModel.setConditions(Scene=False)
-            Logger.debug('SceneFilter.onChange(): Clearing scene filter')
+            Logger.debug('SceneFilter.onChange(): Clearing newScene filter')
         wx.EndBusyCursor()
 
 

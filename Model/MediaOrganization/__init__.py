@@ -116,6 +116,8 @@ class MediaOrganization(object):
         String extension contains the media's extension
 
         Return a String containing the path
+        
+        # TODO: restructure to move element handling to MediaClassHandler
         """
         if (('rootDir' in pathInfo)
             and pathInfo['rootDir']):
@@ -150,16 +152,6 @@ class MediaOrganization(object):
                 for tagClass in pathInfo['classesToRemove']:
                     for tag in cls.ImageFilerModel.getClassHandler().getElementsOfClassByName(tagClass):
                         tagSpec.discard(tag)
-# 
-#             for tagClass in cls.ImageFilerModel.getClassHandler().getClassNames():
-#                 tags = cls.ImageFilerModel.getClassHandler().getElementsOfClassByName(tagClass)
-#                 
-#                 for tag in cls.ImageFilerModel.getClassHandler().getElementsOfClassByName(tagClass):
-#                     if (tagClass in pathInfo['classesToRemove']):
-#                         tagSpec.discard(tag)
-#                     if 
-#             for tag in tagSpec:
-#                 if (cls.ImageFilerModel.getClassHandler().)
             result = (result + cls.ImageFilerModel.getClassHandler().elementsToString(tagSpec))
         if (('extension' in pathInfo)
             and pathInfo['extension']):
@@ -184,7 +176,7 @@ class MediaOrganization(object):
         
     @classmethod
     def constructPathFromImport(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):
-        """Construct a pathname to import media at sourcePath to. 
+        """Construct a pathname to import media at sourcePath. 
         
         Importing.ImportParameterObject importParameters
         String sourcePath is the pathname of the image
@@ -245,6 +237,10 @@ class MediaOrganization(object):
                 if (not os.path.exists(head)):
                     os.makedirs(head)
                 shutil.copy2(sourcePath, newPath)
+            except WindowsError as e: 
+                if (e.winerror == 5):
+                    importParameters.logString('Cannot access "%s" (Windows error 5)' % newPath)
+                    importParameters.logString('%s' % e)
             except Exception as e:
                 Logger.error('MediaOrganisation.importMedia(): Error importing "%s" to "%s" (%s)' % (sourcePath, newPath, e))
                 importParameters.logString('Error importing "%s"\n  to "%s":\n%s' % (sourcePath, newPath, e))
@@ -361,23 +357,6 @@ class MediaOrganization(object):
         return(self.context)
 
 
-    def isUnknown(self):
-        """Return whether self is incompletely specified.
-
-        Return Boolean
-        """
-        raise NotImplementedError
-
-
-    def isFilteredBy(self, aFilter):
-        """Return whether self is being filtered.
-        
-        MediaFilter aFilter
-        Return Boolean
-        """
-        raise NotImplementedError
-
-
     def getPath(self):
         return(self.path)
 
@@ -407,6 +386,31 @@ class MediaOrganization(object):
                     if (not e.isGroup())])
         else:
             return([])
+
+
+    def isUnknown(self):
+        """Return whether self is incompletely specified.
+
+        Return Boolean
+        """
+        raise NotImplementedError
+
+
+    def matches(self, **kwargs):
+        """Checks whether self matches organization-specific conditions given in kwargs.
+        
+        Return Boolean indicating self matches the conditions
+        """
+        return(True)
+
+
+    def isFilteredBy(self, aFilter):
+        """Return whether self is being filtered.
+        
+        MediaFilter aFilter
+        Return Boolean
+        """
+        raise NotImplementedError
 
 
     def extendContextMenu(self, menu):

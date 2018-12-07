@@ -297,6 +297,13 @@ class MediaFilter(Observable):
         return(self.conditionMap[filterConditionKey])
 
 
+    def getScene(self):
+        try: 
+            return(self.conditionMap[MediaFilter.SceneConditionKey])
+        except: 
+            return(None)
+
+
     def getRequiredUnknownTags(self):
         return(copy.copy(self.requiredUnknownTags))
 

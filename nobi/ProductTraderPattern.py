@@ -14,6 +14,7 @@ from the SimpleProductTrader using the Specification.
 
 # Imports
 ## Standard
+import logging
 ## Contributed
 ## nobi
 ## Project
@@ -83,7 +84,7 @@ class SimpleProductTrader(object):
         """
         if (specString in self.productRegistry):
             # raise(BaseException('Specification "%s" already used in SimpleProductTrader' % specString))
-            print('Overwriting specification "%s" in SimpleProductTrader' % specString) 
+            logging.warning('Overwriting specification "%s" in SimpleProductTrader' % specString) 
         self.productRegistry[specString] = clas
 
 

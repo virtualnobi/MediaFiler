@@ -13,13 +13,17 @@ import copy
 import wx
 from nobi.SortedCollection import SortedCollection 
 ## nobi
-from nobi.PausableObservable import PausableObservable
+#from nobi.PausableObservable import PausableObservable
 from nobi.ObserverPattern import Observer
 ## project
 import Installer
 from .Entry import Entry
 from UI import GUIId
 
+
+
+# Package variables
+Logger = logging.getLogger(__name__)
 
 
 # Class 
@@ -33,7 +37,6 @@ class Group(Entry, Observer):
 
 
 # Constants
-    Logger = logging.getLogger(__name__)
     PreviewImageFilename = 'Group.jpg'
 
 
@@ -51,13 +54,13 @@ class Group(Entry, Observer):
         if ('path' in kwargs):
             path = kwargs['path']
         else:
-            path = model.organizationStrategy.constructPath(kwargs)
-        cls.Logger.debug('Group.createAndPersist(): New group for "%s"' % path)
+            path = model.organizationStrategy.constructPath(**kwargs)
+        Logger.debug('Group.createAndPersist(): Creating group for "%s"' % path)
         newGroup = Group(model, path)
         parent = model.organizationStrategy.findParentForPath(path)
-        cls.Logger.debug('Group.createAndPersist(): Parent found at "%s"' % parent.getPath())
-        newGroup.setParent(parent)
-        cls.Logger.debug('Group.createAndPersist(): Creating directory "%s"' % path)
+        Logger.debug('Group.createAndPersist(): Found parent "%s"' % parent.getPath())
+        newGroup.setParentGroup(parent)
+        Logger.debug('Group.createAndPersist(): Creating directory "%s"' % path)
         os.mkdir(path)
         return(newGroup)
 
@@ -71,6 +74,7 @@ class Group(Entry, Observer):
         # internal state
         self.subEntriesSorted = SortedCollection(key=Entry.getPath)
         # TODO: have subentries sorted with Entrys first, then Groups. 
+        # depends on organization: by name wants groups and singles ordered as one.
         # - idea 1 - manage list with custom sort function
         # - idea 2 - keep SortedCollections for Entry and Group separately
 
@@ -99,7 +103,7 @@ class Group(Entry, Observer):
         except:
             # catch the case when entry has changed its path:
             # subEntriesSorted._keys is not updated and entry is not found
-            logging.warning('Group.removeEntryFromGroup(): Cannot find "%s" in subentries of "%s"' % (entry.getPath(), self.getPath()))
+            Logger.warning('Group.removeEntryFromGroup(): Cannot find "%s" in subentries of "%s"' % (entry.getPath(), self.getPath()))
             index = self.subEntriesSorted._items.index(entry)
             del self.subEntriesSorted._items[index]
             del self.subEntriesSorted._keys[index]
@@ -125,32 +129,31 @@ class Group(Entry, Observer):
         """
         for key in kwargs: 
             if (kwargs[key] == None):
-                print('Group.renameTo(): Found deprecated None value for parameter "%s"!' % key)
+                Logger.warning('Group.renameTo(): Found deprecated None value for parameter "%s"!' % key)
                 del kwargs[key]
         if ('number' in kwargs):
             if (kwargs['number']):
-                raise ValueError, 'Group.renameTo(): No number parameter allowed!'
+                raise ValueError, 'Group.renameTo(): No number parameter allowed, ignored!'
             del kwargs['number']
-        Group.Logger.debug('Group.renameTo(): Path info is %s' % kwargs)
+        Logger.debug('Group.renameTo(): Path info is %s' % kwargs)
         tagParameters = set(['elements', 'removeIllegalElements', 'classesToRemove'])  # kwargs keys which affect tags of subentries
         if (0 < len(set(kwargs.keys()).difference(tagParameters))):  # more to change than only tags, rename group
-            Group.Logger.debug('Group.renameTo(): Renaming entire group "%s"' % self)
+            Logger.debug('Group.renameTo(): Renaming entire group "%s"' % self)
             newSelection = self.getOrganizer().renameGroup(**kwargs)
             if (0 == len(self.getSubEntries(filtering=False))):  # remove self
-                Group.Logger.debug('Group.renameTo(): Removing "%s" because it''s empty' % self)
+                Logger.debug('Group.renameTo(): Removing "%s" because it''s empty' % self)
                 if (self.model.getSelectedEntry() == self):
                     self.model.setSelectedEntry(entry=newSelection)
                 self.remove()
         else:  # change only tags of subentries
-            Group.Logger.debug('Group.renameTo(): Retagging entries of group "%s"' % self)
+            Logger.debug('Group.renameTo(): Retagging entries of group "%s"' % self)
             for entry in self.getSubEntries(filtering=True):
                 newKwargs = copy.copy(kwargs)
                 if (('elements' in kwargs)
                     and (kwargs['elements'])):
-#                     newElements = entry.getElements().union(kwargs['elements'])
                     newElements = self.model.getClassHandler().combineTagsWithPriority(entry.getElements(), kwargs['elements'])
                     newKwargs['elements'] = newElements
-                Group.Logger.debug('Group.renameTo(): Path info "%s" used for renaming entry "%s"' % (newKwargs, entry))
+                Logger.debug('Group.renameTo(): Path info "%s" used for renaming entry "%s"' % (newKwargs, entry))
                 entry.renameTo(**newKwargs)
         return(True)
 
@@ -214,7 +217,7 @@ class Group(Entry, Observer):
         
         Return a String
         """
-        return(GUIId.TextGroupSizeString % self.getGroupedMedia())
+        return(GUIId.TextGroupSizeString % self.getGroupSize())
 
 
     def isIdentical(self, anEntry):
@@ -376,7 +379,7 @@ class Group(Entry, Observer):
         Return String to display as status
             or None
         """
-        print('Group.runContextMenu(): %d on "%s"' % (menuId, self.getPath()))
+        Logger.debug('Group.runContextMenu(): Running %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.DeleteDoubles):
             wx.BeginBusyCursor()
             deleted = self.deleteDoubles()
@@ -403,7 +406,6 @@ class Group(Entry, Observer):
         Boolean mergeElements indicates that elements from both doubles shall be merged into remaining name
         Return Number indicating how many doubles were deleted. 
         """
-        PausableObservable.pauseUpdates(Entry, 'name', None)
         doubles = 0
         for entry1 in self.subEntriesSorted[:]:
             if (entry1.isGroup()):
@@ -418,7 +420,6 @@ class Group(Entry, Observer):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
                         entry1.getOrganizer().deleteDouble(entry2, mergeElements)
                         doubles = (doubles + 1)
-        PausableObservable.resumeUpdates(Entry, 'name', None)
         #TODO: if self was selected, reselect to make changes visible
         return(doubles)
 
@@ -439,7 +440,7 @@ class Group(Entry, Observer):
 
 
 # Internal - to change without notice
-    def getGroupedMedia(self):
+    def getGroupSize(self):
         """Return the number of media grouped in self.
 
         Return Number
@@ -447,7 +448,7 @@ class Group(Entry, Observer):
         result = 0
         for subEntry in self.getSubEntries(filtering=True):
             if (subEntry.__class__ == Group):
-                result = (result + subEntry.getGroupedMedia())
+                result = (result + subEntry.getGroupSize())
             else:
                 result = (result + 1) 
         return(result)

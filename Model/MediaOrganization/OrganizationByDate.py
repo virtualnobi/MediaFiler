@@ -569,6 +569,20 @@ class OrganizationByDate(MediaOrganization):
         return(self.getYear == OrganizationByDate.UnknownDateName)
 
 
+    def matches(self, **kwargs):
+        """override MediaOrganization.matches
+        """
+        return(((not 'year' in kwargs)
+                or (kwargs['year'] == None)
+                or (kwargs['year'] == self.getYearString()))
+               and ((not 'month' in kwargs)
+                or (kwargs['month'] == None)
+                or (kwargs['month'] == self.getMonthString()))
+               and ((not 'day' in kwargs)
+                or (kwargs['day'] == None)
+                or (kwargs['day'] == self.getDayString())))
+
+
     def isFilteredBy(self, aFilter):
         """Return whether self's context is filtered. 
         

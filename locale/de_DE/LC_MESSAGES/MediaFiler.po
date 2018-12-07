@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: 2018-11-14 08:16+Mitteleuropäische Zeit\n"
-"PO-Revision-Date: 2018-11-14 08:17+0100\n"
+"PO-Revision-Date: 2018-11-20 08:04+0100\n"
 "Last-Translator: nobi <virtualnobi@gmx.de>\n"
 "Language-Team: nobisoft <virtualnobi@gmx.de>\n"
 "Language: de_DE\n"
@@ -619,11 +619,11 @@ msgstr "alle"
 
 #: ..\UI\MediaFilterPane.py:711
 msgid "Turn off filter"
-msgstr "Filter anschalten"
+msgstr "Filter ausschalten"
 
 #: ..\UI\MediaFilterPane.py:713
 msgid "Turn on filter"
-msgstr "Filter ausschalten"
+msgstr "Filter anschalten"
 
 #~ msgid "Ignore Files of Unknown Type"
 #~ msgstr "Dateien unbekannten Typs ignorieren"
