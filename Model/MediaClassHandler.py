@@ -10,10 +10,15 @@ import sys
 import copy
 import re
 import codecs
+import logging
 ## Contributed
 ## nobi
 ## Project
 #from .MediaOrganization import MediaOrganization
+
+
+# Package Variables
+Logger = logging.getLogger(__name__)
 
 
 
@@ -45,7 +50,6 @@ class MediaClassHandler(object):
         """Create a MediaClassHandler instance from the definitions in pathname.
         """
         # inheritance
-        #ObserverPattern.Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection'])
         # internal state
         self.classes = []
         self.knownElements = []
@@ -68,29 +72,6 @@ class MediaClassHandler(object):
         return([aClass[self.__class__.KeyName] for aClass in self.classes])
 
 
-    def getClassByName(self, className):
-        """Return a Dictionary defining the named class. 
-           Return None if className does not exist.
-        """
-        for aClass in self.classes:
-            if (aClass[self.KeyName] == className):
-                return(aClass)
-        return(None)
-
-
-    def getClassOfTag(self, tagName):
-        """Return the class to which the given tag belongs.
-
-        String tagName
-        Return Dictionary describing the class
-            or None if tagName belongs to no class
-        """
-        for aClass in self.classes:
-            if (tagName in self.getElementsOfClass(aClass)):
-                return(aClass)
-        return(None)
-
-
     def isMultipleClass(self, aClass):
         """Return True if multiple elements of CLASSNAME may be selected. 
            Return False if at most one element of CLASSNAME may be selected. 
@@ -105,12 +86,6 @@ class MediaClassHandler(object):
            Return False if at most one element of CLASSNAME may be selected. 
         """
         return(self.isMultipleClass(self.getClassByName(className)))
-
-    
-    def getKnownElements(self):
-        """Return a list of all known elements.
-        """
-        return(copy.copy(self.knownElements))
 
 
     def getElementsOfClass(self, aClass):
@@ -130,40 +105,10 @@ class MediaClassHandler(object):
             return(self.getElementsOfClass(aClass))
     
     
-    def getRequiredElementsOfClass(self, aClass):
-        """Return a list of all elements which must apply for className to be applicable. 
-           Return None if className does not exist.
+    def getKnownElements(self):
+        """Return a list of all known elements.
         """
-        return(aClass[self.KeyRequired])
-    
-    
-    def getRequiredElementsOfClassByName(self, className):
-        """Return a list of all elements which must apply for className to be applicable. 
-           Return None if className does not exist.
-        """
-        aClass = self.getClassByName(className)
-        if (aClass == None):
-            return(None)
-        else:
-            return(self.getRequiredElementsOfClass(aClass))
-    
-    
-    def getProhibitedElementsOfClass(self, aClass):
-        """Return a list of all elements which may not apply for className to be applicable. 
-           Return None if className does not exist.
-        """
-        return(aClass[self.KeyProhibited])
-
-    
-    def getProhibitedElementsOfClassByName(self, className):
-        """Return a list of all elements which may not apply for className to be applicable. 
-           Return None if className does not exist.
-        """
-        aClass = self.getClassByName(className)
-        if (aClass == None):
-            return(None)
-        else:
-            return(self.getProhibitedElementsOfClass(aClass))
+        return(copy.copy(self.knownElements))
 
 
     def isLegalElement(self, element):
@@ -175,6 +120,8 @@ class MediaClassHandler(object):
         return(self.normalizeTag(element) in self.getKnownElements())    
 
     
+
+# Other API
     def normalizeTag(self, tag):
         """Normalize a tag (element), for example, when importing.
         
@@ -208,14 +155,32 @@ class MediaClassHandler(object):
         return(result)
 
 
+    def getTagsOnChange(self, tagSet, addedTag, removedTags):
+        """Determine new set of tags based on tags added and removed.
+        
+        Set of String tagSet
+        String or None addedTag
+        Set of String removedTags
+        
+        Return Set of String containing the tags after addition and removal
+        """
+        result = copy.copy(tagSet)
+        if (addedTag):
+            result.update(self.includeRequiredElements(set([addedTag])))
+        for tag in removedTags:
+            result.discard(tag)
+            for aClass in self.getClasses():
+                if (tag in self.getRequiredElementsOfClass(aClass)):
+                    result.difference_update(self.getElementsOfClass(aClass))
+        Logger.debug('MediaClassHandler.getTagsOnChange(): Changed %s to %s' % (tagSet, result))
+        return(result)
 
-# Element Handling
+
     def includeRequiredElements(self, elements):
-        """Add all required elements. 
+        """Add all required tags. 
         
-        Sequence elements contains elements
-        
-        Return a Set containing elements as well as additional elements required by them 
+        Sequence elements contains tags
+        Return a Set containing all tags as well as additional tags required by them 
         """
         result = set(elements)
         for aClass in self.getClasses():
@@ -294,6 +259,64 @@ class MediaClassHandler(object):
 
 # Event Handlers
 # Internal - to change without notice
+    def getClassByName(self, className):
+        """Return a Dictionary defining the named class. 
+           Return None if className does not exist.
+        """
+        for aClass in self.classes:
+            if (aClass[self.KeyName] == className):
+                return(aClass)
+        return(None)
+
+
+    def getClassOfTag(self, tagName):
+        """Return the class to which the given tag belongs.
+
+        String tagName
+        Return Dictionary describing the class
+            or None if tagName belongs to no class
+        """
+        for aClass in self.classes:
+            if (tagName in self.getElementsOfClass(aClass)):
+                return(aClass)
+        return(None)
+
+
+    def getRequiredElementsOfClass(self, aClass):
+        """Return a list of all elements which must apply for aClass to be applicable. 
+        """
+        return(aClass[self.KeyRequired])
+    
+    
+#     def getRequiredElementsOfClassByName(self, className):
+#         """Return a list of all elements which must apply for className to be applicable. 
+#            Return None if className does not exist.
+#         """
+#         aClass = self.getClassByName(className)
+#         if (aClass == None):
+#             return(None)
+#         else:
+#             return(self.getRequiredElementsOfClass(aClass))
+    
+    
+    def getProhibitedElementsOfClass(self, aClass):
+        """Return a list of all elements which may not apply for className to be applicable. 
+           Return None if className does not exist.
+        """
+        return(aClass[self.KeyProhibited])
+
+
+#     def getProhibitedElementsOfClassByName(self, className):
+#         """Return a list of all elements which may not apply for className to be applicable. 
+#            Return None if className does not exist.
+#         """
+#         aClass = self.getClassByName(className)
+#         if (aClass == None):
+#             return(None)
+#         else:
+#             return(self.getProhibitedElementsOfClass(aClass))
+
+
     def readClassesFromFile(self, pathname):
         """Set self's internal state from the class definition in the given file.
 
@@ -303,9 +326,8 @@ class MediaClassHandler(object):
         self.knownElements = []
         try:
             classFile = codecs.open(pathname, encoding=sys.getfilesystemencoding())
-        except: # file cannot be opened
-            return() 
-        #print ("Opened class file %s" % pathname)
+        except: 
+            raise IOError, ('Cannot open "%s" to read tag classes!' % pathname) 
         for line in classFile:
             #print ("Read line >%s<" % line)
             line = line.strip()  # trim white space

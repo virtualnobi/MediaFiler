@@ -124,7 +124,7 @@ class MediaOrganization(object):
             result = pathInfo['rootDir']
         else:
             result = cls.ImageFilerModel.getRootDirectory()
-        result = os.path.join(result, cls.constructPathForOrganization(**pathInfo))
+        result = os.path.join(result, cls.constructOrganizationPath(**pathInfo))
         number = None
         if (('makeUnique' in pathInfo)
             and pathInfo['makeUnique']):
@@ -160,7 +160,7 @@ class MediaOrganization(object):
 
 
     @classmethod
-    def constructPathForOrganization(cls, **kwargs):
+    def constructOrganizationPath(cls, **kwargs):
         """Construct the organization-specific part of a media pathname, between root directory and number.
         """
         raise NotImplementedError
@@ -327,27 +327,27 @@ class MediaOrganization(object):
             return(pathRest)
 
 
-    def constructPathForSelf(self, **kwargs):
-        """Construct a path for self, incorporating changes as specified in kwargs.
-
-        If a parameter is not contained in kwargs, it is derived from self's settings.
-        If a parameter is contained in kwargs, but None, it will not be used to construct a path (e.g., scene).
-        If a parameter is contained in kwargs, other than None, it will be used instead of self's setting.
-
-        String number contains the number of the media (in date or name group)
-        Boolean makeUnique requests to create a unique new pathname (takes precedence over number)
-        String elements as given by MediaClassHandler().getElementString()
-        String extension contains the media's extension
-
-        Return a String containing the path for self's context
-        """
-        if (not 'number' in kwargs):
-            kwargs['number'] = self.getNumber()
-        if (not 'elements' in kwargs):
-            kwargs['elements'] = self.context.getElements()
-        if (not 'extension' in kwargs):
-            kwargs['extension'] = self.context.getExtension()
-        return(self.constructPath(**kwargs))
+#     def constructPathForSelf(self, **kwargs):
+#         """Construct a path for self, incorporating changes as specified in kwargs.
+# 
+#         If a parameter is not contained in kwargs, it is derived from self's settings.
+#         If a parameter is contained in kwargs, but None, it will not be used to construct a path (e.g., scene).
+#         If a parameter is contained in kwargs, other than None, it will be used instead of self's setting.
+# 
+#         String number contains the number of the media (in date or name group)
+#         Boolean makeUnique requests to create a unique new pathname (takes precedence over number)
+#         String elements as given by MediaClassHandler().getElementString()
+#         String extension contains the media's extension
+# 
+#         Return a String containing the path for self's context
+#         """
+#         if (not 'number' in kwargs):
+#             kwargs['number'] = self.getNumber()
+#         if (not 'elements' in kwargs):
+#             kwargs['elements'] = self.context.getElements()
+#         if (not 'extension' in kwargs):
+#             kwargs['extension'] = self.context.getExtension()
+#         return(self.constructPath(**kwargs))
 
 
 # Getters
@@ -380,12 +380,9 @@ class MediaOrganization(object):
         
         Return Sequence of Numbers (empty if self is not a Group) 
         """
-        if (self.context.isGroup()):
-            return([e.getOrganizer().getNumber() 
-                    for e in self.getContext().getParentGroup().getSubEntries() 
-                    if (not e.isGroup())])
-        else:
-            return([])
+        return([e.getOrganizer().getNumber() 
+                for e in self.getContext().getParentGroup().getSubEntries() 
+                if (not e.isGroup())])
 
 
     def isUnknown(self):
@@ -411,6 +408,17 @@ class MediaOrganization(object):
         Return Boolean
         """
         raise NotImplementedError
+
+
+    def getPathInfo(self):
+        """Return dictionary containing organization-specific identifiers.
+        """
+        result = {}
+        result['rootDir'] = self.getContext().model.getRootDirectory()
+        result['number'] = self.getNumber()
+        result['elements'] = self.getContext().getElements()
+        result['extension'] = self.getContext().getExtension()
+        return(result)
 
 
     def extendContextMenu(self, menu):
@@ -462,39 +470,20 @@ class MediaOrganization(object):
 
 
 # Other API Functions
-    def deleteDouble(self, otherEntry, mergeElements=False):
-        """Remove otherEntry, but rename self to keep its information if needed. 
-        
-        If mergeElements is True, elements from otherEntry are added to self's elements.
-        If mergeElements is False, self is renamed to otherEntry if
-        - self contains "new", but otherEntry does not
-        - self has fewer elements than otherEntry does
+    def deleteDouble(self, otherEntry):
+        """Remove otherEntry, but rename self to keep its information.         
 
         MediaFiler.Entry otherEntry
-        Boolean mergeElements
         """
-        newPath = None
-        if (mergeElements):
-            newElements = self.context.getElements().union(otherEntry.getElements())
-            print('From "%s"\n     adding elements %s\n  to "%s"' % (otherEntry.getPath(), newElements, self.context.getPath()))
-            self.context.renameTo(elements=newElements)
-        else:
-            if ((MediaClassHandler.ElementNew in self.context.getElements())
-                and (not MediaClassHandler.ElementNew in otherEntry.getElements())):
-                print('Keep   "%s"\nremove "%s"' % (otherEntry.getPath(), self.context.getPath()))
-                newPath = otherEntry.getPath()
-            elif ((not MediaClassHandler.ElementNew in self.context.getElements())
-                  and (MediaClassHandler.ElementNew in otherEntry.getElements())):
-                print('Keep   "%s"\nremove "%s"' % (self.context.getPath(), otherEntry.getPath()))
-            else:
-                if (len(self.context.getElements()) < len(otherEntry.getElements())):
-                    print('Keep   "%s"\nremove "%s"' % (otherEntry.getPath(), self.context.getPath()))
-                    newPath = otherEntry.getPath()
-                else:
-                    print('Keep   "%s"\nremove "%s"' % (self.context.getPath(), otherEntry.getPath()))
+        newElements = self.context.getElements().union(otherEntry.getElements())
+        if ((not MediaClassHandler.ElementNew in self.context.getElements())
+            or (not MediaClassHandler.ElementNew in otherEntry.getElements())):
+            newElements.discard(MediaClassHandler.ElementNew)
+        Logger.debug('MediaOrganization.deleteDouble(): Adding tags %s to "%s"' % (newElements, self.context))
+        pathInfo = self.getPathInfo()
+        pathInfo['elements'] = newElements
+        self.context.renameTo(**pathInfo)
         otherEntry.remove()
-        if (newPath):  
-            self.context.renameToFilename(newPath)
 
 
     def setValuesInNamePane(self, aMediaNamePane):
@@ -513,14 +502,11 @@ class MediaOrganization(object):
         """
         result = {}
         number = aMediaNamePane.numberInput.GetValue()
-        if (number == ''):
-#             result['number'] = None
-            pass
-        else:
+        if (number <> ''):
             try:
                 result['number'] = int(number)
             except:
-                return(None)
+                return(None) # TODO: add error dialog 
         return(result)
 
 
@@ -594,9 +580,12 @@ class MediaOrganization(object):
         renameList = []
         for (now, then) in numberPairList:
             entry = numberToEntryMap[now]
-            renameList.append((entry, entry.getPath(), entry.getOrganizer().constructPathForSelf(number=then)))
-            print(entry.getPath(), entry.getOrganizer().constructPathForSelf(number=then))
-        Logger.debug('MediaOrganization.renumberTo(): Mapping names %s' % renameList)
+            pathInfo = entry.getOrganizer().getPathInfo()
+            pathInfo['number'] = then
+            newPath = entry.getOrganizer().constructPath(**pathInfo)
+            renameList.append((entry, entry.getPath(), newPath))
+            Logger.debug('from %s\n  to %s' % (entry.getPath(), newPath))
+#         Logger.debug('MediaOrganization.renumberTo(): Mapping names %s' % renameList)
         if (self.__class__.ImageFilerModel.renameList(renameList)):
             return(_('%d media renumbered' % len(renameList)))
         else:

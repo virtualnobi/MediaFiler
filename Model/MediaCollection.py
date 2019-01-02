@@ -441,7 +441,9 @@ class MediaCollection(Observable, Observer):
                 MediaCollection.Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % oldPath)
             elif os.path.exists(newPath):
                 tmpElements = set((MediaCollection.ReorderTemporaryTag, )).union(entry.getElements())
-                tmpPath = entry.organizer.constructPathForSelf(elements=tmpElements)
+                pathInfo = entry.getOrganizer().getPathInfo()
+                pathInfo['elements'] = tmpElements
+                tmpPath = entry.getOrganizer().__class__.constructPath(**pathInfo)
                 if (not entry.renameToFilename(tmpPath)):
                     return(False)
                 conflicts.append((entry, newPath))
@@ -452,6 +454,12 @@ class MediaCollection(Observable, Observer):
             if (not entry.renameToFilename(newPath)):
                 return(False)
         return(True)
+
+
+    def mergeDuplicates(self):
+        """Search duplicates, merge file names, and remove one. 
+        """
+        pass
 
 
 

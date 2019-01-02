@@ -95,43 +95,38 @@ class OrganizationByName(MediaOrganization):
                   cls.nameHandler.getNumberFreeNames()))
 
 
-#     @classmethod
-#     def getFilterPaneClass(cls):
-#         """Return the class to instantiate filter pane.
-#         """
-#         return(FilterPaneByName)
-
-    
     @classmethod
-    def constructPathForOrganization(cls, **kwargs):
+    def constructOrganizationPath(cls, **kwargs):
         """
         String name
         Number scene
+        Return String 
         """
         result = None
         if (('name' in kwargs)
             and (kwargs['name'] <> None)
             and (kwargs['name'] <> '')):
-#             group = self.context.model.getEntry(name=kwargs['name'], group=True)  # FIXME: how to determine the model in a class method?
-#             if (group):
-#                 raise NotImplementedError
-#             else:
-#                 letter = kwargs['name'][0]
-#                 result = os.path.join(letter, kwargs['name'])
             letter = kwargs['name'][0]
-            result = os.path.join(letter, kwargs['name'])
+            entry = cls.ImageFilerModel.getEntry(name=kwargs['name'])
+            if (entry):
+                if (entry.isGroup()):
+                    if (('scene' in kwargs)
+                        and (kwargs['scene'] <> None)
+                        and (kwargs['scene'] <> '')):
+                        try:
+                            scene = (cls.FormatScene % (int(kwargs['scene'])))
+                        except: 
+                            scene = MediaClassHandler.ElementNew
+                    else:
+                        scene = MediaClassHandler.ElementNew
+                    result = os.path.join(letter, kwargs['name'], scene)
+                else:  # TODO: must join with existing singleton
+                    result = os.path.join(letter, kwargs['name'])
+            else:
+                result = os.path.join(letter, kwargs['name'])            
         else:
-            logging.error('OrganizationByName.constructPathForOrganization(): No name given!')
+            logging.error('OrganizationByName.constructOrganizationPath(): No name given!')
             return(None)
-        if (('scene' in kwargs)
-            and kwargs['scene']):
-            try:
-                scene = (cls.FormatScene % (int(kwargs['scene'])))
-            except: 
-                scene = MediaClassHandler.ElementNew
-            result = os.path.join(result, scene)
-        else:  # no scene given yields a singleton
-            pass
         return(result)
 
 
@@ -412,7 +407,11 @@ class OrganizationByName(MediaOrganization):
         parentGroup = self.context.getParentGroup()
         for entry in parentGroup.getSubEntries():
             if (entry.organizer.getScene() == self.getScene()):
-                entry.renameTo(makeUnique=True, scene=newScene)
+                pathInfo = entry.getOrganizer().getPathInfo()
+                pathInfo['scene'] = newScene
+                del pathInfo['number']
+                pathInfo['makeUnique'] = True
+                entry.renameTo(**pathInfo)
 
 
 
@@ -462,6 +461,15 @@ class OrganizationByName(MediaOrganization):
         return(False)
 
 
+    def getPathInfo(self):
+        """override MediaOrganization.getPathInfo(self)
+        """
+        result = MediaOrganization.getPathInfo(self)
+        result['name'] = self.getName()
+        result['scene'] = self.getScene()
+        return(result)
+
+
     def getNumbersInGroup(self):
         """Return the (ascending) list of Numbers in self's group.
         
@@ -474,14 +482,14 @@ class OrganizationByName(MediaOrganization):
                     and (e.getOrganizer().getScene() == self.getScene()))])
 
 
-    def constructPathForSelf(self, **kwargs):
-        """
-        """
-        if (not 'name' in kwargs):
-            kwargs['name'] = self.getName()
-        if (not 'scene' in kwargs):
-            kwargs['scene'] = self.getScene()
-        return(super(OrganizationByName, self).constructPathForSelf(**kwargs))
+#     def constructPathForSelf(self, **kwargs):
+#         """
+#         """
+#         if (not 'name' in kwargs):
+#             kwargs['name'] = self.getName()
+#         if (not 'scene' in kwargs):
+#             kwargs['scene'] = self.getScene()
+#         return(super(OrganizationByName, self).constructPathForSelf(**kwargs))
 
 
     def extendContextMenu(self, menu):
@@ -529,16 +537,20 @@ class OrganizationByName(MediaOrganization):
         message = None
         if ((menuId == GUIId.ChooseName)
             or (menuId == GUIId.RandomName)):
+            newName = None
             if (menuId == GUIId.ChooseName):
                 newName = self.askNewName(parentWindow)
-                if (newName):
-                    self.getContext().renameTo(name=newName)
-            else:
+            elif (menuId == GUIId.RandomName):
                 newName = self.nameHandler.getFreeName()
-                if (newName):
-                    self.getContext().renameTo(name=newName)
-                else:
-                    message = 'No more free names!'
+            if (newName):
+                pathInfo = self.getPathInfo()
+                pathInfo['name'] = newName
+                del pathInfo['scene']
+                del pathInfo['number']
+                pathInfo['makeUnique'] = True
+                self.getContext().renameTo(**pathInfo)
+            else:
+                message = 'No more free names!'
         elif (menuId == GUIId.ConvertToGroup):
             message = self.convertToGroup()
         elif (menuId == GUIId.RelabelScene):
@@ -549,7 +561,10 @@ class OrganizationByName(MediaOrganization):
               and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
             newScene = self.getContext().getParentGroup().getOrganizer().getScenes()[menuId - GUIId.SelectScene]
             logging.debug('OrganizationByName.runContextMenu(): Changing scene of "%s" to %s' % (self.getPath(), newScene))
-            message = self.getContext().renameTo(makeUnique=True, scene=newScene)
+            pathInfo = self.getPathInfo()
+            pathInfo['scene'] = newScene
+            pathInfo['makeUnique'] = True 
+            message = self.getContext().renameTo(**pathInfo)
         else:
             super(OrganizationByName, self).runContextMenuItem(menuId, parentWindow)
         return(message)
@@ -639,7 +654,11 @@ class OrganizationByName(MediaOrganization):
                 singleton = newParent
                 newParent = Group.createAndPersist(model, 
                                                    self.__class__.constructPath(name=name))
-                singleton.renameTo(name=name, scene='1', makeUnique=True)
+                pathInfo = singleton.getOrganizer().getPathInfo()
+                pathInfo['name'] = name
+                pathInfo['scene'] = 1
+                pathInfo['makeUnique'] = True
+                singleton.renameTo(**pathInfo)
         else:  # name as yet unused
             newParent = Group.createAndPersist(model, name=name)
         # move scenes of self to unused scenes of newParent
@@ -661,11 +680,13 @@ class OrganizationByName(MediaOrganization):
         Logger.debug('OrganizationByName.renameGroup(): Scene map is "%s"' % sceneMap)
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=True):
-            subEntry.renameTo(elements=elements, 
-                              classesToRemove=classesToRemove,
-                              removeIllegalElements=removeIllegalElements,
-                              name=name,
-                              scene=sceneMap[subEntry.getOrganizer().getScene()])
+            pathInfo = subEntry.getOrganizer().getPathInfo()
+            pathInfo['name'] = name
+            pathInfo['scene'] = sceneMap[subEntry.getOrganizer().getScene()] 
+            pathInfo['classesToRemove'] = classesToRemove 
+            pathInfo['removeIllegalElements'] = removeIllegalElements 
+            pathInfo['elements'] = elements 
+            subEntry.renameTo(**pathInfo)
         return(newParent)
 
 
@@ -683,7 +704,6 @@ class OrganizationByName(MediaOrganization):
         """
         """
         result = super(OrganizationByName, self).getValuesFromNamePane(aMediaNamePane)
-        # result['name'] = aMediaNamePane.identifierString.GetLabel()  TODO: make interactive?
         scene = aMediaNamePane.sceneInput.GetValue()
         if (scene <> ''): 
             result['scene'] = scene
@@ -697,7 +717,10 @@ class OrganizationByName(MediaOrganization):
         """
         Logger.debug('OrganizationByName.convertToGroup(): Converting "%s" to a group' % self.getPath())
         Group.createAndPersist(self.model, name=self.getName())
-        self.renameTo(scene='1', number='1')
+        pathInfo = self.getPathInfo()
+        pathInfo['scene'] = 1
+        pathInfo['number'] = 1
+        self.renameTo(**pathInfo)
 
 
     def askNewName(self, parentWindow):
@@ -714,7 +737,7 @@ class OrganizationByName(MediaOrganization):
             if (ok):
                 newName = dialog.GetValue()
                 if (not self.nameHandler.isNameLegal(newName)):
-                    dialog.SetValue('%s is not a legal name' % newName)
+                    dialog.SetValue(_('"%s" is not a legal name') % newName)
                     newName = None
         dialog.Destroy()
         return(newName)
@@ -727,25 +750,26 @@ class OrganizationByName(MediaOrganization):
         """
         dialog = wx.TextEntryDialog(parentWindow, 'Enter New Scene', 'Relabel Scene', '')
         ok = True
-        newScene = -1
         newSceneString = None
         while (ok 
-               and ((newScene < 0) or (99 < newScene))):
+               and (newSceneString == None)):
             ok = (dialog.ShowModal() == wx.ID_OK)
             if (ok):
                 newSceneString = dialog.GetValue()
-                try: 
-                    newScene = int(newSceneString)
-                except: 
-                    newScene = -1
-                if ((newScene < 0) or (999 < newScene)):
-                    dialog.SetValue('%s is not a legal name' % newSceneString)
-                else:
-                    newSceneString = (OrganizationByName.FormatScene % newScene)
+                if (newSceneString <> MediaClassHandler.ElementNew):
+                    try: 
+                        newScene = int(newSceneString)
+                    except: 
+                        newScene = -1
+                    if ((newScene < 0) or (99 < newScene)):
+                        dialog.SetValue(_('"%s" is not a legal scene') % newSceneString)
+                        newSceneString = None
+                    else:
+                        newSceneString = (OrganizationByName.FormatScene % newScene)
             else:
                 newSceneString = None
         dialog.Destroy()
-        return (newSceneString)
+        return(newSceneString)
 
 
 

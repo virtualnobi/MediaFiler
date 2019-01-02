@@ -192,43 +192,10 @@ class Single(Entry):
         """Remove the new indicator on self's filename
         """
         if (MediaClassHandler.ElementNew in self.unknownElements):
-            self.unknownElements.remove(MediaClassHandler.ElementNew)
-            self.renameTo()
+            pathInfo = self.getOrganizer().getPathInfo()
+            pathInfo['elements'] = (self.getUnknownElements() - set(MediaClassHandler.ElementNew))
+            self.renameTo(**pathInfo)
 
-
-#     def changeScene (self, newScene):
-#         """Change the scene number of self.
-#         
-#         Returns True if successful, or False if failed (i.e., illegal NEWSCENE)
-#         """
-#         print('Single.changeScene() deprecated')
-#         raise DeprecationWarning
-#         pathNameOk = False
-#         if (self.model.organizedByDate):
-#             return(False)
-#         else:  # organized by name
-#             # change scene of self
-#             if (self.getOrganizer().getScene() <> newScene):  # new scene, implies new number
-#                 if (newScene == MediaClassHandler.ElementNew):
-#                     self.idScene = MediaClassHandler.ElementNew
-#                 elif (int(newScene)):  # numeric scene
-#                     self.idScene = ('%02i' % int(newScene))
-#                 else:  # illegal scene
-#                     return(False)
-#                 # assign new number within scene
-#                 self.idNumber = '001'
-#                 # check for collisions of scene+number, incrementing number until no collisions
-#                 while (not pathNameOk):
-#                     newPath = os.path.join (self.getDirectory(), 
-#                                             (self.getOrganizer().getScene() + '-' + self.idNumber + '*'))  # only check for scene+number
-#                     pathNameOk = (len(glob.glob(newPath)) == 0)  # zero hits are required
-#                     if (not pathNameOk):
-#                         self.idNumber = ('%03i' % (int(self.number) + 1))  # increase number to check whether it's unused
-#             # construct element list
-#             elements = self.getElementString()
-#             # construct complete path with elements and extension
-#             newPath = os.path.join (self.getDirectory(), (self.getOrganizer().getScene() + '-' + self.idNumber + elements + '.' + self.getExtension()))
-#             return(self.renameTo(newPath))
 
 
 # Getters

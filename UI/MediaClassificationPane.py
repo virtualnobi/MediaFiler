@@ -39,6 +39,11 @@ def N_(message): return message
 
 
 
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
+
 class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     """To display the classification of the currently selected Entry.
 
@@ -55,10 +60,6 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Class Variables
-    Logger = logging.getLogger(__name__)
-
-
-
 # Class Methods
 # Lifecycle
     def __init__ (self, parent, style=0):
@@ -143,7 +144,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def setEntry (self, entry):
         """Set the selected entry (either group or image), and enable/set checkboxes and radiobuttons accordingly.
         """
-        MediaClassificationPane.Logger.debug('MediaClassificationPane.setEntry(%s)' % entry.getPath())
+        Logger.debug('MediaClassificationPane.setEntry(%s)' % entry.getPath())
         # observer pattern
         if (self.entry):
             self.entry.removeObserver(self)  # unregister from previous observable
@@ -154,12 +155,45 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.entry.addObserverForAspect(self, 'name')
         # 
         entryElements = self.entry.getKnownElements()
+        self.setTags(entryElements)
+#         for className in self.model.getClassHandler().getClassNames():
+#             selectionBox = self.selectionBoxes[className]
+#             # enable first button in each group (the 'n/a' one) only if entry is a group
+#             selectionBox.EnableItem(MediaClassificationPane.ClassDontChangeIndex, self.entry.isGroup())
+#             # fill in data from the selected entry/group
+#             hits = entryElements.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
+#             if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes
+#                 selectionBox.clearAll() 
+#                 if (len(hits) == 0):  # no tag of this class selected
+#                     if (self.entry.isGroup()):
+#                         selectionBox.setValue(MediaClassificationPane.ClassDontChangeIndex, True)
+#                 else:  # tag(s) of this class selected
+#                     for element in self.model.getClassHandler().getElementsOfClassByName(className):
+#                         selectionBox.setValue(element, (element in hits))
+#             else:  # single selection, radioboxes
+#                 if (len(hits) == 0):  # no tag of this class selected
+#                     if (self.entry.isGroup()):  # for a group, select "n/a" item
+#                         selectionBox.SetSelection(MediaClassificationPane.ClassDontChangeIndex)
+#                     else:  # for an image, select empty item
+#                         selectionBox.SetSelection(MediaClassificationPane.ClassUnselectedIndex)
+#                 else:  # tag of this class selected
+#                     selectionBox.SetStringSelection(hits.pop())
+#         # relayout
+#         self.SetupScrolling()
+#         self.GetSizer().Layout()
+
+
+    def setTags(self, tagSet):
+        """Set self's radio and check boxes according to tag set
+        
+        Set of String tagSet
+        """
         for className in self.model.getClassHandler().getClassNames():
             selectionBox = self.selectionBoxes[className]
             # enable first button in each group (the 'n/a' one) only if entry is a group
             selectionBox.EnableItem(MediaClassificationPane.ClassDontChangeIndex, self.entry.isGroup())
             # fill in data from the selected entry/group
-            hits = entryElements.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
+            hits = tagSet.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
             if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes
                 selectionBox.clearAll() 
                 if (len(hits) == 0):  # no tag of this class selected
@@ -176,25 +210,23 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                         selectionBox.SetSelection(MediaClassificationPane.ClassUnselectedIndex)
                 else:  # tag of this class selected
                     selectionBox.SetStringSelection(hits.pop())
-        # relayout
-        self.SetupScrolling()
-        self.GetSizer().Layout()
 
-
+        
 
 # Event Handlers
     def onSelect (self, event):  # @UnusedVariable
         """User changed selection.
         
-        # TODO: According to tag class definition, en/disable other groups, and remove redundant tags
+        Let all options be active, and adapt depending options according to user's change. 
         """
         change = ''
         groupBox = event.GetEventObject()
-        groupName = '-'
-        for name in self.selectionBoxes: 
-            if (groupBox == self.selectionBoxes[name]):
-                groupName = name
+        className = None
+        for className in self.selectionBoxes: 
+            if (groupBox == self.selectionBoxes[className]):
                 break
+        if (className == None):
+            Logger.warning('MediaClassificationPane.onSelect(): Did not find selected group %s' % groupBox)
         # determine which tag is removed and which one added
         if (isinstance(event, CheckBoxGroupEvent)):
             if (groupBox.isChecked(MediaClassificationPane.ClassDontChangeIndex)
@@ -203,38 +235,46 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 addedTag = groupBox.getItemLabel(event.index)
                 removedTags = set()
                 groupBox.setValue(MediaClassificationPane.ClassDontChangeIndex, False)
-                change = ('added tag %s in check group %s' % (addedTag, groupName))
+                change = ('added tag %s in check group "%s"' % (addedTag, className))
             elif (groupBox.isChecked(MediaClassificationPane.ClassDontChangeIndex)
                   and (event.index == MediaClassificationPane.ClassDontChangeIndex)):
                 addedTag = None
                 removedTags = [tag for tag in groupBox.getAllItemLabels() if groupBox.isItemEnabled(tag)]
                 groupBox.clearAll()
                 groupBox.setValue(MediaClassificationPane.ClassDontChangeIndex, True)
-                change = ('removed check group %s' % groupName)
-            else:
+                change = ('removed tags from check group "%s"' % className)
+            else:  # regular tag in a CheckBoxGroup
                 if (event.value):
                     addedTag = groupBox.getItemLabel(event.index)
                     removedTags = set()
                 else:
                     addedTag = None
-                    removedTags = set().update(groupBox.getItemLabel(event.index))
-                change = ('%s tag %s in check group %s' % (('added' if event.value else 'removed'), 
+                    removedTags = set([groupBox.getItemLabel(event.index)])
+                change = ('%s tag "%s" in check group "%s"' % (('added' if event.value else 'removed'), 
                                                            groupBox.getItemLabel(event.index),
-                                                           groupName))
+                                                           className))
         else:  # RadioBox event
-            addedTag = groupBox.GetItemLabel(groupBox.GetSelection())
-            removedTags = None  # TODO: derive from entry
+            if (groupBox.GetSelection() == MediaClassificationPane.ClassDontChangeIndex):
+                addedTag = None
+            elif (groupBox.GetSelection() == MediaClassificationPane.ClassUnselectedIndex):
+                addedTag = None
+            else:  # real tag selected
+                addedTag = groupBox.GetItemLabel(groupBox.GetSelection())
+            removedTags = (self.entry.getKnownElements() - self.getTags())
             change = ('changed to tag %s in radio group %s' % (addedTag, 
-                                                               groupName))
-        MediaClassificationPane.Logger.debug('MediaClassificationPane.onSelect(): %s' % change)
-        MediaClassificationPane.Logger.debug('MediaClassificationPane.onSelect(): added %s, removed %s' % (addedTag, removedTags))
-        # change activation of input elements as needed
+                                                               className))
+        Logger.debug('MediaClassificationPane.onSelect(): %s' % change)
+        Logger.debug('MediaClassificationPane.onSelect(): added "%s", removed %s' % (addedTag, removedTags))
+        classesToRemove = self.getClassesToRemove()  # store before self.setTags()
         # adapt other tags as needed
-        elements = self.getTags()
+        elements = self.model.getClassHandler().getTagsOnChange(self.entry.getKnownElements(), addedTag, removedTags)
+        self.setTags(elements)
         elements.update(self.entry.getUnknownElements())
         # change media pathname
-        self.entry.renameTo(elements=elements,
-                            classesToRemove=self.getClassesToRemove())
+        pathInfo = self.entry.getOrganizer().getPathInfo()
+        pathInfo['elements'] = elements
+        pathInfo['classesToRemove'] = classesToRemove
+        self.entry.renameTo(**pathInfo)
 
 
 
@@ -317,12 +357,12 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         
         Return Set of String
         """
-        result= set()
+        result = set()
         for className in self.selectionBoxes:
             if (self.model.getClassHandler().isMultipleClassByName(className)):
                 pass
             else:
-                if (self.selectionBoxes[className].GetSelection() == self.ClassUnselectedIndex):
+                if (self.selectionBoxes[className].GetSelection() == MediaClassificationPane.ClassUnselectedIndex):
                     result.add(className)
         return(result)
 

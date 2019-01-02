@@ -33,9 +33,14 @@ class ProgressSplashApp(wx.App):
     def OnInit(self, splashFilename=None):
         """Display a splash screen including loading indicator. 
          
-        Override in subclass and use SetProgress() to update the loading indicator.
-        Remember to call ProgressSplashApp.OnInit() at the beginning of the subclass method.
-        
+        Override in subclass and call ProgressSplashApp.OnInit() at the beginning of the subclass method.
+
+        There are two methods for progress calculation. Both shall be called during OnInit, and shall not be mixed:
+        - Use SetProgress() if the percentages can be calculated directly. 
+        - Use BeginPhase() and FinishStep() for more complex calculations:
+        BeginPhase() divides the current phase duration (initially 100%) by the given number of steps, 
+        and FinishSteps() advances the progress by this step duration.
+
         String splashFilename names a BMP bitmap to show as splash image.
         Return True
         """
@@ -63,7 +68,10 @@ class ProgressSplashApp(wx.App):
                                             pos=(0, (height-10)),
                                             size=(width, 10), 
                                             range=100)
+#                 self.splashGauge.SetValue(1)
                 wx.Yield()
+#                 time.sleep(0.1)
+        self.remainingStops = [0, 100]
         return(True)
 
 
@@ -73,30 +81,65 @@ class ProgressSplashApp(wx.App):
         """Set the progress of loading to percent (0..100).
         
         Shall be called during wx.App.OnInit() to display loading progress.
-        Will close the splash screen and show the app's top window is called with percent above 100. 
+        Will close the splash screen and show the app's top window if called with percent above 100. 
         
+        Raises ValueError if progress bar would move backwards
         Number percent indicates completion of loading, use 101 to close splash screen
-        String phase describes the phase currently running
+        String phase is displayed above progress bar
         """
         if (phase == None):
-            phase = ('Processing... %d%%' % percent)
+            phase = ('Processed %d%%' % percent)
+        phase = '%s [%s%%, remaining stops %s]' % (phase, percent, self.remainingStops)
+        print(phase)
         self.splashText.SetLabel(phase)
         percent = int(percent)
-        if (percent < 0):
-            raise KeyError
-        elif (percent < 100):
+        if (percent < self.splashGauge.GetValue()):
+            raise ValueError, ('Progress bar cannot run backwards (%s smaller than current progress %s)' % (percent, self.splashGauge.GetValue()))
+        elif (percent <= 100):
             try:
-                self.splashGauge.SetValue(percent)
+                self.splashGauge.SetValue(percent)  # doing SetValue() twice does not help
             except: 
                 pass
-            wx.Yield()
-            time.sleep(0.5)
+            wx.Yield()  # doing wx.Yield() twice does not help; time.sleep(1) does not help
+            print('=%s' % self.splashGauge.GetValue())
         else:  # 100 < percent
             try: 
                 self.splashScreen.Close()
             except:
                 pass
             self.GetTopWindow().Show()
+
+
+    def BeginPhase(self, numberOfSteps):
+        """Begin a new phase consisting of the given number of steps.
+
+        For a call to this method, BeginStep() must be called numberSteps times.
+
+        int numberOfSteps
+        String description displayed as description of the first step
+        """
+        if ((not isinstance(numberOfSteps, int))
+            or (numberOfSteps < 1)):
+            raise ValueError, 'numberOfSteps must be a Number larger than 1'
+        if (len(self.remainingStops) < 2):
+            raise ValueError, 'BeginPhase() called when final step runnning (maybe BeginStep() called too often)!'
+        if (1 == numberOfSteps):
+            self.remainingStops.insert(1, self.remainingStops[1])
+        else:
+            phaseDuration = (self.remainingStops[1] - self.remainingStops[0])
+            stepDuration = int(phaseDuration / numberOfSteps)
+            for i in range(1, numberOfSteps):
+                self.remainingStops.insert(i, (self.remainingStops[0] + (i * stepDuration)))
+        print('BeginPhase(%s) results in %s' % (numberOfSteps, self.remainingStops))
+
+
+    def BeginStep(self, description=None):
+        """Begin a new step, i.e., display its description and advance the progress bar to signal completion of previous step. 
+        
+        String description displayed as description of the next step
+        """
+        currentPercentage = self.remainingStops.pop(0)
+        self.SetProgress(currentPercentage, description)
 
 
 

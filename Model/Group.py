@@ -113,7 +113,6 @@ class Group(Entry, Observer):
     
     
     def remove(self):  # TODO: remove subentries individually for correct MediaCollection size
-        # TODO: inform MediaOrganization as well, to release names
         """
         """
         super(Group, self).remove()
@@ -130,7 +129,6 @@ class Group(Entry, Observer):
         for key in kwargs: 
             if (kwargs[key] == None):
                 Logger.warning('Group.renameTo(): Found deprecated None value for parameter "%s"!' % key)
-                del kwargs[key]
         if ('number' in kwargs):
             if (kwargs['number']):
                 raise ValueError, 'Group.renameTo(): No number parameter allowed, ignored!'
@@ -400,10 +398,9 @@ class Group(Entry, Observer):
 
 
 # Other API Functions
-    def deleteDoubles(self, mergeElements=True):
+    def deleteDoubles(self):  # TODO: use MediaMap to check everywhere not just in this group
         """Remove double Singles contained in self. Recurse if self contains groups.
         
-        Boolean mergeElements indicates that elements from both doubles shall be merged into remaining name
         Return Number indicating how many doubles were deleted. 
         """
         doubles = 0
@@ -418,7 +415,7 @@ class Group(Entry, Observer):
                         break  # avoid checking pairs twice
                     elif (entry1.isIdentical(entry2)):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
-                        entry1.getOrganizer().deleteDouble(entry2, mergeElements)
+                        entry1.getOrganizer().deleteDouble(entry2)
                         doubles = (doubles + 1)
         #TODO: if self was selected, reselect to make changes visible
         return(doubles)

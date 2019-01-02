@@ -9,7 +9,7 @@
 import re
 import os.path
 import logging
-import datetime
+#import datetime
 ## Contributed
 ## nobi
 from nobi.ObserverPattern import Observable
@@ -214,7 +214,7 @@ class Entry(Observable):
         self.filteredFlag = flag
 
 
-    def remove(self):
+    def remove(self):  # TODO: inform MediaOrganization as well, to release names
         """Remove self from the image set. 
         
         Move the image file into the trash directory.
@@ -349,13 +349,6 @@ class Entry(Observable):
             return(self.getFilename()[:elementStart])
         else:
             return(self.getFilename())
-
-
-#     def getNumber(self):  # TODO: remove as it's defined in Single
-#         """Return the number of self.
-#         """
-#         print('Entry.getNumber() deprecated')
-#         return(self.getOrganizer().getNumber())
 
 
     def getKnownElementsDictionary(self):
@@ -511,7 +504,7 @@ class Entry(Observable):
     def renameTo(self, 
                  elements=None, removeIllegalElements=False,
                  number=None, makeUnique=False,
-                 **kwargs):
+                 **kwargs):          # TODO: inform MediaOrganization as well, to release names
         """Rename self's file, replacing the components as specified. 
        
         If a parameter is None or not given in pathInfo, leave it unchanged. 
@@ -551,7 +544,7 @@ class Entry(Observable):
         kwargs['makeUnique'] = makeUnique
         # 
         Logger.debug('Entry.renameTo(): Path info is %s' % kwargs)
-        newPath = self.organizer.constructPathForSelf(**kwargs)
+        newPath = self.organizer.__class__.constructPath(**kwargs)
         return(self.renameToFilename(newPath))
 
 
@@ -586,13 +579,13 @@ class Entry(Observable):
 
 
 ## Getters for organization by date
-    def getDate(self):
-        """Return the date the media was captured.
-        
-        Return datetime.date
-        """
-        print('Entry.getDate() deprecated')
-        return(datetime.date(int(self.getYear()), int(self.getMonth()), int(self.getDay())))
+#     def getDate(self):
+#         """Return the date the media was captured.
+#         
+#         Return datetime.date
+#         """
+#         print('Entry.getDate() deprecated')
+#         return(datetime.date(int(self.getYear()), int(self.getMonth()), int(self.getDay())))
 
 
 

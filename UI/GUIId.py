@@ -78,6 +78,8 @@ ExportImages = generateWxIdForLabel(_('Export (Filtered) Media'))
 FunctionNames[wx.ID_EXIT] = _('Exit')
 
 ## Image
+MergeDuplicates = generateWxIdForLabel(_('Merge Duplicates'))
+
 EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
 DeleteImage = generateWxIdForLabel(_('Delete Media "%s"'))
 DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
@@ -142,7 +144,7 @@ Import = generateWxIdForLabel(_('Import'))
 ## Tools
 GenerateLinkDirectory = generateWxIdForLabel(_('Generate Link Directory'))
 GenerateThumbnails = generateWxIdForLabel(_('Generate Thumbnail Directory'))
-RenameElement = generateWxIdForLabel(_('Rename Tag'))
+RenameTag = generateWxIdForLabel(_('Rename Tag'))
 EditClasses = generateWxIdForLabel(_('Edit Tag Classes'))
 EditNames = generateWxIdForLabel(_('Edit Names'))
 HarvestURLs = generateWxIdForLabel(_('Harvest from URL...'))

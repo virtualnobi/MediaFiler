@@ -134,7 +134,7 @@ class MediaNamePane(wx.Panel, Observer):
         
         Save the classification for later re-use.
         """
-        self.renameEntry(removeUnknownTags=False)
+        self.renameEntry()
 
 
 
@@ -177,17 +177,17 @@ class MediaNamePane(wx.Panel, Observer):
     def renameEntry(self, removeUnknownTags=False):
         """Rename the entry to the identifier and tags given in the input fields.
 
-        If removeUnknownTags=False, the elements given in the tags input field are taken into account. 
-        If removeUnknownTags=True, only illegal elements are removed, and the tags input field is ignored.
+        If removeUnknownTags=False, the tags given in the tags input field are used. 
+        If removeUnknownTags=True, illegal tags are removed, and the tags input field is ignored.
 
         Boolean removeUnknownTags indicates whether unknown tags shall be cleared from entry
         """
-        pathInfo = self.entry.organizer.getValuesFromNamePane(self)
+        pathInfo = self.entry.getOrganizer().getPathInfo()
+        pathInfo.update(self.entry.getOrganizer().getValuesFromNamePane(self))
         if (removeUnknownTags == False):
             tagString = self.elementInput.GetValue()
-            tagString = unicode(tagString).encode(sys.getfilesystemencoding(), 'replace')
             tagSet = self.model.getClassHandler().stringToElements(tagString)
-            pathInfo['elements'] = tagSet 
+            pathInfo['elements'] = tagSet
         pathInfo['removeIllegalElements'] = removeUnknownTags
         success = self.entry.renameTo(**pathInfo)
         if (success):

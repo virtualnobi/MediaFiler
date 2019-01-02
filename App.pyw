@@ -4,23 +4,19 @@
 
 # Imports
 ## standard
-#import sys
 import os 
 import subprocess
 import gettext
 import shutil
 import shlex
 import logging
-#from logging import FileHandler
 import time
-import cProfile
-import pstats
-#import types
 import pkgutil
 ## contributed
 import wx.aui
 import wx.lib.dialogs
 ## nobi
+from nobi.wx.ResizableDialog import ResizableDialog 
 from nobi.ObserverPattern import Observable, Observer
 from nobi.wx.ProgressSplashApp import ProgressSplashApp
 ## project
@@ -245,16 +241,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
         file_menu.Append(GUIId.ExportImages, GUIId.FunctionNames[GUIId.ExportImages])
         file_menu.AppendSeparator ();
         file_menu.Append(wx.ID_EXIT, GUIId.FunctionNames[wx.ID_EXIT])
-        # Image
+        # Media
         self.imageMenu = wx.Menu()
         mb.Append(self.imageMenu, self.MenuTitleImage)
+        self.imageMenu.Append(GUIId.MergeDuplicates, GUIId.FunctionNames[GUIId.MergeDuplicates])
+        self.imageMenu.AppendSeparator()
         self.imageMenu.Append(GUIId.DeleteImage, GUIId.FunctionNames[GUIId.DeleteImage])
-        menuItem = wx.MenuItem(self.imageMenu, GUIId.RandomName, GUIId.FunctionNames[GUIId.RandomName])
-        self.menuItemsByName.append(menuItem)
-        self.imageMenu.AppendItem(menuItem)
-        menuItem = wx.MenuItem(self.imageMenu, GUIId.ChooseName, GUIId.FunctionNames[GUIId.ChooseName])
-        self.menuItemsByName.append(menuItem)
-        self.imageMenu.AppendItem(menuItem)
         self.imageMenu.Append(GUIId.StartExternalViewer, GUIId.FunctionNames[GUIId.StartExternalViewer])
         self.imageMenu.AppendSeparator()
         self.imageMenu.Append(GUIId.FilterIdentical, GUIId.FunctionNames[GUIId.FilterIdentical])
@@ -290,7 +282,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
 # TODO:        tools_menu.Append (GUIId.GenerateLinkDirectory, GUIId.FunctionNames[GUIId.GenerateLinkDirectory])
 # TODO:        tools_menu.Append (GUIId.GenerateThumbnails, GUIId.FunctionNames[GUIId.GenerateThumbnails])
 #        tools_menu.AppendSeparator()
-        self.toolsMenu.Append(GUIId.RenameElement, GUIId.FunctionNames[GUIId.RenameElement])
+        self.toolsMenu.Append(GUIId.RenameTag, GUIId.FunctionNames[GUIId.RenameTag])
         self.toolsMenu.Append(GUIId.EditClasses, GUIId.FunctionNames[GUIId.EditClasses])
         menuItem = wx.MenuItem(self.toolsMenu, GUIId.EditNames, GUIId.FunctionNames[GUIId.EditNames])
         self.menuItemsByName.append(menuItem)
@@ -333,6 +325,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.Bind(wx.EVT_MENU, self.onExport, id=GUIId.ExportImages)
         self.Bind(wx.EVT_MENU, self.onExit, id=wx.ID_EXIT)
         # - image menu
+        self.Bind(wx.EVT_MENU, self.onMergeDuplicates, id=GUIId.MergeDuplicates)
         self.Bind(wx.EVT_MENU_RANGE, self.onDelegateToEntry, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)
         # - view menu
         self.Bind(wx.EVT_MENU, self.onToggleFilterPane, id=GUIId.ToggleFilterPane)
@@ -349,6 +342,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.Bind (wx.EVT_MENU, self.onImport, id=GUIId.Import)
         self.Bind (wx.EVT_MENU, self.onRemoveNew, id=GUIId.RemoveNew)
         # - tools menu
+        self.Bind(wx.EVT_MENU, self.onRenameTag, id=GUIId.RenameTag)
         self.Bind(wx.EVT_MENU, self.onEditClasses, id=GUIId.EditClasses)
         self.Bind(wx.EVT_MENU, self.onEditNames, id=GUIId.EditNames)
         self.Bind(wx.EVT_MENU, self.onLoggingChanged, id=GUIId.ManageLogging, id2=(GUIId.ManageLogging + GUIId.MaxNumberLogging))
@@ -423,6 +417,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
 # - Image menu events
+    def onMergeDuplicates(self, event):
+        """Search for duplicates, merge file names, and remove one. 
+        """
+        self.model.mergeDuplicates()
+
+
     def onDelegateToEntry(self, event):
         entry = self.model.getSelectedEntry()
         entry.runContextMenuItem(event.GetId(), self)
@@ -508,14 +508,14 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
 # - Import Menu events
-    def onImportProfiled(self, event):
-        fname = ('%s.profile' % __file__)
-        cProfile.runctx('self.onImport(event)',
-                        globals(),
-                        locals(),
-                        fname)
-        profile = pstats.Stats(fname)
-        profile.strip_dirs().sort_stats('cumulative').print_stats()
+#     def onImportProfiled(self, event):
+#         fname = ('%s.profile' % __file__)
+#         cProfile.runctx('self.onImport(event)',
+#                         globals(),
+#                         locals(),
+#                         fname)
+#         profile = pstats.Stats(fname)
+#         profile.strip_dirs().sort_stats('cumulative').print_stats()
 
 
     def onImport(self, event):
@@ -582,13 +582,70 @@ class MediaFiler(wx.Frame, Observer, Observable):
         pass
     
     
-    def onRenameClassElement (self, event):  # @UnusedVariable
+    def onRenameTag(self, event):  # @UnusedVariable
         """Rename a class element to another name, in the entire collection. 
         Allows to remove an element if renamed to "".
         """
-        MediaFiler.Logger.warn('MediaFiler.onRenameClassElement(): NYI!')
-        pass
-    
+        dlg = ResizableDialog(parent=self, title=_('Replace tag'))
+        dlgSizer = wx.BoxSizer(wx.VERTICAL)
+        sizer = wx.GridBagSizer(4, 4)
+        sizer.Add((5, 5), (0, 0), (1, 1))
+        sizer.Add((5, 5), (3, 3), (1, 1))
+        sizer.Add(wx.StaticText(dlg, -1, _('Original Tag:')),
+                  (1, 1),
+                  (1, 1),
+                  (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL))
+        originalField = wx.TextCtrl(dlg)
+        originalField.SetValue(u'Luebeln')
+        sizer.Add(originalField, 
+                  (1, 2),
+                  (1, 1),
+                  (wx.EXPAND|wx.ALL|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
+        sizer.Add(wx.StaticText(dlg, -1, _('Replacement Tag:')),
+                  (2, 1),
+                  (1, 1),
+                  (wx.EXPAND|wx.ALL|wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL))
+        replacementField = wx.TextCtrl(dlg)
+        replacementField.SetValue(u'Lbeln')
+        sizer.Add(replacementField, 
+                  (2, 2), 
+                  (1, 1),
+                  (wx.EXPAND|wx.ALL|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
+        dlgSizer.Add(sizer)
+        dlgSizer.Add(wx.StaticLine(dlg, -1, size=(20, 1), style=wx.LI_HORIZONTAL), (wx.GROW|wx.EXPAND))
+        btnsizer = wx.StdDialogButtonSizer()
+        btn = wx.Button(dlg, wx.ID_OK)
+        btn.SetDefault()
+        btnsizer.AddButton(btn) 
+        btn = wx.Button(dlg, wx.ID_CANCEL)
+        btnsizer.AddButton(btn)
+        btnsizer.Realize()
+        dlgSizer.Add(btnsizer, (wx.ALIGN_RIGHT|wx.EXPAND|wx.ALL))
+        dlg.SetSizerAndFit(dlgSizer)
+        dlg.CenterOnParent()
+        result = dlg.ShowModal()
+        while (result == wx.ID_OK):
+            if (originalField.GetValue() == ''):
+                message = _('Original tag may not be empty')
+            elif (replacementField.GetValue() == ''):
+                message = _('Replacement tag may not be empty')
+            elif (originalField.GetValue() == replacementField.GetValue()):
+                message = _('Original and replacement may not be identical')
+            else:
+                message = None
+            if (message):
+                messageText = wx.StaticText(dlg, -1, message)
+                sizer.Add(messageText,
+                          (2, 0),
+                          (1, 2),
+                          (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
+                dlg.Fit()
+                result = dlg.ShowModal()
+                sizer.Remove(messageText)
+            else: 
+                self.model.replaceTagBy(originalField.GetValue(), replacementField.GetValue())
+        dlg.Destroy()
+
     
     def onEditClasses (self, event):
         """Start external editor on class file.
@@ -877,6 +934,15 @@ class MediaFilerApp(ProgressSplashApp):
         else:
             self.Exit()
         return(True)
+
+
+    def getProgressFunction(self):
+        """Return a progress indicating function.
+        
+        Return f(percent, text)
+        """
+        pass
+
 
 
 # section: Executable script

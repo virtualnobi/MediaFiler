@@ -111,7 +111,7 @@ class OrganizationByDate(MediaOrganization):
 
 
     @classmethod
-    def constructPathForOrganization(cls, **kwargs):
+    def constructOrganizationPath(cls, **kwargs):
         """
         Dictionary kwargs
             Number year
@@ -601,6 +601,16 @@ class OrganizationByDate(MediaOrganization):
         return(False)
 
 
+    def getPathInfo(self):
+        """override MediaOrganization.getPathInfo(self)
+        """
+        result = MediaOrganization.getPathInfo(self)
+        result['year'] = self.getYear()
+        result['month'] = self.getMonth()
+        result['day'] = self.getDay()
+        return(result)
+
+
     def getTimeTaken(self):
         """Return the time self was taken. 
         
@@ -642,26 +652,26 @@ class OrganizationByDate(MediaOrganization):
         return(self.timeTaken)
 
 
-    def constructPathForSelf(self, **kwargs):
-        """
-        """
-        checkMakeUnique = False
-        if (not 'year' in kwargs):
-            kwargs['year'] = self.getYear()
-        elif (kwargs['year'] <> self.getYear()):
-            checkMakeUnique = True
-        if (not 'month' in kwargs):
-            kwargs['month'] = self.getMonth()
-        elif (kwargs['month'] <> self.getMonth()):
-            checkMakeUnique = True
-        if (not 'day' in kwargs):
-            kwargs['day'] = self.getDay()
-        elif (kwargs['day'] <> self.getDay()):
-            checkMakeUnique = True
-        if (checkMakeUnique
-            and (not 'number' in kwargs)):
-            kwargs['makeUnique'] = True
-        return(MediaOrganization.constructPathForSelf(self, **kwargs))
+#     def constructPathForSelf(self, **kwargs):
+#         """
+#         """
+#         checkMakeUnique = False
+#         if (not 'year' in kwargs):
+#             kwargs['year'] = self.getYear()
+#         elif (kwargs['year'] <> self.getYear()):
+#             checkMakeUnique = True
+#         if (not 'month' in kwargs):
+#             kwargs['month'] = self.getMonth()
+#         elif (kwargs['month'] <> self.getMonth()):
+#             checkMakeUnique = True
+#         if (not 'day' in kwargs):
+#             kwargs['day'] = self.getDay()
+#         elif (kwargs['day'] <> self.getDay()):
+#             checkMakeUnique = True
+#         if (checkMakeUnique
+#             and (not 'number' in kwargs)):
+#             kwargs['makeUnique'] = True
+#         return(MediaOrganization.constructPathForSelf(self, **kwargs))
 
 
     def extendContextMenu(self, menu):
@@ -805,13 +815,17 @@ class OrganizationByDate(MediaOrganization):
             newParent = model.getEntry(group=True, year=year, month=month, day=day)
             if (not newParent):
                 newParent = Group.createAndPersist(model, 
-                                                   self.__class__.constructPath(year=year, month=month, day=day))
+                                                   self.__class__.constructPath(self.__class__, year=year, month=month, day=day))
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=True):
-            subEntry.renameTo(elements=elements, 
-                              classesToRemove=classesToRemove,
-                              removeIllegalElements=removeIllegalElements,
-                              year=year, month=month, day=day)
+            pathInfo = subEntry.getOrganizer().getPathInfo()
+            pathInfo['elements'] = elements
+            pathInfo['classesToRemove'] = classesToRemove
+            pathInfo['removeIllegalElements'] = removeIllegalElements
+            pathInfo['year'] = year
+            pathInfo['month'] = month
+            pathInfo['day'] = day
+            subEntry.renameTo(**pathInfo)
         return(newParent)
 
 
@@ -832,27 +846,21 @@ class OrganizationByDate(MediaOrganization):
         """
         result = MediaOrganization.getValuesFromNamePane(self, aMediaNamePane)
         year = aMediaNamePane.yearInput.GetValue()
-        if (year == ''):
-            result['year'] = None
-        else:
+        if (year <> ''):
             try:
                 result['year'] = int(year)
             except:
                 Logger.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret year string "%s" as int' % year)
                 return(None)
         month = aMediaNamePane.monthInput.GetValue()
-        if (month == ''):
-            result['month'] = None
-        else:
+        if (month <> ''):
             try:
                 result['month'] = int(month)
             except:
                 Logger.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret month string "%s" as int' % month)
                 return(None)
         day = aMediaNamePane.dayInput.GetValue()
-        if (day == ''):
-            result['day'] = None
-        else:
+        if (day <> ''):
             try:
                 result['day'] = int(day)
             except: 
@@ -992,7 +1000,9 @@ class OrganizationByDate(MediaOrganization):
         doList = []
         self.undoList = []
         for (entry, time) in sortedEntries:
-            newPath = entry.organizer.constructPathForSelf(number=newIndex)
+            pathInfo = entry.getOrganizer().getPathInfo()
+            pathInfo['number'] = newIndex
+            newPath = entry.getOrganizer().__class__.constructPath(**pathInfo)
             newIndex = (newIndex + stepWidth)
             if (entry.getPath() <> newPath):
                 Logger.debug('OrganizationByDate.reorderByTime(): At %s, reordering\n   %s\n  >%s' % (time, entry.getPath(), newPath))
