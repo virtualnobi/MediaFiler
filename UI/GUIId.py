@@ -54,7 +54,8 @@ MaxNumberLogging = 30  # max number of modules to toggle logging
 
 # Status Bar components
 SB_Info = 0  # informational messages
-SB_Organization = 1  # organization of images: by date or by name
+SB_Progress = 1  # progress bar
+SB_Organization = 2  # organization of images: by date or by name
 # TODO: SB_Filter = 3  # number if filters active
 
 

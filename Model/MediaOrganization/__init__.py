@@ -86,6 +86,12 @@ class MediaOrganization(object):
 
 
     @classmethod
+    def getModel(self):
+        """"""
+        return(self.ImageFilerModel)
+
+
+    @classmethod
     def getDescription(cls):
         """Return a description of the organization. 
         """

@@ -470,7 +470,7 @@ class MediaCollection(Observable, Observer):
         return(self.filter)
 
 
-    def filterEntries(self):
+    def filterEntries(self, progressBar=None):
         """Self's filter has changed. Recalculate the filtered entries. 
         """
         MediaCollection.Logger.debug('MediaCollection.filterEntries() started')

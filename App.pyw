@@ -16,6 +16,7 @@ import pkgutil
 import wx.aui
 import wx.lib.dialogs
 ## nobi
+from nobi.wx.PhasedProgressBar import PhasedProgressBar
 from nobi.wx.ResizableDialog import ResizableDialog 
 from nobi.ObserverPattern import Observable, Observer
 from nobi.wx.ProgressSplashApp import ProgressSplashApp
@@ -223,8 +224,10 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
     def createStatusBar (self):
-        self.statusbar = self.CreateStatusBar(2, wx.ST_SIZEGRIP)
-        self.statusbar.SetStatusWidths([-3, -4])
+        self.statusbar = self.CreateStatusBar(3, wx.ST_SIZEGRIP)
+        self.statusbar.SetStatusWidths([-2, -1, -3])  # negative means relative sizes
+        self.progressbar = PhasedProgressBar(self.statusbar, -1)
+        self.resizeProgressBar()
 
 
     def createMenuBar (self):
@@ -739,6 +742,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
 # - Window Events
     def onResize (self, event):  # @UnusedVariable
         self.GetSizer().Layout()
+        self.resizeProgressBar()
 
 
     def onKeyDown(self, event):
@@ -790,6 +794,9 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.statusbar.SetStatusText(aString, GUIId.SB_Info)
         self.statusbar.Show()
 
+
+    def getProgressBar(self):
+        return(self.progressbar)
 
 
 # section: Internal State
@@ -891,6 +898,16 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 self.toolsMenu.Check(self.toolsMenu.FindItem(moduleName), True)
                 logging.getLogger(moduleName).addHandler(MediaFiler.LogHandlerInteractive)
 
+
+    def resizeProgressBar(self):
+        rect = self.statusbar.GetFieldRect(GUIId.SB_Progress)
+        self.progressbar.SetPosition((rect.x+2, rect.y+2))
+        self.progressbar.SetSize((rect.width-4, rect.height-4))
+        """
+        self.progressbar.Hide()
+        Then whenever I want to use the progress bar, I call
+        self.progress_bar.Show() 
+        """
 
 
 

@@ -407,8 +407,6 @@ class Entry(Observable):
     def getTreeItemID(self):
         """Return the wx.TreeItemID of self.
         """
-        if (not self.treeItemID):
-            pass
         return(self.treeItemID)
 
 
@@ -564,16 +562,15 @@ class Entry(Observable):
         except Exception as e:
             Logger.error('Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
             return(False)
-        else:
-            # remove from current group, and add to new group
-            (head, tail) = os.path.split(fname)  # @UnusedVariable
-            newGroup = self.organizer.__class__.getGroupFromPath(head)
-            if (newGroup <> self.getParentGroup()):
-                self.setParentGroup(newGroup)
-            self.initFromPath(fname)  # name must be changed last, otherwise the Group will not find its subentry
-            self.changedAspect('name')
-            self.organizer.__class__.registerMoveToLocation(fname)
-            return(True)
+        # remove from current group, and add to new group
+        (head, tail) = os.path.split(fname)  # @UnusedVariable
+        newGroup = self.organizer.__class__.getGroupFromPath(head)
+        self.initFromPath(fname)  # change name before changing parent: If parent group is shown, image needs to be retrieved
+        if (newGroup <> self.getParentGroup()):
+            self.setParentGroup(newGroup)
+        self.changedAspect('name')
+        self.organizer.__class__.registerMoveToLocation(fname)
+        return(True)
 
 
 

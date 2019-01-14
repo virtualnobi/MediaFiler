@@ -25,6 +25,7 @@ from Model.MediaNameHandler import MediaNameHandler
 from Model.MediaFilter import MediaFilter
 from Model.MediaOrganization import MediaOrganization
 from Model.Group import Group
+from Model.Single import Single
 from UI.MediaFilterPane import MediaFilterPane, FilterConditionWithMode
 import UI  # to access UI.PackagePath
 from UI import GUIId
@@ -123,7 +124,18 @@ class OrganizationByName(MediaOrganization):
                 else:  # TODO: must join with existing singleton
                     result = os.path.join(letter, kwargs['name'])
             else:
-                result = os.path.join(letter, kwargs['name'])            
+                result = os.path.join(letter, kwargs['name'])
+            newResult = os.path.join(letter, kwargs['name'])
+            if (('scene' in kwargs)
+                and (kwargs['scene'])):
+                try:
+                    scene = (cls.FormatScene % (int(kwargs['scene'])))
+                except: 
+                    scene = MediaClassHandler.ElementNew
+                newResult = os.path.join(newResult, scene)
+            if (result <> newResult):
+                print('OrganizationByName.constructOrganizationPath(): Results differ %s, %s' % (result, newResult))
+                result = newResult
         else:
             logging.error('OrganizationByName.constructOrganizationPath(): No name given!')
             return(None)
@@ -499,10 +511,12 @@ class OrganizationByName(MediaOrganization):
         """
         menu.Append(GUIId.RandomName, GUIId.FunctionNames[GUIId.RandomName])
         menu.Append(GUIId.ChooseName, GUIId.FunctionNames[GUIId.ChooseName])
-        if (self.context.isGroup()):
+        if (self.getContext().isGroup()):
             menu.Append(GUIId.ConvertToSingle, GUIId.FunctionNames[GUIId.ConvertToSingle])
             if (1 < len(self.context.getSubEntries(filtering=False))):
                 menu.Enable(GUIId.ConvertToSingle, False)
+        if (self.isSingleton()):
+            menu.Append(GUIId.ConvertToGroup, GUIId.FunctionNames[GUIId.ConvertToGroup])
         menu.AppendSeparator()
         # functions applicable to Singles inside named Groups
         if ((not self.getContext().isGroup())
@@ -545,9 +559,15 @@ class OrganizationByName(MediaOrganization):
             if (newName):
                 pathInfo = self.getPathInfo()
                 pathInfo['name'] = newName
-                del pathInfo['scene']
                 del pathInfo['number']
                 pathInfo['makeUnique'] = True
+                entry = self.getContext().model.getEntry(name=self.getName(), group=True)
+                if (not entry):
+                    entry = self.getContext().model.getEntry(name=self.getName(), group=False)
+                    if (entry):
+                        entry = entry.getOrganizer().convertToGroup()
+                if (isinstance(entry, Group)):
+                    pathInfo['scene'] = MediaClassHandler.ElementNew
                 self.getContext().renameTo(**pathInfo)
             else:
                 message = 'No more free names!'
@@ -714,13 +734,16 @@ class OrganizationByName(MediaOrganization):
 # Internal - to change without notice
     def convertToGroup(self):
         """Convert the current singleton Single to a Group with the same name.
+        
+        Return new Group
         """
         Logger.debug('OrganizationByName.convertToGroup(): Converting "%s" to a group' % self.getPath())
-        Group.createAndPersist(self.model, name=self.getName())
+        group = Group.createAndPersist(self.__class__.getModel(), name=self.getName())
         pathInfo = self.getPathInfo()
         pathInfo['scene'] = 1
         pathInfo['number'] = 1
-        self.renameTo(**pathInfo)
+        self.getContext().renameTo(**pathInfo)
+        return(group)
 
 
     def askNewName(self, parentWindow):

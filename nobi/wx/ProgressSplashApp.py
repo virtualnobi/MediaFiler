@@ -88,7 +88,7 @@ class ProgressSplashApp(wx.App):
         String phase is displayed above progress bar
         """
         if (phase == None):
-            phase = ('Processed %d%%' % percent)
+            phase = ('[Processed %d%%]' % percent)
         phase = '%s [%s%%, remaining stops %s]' % (phase, percent, self.remainingStops)
         print(phase)
         self.splashText.SetLabel(phase)
