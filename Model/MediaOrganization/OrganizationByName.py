@@ -489,7 +489,7 @@ class OrganizationByName(MediaOrganization):
         list the numbers. 
         """
         return([e.getOrganizer().getNumber() 
-                for e in self.getContext().getParentGroup().getSubEntries() 
+                for e in self.getContext().getParentGroup().getSubEntries(filtering=False) 
                 if ((not e.isGroup())
                     and (e.getOrganizer().getScene() == self.getScene()))])
 
@@ -705,7 +705,8 @@ class OrganizationByName(MediaOrganization):
             pathInfo['scene'] = sceneMap[subEntry.getOrganizer().getScene()] 
             pathInfo['classesToRemove'] = classesToRemove 
             pathInfo['removeIllegalElements'] = removeIllegalElements 
-            pathInfo['elements'] = elements 
+            newElements = (subEntry.getElements() | elements)
+            pathInfo['elements'] = newElements 
             subEntry.renameTo(**pathInfo)
         return(newParent)
 
