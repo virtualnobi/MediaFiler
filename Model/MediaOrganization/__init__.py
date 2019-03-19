@@ -28,6 +28,7 @@ from ..MediaNameHandler import MediaNameHandler
 from ..MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
+from __builtin__ import classmethod
 
 
 
@@ -116,7 +117,7 @@ class MediaOrganization(object):
         If either makeUnique or number is given, the resulting pathname contains a number. 
         makeUnique takes precedence over the number parameter.
 
-        Number number contains the number of the media (in date or name group)
+        Number number contains the new number of the media (in date or name group)
         Boolean makeUnique requests to create a unique new pathname (takes precedence over number)
         String elements as given by MediaClassHandler().getElementString()
         String extension contains the media's extension
@@ -132,14 +133,14 @@ class MediaOrganization(object):
             result = cls.ImageFilerModel.getRootDirectory()
         result = os.path.join(result, cls.constructOrganizationPath(**pathInfo))
         number = None
-        if (('makeUnique' in pathInfo)
-            and pathInfo['makeUnique']):
+        if (('number' in pathInfo)
+              and pathInfo['number']):
+            number = pathInfo['number']        
+        if ((('makeUnique' in pathInfo)
+             and pathInfo['makeUnique'])):
             number = 1
             while (0 < len(glob.glob(result + cls.IdentifierSeparator + (cls.FormatNumber % number) + '*'))):
                 number = (number + 1)
-        elif (('number' in pathInfo)
-              and pathInfo['number']):
-            number = pathInfo['number']
         if (number):
             if (isinstance(number, str)
                 or isinstance(number, unicode)):
@@ -302,7 +303,6 @@ class MediaOrganization(object):
 
 
 
-# Setters
     def setIdentifiersFromPath(self, path):
         """Extract identifiers relevant for the organization from path & return unconsumed part of path. 
         
@@ -333,29 +333,8 @@ class MediaOrganization(object):
             return(pathRest)
 
 
-#     def constructPathForSelf(self, **kwargs):
-#         """Construct a path for self, incorporating changes as specified in kwargs.
-# 
-#         If a parameter is not contained in kwargs, it is derived from self's settings.
-#         If a parameter is contained in kwargs, but None, it will not be used to construct a path (e.g., scene).
-#         If a parameter is contained in kwargs, other than None, it will be used instead of self's setting.
-# 
-#         String number contains the number of the media (in date or name group)
-#         Boolean makeUnique requests to create a unique new pathname (takes precedence over number)
-#         String elements as given by MediaClassHandler().getElementString()
-#         String extension contains the media's extension
-# 
-#         Return a String containing the path for self's context
-#         """
-#         if (not 'number' in kwargs):
-#             kwargs['number'] = self.getNumber()
-#         if (not 'elements' in kwargs):
-#             kwargs['elements'] = self.context.getElements()
-#         if (not 'extension' in kwargs):
-#             kwargs['extension'] = self.context.getExtension()
-#         return(self.constructPath(**kwargs))
 
-
+# Setters
 # Getters
     def getContext(self):
         """Return the Entry which is organized by self.
@@ -387,7 +366,7 @@ class MediaOrganization(object):
         Return Sequence of Numbers (empty if self is not a Group) 
         """
         return([e.getOrganizer().getNumber() 
-                for e in self.getContext().getParentGroup().getSubEntries() 
+                for e in self.getContext().getParentGroup().getSubEntries(filtering=False) 
                 if (not e.isGroup())])
 
 
@@ -421,9 +400,9 @@ class MediaOrganization(object):
         """
         result = {}
         # result['rootDir'] = self.getContext().model.getRootDirectory()
-        result['number'] = self.getNumber()
         result['elements'] = self.getContext().getElements()
         if (not self.getContext().isGroup()):
+            result['number'] = self.getNumber()
             result['extension'] = self.getContext().getExtension()
         return(result)
 
@@ -476,10 +455,12 @@ class MediaOrganization(object):
     
 
 
-# Other API Functions
     def deleteDouble(self, otherEntry):
         """Remove otherEntry, but rename self to keep its information.         
 
+        # TODO: Why is this function defined here and not in Entry/Group?
+        # TODO: check whether redundant with organizer.rename()
+        
         MediaFiler.Entry otherEntry
         """
         newElements = self.context.getElements().union(otherEntry.getElements())
@@ -489,7 +470,7 @@ class MediaOrganization(object):
         Logger.debug('MediaOrganization.deleteDouble(): Adding tags %s to "%s"' % (newElements, self.context))
         pathInfo = self.getPathInfo()
         pathInfo['elements'] = newElements
-        self.context.renameTo(**pathInfo)
+        self.getContext().renameTo(**pathInfo)
         otherEntry.remove()
 
 
@@ -508,13 +489,93 @@ class MediaOrganization(object):
             or None if field values are illegal
         """
         result = {}
-        number = aMediaNamePane.numberInput.GetValue()
-        if (number <> ''):
-            try:
-                result['number'] = int(number)
-            except:
-                return(None) # TODO: add error dialog 
+        if (not self.getContext().isGroup()):
+            number = aMediaNamePane.numberInput.GetValue()
+            if (number <> ''):
+                try:
+                    result['number'] = int(number)
+                except:
+                    return(None) # TODO: add error dialog
+            else:
+                result['makeUnique'] = True
         return(result)
+
+
+    def renameSingle(self, filtering=False, elements=None, removeIllegalElements=False, **pathInfo):
+        """Rename self's media context, which is a Single, according to the parameters given. 
+
+        Boolean filtering is irrelevant for Singles, see renameGroup()
+        Set elements specifies the new tags (or None)
+        Boolean removeIllegalElements specifies that unknown tags shall be removed
+        dict pathInfo contains organization-specific attributes
+        """
+        if (self.getContext().isGroup()):
+            raise ValueError, ('MediaOrganization.renameSingle(): Called on a Group!')
+        # change elements as required
+        if (elements 
+            or removeIllegalElements):
+            if (elements):
+                newElements = elements
+            else:
+                newElements = self.getElements()
+            if (removeIllegalElements):
+                newElements = filter(self.__class__.ImageFilerModel.getClassHandler().isLegalElement, newElements)
+            pathInfo['elements'] = newElements
+        # rename 
+        oldParent = self.getContext().getParentGroup()
+        newParent = self.findGroupFor(**pathInfo)  # @UnusedVariable
+        Logger.debug('MediaOrganization.renameSingle(): Path info is %s' % pathInfo)
+        newName = self.constructPath(**pathInfo)
+        Logger.debug('MediaOrganization.renameSingle(): New name is %s' % newName)
+        self.getContext().renameToFilename(newName)
+        # check whether old group still has subentries
+        if (len(oldParent.getSubEntries()) == 0):
+            oldParent.remove()
+
+
+    def requiresUniqueNumbering(self):
+        """By default, all Single media requires a number to ensure uniqueness.
+        """
+        return(True)
+
+
+    def renameGroup(self, filtering=False, **pathInfo):
+        """Rename self's media context, which is a group, according to the parameters.
+        
+        If filtering, only rename the subentries not filtered. 
+        If no subentries remain in the group after renaming, remove the group.
+        
+        Boolean filtering determines whether filtered subentries are renamed as well
+        """
+        if (not self.getContext().isGroup()):
+            raise ValueError, ('MediaOrganization.renameGroup(): Called on a Single!')
+        if (('number' in pathInfo)
+            and (pathInfo['number'])):
+            raise ValueError, ('MediaOrganization.renameGroup(): Number %s specified when renaming group "%s"' % (pathInfo['number'], self.getContext()))
+        newParent = self.findGroupFor(**pathInfo)
+        # rename subentries
+        renameList = self.getRenameList(newParent, pathInfo, filtering=filtering)
+        for (entry, pathInfo) in renameList:
+            entry.renameTo(**pathInfo)
+        # remove self if no subenries left
+        if (len(self.getContext().getSubEntries()) == 0):
+            self.getContext().remove()
+
+
+    def getRenameList(self, newParent, pathInfo, filtering=True):
+        """Create a list of <entry, pathInfo> pairs where the entries are all subentries of self's context, 
+        and pathInfo describes their new placement.
+        """
+        raise NotImplementedError
+
+
+    def findGroupFor(self, **pathInfo):
+        """Find or create a Group described by given path info.
+        
+        Return Group
+        """
+        raise NotImplementedError
+
 
 
 # Internal
@@ -540,13 +601,13 @@ class MediaOrganization(object):
         result = 0
         while (result == 0):
             if ((0 < (origin - distance))
-                and (not ((origin - distance) in numberList))):
+                and (not ((origin - distance) in numberList))):  # gap in (distance) steps before origin
                     result = (origin - distance)
-            elif ((origin - distance) == self.getNumber()):
+            elif ((origin - distance) == self.getNumber()):  # gap is created when self is moved
                 result = (origin - distance)
-            elif (not ((origin + distance) in numberList)):
+            elif (not ((origin + distance) in numberList)):  # gap in (distance) steps after origin
                 result = (origin + distance)
-            elif ((origin + distance) == self.getNumber()):
+            elif ((origin + distance) == self.getNumber()):  # gap is created when self is moved
                 result = (origin + distance)
             distance = (distance + 1)
         return(result)

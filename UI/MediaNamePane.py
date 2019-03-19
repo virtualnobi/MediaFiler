@@ -191,7 +191,7 @@ class MediaNamePane(wx.Panel, Observer):
         pathInfo['removeIllegalElements'] = removeUnknownTags
         success = self.entry.renameTo(**pathInfo)
         if (success):
-            self.model.setSelectedEntry(self.entry)  # when switching groups, old parent group will change selection to itself 
+            self.model.setSelectedEntry(self.entry)  # TODO: when switching groups, old parent group will change selection to itself 
             self.rememberElements()
         else:
             dlg = wx.MessageDialog(self,   # TODO: add error message to Dialog

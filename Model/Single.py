@@ -153,15 +153,27 @@ class Single(Entry):
         Return wx.Menu
         """
         menu = super(Single, self).getContextMenu()
-        # external viewer
-        menu.insertAfterId(GUIId.FilterSimilar, newText=GUIId.FunctionNames[GUIId.StartExternalViewer], newId=GUIId.StartExternalViewer)
+        # media functions
+        menu.Insert(0, 
+                    GUIId.StartExternalViewer, 
+                    GUIId.FunctionNames[GUIId.StartExternalViewer], 
+                    "", 
+                    wx.ITEM_NORMAL)
+#         menu.Append(GUIId.StartExternalViewer,
+#                     GUIId.FunctionNames[GUIId.StartExternalViewer],
+#                     "",  # help string 
+#                     wx.ITEM_NORMAL)
         if ((not self.__class__.getConfigurationOptionExternalViewer()) 
             or (not self.model.getConfiguration(self.__class__.getConfigurationOptionExternalViewer()))):
             menu.Enable(GUIId.StartExternalViewer, enable=False)
-        # send email
-        menu.Insert(0, GUIId.SendMail, GUIId.FunctionNames[GUIId.SendMail])
+        menu.insertAfterId(GUIId.StartExternalViewer, 
+                           newText=GUIId.FunctionNames[GUIId.SendMail], 
+                           newId=GUIId.SendMail)
         if (not self.model.getConfiguration(Single.ConfigurationOptionEmailClient)):
             menu.Enable(GUIId.SendMail, enable=False)
+        # structure functions
+        # group functions
+        # delete functions
         return(menu)
 
 

@@ -20,6 +20,12 @@ import logging
 ## Project
 
 
+
+# Package Variables
+# Logger = logging.getLogger(__name__)
+
+
+
 class SimpleProductTrader(object): 
     """Implement a simple Product Trader, using strings to specify the class to instantiate.
     """

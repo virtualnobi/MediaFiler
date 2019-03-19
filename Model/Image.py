@@ -16,7 +16,7 @@ import Installer
 # from .Entry import Entry
 from .Single import Single
 import UI  # to access UI.PackagePath
-from Model.CachingController import CachingController
+#from Model.CachingController import CachingController
 
 
 
@@ -51,7 +51,7 @@ class Image(Single):
     LegalExtensions = ['jpg', 'png', 'gif', 'tif', 'jpeg']
     ConfigurationOptionViewer = 'viewer-image'
     PreviewImageFilename = 'Image.jpg'
-    Logger = logging.getLogger(__name__)
+#    Logger = logging.getLogger(__name__)
 
 
 

@@ -229,15 +229,6 @@ class Entry(Observable):
         newName = os.path.join(self.model.rootDirectory, 
                                Installer.getTrashPath(), 
                                (self.getFilename() + '.' + self.getExtension()))
-#         unqualified = newName
-#         count = 1  
-#         while (os.path.exists(newName)):
-#             newName = os.path.join(self.model.rootDirectory,
-#                                    Installer.getTrashPath(),  # self.TrashDirectory,
-#                                    (self.getFilename() + '-' + str(count) + '.' + self.getExtension()))
-#             count = (count + 1)
-#         if (newName <> makeUnique(unqualified)):
-#             print('"%s" different from "%s" as returned by nobi.os.makeUnique()' % (newName, makeUnique(unqualified)))
         newName = makeUnique(newName)
         Logger.debug('Trashing "%s" (into "%s")' % (oldName, newName))
         try:
@@ -249,6 +240,10 @@ class Entry(Observable):
 # Getters
     def __repr__(self):
         return('<%s from %s>' % (self.__class__.__name__, self.getPath()))
+
+
+    def getModel(self):
+        return(self.model)
 
 
     def isGroup(self):
@@ -501,12 +496,14 @@ class Entry(Observable):
     # @profiledOnLogger(Logger, sort='cumulative')
     def renameTo(self, 
                  elements=None, removeIllegalElements=False,
-                 number=None, makeUnique=False,
-                 **kwargs):          # TODO: inform MediaOrganization as well, to release names
+                 **kwargs):
         """Rename self's file, replacing the components as specified. 
        
         If a parameter is None or not given in pathInfo, leave it unchanged. 
         If makeUnique is True, find another number to ensure a unique filename.
+        
+        TODO: Move to Single class, leave abstract method in Entry.
+        TODO: Return renamed Single, throw exception if needed.
         
         Dictionary pathInfo may contain the following keys:
             <organization-specific keys>
@@ -518,32 +515,24 @@ class Entry(Observable):
             Boolean removeIllegalElements
             Set of String classesToRemove contains the names of classes whose tags shall be removed
         Return Boolean indicating success
-        
-        #TODO: restructure to move element handling from MediaOrganization to MediaClassHandler.
-        1-root directory
-        2-organization middle
-        3-element string
-        4-file extension
         """
-        # elements
-        if (elements 
-            or removeIllegalElements):
-            if (elements):
-                newElements = elements
-            else:
-                newElements = self.getElements()
-            if (removeIllegalElements):
-                kwargs['removeIllegalElements'] = removeIllegalElements
-                newElements = filter(self.model.getClassHandler().isLegalElement, newElements)
-            kwargs['elements'] = newElements
-        # number 
-        if (number): 
-            kwargs['number'] = number
-        kwargs['makeUnique'] = makeUnique
-        # 
-        Logger.debug('Entry.renameTo(): Path info is %s' % kwargs)
-        newPath = self.organizer.__class__.constructPath(**kwargs)
-        return(self.renameToFilename(newPath))
+        self.getOrganizer().renameSingle(elements=elements, removeIllegalElements=removeIllegalElements, **kwargs)
+        return(True)
+#         # elements
+#         if (elements 
+#             or removeIllegalElements):
+#             if (elements):
+#                 newElements = elements
+#             else:
+#                 newElements = self.getElements()
+#             if (removeIllegalElements):
+#                 kwargs['removeIllegalElements'] = removeIllegalElements
+#                 newElements = filter(self.model.getClassHandler().isLegalElement, newElements)
+#             kwargs['elements'] = newElements
+#         Logger.debug('Entry.renameTo(): Path info is %s' % kwargs)
+#         newPath = self.getOrganizer().__class__.constructPath(**kwargs)
+#         # TODO: does not merge two singles; does not move into existing group
+#         return(self.renameToFilename(newPath))
 
 
     def renameToFilename(self, fname):
@@ -552,24 +541,26 @@ class Entry(Observable):
         
         String fname is the new absolute filename
         Return Boolean indicating success
+        
+        Throws OSError if the file cannot be renamed.
         """
-        Logger.debug('Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
+        Logger.debug('Entry.renameToFilename(): Renaming "%s"\n      to "%s"' % (self.getPath(), fname))
         (newDirectory, dummy) = os.path.split(fname)  # @UnusedVariable
         try:
             if (not os.path.exists(newDirectory)):
                 os.makedirs(newDirectory)
             os.rename(self.getPath(), fname) 
         except Exception as e:
-            Logger.error('Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
-            return(False)
+            Logger.error('Entry.renameToFilename(): Renaming "%s"\n      to "%s" failed (exception follows)!\n%s' % (self.getPath(), fname, e))
+            raise e
         # remove from current group, and add to new group
         (head, tail) = os.path.split(fname)  # @UnusedVariable
-        newGroup = self.organizer.__class__.getGroupFromPath(head)
+        newGroup = self.getOrganizer().__class__.getGroupFromPath(head)
         self.initFromPath(fname)  # change name before changing parent: If parent group is shown, image needs to be retrieved
         if (newGroup <> self.getParentGroup()):
             self.setParentGroup(newGroup)
         self.changedAspect('name')
-        self.organizer.__class__.registerMoveToLocation(fname)
+        self.getOrganizer().__class__.registerMoveToLocation(fname)
         return(True)
 
 
@@ -594,17 +585,18 @@ class Entry(Observable):
         """
         menu = Menu()
         menu.currentEntry = self  # store current entry on menu, for access in menu event handlers
-        # organization functions
-        self.organizer.extendContextMenu(menu)
         # media functions
-        menu.AppendSeparator()
-        # view functions
-        menu.AppendSeparator()
         menu.Append(GUIId.FilterIdentical, GUIId.FunctionNames[GUIId.FilterIdentical])
         menu.Append(GUIId.FilterSimilar, GUIId.FunctionNames[GUIId.FilterSimilar])
-        # delete function
+        # structure functions
+        menu.AppendSeparator()
+        menu.Append(GUIId.SelectMoveTo, GUIId.FunctionNames[GUIId.SelectMoveTo])
+        # group functions
+        # delete functions
         menu.AppendSeparator()
         menu.Append(GUIId.DeleteImage, (GUIId.FunctionNames[GUIId.DeleteImage] % self.getIdentifier())) 
+        # organization functions
+        self.organizer.extendContextMenu(menu)
         return(menu)
 
 
@@ -624,8 +616,6 @@ class Entry(Observable):
             self.filterImages(False)
         elif (menuId == GUIId.DeleteImage):
             self.remove()
-        elif (menuId == GUIId.RemoveNew):
-            self.removeNewIndicator()
         else: 
             message = self.organizer.runContextMenuItem(menuId, parentWindow)
         return(message)

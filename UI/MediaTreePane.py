@@ -239,8 +239,11 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         """ASPECT of OBSERVABLE changed. 
         """
         self.Freeze()
-        firstEntry = self.GetItemData(self.GetFirstVisibleItem()).GetData()
-        Logger.debug('MediaTreeCtrl.updateAspect("%s"): First visible is "%s"' % (aspect, firstEntry))
+        if (self.GetFirstVisibleItem().IsOk()):
+            firstEntry = self.GetItemData(self.GetFirstVisibleItem()).GetData()
+            Logger.debug('MediaTreeCtrl.updateAspect("%s"): First visible is "%s"' % (aspect, firstEntry))
+        else: 
+            Logger.debug('MediaTreeCtrl.updateAspect(): Cannot determine first visible item, as it''s not "ok"')
         if (aspect == 'name'):  # name of an Entry changed
             node = observable.getTreeItemID()
             self.SetItemText(node, observable.getFilename())

@@ -88,7 +88,7 @@ class MediaCollection(Observable, Observer):
 
 # Class Methods
 # Lifecycle 
-    def __init__ (self, rootDir, progressFunction):
+    def __init__(self, rootDir, progressFunction):
         """Create a new MediaCollection.
         
         String rootDir specifies the path to the image root directory.
@@ -428,6 +428,8 @@ class MediaCollection(Observable, Observer):
         - the current pathname of the Single (to verify no other changes have been done)
         - the new pathname of the Single
         
+        # TODO: check whether redundant with organizer.rename()
+
         List of (Single, String, String) renameList 
         Return Boolean indicating success 
         """

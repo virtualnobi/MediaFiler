@@ -574,13 +574,16 @@ class OrganizationByDate(MediaOrganization):
         """
         return(((not 'year' in kwargs)
                 or (kwargs['year'] == None)
-                or (kwargs['year'] == self.getYearString()))
+                or (kwargs['year'] == self.getYearString())
+                or (kwargs['year'] == self.getYear()))
                and ((not 'month' in kwargs)
                 or (kwargs['month'] == None)
-                or (kwargs['month'] == self.getMonthString()))
+                or (kwargs['month'] == self.getMonthString())
+                or (kwargs['month'] == self.getMonth()))
                and ((not 'day' in kwargs)
                 or (kwargs['day'] == None)
-                or (kwargs['day'] == self.getDayString())))
+                or (kwargs['day'] == self.getDayString())
+                or (kwargs['day'] == self.getDay())))
 
 
     def isFilteredBy(self, aFilter):
@@ -605,9 +608,12 @@ class OrganizationByDate(MediaOrganization):
         """override MediaOrganization.getPathInfo(self)
         """
         result = MediaOrganization.getPathInfo(self)
-        result['year'] = self.getYear()
-        result['month'] = self.getMonth()
-        result['day'] = self.getDay()
+        if (self.getYear() <> OrganizationByDate.UnknownDateName):
+            result['year'] = self.getYear()
+            if (self.getMonth()):
+                result['month'] = self.getMonth()
+                if (self.getDay()):
+                    result['day'] = self.getDay()
         return(result)
 
 
@@ -680,30 +686,36 @@ class OrganizationByDate(MediaOrganization):
         MediaFiler.Entry.Menu menu 
         Return nobi.wx.Menu (which is a wx.Menu)
         """
-        moveToMenu = Menu()
-        moveToId = GUIId.SelectMoveTo
-        for mtl in sorted(self.__class__.MoveToLocations):
-#             menuText = mtl
-#             if (moveToId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations)):
-#                 mtl = self.__class__.MoveToLocations[menuText]
-#                 print('Adding move-to location "%s" into menu entry %s with id %d' % (mtl, menuText, moveToId))
-#                 moveToMenu.Append(moveToId, menuText)
-#                 if ((mtl['year'] == self.getYearString())
-#                     and (mtl['month'] == self.getMonthString())
-#                     and (mtl['day'] == self.getDayString())):
-#                     moveToMenu.Enable(moveToId, False)
-            moveToMenu.Append(moveToId, mtl)
-            moveToId = (moveToId + 1)
-        menu.PrependMenu(0, GUIId.FunctionNames[GUIId.SelectMoveTo], moveToMenu)
-        if (GUIId.SelectMoveTo == moveToId):  # TODO: check length of menu
-            menu.Enable(0, False)
+#         moveToMenu = Menu()
+#         moveToId = GUIId.SelectMoveTo
+#         for mtl in sorted(self.__class__.MoveToLocations):
+# #             menuText = mtl
+# #             if (moveToId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations)):
+# #                 mtl = self.__class__.MoveToLocations[menuText]
+# #                 print('Adding move-to location "%s" into menu entry %s with id %d' % (mtl, menuText, moveToId))
+# #                 moveToMenu.Append(moveToId, menuText)
+# #                 if ((mtl['year'] == self.getYearString())
+# #                     and (mtl['month'] == self.getMonthString())
+# #                     and (mtl['day'] == self.getDayString())):
+# #                     moveToMenu.Enable(moveToId, False)
+#             moveToMenu.Append(moveToId, mtl)
+#             moveToId = (moveToId + 1)
+#         menu.PrependMenu(0, GUIId.FunctionNames[GUIId.SelectMoveTo], moveToMenu)
+#         if (GUIId.SelectMoveTo == moveToId):  # TODO: check length of menu
+#             menu.Enable(0, False)
         if (self.context.isGroup()):
             if (self.undoList):
-                menu.Append(GUIId.UndoReorder, GUIId.FunctionNames[GUIId.UndoReorder])
+                menu.insertAfterId(GUIId.SelectMoveTo,
+                                   newText=GUIId.FunctionNames[GUIId.UndoReorder],
+                                   newId=GUIId.UndoReorder)
             else:
-                menu.Append(GUIId.ReorderByTime, GUIId.FunctionNames[GUIId.ReorderByTime])
+                menu.insertAfterId(GUIId.SelectMoveTo, 
+                                  newText=GUIId.FunctionNames[GUIId.ReorderByTime],
+                                  newId=GUIId.ReorderByTime)
         if (not self.getContext().isGroup()):
-            menu.AppendSubMenu(self.deriveRenumberSubMenu(), GUIId.FunctionNames[GUIId.AssignNumber])
+            menu.insertAfterId(GUIId.SelectMoveTo, 
+                               newText=GUIId.FunctionNames[GUIId.AssignNumber],
+                               newMenu=self.deriveRenumberSubMenu())
         return(menu)
 
 
@@ -799,15 +811,17 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Other API Funcions
-    def renameGroup(self, elements=set(), classesToRemove=None, removeIllegalElements=False,
+    def renameGroup(self, filtering=False, elements=set(), classesToRemove=None, removeIllegalElements=False,
                     year=None, month=None, day=None):
         """Rename self's context according to the specified changes.
         
+        # TODO: check whether redundant with organizer.rename()
+
         Return the Entry to be selected after the renaming.
         """
         model = self.__class__.ImageFilerModel
-        # ensure new group exists
-        if ((year == self.getYear())
+        # ensure group exists
+        if ((year == self.getYear())  # TODO: replace by match()?!
             and (month == self.getMonth())
             and (day == self.getDay())):
             newParent = self.getContext()
@@ -817,16 +831,77 @@ class OrganizationByDate(MediaOrganization):
                 newParent = Group.createAndPersist(model, 
                                                    self.__class__.constructPath(self.__class__, year=year, month=month, day=day))
         # move subentries to new group
-        for subEntry in self.getContext().getSubEntries(filtering=True):
+        for subEntry in self.getContext().getSubEntries(filtering=filtering):
             pathInfo = subEntry.getOrganizer().getPathInfo()
-            pathInfo['elements'] = elements
+            pathInfo['elements'].update(elements)
             pathInfo['classesToRemove'] = classesToRemove
             pathInfo['removeIllegalElements'] = removeIllegalElements
-            pathInfo['year'] = year
-            pathInfo['month'] = month
-            pathInfo['day'] = day
+            if (newParent <> self.getContext()):
+                pathInfo['year'] = year
+                pathInfo['month'] = month
+                pathInfo['day'] = day
+                pathInfo['makeUnique'] = True
             subEntry.renameTo(**pathInfo)
+        # check whether old group still has subentries
+        if (0 == len(self.getContext().getSubEntries())):
+            self.getContext().remove()
         return(newParent)
+
+
+    def getRenameList(self, newParent, pathInfo, filtering=True):
+        """Create a list of <entry, pathInfo> to move self's subentries to newParent.
+        """
+        if (not self.getContext().isGroup()):
+            raise ValueError, ('OrganizationByName.getRenameList(): Entry "%s" is not a Group!' % self)
+        # create list of subentries and their new pathInfo 
+        result = []
+        for subEntry in self.getContext().getSubEntries(filtering=filtering):
+            newPathInfo = subEntry.getOrganizer().getPathInfo()
+            for orgId in ['year', 'month', 'day']:
+                if ((orgId in pathInfo)
+                    and (pathInfo[orgId])):
+                    newPathInfo[orgId] = pathInfo[orgId]
+                else:
+                    del newPathInfo[orgId]
+            if ('classesToRemove' in pathInfo):
+                newPathInfo['classesToRemove'] = pathInfo['classesToRemove'] 
+            if ('removeIllegalElements' in pathInfo):
+                newPathInfo['removeIllegalElements'] = pathInfo['removeIllegalElements'] 
+            if ('elements' in pathInfo):
+                newTags = self.getModel().getClassHandler().combineTagsWithPriority(subEntry.getElements(),
+                                                                                    pathInfo['elements'])
+                newPathInfo['elements'] = newTags 
+            pair = (subEntry.getOrganizer(), newPathInfo)
+            result.append(pair)
+        return(result)
+
+
+    def findGroupFor(self, **pathInfo):
+        """override MediaOrganization.findGroupFor()
+        """
+        year = None
+        month = None
+        day = None
+        if (('year' in pathInfo)
+            and (pathInfo['year'])):
+            year = pathInfo['year']
+            if (('month' in pathInfo)
+                and (pathInfo['month'])):
+                month = pathInfo['month']
+                if (('day' in pathInfo)
+                    and (pathInfo['day'])):
+                    day = pathInfo['day']
+        if (self.matches(**pathInfo)):
+            if (self.getContext().isGroup()):
+                result = self.getContext()
+            else: 
+                result = self.getContext().getParentGroup()
+        else:
+            model = self.__class__.ImageFilerModel
+            result = model.getEntry(year=year, month=month, day=day)
+            if (result == None):
+                result = Group.createAndPersist(model, year=year, month=month, day=day)
+        return(result)
 
 
     def setValuesInNamePane(self, aMediaNamePane):

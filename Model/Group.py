@@ -44,17 +44,21 @@ class Group(Entry, Observer):
 # Class Variables
 # Class Methods
     @classmethod
-    def createAndPersist(cls, model, **kwargs):
+    def createAndPersist(cls, model, **pathInfo):
         """Create a new Group including its directory and link it to its parent.
         
         MediaCollection model
-        Dictionary kwargs either contains String path, or parameters for MediaOrganization.constructPath()
+        Dictionary pathInfo either contains String path, or parameters for MediaOrganization.constructPath()
         Returns a Group
         """
-        if ('path' in kwargs):
-            path = kwargs['path']
+        # TODO: turn MediaCollection into Singleton, and remove model parameter
+        correctedPathInfo = pathInfo.copy()
+        if ('elements' in correctedPathInfo):
+            del correctedPathInfo['elements']
+        if ('path' in correctedPathInfo):
+            path = correctedPathInfo['path']
         else:
-            path = model.organizationStrategy.constructPath(**kwargs)
+            path = model.organizationStrategy.constructPath(**correctedPathInfo)
         Logger.debug('Group.createAndPersist(): Creating group for "%s"' % path)
         newGroup = Group(model, path)
         parent = model.organizationStrategy.findParentForPath(path)
@@ -115,7 +119,11 @@ class Group(Entry, Observer):
     def remove(self):  # TODO: remove subentries individually for correct MediaCollection size
         """
         """
+        parent = self.getParentGroup()  # parent is unlinked in superclass implementation
         super(Group, self).remove()
+        # check if parent still has subentries
+        if (0 == len(parent.getSubEntries())):
+            parent.remove()
 
 
 
@@ -124,36 +132,39 @@ class Group(Entry, Observer):
         
         Will create new group if organizing name parts (such as name, scene, day, month, year) are changed. 
         Then renames subentries according to tag changes, possibly moving to new group.
+        #TODO: Tags in kwargs will override tags of elements in the group. 
         If remaining group, self, is empty after the move, it will be removed. 
         """
-        for key in kwargs: 
-            if (kwargs[key] == None):
-                Logger.warning('Group.renameTo(): Found deprecated None value for parameter "%s"!' % key)
-        if ('number' in kwargs):
-            if (kwargs['number']):
-                raise ValueError, 'Group.renameTo(): No number parameter allowed, ignored!'
-            del kwargs['number']
-        Logger.debug('Group.renameTo(): Path info is %s' % kwargs)
-        tagParameters = set(['elements', 'removeIllegalElements', 'classesToRemove'])  # kwargs keys which affect tags of subentries
-        if (0 < len(set(kwargs.keys()).difference(tagParameters))):  # more to change than only tags, rename group
-            Logger.debug('Group.renameTo(): Renaming entire group "%s"' % self)
-            newSelection = self.getOrganizer().renameGroup(**kwargs)
-            if (0 == len(self.getSubEntries(filtering=False))):  # remove self
-                Logger.debug('Group.renameTo(): Removing "%s" because it''s empty' % self)
-                if (self.model.getSelectedEntry() == self):
-                    self.model.setSelectedEntry(entry=newSelection)
-                self.remove()
-        else:  # change only tags of subentries
-            Logger.debug('Group.renameTo(): Retagging entries of group "%s"' % self)
-            for entry in self.getSubEntries(filtering=True):
-                newKwargs = copy.copy(kwargs)
-                if (('elements' in kwargs)
-                    and (kwargs['elements'])):
-                    newElements = self.model.getClassHandler().combineTagsWithPriority(entry.getElements(), kwargs['elements'])
-                    newKwargs['elements'] = newElements
-                Logger.debug('Group.renameTo(): Path info "%s" used for renaming entry "%s"' % (newKwargs, entry))
-                entry.renameTo(**newKwargs)
+        self.getOrganizer().renameGroup(filtering=True, **kwargs)
         return(True)
+#         for key in kwargs: 
+#             if (kwargs[key] == None):
+#                 Logger.warning('Group.renameTo(): Found deprecated None value for parameter "%s"!' % key)
+#         if ('number' in kwargs):
+#             if (kwargs['number']):
+#                 raise ValueError, 'Group.renameTo(): No number parameter allowed, ignored!'
+#             del kwargs['number']
+#         Logger.debug('Group.renameTo(): Corrected path info is %s' % kwargs)
+#         tagParameters = set(['elements', 'removeIllegalElements', 'classesToRemove'])  # kwargs keys which affect tags of subentries
+#         if (0 < len(set(kwargs.keys()).difference(tagParameters))):  # more to change than only tags, rename group
+#             Logger.debug('Group.renameTo(): Renaming entire group "%s"' % self)
+#             newSelection = self.getOrganizer().renameGroup(**kwargs)
+#             if (0 == len(self.getSubEntries(filtering=False))):  # remove self
+#                 Logger.debug('Group.renameTo(): Removing "%s" because it''s empty' % self)
+#                 if (self.model.getSelectedEntry() == self):
+#                     self.model.setSelectedEntry(entry=newSelection)
+#                 self.remove()
+#         else:  # change only tags of subentries   # TODO: probably never executed!
+#             Logger.debug('Group.renameTo(): Retagging entries of group "%s"' % self)
+#             for entry in self.getSubEntries(filtering=True):
+#                 newKwargs = copy.copy(kwargs)
+#                 if (('elements' in kwargs)
+#                     and (kwargs['elements'])):
+#                     newElements = self.model.getClassHandler().combineTagsWithPriority(entry.getElements(), kwargs['elements'])
+#                     newKwargs['elements'] = newElements
+#                 Logger.debug('Group.renameTo(): Path info "%s" used for renaming entry "%s"' % (newKwargs, entry))
+#                 entry.renameTo(**newKwargs)
+#         return(True)
 
 
 # Getters
@@ -363,9 +374,12 @@ class Group(Entry, Observer):
         """
         menu = super(Group, self).getContextMenu()
         # media functions
-        menu.Insert(4, GUIId.RemoveNew, GUIId.FunctionNames[GUIId.RemoveNew])
+        # structure functions
+        # group functions
         # delete functions
-        menu.insertAfterId(GUIId.DeleteImage, newText=GUIId.FunctionNames[GUIId.DeleteDoubles], newId=GUIId.DeleteDoubles)
+        menu.insertAfterId(GUIId.DeleteImage, 
+                           newText=GUIId.FunctionNames[GUIId.DeleteDoubles], 
+                           newId=GUIId.DeleteDoubles)
         return(menu)
 
 

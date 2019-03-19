@@ -273,7 +273,8 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # change media pathname
         pathInfo = self.entry.getOrganizer().getPathInfo()
         pathInfo['elements'] = elements
-        pathInfo['classesToRemove'] = classesToRemove
+        if (0 < len(classesToRemove)):
+            pathInfo['classesToRemove'] = classesToRemove
         self.entry.renameTo(**pathInfo)
 
 
