@@ -466,8 +466,14 @@ class OrganizationByName(MediaOrganization):
         """override MediaOrganization.getPathInfo(self)
         """
         result = MediaOrganization.getPathInfo(self)
+        if (self.isSingleton()):
+            try:
+                del result['number']
+            except:
+                pass
         result['name'] = self.getName()
-        if (not self.getContext().isGroup()):
+        if ((not self.isSingleton())
+            and (not self.getContext().isGroup())):
             result['scene'] = self.getScene()
         return(result)
 
@@ -548,10 +554,11 @@ class OrganizationByName(MediaOrganization):
             if (newName):
                 pathInfo = self.getPathInfo()
                 pathInfo['name'] = newName
-                pathInfo['scene'] = MediaClassHandler.ElementNew
-                pathInfo['makeUnique'] = True
+                if (not self.isSingleton()):
+                    pathInfo['scene'] = MediaClassHandler.ElementNew
+                    pathInfo['makeUnique'] = True
                 self.getContext().renameTo(**pathInfo)
-                # TODO: select new name to show
+                self.getModel().setSelectedEntry(self.getContext())
             else:
                 message = 'No more free names!'
         elif (menuId == GUIId.ConvertToGroup):
@@ -796,9 +803,21 @@ class OrganizationByName(MediaOrganization):
         """
         """
         result = super(OrganizationByName, self).getValuesFromNamePane(aMediaNamePane)
+        if (self.isSingleton()):
+            try:
+                del result['number']
+            except:
+                pass
+            try:
+                del result['makeUnique']
+            except:
+                pass
         scene = aMediaNamePane.sceneInput.GetValue()
         if (scene <> ''): 
-            result['scene'] = scene
+            if (self.isSingleton()):
+                Logger.debug('Organization.getValuesFromNamePane(): Ignoring scene input for a singleton!')
+            else:
+                result['scene'] = scene
         return(result)
 
 

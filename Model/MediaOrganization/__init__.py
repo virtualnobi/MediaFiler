@@ -399,7 +399,6 @@ class MediaOrganization(object):
         """Return dictionary containing organization-specific identifiers.
         """
         result = {}
-        # result['rootDir'] = self.getContext().model.getRootDirectory()
         result['elements'] = self.getContext().getElements()
         if (not self.getContext().isGroup()):
             result['number'] = self.getNumber()
