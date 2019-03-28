@@ -1,9 +1,9 @@
-20:56:07| MediaFiler.__main__(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
-20:56:07| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model']
-20:56:07| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model\\MediaOrganization']
-20:56:07| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\UI']
-20:56:07| MediaFiler.getLoggableModules(): Returning ['MediaFiler', 'Model.CachingController', 'Model.Entry', 'Model.GlobalConfigurationOptions', 'Model.Group', 'Model.Image', 'Model.Installer', 'Model.MediaClassHandler', 'Model.MediaCollection', 'Model.MediaFilter', 'Model.MediaMap', 'Model.MediaNameHandler', 'Model.MediaOrganization', 'Model.MediaOrganization.OrganizationByDate', 'Model.MediaOrganization.OrganizationByName', 'Model.Movie', 'Model.Single', 'UI.GUIId', 'UI.Importing', 'UI.MediaCanvasPane', 'UI.MediaClassificationPane', 'UI.MediaFilterPane', 'UI.MediaNamePane', 'UI.MediaTreePane', 'UI.PresentationControlPane']
-20:56:07| Installer.checkInstallation(): Checking folders at "S:\amazonia"...
-20:56:07| Installer.checkInstallation(): Installation at "S:\amazonia" is ok
-20:56:07| Installer.ensureInstallationOk(): Changing working directory to "S:\amazonia"
-20:56:07| MediaFiler.__main__(): Now permanently logging to "S:\amazonia\lib\log-1.txt"
+22:30:24| MediaFiler.__main__(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
+22:30:24| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model']
+22:30:24| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model\\MediaOrganization']
+22:30:24| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\UI']
+22:30:24| MediaFiler.getLoggableModules(): Returning ['MediaFiler', 'Model.CachingController', 'Model.Entry', 'Model.GlobalConfigurationOptions', 'Model.Group', 'Model.Image', 'Model.Installer', 'Model.MediaClassHandler', 'Model.MediaCollection', 'Model.MediaFilter', 'Model.MediaMap', 'Model.MediaNameHandler', 'Model.MediaOrganization', 'Model.MediaOrganization.OrganizationByDate', 'Model.MediaOrganization.OrganizationByName', 'Model.Movie', 'Model.Single', 'UI.GUIId', 'UI.Importing', 'UI.MediaCanvasPane', 'UI.MediaClassificationPane', 'UI.MediaFilterPane', 'UI.MediaNamePane', 'UI.MediaTreePane', 'UI.PresentationControlPane']
+22:30:24| Installer.checkInstallation(): Checking folders at "S:\amazonia"...
+22:30:24| Installer.checkInstallation(): Installation at "S:\amazonia" is ok
+22:30:24| Installer.ensureInstallationOk(): Changing working directory to "S:\amazonia"
+22:30:24| MediaFiler.__main__(): Now permanently logging to "S:\amazonia\lib\log-1.txt"

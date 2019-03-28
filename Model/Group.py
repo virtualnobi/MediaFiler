@@ -135,36 +135,7 @@ class Group(Entry, Observer):
         #TODO: Tags in kwargs will override tags of elements in the group. 
         If remaining group, self, is empty after the move, it will be removed. 
         """
-        self.getOrganizer().renameGroup(filtering=True, **kwargs)
-        return(True)
-#         for key in kwargs: 
-#             if (kwargs[key] == None):
-#                 Logger.warning('Group.renameTo(): Found deprecated None value for parameter "%s"!' % key)
-#         if ('number' in kwargs):
-#             if (kwargs['number']):
-#                 raise ValueError, 'Group.renameTo(): No number parameter allowed, ignored!'
-#             del kwargs['number']
-#         Logger.debug('Group.renameTo(): Corrected path info is %s' % kwargs)
-#         tagParameters = set(['elements', 'removeIllegalElements', 'classesToRemove'])  # kwargs keys which affect tags of subentries
-#         if (0 < len(set(kwargs.keys()).difference(tagParameters))):  # more to change than only tags, rename group
-#             Logger.debug('Group.renameTo(): Renaming entire group "%s"' % self)
-#             newSelection = self.getOrganizer().renameGroup(**kwargs)
-#             if (0 == len(self.getSubEntries(filtering=False))):  # remove self
-#                 Logger.debug('Group.renameTo(): Removing "%s" because it''s empty' % self)
-#                 if (self.model.getSelectedEntry() == self):
-#                     self.model.setSelectedEntry(entry=newSelection)
-#                 self.remove()
-#         else:  # change only tags of subentries   # TODO: probably never executed!
-#             Logger.debug('Group.renameTo(): Retagging entries of group "%s"' % self)
-#             for entry in self.getSubEntries(filtering=True):
-#                 newKwargs = copy.copy(kwargs)
-#                 if (('elements' in kwargs)
-#                     and (kwargs['elements'])):
-#                     newElements = self.model.getClassHandler().combineTagsWithPriority(entry.getElements(), kwargs['elements'])
-#                     newKwargs['elements'] = newElements
-#                 Logger.debug('Group.renameTo(): Path info "%s" used for renaming entry "%s"' % (newKwargs, entry))
-#                 entry.renameTo(**newKwargs)
-#         return(True)
+        return(self.getOrganizer().renameGroup(filtering=True, **kwargs))
 
 
 # Getters

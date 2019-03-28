@@ -554,11 +554,34 @@ class OrganizationByName(MediaOrganization):
             if (newName):
                 pathInfo = self.getPathInfo()
                 pathInfo['name'] = newName
-                if (not self.isSingleton()):
-                    pathInfo['scene'] = MediaClassHandler.ElementNew
-                    pathInfo['makeUnique'] = True
-                self.getContext().renameTo(**pathInfo)
-                self.getModel().setSelectedEntry(self.getContext())
+                entry = self.getModel().getEntry(name=newName)
+                if (entry):  # name exists
+                    if (not entry.isGroup()):
+                        entry.convertToGroup()
+                    if (self.isSingleton()):
+                        pathInfo['scene'] = MediaClassHandler.ElementNew
+                        pathInfo['makeUnique'] = True
+                    elif (self.getContext().isGroup()):
+                        pass
+                    else:  # Single extracted out of named Group
+                        pathInfo['scene'] = MediaClassHandler.ElementNew
+                        pathInfo['makeUnique'] = True                        
+                else:  # name unused
+                    if (not (self.isSingleton() 
+                             or self.getContext().isGroup())):  # Single extracted out of a named Group
+                        try:
+                            del pathInfo['scene']
+                        except: 
+                            pass
+                        try:
+                            del pathInfo['number']
+                        except: 
+                            pass
+                resultingSelection = self.getContext().renameTo(**pathInfo)
+                if (resultingSelection):
+                    self.getModel().setSelectedEntry(resultingSelection)
+                else:
+                    self.getModel().setSelectedEntry(self.getContext())  # deprecate
             else:
                 message = 'No more free names!'
         elif (menuId == GUIId.ConvertToGroup):
@@ -574,7 +597,7 @@ class OrganizationByName(MediaOrganization):
             pathInfo = self.getPathInfo()
             pathInfo['scene'] = newScene
             pathInfo['makeUnique'] = True 
-            message = self.getContext().renameTo(**pathInfo)
+            self.getContext().renameTo(**pathInfo)
         else:
             super(OrganizationByName, self).runContextMenuItem(menuId, parentWindow)
         return(message)
@@ -663,79 +686,11 @@ class OrganizationByName(MediaOrganization):
             if (result):
                 if (not result.isGroup()):  # singleton exists
                     result = self.convertToGroup()
-#                     singleton = result
-#                     result = Group.createAndPersist(model, 
-#                                                     self.__class__.constructPath(name=name))
-#                     pathInfo = singleton.getOrganizer().getPathInfo()
-#                     pathInfo['name'] = name
-#                     pathInfo['scene'] = 1
-#                     pathInfo['makeUnique'] = True
-#                     singleton.renameTo(**pathInfo)
             else:  # name as yet unused
                 result = Group.createAndPersist(model, name=name)
         return(result)
 
 
-#     # TODO: if removing a name, inform name handler
-#     def renameGroup2(self, elements=set(), classesToRemove=None, removeIllegalElements=False,
-#                     name=None, scene=None):
-#         """Rename self's context (which is a Group) according to the specified changes.
-#         
-#         # TODO: check whether redundant with organizer.rename()
-# 
-#         Return the Group to be selected after the renaming.
-#         """
-#         if (scene):
-#             raise ValueError, ('Passed illegal parameter for scene "%s" to OrganizationByName.renameGroup()' % scene)
-#         if (not name):
-#             name = self.getName()
-#         model = self.__class__.ImageFilerModel
-#         # ensure new group exists
-#         if (name == self.getName()):
-#             newParent = self.getContext()
-#         else:
-#             newParent = model.getEntry(name=name)
-#         if (newParent):
-#             if (not newParent.isGroup()):  # singleton exists
-#                 singleton = newParent
-#                 newParent = Group.createAndPersist(model, 
-#                                                    self.__class__.constructPath(name=name))
-#                 pathInfo = singleton.getOrganizer().getPathInfo()
-#                 pathInfo['name'] = name
-#                 pathInfo['scene'] = 1
-#                 pathInfo['makeUnique'] = True
-#                 singleton.renameTo(**pathInfo)
-#         else:  # name as yet unused
-#             newParent = Group.createAndPersist(model, name=name)
-#         Logger.debug('OrganizationByName.renameGroup(): New parent is "%s"' % newParent)
-#         # move scenes of self to unused scenes of newParent
-#         sceneMap = {}
-#         existingScenes = newParent.getOrganizer().getScenes(filtering=False)
-#         try:
-#             existingScenes.remove(MediaClassHandler.ElementNew)
-#         except: 
-#             pass
-#         sceneNumbers = [int(s) for s in existingScenes]
-#         nextFreeScene = 1
-#         for scene in self.getScenes():
-#             if (scene == MediaClassHandler.ElementNew):
-#                 sceneMap[MediaClassHandler.ElementNew] = MediaClassHandler.ElementNew
-#             else:
-#                 while (nextFreeScene in sceneNumbers):
-#                     nextFreeScene = (nextFreeScene + 1)
-#                 sceneMap[scene] = (OrganizationByName.FormatScene % nextFreeScene)
-#         Logger.debug('OrganizationByName.renameGroup(): Scene map is "%s"' % sceneMap)
-#         # move subentries to new group
-#         for subEntry in self.getContext().getSubEntries(filtering=True):
-#             pathInfo = subEntry.getOrganizer().getPathInfo()
-#             pathInfo['name'] = name
-#             pathInfo['scene'] = sceneMap[subEntry.getOrganizer().getScene()] 
-#             pathInfo['classesToRemove'] = classesToRemove 
-#             pathInfo['removeIllegalElements'] = removeIllegalElements 
-#             newElements = (subEntry.getElements() | elements)
-#             pathInfo['elements'] = newElements 
-#             subEntry.renameTo(**pathInfo)
-#         return(newParent)
 
 
     def requiresUniqueNumbering(self):
@@ -768,6 +723,7 @@ class OrganizationByName(MediaOrganization):
                     while (nextFreeScene in existingSceneNumbers):
                         nextFreeScene = (nextFreeScene + 1)
                     sceneMap[scene] = (OrganizationByName.FormatScene % nextFreeScene)
+                    existingSceneNumbers.append(nextFreeScene)
         Logger.debug('OrganizationByName.getRenameList(): Scene map is "%s"' % sceneMap)
         # create list of subentries and their new pathInfo 
         result = []
@@ -792,11 +748,13 @@ class OrganizationByName(MediaOrganization):
     def setValuesInNamePane(self, aMediaNamePane):
         """Set the fields of the MediaNamePane for self.
         """
+        sceneAndNumberInactive = (not (self.getContext().isGroup()
+                                       or self.isSingleton()))
         super(OrganizationByName, self).setValuesInNamePane(aMediaNamePane)
+        aMediaNamePane.numberInput.Enable(sceneAndNumberInactive)
         aMediaNamePane.identifierString.SetLabel(self.getName())
         aMediaNamePane.sceneInput.SetValue(self.getScene())
-        aMediaNamePane.sceneInput.Enable(not (self.context.isGroup()
-                                              or self.isSingleton()))  # TODO: wrong for singletons
+        aMediaNamePane.sceneInput.Enable(sceneAndNumberInactive)
 
 
     def getValuesFromNamePane(self, aMediaNamePane):

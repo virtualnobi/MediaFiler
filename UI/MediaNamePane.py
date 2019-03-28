@@ -189,15 +189,16 @@ class MediaNamePane(wx.Panel, Observer):
             tagSet = self.model.getClassHandler().stringToElements(tagString)
             pathInfo['elements'] = tagSet
         pathInfo['removeIllegalElements'] = removeUnknownTags
-        success = self.entry.renameTo(**pathInfo)
-        if (success):
-            self.model.setSelectedEntry(self.entry)  # TODO: when switching groups, old parent group will change selection to itself 
-            self.rememberElements()
-        else:
+        try:
+            resultingSelection = self.entry.renameTo(**pathInfo)
+        except:
             dlg = wx.MessageDialog(self,   # TODO: add error message to Dialog
                                    'Cannot rename media!',
                                    'Error',
                                    wx.OK | wx.ICON_ERROR)
             dlg.ShowModal()
             dlg.Destroy()
+        finally:
+            self.model.setSelectedEntry(resultingSelection) 
+            self.rememberElements()
 

@@ -507,6 +507,7 @@ class MediaOrganization(object):
         Set elements specifies the new tags (or None)
         Boolean removeIllegalElements specifies that unknown tags shall be removed
         dict pathInfo contains organization-specific attributes
+        Return the Entry to select after renaming 
         """
         if (self.getContext().isGroup()):
             raise ValueError, ('MediaOrganization.renameSingle(): Called on a Group!')
@@ -522,14 +523,14 @@ class MediaOrganization(object):
             pathInfo['elements'] = newElements
         # rename 
         oldParent = self.getContext().getParentGroup()
-        newParent = self.findGroupFor(**pathInfo)  # @UnusedVariable
         Logger.debug('MediaOrganization.renameSingle(): Path info is %s' % pathInfo)
         newName = self.constructPath(**pathInfo)
         Logger.debug('MediaOrganization.renameSingle(): New name is %s' % newName)
         self.getContext().renameToFilename(newName)
         # check whether old group still has subentries
-        if (len(oldParent.getSubEntries()) == 0):
+        if (len(oldParent.getSubEntries(filtering=False)) == 0):
             oldParent.remove()
+        return(self.getContext())
 
 
     def requiresUniqueNumbering(self):
@@ -545,6 +546,8 @@ class MediaOrganization(object):
         If no subentries remain in the group after renaming, remove the group.
         
         Boolean filtering determines whether filtered subentries are renamed as well
+        dict pathInfo
+        Return the Entry to select after renaming 
         """
         if (not self.getContext().isGroup()):
             raise ValueError, ('MediaOrganization.renameGroup(): Called on a Single!')
@@ -556,9 +559,11 @@ class MediaOrganization(object):
         renameList = self.getRenameList(newParent, pathInfo, filtering=filtering)
         for (entry, pathInfo) in renameList:
             entry.renameTo(**pathInfo)
-        # remove self if no subenries left
-        if (len(self.getContext().getSubEntries()) == 0):
-            self.getContext().remove()
+#       self has been removed when the last subentry was renamed (if not further subentries exist)
+#         # remove self if no subenries left
+#         if (len(self.getContext().getSubEntries()) == 0):
+#             self.getContext().remove()
+        return(newParent)
 
 
     def getRenameList(self, newParent, pathInfo, filtering=True):

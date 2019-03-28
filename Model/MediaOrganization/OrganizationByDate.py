@@ -815,9 +815,7 @@ class OrganizationByDate(MediaOrganization):
                     year=None, month=None, day=None):
         """Rename self's context according to the specified changes.
         
-        # TODO: check whether redundant with organizer.rename()
-
-        Return the Entry to be selected after the renaming.
+        Return the Entry to be selected after the renaming
         """
         model = self.__class__.ImageFilerModel
         # ensure group exists

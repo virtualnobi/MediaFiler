@@ -514,25 +514,9 @@ class Entry(Observable):
             Set of String elements 
             Boolean removeIllegalElements
             Set of String classesToRemove contains the names of classes whose tags shall be removed
-        Return Boolean indicating success
+        Return the Entry to be shown after renaming
         """
-        self.getOrganizer().renameSingle(elements=elements, removeIllegalElements=removeIllegalElements, **kwargs)
-        return(True)
-#         # elements
-#         if (elements 
-#             or removeIllegalElements):
-#             if (elements):
-#                 newElements = elements
-#             else:
-#                 newElements = self.getElements()
-#             if (removeIllegalElements):
-#                 kwargs['removeIllegalElements'] = removeIllegalElements
-#                 newElements = filter(self.model.getClassHandler().isLegalElement, newElements)
-#             kwargs['elements'] = newElements
-#         Logger.debug('Entry.renameTo(): Path info is %s' % kwargs)
-#         newPath = self.getOrganizer().__class__.constructPath(**kwargs)
-#         # TODO: does not merge two singles; does not move into existing group
-#         return(self.renameToFilename(newPath))
+        return(self.getOrganizer().renameSingle(elements=elements, removeIllegalElements=removeIllegalElements, **kwargs))
 
 
     def renameToFilename(self, fname):
