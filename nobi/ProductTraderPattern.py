@@ -14,6 +14,7 @@ from the SimpleProductTrader using the Specification.
 
 # Imports
 ## Standard
+from __future__ import absolute_import
 import logging
 ## Contributed
 ## nobi
@@ -22,7 +23,7 @@ import logging
 
 
 # Package Variables
-# Logger = logging.getLogger(__name__)
+Logger = logging.getLogger(__name__)
 
 
 
@@ -32,15 +33,7 @@ class SimpleProductTrader(object):
     
 
 # Constants
-
-
-
 # Class Methods
-#     @classmethod
-
-
-
-
 # Lifecycle
     def __init__(self):
         """Create a SimpleProductTrader with empty registry.
@@ -90,7 +83,7 @@ class SimpleProductTrader(object):
         """
         if (specString in self.productRegistry):
             # raise(BaseException('Specification "%s" already used in SimpleProductTrader' % specString))
-            logging.warning('Overwriting specification "%s" in SimpleProductTrader' % specString) 
+            Logger.warning('Overwriting specification "%s" in SimpleProductTrader' % specString) 
         self.productRegistry[specString] = clas
 
 

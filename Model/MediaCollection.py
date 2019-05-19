@@ -33,6 +33,9 @@ from UI import GUIId
 
 # Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
 import UI  # to access UI.PackagePath
+from nt import remove
+from numpy.lib.utils import source
+from pip._vendor import progress
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)
@@ -48,6 +51,11 @@ except BaseException as e:  # likely an IOError because no translation file foun
 else:
     _ = Translation.ugettext
 def N_(message): return message
+
+
+
+# Package Variables
+Logger = logging.getLogger(__name__)  # TODO: Turn into package variable
 
 
 
@@ -81,35 +89,35 @@ class MediaCollection(Observable, Observer):
 
 
 # Constants
-    Logger = logging.getLogger(__name__)
     ReorderTemporaryTag = 'reordering'  # to ensure uniqueness in renameList()
 
 
 
 # Class Methods
 # Lifecycle 
-    def __init__(self, rootDir, progressFunction):
+    def __init__(self, rootDir, progressIndicator):
         """Create a new MediaCollection.
         
         String rootDir specifies the path to the image root directory.
         Callable progressFunction
         """
-        MediaCollection.Logger.debug('MediaCollection.init()')
+        Logger.debug('MediaCollection.init()')
         # inheritance
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection', 'size'])
         # internal state
         if (rootDir):
-            self.setRootDirectory(rootDir, progressFunction)
-        MediaCollection.Logger.debug('MediaCollection.init() finished')
+            self.setRootDirectory(rootDir, progressIndicator)
+        Logger.debug('MediaCollection.init() finished')
 
     
     @profiledOnLogger(Logger, sort='time')
-    def setRootDirectory (self, rootDir, progressFunction):
+    def setRootDirectory (self, rootDir, progressIndicator):
         """Change the root directory to process a different image set.
         
         String rootDir
-        Callable progressFunction
+        PhasedProgressBar progressIndicator
         """
+        progressIndicator.beginPhase(3)
         self.rootDirectory = os.path.normpath(rootDir)
         # clear all data
         self.selectedEntry = None
@@ -128,7 +136,7 @@ class MediaCollection(Observable, Observer):
             self.organizedByDate = True
             self.organizationStrategy = OrganizationByDate
         self.organizationStrategy.setModel(self)
-        progressFunction(30, _('Reading tag definitions'))
+        progressIndicator.beginStep(_('Reading tag definitions'))
         self.classHandler = MediaClassHandler(Installer.getClassFilePath())
         if (self.classHandler.isLegalElement(MediaCollection.ReorderTemporaryTag)):
             index = 1
@@ -137,11 +145,11 @@ class MediaCollection(Observable, Observer):
                 index = (index + 1)
                 tag = ('%s%d' % (tag, index))
             MediaCollection.ReorderTemporaryTag = tag
-            MediaCollection.Logger.warning('MediaCollection.setRootDirectory(): Temporary reordering tag changed to "%s"' % tag)
+            Logger.warning('MediaCollection.setRootDirectory(): Temporary reordering tag changed to "%s"' % tag)
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
-        self.loadSubentries(self.root, progressFunction)
-        progressFunction(80, _('Calculating collection properties'))
+        self.loadSubentries(self.root, progressIndicator)  # implicit progressIndicator.beginStep()
+        progressIndicator.beginStep(_('Calculating collection properties'))
         self.cacheCollectionProperties()
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'filterChanged')
@@ -154,13 +162,13 @@ class MediaCollection(Observable, Observer):
                 path = os.path.join(Installer.getMediaPath(), path)
             entry = self.getEntry(path=path)
             if (entry):
-                MediaCollection.Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run.' % path)
+                Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run.' % path)
                 self.setSelectedEntry(entry)
             else:
-                MediaCollection.Logger.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
+                Logger.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
                 self.setSelectedEntry(self.root)
         else: 
-            MediaCollection.Logger.info('MediaCollection.setRootDirectory(): last viewed media not saved')
+            Logger.info('MediaCollection.setRootDirectory(): last viewed media not saved')
             self.setSelectedEntry(self.root)
 
 
@@ -169,7 +177,7 @@ class MediaCollection(Observable, Observer):
     def setSelectedEntry(self, entry):
         """Set the selected entry.
         """
-        MediaCollection.Logger.debug('MediaCollection.setSelectedEntry(%s)' % entry)
+        Logger.debug('MediaCollection.setSelectedEntry(%s)' % entry)
         self.selectedEntry = entry
         if (self.selectedEntry):
             path = entry.getPath()
@@ -178,33 +186,31 @@ class MediaCollection(Observable, Observer):
         self.changedAspect('selection')
 
 
-    def loadSubentries (self, entry, progressFunction=None):
+    def loadSubentries (self, entry=None, progressIndicator=None):
         """Load, store, and return the children of entry, recursively walking the entire image set. 
 
         MediaFiler.Entry entry the entry to load subentries for 
-        Callable progressFunction of None if recursive call
+        PhasedProgressBar progressIndicator or None if recursive call
         Return list of subentries (empty if entry is a MediaFiler.Image)
         """
-        #print('loadSubentries(%s)' % entry)
         result = []
-        # determine which directory to read
         if (entry == None):  # retrieve root entries
             parentDir = self.rootDirectory
         else:  # retrieve entries contained in entry
             if (not entry.isGroup()):  # a single image has no subentries
                 return([])
             parentDir = entry.getPath()
-        # determine stepwidth of progress per top-level folder
         fileList = os.listdir(parentDir)
-        if (progressFunction
-            and (0 < len(fileList))):
-            start = 30
-            stop = 80
-            steps = len(fileList)
-            stepWidth = (stop - start) / steps
-            step = 1
+        if (progressIndicator):
+            print('loadSubentries before phase: %s' % progressIndicator.getProgressBar())
+            progressIndicator.beginPhase(len(fileList))
+            print('loadSubentries after phase: %s' % progressIndicator.getProgressBar())
         # read files in directory
         for fileName in fileList:
+            if (progressIndicator):
+                print('loadSubentries before step: %s' % progressIndicator.getProgressBar())
+                progressIndicator.beginStep(_('Reading media from %s') % fileName)
+                print('loadSubentries after step: %s' % progressIndicator.getProgressBar())
             fileName = os.path.join(parentDir, fileName)
             subEntry = Entry.createInstance(self, fileName)
             if (subEntry):
@@ -213,9 +219,6 @@ class MediaCollection(Observable, Observer):
                 subEntry.addObserverForAspect(self, 'remove')
                 if subEntry.isGroup():
                     self.loadSubentries(subEntry)
-            if (progressFunction):
-                progressFunction(start + (step * stepWidth), ('Reading media from %s' % fileName))
-                step = (step + 1)
         return(result)
 
 
@@ -420,7 +423,7 @@ class MediaCollection(Observable, Observer):
 
 
 # Other API Functions
-    def renameList(self, renameList):
+    def renameList(self, renameList, progressBar=None):
         """Rename many media files at once.
         
         The parameter is a list of triples which contain
@@ -428,19 +431,22 @@ class MediaCollection(Observable, Observer):
         - the current pathname of the Single (to verify no other changes have been done)
         - the new pathname of the Single
         
-        # TODO: check whether redundant with organizer.rename()
-
         List of (Single, String, String) renameList 
+        PhasedProgressBar progressBar
         Return Boolean indicating success 
         """
+        if (progressBar): 
+            progressBar.beginPhase(len(renameList) + 1)
         conflicts = []
         for (entry, oldPath, newPath) in renameList:
+            if (progressBar):
+                progressBar.beginStep()
             if ((entry.getPath() <> oldPath) 
                 or (not os.path.exists(oldPath))):
-                MediaCollection.Logger.warning('MediaCollection.renameList(): Entry "%s" was expected to be named "%s"!' % (entry.getPath(), oldPath))
+                Logger.warning('MediaCollection.renameList(): Entry "%s" was expected to be named "%s"!' % (entry.getPath(), oldPath))
                 return(False)
             if (oldPath == newPath):
-                MediaCollection.Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % oldPath)
+                Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % oldPath)
             elif os.path.exists(newPath):
                 tmpElements = set((MediaCollection.ReorderTemporaryTag, )).union(entry.getElements())
                 pathInfo = entry.getOrganizer().getPathInfo()
@@ -452,6 +458,8 @@ class MediaCollection(Observable, Observer):
             else:
                 if (not entry.renameToFilename(newPath)):
                     return(False)
+        if (progressBar):
+            progressBar.beginStep()
         for (entry, newPath) in conflicts:
             if (not entry.renameToFilename(newPath)):
                 return(False)
@@ -472,10 +480,10 @@ class MediaCollection(Observable, Observer):
         return(self.filter)
 
 
-    def filterEntries(self, progressBar=None):
+    def filterEntries(self, progressIndicator=None):
         """Self's filter has changed. Recalculate the filtered entries. 
         """
-        MediaCollection.Logger.debug('MediaCollection.filterEntries() started')
+        Logger.debug('MediaCollection.filterEntries() started')
         self.changedAspect('startFiltering')
         if (self.getFilter().isEmpty()): 
             for entry in self:
@@ -488,7 +496,7 @@ class MediaCollection(Observable, Observer):
                 entry.setFilter(entryFilter.isFiltered(entry))
                 number = (number + 1)
                 if ((number % increment) == 0):
-                    MediaCollection.Logger.debug('MediaCollection.filterEntries() reached "%s"' % entry.getPath())
+                    Logger.debug('MediaCollection.filterEntries() reached "%s"' % entry.getPath())
         # if selected entry is filtered, search for unfiltered parent
         if (self.getSelectedEntry().isFiltered()):
             entry = self.getSelectedEntry().getParentGroup()
@@ -496,10 +504,10 @@ class MediaCollection(Observable, Observer):
                 and entry.isFiltered()):
                 entry = entry.getParentGroup()
             if (entry == None):
-                MediaCollection.Logger.error('MediaCollection.filterEntries(): Root not found!')
+                Logger.error('MediaCollection.filterEntries(): Root not found!')
             self.setSelectedEntry(entry)
         self.changedAspect('stopFiltering')
-        MediaCollection.Logger.debug('MediaCollection.filterEntries() finished')
+        Logger.debug('MediaCollection.filterEntries() finished')
 
 
 
@@ -511,9 +519,11 @@ class MediaCollection(Observable, Observer):
         
         Return a String containing the log.
         """
+        if (0 == len(os.listdir(importParameters.getImportDirectory()))):  # shortcut to be quick
+            importParameters.logString(_('Import directory "%s" is empty' % importParameters.getImportDirectory()))
+            return(importParameters.getLog())
         if (importParameters.getCheckForDuplicates()):
             importParameters.setMediaMap(MediaMap(self))
-        illegalElements = {}  # mapping illegal element strings to file names
         importParameters.logString('Importing by %s from "%s" into "%s"\n' 
                                    % (('date' if (self.organizationStrategy == OrganizationByDate) else 'name'),
                                       importParameters.getImportDirectory(), 
@@ -524,21 +534,20 @@ class MediaCollection(Observable, Observer):
                                          0, 
                                          len(importParameters.getImportDirectory()), 
                                          self.rootDirectory, 
-                                         {'rootDir': self.rootDirectory},
-                                         illegalElements)
+                                         {'rootDir': self.rootDirectory})
         except StopIteration:
             pass
         except Exception as e:
             importParameters.logString('\nImport was cancelled due to an error:\n%s' % e)
         if (importParameters.getReportIllegalElements()):
-            for key in illegalElements:  
-                count = len(illegalElements[key])
+            for key in importParameters.getIllegalElements():  
+                count = len(importParameters.getIllegalElements()[key])
                 importParameters.logString('"%s" is an illegal word found in %d entries, e.g.' % (key, count))
-                importParameters.logString('\t%s' % illegalElements[key][0])
+                importParameters.logString('\t%s' % importParameters.getIllegalElements()[key][0])
         return(importParameters.getLog())
 
 
-    def importImagesRecursively(self, importParameters, sourceDir, level, baseLength, targetDir, targetPathInfo, illegalElements):
+    def importImagesRecursively(self, importParameters, sourceDir, level, baseLength, targetDir, targetPathInfo):
         """Import a directory with all files, recursively.
 
         If the number of files in the import directory exceeds the maximum number of files to import,
@@ -552,10 +561,12 @@ class MediaCollection(Observable, Observer):
         Dictionary targetPathInfo describes the target path
             rootDir
             <organization-specific> 
-        Dictionary illegalElements 
         """
+        removeProcessedFiles = ((not importParameters.getTestRun())
+                                and (importParameters.getDeleteOriginals()))
         allFiles = os.listdir(sourceDir)
         allFiles.sort()  # ensure that existing numbers are respected in new numbering
+        importParameters.getProgressBar().beginPhase(len(allFiles))
         for oldName in allFiles:
             importParameters.logString(' ')
             sourcePath = os.path.join(sourceDir, oldName)
@@ -570,10 +581,8 @@ class MediaCollection(Observable, Observer):
                                              (level + 1), 
                                              baseLength, 
                                              targetDir,   # newPath, 
-                                             newTargetPathInfo,
-                                             illegalElements)
-                if ((not importParameters.getTestRun())
-                    and (importParameters.getDeleteOriginals())
+                                             newTargetPathInfo)
+                if (removeProcessedFiles
                     and (len(os.listdir(sourcePath)) == 0)):
                     importParameters.logString('Removing empty directory "%s"' % sourcePath)
                     os.rmdir(sourcePath)
@@ -581,9 +590,9 @@ class MediaCollection(Observable, Observer):
                 (dummy, extension) = os.path.splitext(sourcePath)
                 if (Entry.isLegalExtension(extension[1:]) 
                     or (not importParameters.getIgnoreUnhandledTypes())):
-                    if (importParameters.canImportOneMoreFile()):
-                        fileSize = os.stat(sourcePath).st_size
-                        if (importParameters.getMinimumFileSize() < fileSize):
+                    fileSize = os.stat(sourcePath).st_size
+                    if (importParameters.getMinimumFileSize() < fileSize):
+                        if (importParameters.canImportOneMoreFile()):
                             duplicate = None
                             if (importParameters.getCheckForDuplicates()):
                                 duplicate = importParameters.getMediaMap().getDuplicate(sourcePath, fileSize)
@@ -594,9 +603,8 @@ class MediaCollection(Observable, Observer):
                                                                       baseLength, 
                                                                       targetDir,
                                                                       newTargetPathInfo,
-                                                                      illegalElements)
-                                if ((not importParameters.getTestRun())
-                                    and (importParameters.getDeleteOriginals())):
+                                                                      importParameters.getIllegalElements())
+                                if (removeProcessedFiles):
                                     importParameters.logString('Removing imported file "%s"' % sourcePath)
                                     try:
                                         os.remove(sourcePath)
@@ -604,20 +612,32 @@ class MediaCollection(Observable, Observer):
                                         importParameters.logString('Can''t remove "%s":\n%s' % (sourcePath, e))
                             else:
                                 importParameters.logString('Duplicate of "%s"\n  found in "%s"' % (sourcePath, duplicate))
-                                if ((not importParameters.getTestRun())
-                                    and (importParameters.getDeleteOriginals())):
+                                if (removeProcessedFiles):
                                     importParameters.logString('Removing duplicate media "%s"' % sourcePath)
                                     try:
                                         os.remove(sourcePath)
                                     except Exception as e:
                                         importParameters.logString('Can''t remove "%s":\n%s' % (sourcePath, e))
                         else:
-                            importParameters.logString('Ignoring small %sb file "%s"' % (fileSize, sourcePath))
+                            importParameters.logString('Maximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
+                            raise StopIteration
                     else:
-                        importParameters.logString('Maximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
-                        raise StopIteration
+                        importParameters.logString('Ignoring small %sb file "%s"' % (fileSize, sourcePath))
+                        if (removeProcessedFiles):
+                            importParameters.logString('Removing ignored small file "%s"' % sourcePath)
+                            try:
+                                os.remove(sourcePath)
+                            except Exception as e: 
+                                importParameters.logString('Can''t remove "%s"\n%s' % (sourcePath, e))
                 else:
                     importParameters.logString('Ignoring unhandled file "%s"' % sourcePath)
+                    if (removeProcessedFiles):
+                        importParameters.logString('Removing unknown file "%s"' % sourcePath)
+                        try:
+                            os.remove(sourcePath)
+                        except Exception as e:
+                            importParameters.logString('Can''t remove "%s"\n%s' % (sourcePath, e))
+            importParameters.getProgressBar().finishStep()
 
 
     def fixPathWhileImporting(self, parameters, oldPath):
@@ -730,7 +750,7 @@ class MediaCollection(Observable, Observer):
     def cacheCollectionProperties(self):
         """Calculate and cache properties of the entire collection, to avoid repeated iterations.
         """
-        MediaCollection.Logger.info('MediaCollection.cacheCollectionProperties()')
+        Logger.info('MediaCollection.cacheCollectionProperties()')
         self.cachedCollectionSize = 0
         self.cachedMinimumSize = 0
         self.cachedMaximumSize = 0
@@ -753,11 +773,11 @@ class MediaCollection(Observable, Observer):
                     if ((not self.cachedLatestDate)
                         or (self.cachedLatestDate < entryDate.getLatestDateTime())):
                         self.cachedLatestDate = entryDate.getLatestDateTime()
-        MediaCollection.Logger.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
+        Logger.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
                       % (self.cachedEarliestDate, self.cachedLatestDate))
-        MediaCollection.Logger.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 
+        Logger.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 
                       % (self.cachedMinimumSize, self.cachedMaximumSize))                
-        MediaCollection.Logger.info('MediaCollection.cacheCollectionProperties() finished')
+        Logger.info('MediaCollection.cacheCollectionProperties() finished')
 
 
 

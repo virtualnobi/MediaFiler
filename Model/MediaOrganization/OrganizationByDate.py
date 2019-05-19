@@ -17,7 +17,7 @@ import exifread
 #import wx
 import wx.calendar
 ## nobi
-from nobi.wx.Menu import Menu
+#from nobi.wx.Menu import Menu
 from nobi.PartialDateTime import PartialDateTime
 from nobi.SortedCollection import SortedCollection
 ## Project
@@ -481,17 +481,14 @@ class OrganizationByDate(MediaOrganization):
 
 
     @classmethod
-    def registerMoveToLocation(cls, path):
+    def registerMoveToLocation(cls, pathInfo):
+        """overwrite MediaOrganization.registerMoveToLocation()
         """
-        """
-        Logger.debug('OrganizationByDate.registerMoveToLocation(): NYI Registering "%s"' % path)
-#         (year, month, day, dummy) = cls.deriveDateFromPath(StringIO.StringIO(), path)
-#         (dummy, menuText) = os.path.split(path)
-#         if (not menuText in cls.MoveToLocations):
-#             cls.MoveToLocations[menuText] = {'year': year, 'month': month, 'day': day}
-#             if (GUIId.MaxNumberMoveToLocations < len(cls.MoveToLocations)):
-#                 cls.MoveToLocations.popitem(last=False)
-        
+        register = {}
+        for value in ('year', 'month', 'day'):
+            if (value in pathInfo):
+                register[value] = pathInfo[value]
+        super(OrganizationByDate, cls).registerMoveToLocation(pathInfo)
 
 
     @classmethod
@@ -686,23 +683,6 @@ class OrganizationByDate(MediaOrganization):
         MediaFiler.Entry.Menu menu 
         Return nobi.wx.Menu (which is a wx.Menu)
         """
-#         moveToMenu = Menu()
-#         moveToId = GUIId.SelectMoveTo
-#         for mtl in sorted(self.__class__.MoveToLocations):
-# #             menuText = mtl
-# #             if (moveToId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations)):
-# #                 mtl = self.__class__.MoveToLocations[menuText]
-# #                 print('Adding move-to location "%s" into menu entry %s with id %d' % (mtl, menuText, moveToId))
-# #                 moveToMenu.Append(moveToId, menuText)
-# #                 if ((mtl['year'] == self.getYearString())
-# #                     and (mtl['month'] == self.getMonthString())
-# #                     and (mtl['day'] == self.getDayString())):
-# #                     moveToMenu.Enable(moveToId, False)
-#             moveToMenu.Append(moveToId, mtl)
-#             moveToId = (moveToId + 1)
-#         menu.PrependMenu(0, GUIId.FunctionNames[GUIId.SelectMoveTo], moveToMenu)
-#         if (GUIId.SelectMoveTo == moveToId):  # TODO: check length of menu
-#             menu.Enable(0, False)
         if (self.context.isGroup()):
             if (self.undoList):
                 menu.insertAfterId(GUIId.SelectMoveTo,

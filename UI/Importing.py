@@ -116,6 +116,7 @@ class ImportParameterObject(object):
             self.checkForDuplicates = False
         else: 
             self.checkForDuplicates = (stringValue == 'True')
+        self.progressBar = None
         # parameters for OrganizationByDate
         stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportPreferExif)
         if (stringValue == None):
@@ -177,6 +178,10 @@ class ImportParameterObject(object):
         self.keepUnknownTags = value
 
 
+    def setProgressBar(self, aPhasedProgressBar):
+        self.progressBar = aPhasedProgressBar
+
+
     def logString(self, strng):
         self.log.write(strng)
         self.log.write('\n')
@@ -189,6 +194,10 @@ class ImportParameterObject(object):
 
     def getTestRun(self):
         return(self.testRun)
+
+
+    def getIllegalElements(self):
+        return(self.illegalElements)
 
 
     def getIgnoreUnhandledTypes(self):
@@ -225,6 +234,10 @@ class ImportParameterObject(object):
 
     def getPreferPathDateOverExifDate(self):
         return(self.preferPathDateOverExifDate)
+
+
+    def getProgressBar(self):
+        return(self.progressBar)
 
 
     def getLog(self):
@@ -296,7 +309,7 @@ class ImportDialog(wx.Dialog):
     TitleImport = _('Import')
     FieldLabelImportDirectory = _('Directory')
     FieldLabelTestRun = _('Test Only')
-    FieldLabelDeleteOriginal = _('Delete Originals')
+    FieldLabelDeleteOriginal = _('Delete Originals (incl. small and unknown)')
     FieldLabelMaxNumber = _('Maximum Number of Files to Import')
     FieldLabelIgnoreUnknowns = _('Do not Import Files of Unknown Type')
     FieldLabelMinimumSize = _('Do not Import Files Smaller Than')

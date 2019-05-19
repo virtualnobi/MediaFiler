@@ -191,14 +191,14 @@ class MediaNamePane(wx.Panel, Observer):
         pathInfo['removeIllegalElements'] = removeUnknownTags
         try:
             resultingSelection = self.entry.renameTo(**pathInfo)
-        except:
+        except Exception as e:
             dlg = wx.MessageDialog(self,   # TODO: add error message to Dialog
-                                   'Cannot rename media!',
+                                   ('Cannot rename media!\n%s' % e),
                                    'Error',
                                    wx.OK | wx.ICON_ERROR)
             dlg.ShowModal()
             dlg.Destroy()
-        finally:
+        else:
             self.model.setSelectedEntry(resultingSelection) 
             self.rememberElements()
 

@@ -132,6 +132,18 @@ class Single(Entry):
 
 
 # Setters
+    def renameTo(self, **kwargs):
+        """Rename a Single entry. See Entry.renameTo(). 
+       
+        Set of String elements 
+        Boolean removeIllegalElements
+        dict kwargs
+        Return Entry to be shown after renaming
+        """
+        return(self.getOrganizer().renameSingle(**kwargs))
+
+
+
 # Getters
 # Inheritance - Entry
     def getEntriesForDisplay (self):
@@ -159,10 +171,6 @@ class Single(Entry):
                     GUIId.FunctionNames[GUIId.StartExternalViewer], 
                     "", 
                     wx.ITEM_NORMAL)
-#         menu.Append(GUIId.StartExternalViewer,
-#                     GUIId.FunctionNames[GUIId.StartExternalViewer],
-#                     "",  # help string 
-#                     wx.ITEM_NORMAL)
         if ((not self.__class__.getConfigurationOptionExternalViewer()) 
             or (not self.model.getConfiguration(self.__class__.getConfigurationOptionExternalViewer()))):
             menu.Enable(GUIId.StartExternalViewer, enable=False)
@@ -187,9 +195,6 @@ class Single(Entry):
         """
         message = None
         Logger.debug('Single.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
-#         if ((GUIId.AssignNumber <= menuId)
-#             and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
-#             self.renumberTo(menuId - GUIId.AssignNumber)
         if (menuId == GUIId.StartExternalViewer):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):

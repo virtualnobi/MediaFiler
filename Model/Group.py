@@ -8,12 +8,10 @@
 ## standard
 import logging
 import os
-import copy
 ## contributed
 import wx
 from nobi.SortedCollection import SortedCollection 
 ## nobi
-#from nobi.PausableObservable import PausableObservable
 from nobi.ObserverPattern import Observer
 ## project
 import Installer
@@ -132,8 +130,7 @@ class Group(Entry, Observer):
         
         Will create new group if organizing name parts (such as name, scene, day, month, year) are changed. 
         Then renames subentries according to tag changes, possibly moving to new group.
-        #TODO: Tags in kwargs will override tags of elements in the group. 
-        If remaining group, self, is empty after the move, it will be removed. 
+        If remaining group (self) is empty after the move, it will be removed. 
         """
         return(self.getOrganizer().renameGroup(filtering=True, **kwargs))
 
@@ -364,9 +361,11 @@ class Group(Entry, Observer):
         """
         Logger.debug('Group.runContextMenu(): Running %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.DeleteDoubles):
-            wx.BeginBusyCursor()
-            deleted = self.deleteDoubles()
-            wx.EndBusyCursor()
+            wx.GetApp().displayInfoMessage(_('Searching doubles...'))
+            wx.GetApp().freezeWidgets()
+            deleted = self.deleteDoubles(wx.GetApp().frame.createProgressBar(_('Removing duplicates...')))
+            wx.GetApp().frame.removeProgressBar()
+            wx.GetApp().thawWidgets()
             return(GUIId.MessageDuplicatesDeleted % deleted)
         else:
             return(super(Group, self).runContextMenuItem(menuId, parentWindow))
@@ -383,26 +382,32 @@ class Group(Entry, Observer):
 
 
 # Other API Functions
-    def deleteDoubles(self):  # TODO: use MediaMap to check everywhere not just in this group
+    def deleteDoubles(self, aProgressBar=None):
         """Remove double Singles contained in self. Recurse if self contains groups.
         
+        nobi.wx.PhasedProgressBar aProgressBar displays progress if defined
         Return Number indicating how many doubles were deleted. 
         """
         doubles = 0
-        for entry1 in self.subEntriesSorted[:]:
+        subEntries1 = self.getSubEntries(filtering=False)
+        if (aProgressBar):
+            aProgressBar.beginPhase(len(subEntries1))
+        for entry1 in subEntries1:
             if (entry1.isGroup()):
                 doubles = (doubles + entry1.deleteDoubles())
             else:
-                for entry2 in self.subEntriesSorted[:]:
+                subEntries2 = self.getSubEntries(filtering=False)
+                for entry2 in subEntries2:
                     if (entry2.isGroup()):
-                        pass
+                        pass  # entry1 is not a Group, so can't be a double
                     elif (entry1 == entry2):
                         break  # avoid checking pairs twice
                     elif (entry1.isIdentical(entry2)):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
                         entry1.getOrganizer().deleteDouble(entry2)
                         doubles = (doubles + 1)
-        #TODO: if self was selected, reselect to make changes visible
+            if (aProgressBar):
+                aProgressBar.finishStep()
         return(doubles)
 
 

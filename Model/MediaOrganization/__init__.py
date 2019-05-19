@@ -5,6 +5,7 @@
 
 # Imports
 ## Standard
+from __builtin__ import classmethod
 # from __builtin__ import classmethod
 import datetime
 import re
@@ -20,6 +21,7 @@ import gettext
 import wx
 ## nobi
 from nobi.wx.Menu import Menu
+from nobi.LastUpdateOrderedDict import LastUpdateOrderedDict
 ## Project
 import Model.Installer
 from ..Entry import Entry
@@ -28,7 +30,6 @@ from ..MediaNameHandler import MediaNameHandler
 from ..MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from __builtin__ import classmethod
 
 
 
@@ -68,14 +69,14 @@ class MediaOrganization(object):
 
 # Constants
     IdentifierSeparator = '-'  # to separate identifier parts such as number, name, scene, year, month, day
-    FormatNumber = '%03d'  # format string for number ensuring uniqueness of pathname
+    FormatNumber = u'%03d'  # format string for number ensuring uniqueness of pathname
 
 
 
 # Class Variables
     ImageFilerModel = None  # to access legal names 
-    MoveToLocations = []  # last move-to locations for repeated moving; no concurrent usage of subclasses!
-    
+    MoveToLocations = LastUpdateOrderedDict()  # last move-to locations for repeated moving; no concurrent usage of subclasses!
+
 
 
 # Class Methods
@@ -97,13 +98,6 @@ class MediaOrganization(object):
         """Return a description of the organization. 
         """
         raise NotImplementedError
-
-
-#     @classmethod
-#     def getFilterPaneClass(cls):
-#         """Return the class to instantiate filter pane.
-#         """
-#         raise NotImplementedError
 
 
     @classmethod
@@ -254,14 +248,39 @@ class MediaOrganization(object):
 
 
     @classmethod
-    def registerMoveToLocation(cls, path):
-        """Store information where media was moved to, for retrieval as targets for subsequent moves.
+    def registerMoveToLocation(cls, pathInfo):
+        """Store information where media was moved to.
         
-        Subclasses must pick appropriate parameters.
+        This information is used to create a submenu to move media to previously used locations.
         """
-        cls.MoveToLocations.append(path)
+        Logger.debug('MediaOrganization.registerMoveToLoation(): Adding %s' % pathInfo)
+        menuItem = cls.menuItemFromPathInfo(pathInfo)
+        cls.MoveToLocations[menuItem] = pathInfo
         if (GUIId.MaxNumberMoveToLocations < len(cls.MoveToLocations)):
-            del cls.MoveToLocations[0]
+            cls.MoveToLocations.popitem(last=False)
+        Logger.debug('MediaOrganization.registerMoveToLoation(): Move-to-locations are %s' % cls.MoveToLocations)
+
+
+    @classmethod
+    def menuItemFromPathInfo(cls, pathInfo):
+        result = u''
+        for key in pathInfo.keys():
+            result = ('%s%s%s' % (result, pathInfo[key], MediaOrganization.IdentifierSeparator))
+        if (result <> u''):
+            result = result[:-1]
+        return(result)
+
+
+    @classmethod
+    def constructMoveToMenu(cls):
+        """Return a wx.Menu representing the last locations media was moved to.
+        """
+        result = Menu()
+        moveToId = GUIId.SelectMoveTo
+        for menuItem in reversed(cls.MoveToLocations.keys()):
+            result.Append(moveToId, menuItem)
+            moveToId = (moveToId + 1)
+        return(result)
 
 
     @classmethod
@@ -408,7 +427,7 @@ class MediaOrganization(object):
 
     def extendContextMenu(self, menu):
         """
-        The AssignNumber function will be added in subclasses, as it's not applicable to singletons in organization by name.
+        The AssignNumber function will be added in subclasses, as it's not applicable to singletons organized by name.
         """
         pass
 
@@ -432,7 +451,7 @@ class MediaOrganization(object):
         renumberList.append(lastNumber + 1)
         assignNumberMenu = wx.Menu()
         for i in renumberList:
-            assignNumberMenu.Append((GUIId.AssignNumber + i), str(i))
+            assignNumberMenu.Append((GUIId.AssignNumber + i), (MediaOrganization.FormatNumber % i))
             if (i == self.getNumber()):
                 assignNumberMenu.Enable((GUIId.AssignNumber + i), False)
         return(assignNumberMenu)
@@ -440,6 +459,9 @@ class MediaOrganization(object):
 
     def runContextMenuItem(self, menuId, parentWindow):  # @UnusedVariable
         """
+        AssignNumber is added by subclasses, as it's not applicable to singletons organized by name
+        SelectMoveTo is added by Entry but handled here, as it uses this class' state
+        
         Number menuId
         wx.Window parentWindow to display messages
         Return String describing execution status
@@ -448,7 +470,27 @@ class MediaOrganization(object):
             and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
             number = (menuId - GUIId.AssignNumber)
             Logger.debug('MediaOrganization.runContextMenu(): Renaming to number %d' % number)
-            return(self.renumberTo(number))
+            progressBar = wx.GetApp().createProgressBar(_('Renumbering...'))
+            result = self.renumberTo(number, progressBar)
+            wx.GetApp().removeProgressBar()
+            return(result)
+        elif ((GUIId.SelectMoveTo <= menuId)
+              and (menuId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations))):
+            number = (menuId - GUIId.SelectMoveTo)
+            items = list(reversed(self.__class__.MoveToLocations.items()))
+            newPathInfo = items[number][1]
+            Logger.debug('MediaOrganization.runContextMenu(): Moving to %d-th move-to-location %s' % (number, newPathInfo))
+            currentPathInfo = self.getPathInfo()
+            if ('number' in currentPathInfo):
+                del currentPathInfo['number']
+            currentPathInfo['makeUnique'] = True
+            for key in newPathInfo.keys():
+                currentPathInfo[key] = newPathInfo[key]
+            Logger.debug('MediaOrganization.runContextMenu(): Renaming to %s' % currentPathInfo)
+            if (self.getContext().isGroup()):
+                self.renameGroup(**currentPathInfo)
+            else:  # must be a Single
+                self.renameSingle(**currentPathInfo)
         else:
             Logger.error('MediaOrganization.runContextMenu(): Unhandled function %d on "%s"!' % (menuId, self.getContext().getPath()))
     
@@ -466,10 +508,13 @@ class MediaOrganization(object):
         if ((not MediaClassHandler.ElementNew in self.context.getElements())
             or (not MediaClassHandler.ElementNew in otherEntry.getElements())):
             newElements.discard(MediaClassHandler.ElementNew)
-        Logger.debug('MediaOrganization.deleteDouble(): Adding tags %s to "%s"' % (newElements, self.context))
-        pathInfo = self.getPathInfo()
-        pathInfo['elements'] = newElements
-        self.getContext().renameTo(**pathInfo)
+        if (newElements <> self.getContext().getElements()):
+            Logger.debug('MediaOrganization.deleteDouble(): Adding tags %s to "%s"' % (newElements, self.context))
+            pathInfo = self.getPathInfo()
+            pathInfo['elements'] = newElements
+            self.getContext().renameTo(**pathInfo)
+        else:
+            Logger.debug('MediaOrganization.deleteDouble(): Removing "%s"', otherEntry)
         otherEntry.remove()
 
 
@@ -530,6 +575,7 @@ class MediaOrganization(object):
         # check whether old group still has subentries
         if (len(oldParent.getSubEntries(filtering=False)) == 0):
             oldParent.remove()
+        self.__class__.registerMoveToLocation(pathInfo)
         return(self.getContext())
 
 
@@ -558,11 +604,7 @@ class MediaOrganization(object):
         # rename subentries
         renameList = self.getRenameList(newParent, pathInfo, filtering=filtering)
         for (entry, pathInfo) in renameList:
-            entry.renameTo(**pathInfo)
-#       self has been removed when the last subentry was renamed (if not further subentries exist)
-#         # remove self if no subenries left
-#         if (len(self.getContext().getSubEntries()) == 0):
-#             self.getContext().remove()
+            entry.renameTo(**pathInfo)  # removes self when the last subentry was renamed (if not further subentries exist)
         return(newParent)
 
 
@@ -638,8 +680,11 @@ class MediaOrganization(object):
         return(moveList)
 
 
-    def renumberTo(self, newNumber):
+    def renumberTo(self, newNumber, progressBar=None):
         """Renumber Singles in self's parent group so that self can change to the given number.
+        
+        Number newNumber
+        PhasedProgressBar progressBar
         """
         Logger.debug('MediaOrganization.renumberTo(): Assigning new number %d to number %d' % (newNumber, self.getNumber()))
         numberToEntryMap = self.getNumberedEntriesMap()

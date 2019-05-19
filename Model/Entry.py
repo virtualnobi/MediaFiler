@@ -494,16 +494,11 @@ class Entry(Observable):
 
 # Other API methods
     # @profiledOnLogger(Logger, sort='cumulative')
-    def renameTo(self, 
-                 elements=None, removeIllegalElements=False,
-                 **kwargs):
+    def renameTo(self, **pathInfo):
         """Rename self's file, replacing the components as specified. 
        
         If a parameter is None or not given in pathInfo, leave it unchanged. 
         If makeUnique is True, find another number to ensure a unique filename.
-        
-        TODO: Move to Single class, leave abstract method in Entry.
-        TODO: Return renamed Single, throw exception if needed.
         
         Dictionary pathInfo may contain the following keys:
             <organization-specific keys>
@@ -516,7 +511,8 @@ class Entry(Observable):
             Set of String classesToRemove contains the names of classes whose tags shall be removed
         Return the Entry to be shown after renaming
         """
-        return(self.getOrganizer().renameSingle(elements=elements, removeIllegalElements=removeIllegalElements, **kwargs))
+        raise NotImplementedError
+#         return(self.getOrganizer().renameSingle(elements=elements, removeIllegalElements=removeIllegalElements, **kwargs))
 
 
     def renameToFilename(self, fname):
@@ -544,26 +540,16 @@ class Entry(Observable):
         if (newGroup <> self.getParentGroup()):
             self.setParentGroup(newGroup)
         self.changedAspect('name')
-        self.getOrganizer().__class__.registerMoveToLocation(fname)
+#         self.getOrganizer().__class__.registerMoveToLocation(fname)
         return(True)
-
-
-
-
-## Getters for organization by date
-#     def getDate(self):
-#         """Return the date the media was captured.
-#         
-#         Return datetime.date
-#         """
-#         print('Entry.getDate() deprecated')
-#         return(datetime.date(int(self.getYear()), int(self.getMonth()), int(self.getDay())))
 
 
 
 # Event Handlers
     def getContextMenu(self):
         """Create a menu containing all context menu functions.
+        
+        SelectMoveTo is added here, but handled in MediaOrganization.runContextMenu()
         
         Return wx.Menu
         """
@@ -574,7 +560,13 @@ class Entry(Observable):
         menu.Append(GUIId.FilterSimilar, GUIId.FunctionNames[GUIId.FilterSimilar])
         # structure functions
         menu.AppendSeparator()
-        menu.Append(GUIId.SelectMoveTo, GUIId.FunctionNames[GUIId.SelectMoveTo])
+        moveToMenu = self.getOrganizer().__class__.constructMoveToMenu()
+        menu.AppendMenu(GUIId.SelectMoveTo, 
+                        GUIId.FunctionNames[GUIId.SelectMoveTo],
+                        moveToMenu)
+        if ((0 == moveToMenu.GetMenuItemCount())
+            and (not self.isGroup())):
+            menu.Enable(GUIId.SelectMoveTo, False)
         # group functions
         # delete functions
         menu.AppendSeparator()
@@ -601,7 +593,7 @@ class Entry(Observable):
         elif (menuId == GUIId.DeleteImage):
             self.remove()
         else: 
-            message = self.organizer.runContextMenuItem(menuId, parentWindow)
+            message = self.getOrganizer().runContextMenuItem(menuId, parentWindow)
         return(message)
 
 

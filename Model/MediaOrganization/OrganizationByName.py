@@ -299,6 +299,17 @@ class OrganizationByName(MediaOrganization):
 
 
     @classmethod
+    def registerMoveToLocation(cls, pathInfo):
+        """overwrite MediaOrganization.registerMoveToLocation()
+        """
+        register = {}
+        for value in ('name', 'scene'):
+            if (value in pathInfo):
+                register[value] = pathInfo[value]
+        super(OrganizationByName, cls).registerMoveToLocation(register)
+
+
+    @classmethod
     def initNamePane(cls, aMediaNamePane):
         """Add controls to MediaNamePane to represent the organization's identifiers.
         """
@@ -404,15 +415,20 @@ class OrganizationByName(MediaOrganization):
         
         String newScene contains the number of the new scene 
         """
+        oldScene = self.getScene()
         logging.debug('OrganizationByName.relabelToScene(): Moving entries from scene %s to scene %s (from "%s")' 
-                      % (self.getScene(), newScene, self.context.getPath()))
+                      % (oldScene, newScene, self.context.getPath()))
         parentGroup = self.getContext().getParentGroup()
-        for entry in parentGroup.getSubEntries():
-            if (entry.organizer.getScene() == self.getScene()):
+        progressBar = wx.GetApp().createProgressBar(_('Renaming scene %s to %s') % (oldScene, newScene))
+        progressBar.beginPhase(len(parentGroup.getSubEntries()))
+        for entry in parentGroup.getSubEntries(filtering=False):
+            if (entry.organizer.getScene() == oldScene):
                 pathInfo = entry.getOrganizer().getPathInfo()
                 pathInfo['scene'] = newScene
                 pathInfo['makeUnique'] = True
                 entry.renameTo(**pathInfo)
+            progressBar.finishStep()
+        wx.GetApp().removeProgressBar()
 
 
 

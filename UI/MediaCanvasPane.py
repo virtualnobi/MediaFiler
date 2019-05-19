@@ -8,14 +8,42 @@
 ## standard
 import math
 import logging
-import cProfile, pstats, StringIO
+import os.path
+import gettext
+#import cProfile, pstats, StringIO
 ## contributed
 import wx
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
+import UI
 from UI import GUIId
 from Model.Single import ImageBitmap
+
+
+
+# Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
+try:
+    LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
+    Translation = gettext.translation('MediaFiler', LocalesPath)
+except BaseException as e:  # likely an IOError because no translation file found
+    try:
+        language = os.environ['LANGUAGE']
+    except:
+        print('%s: No LANGUAGE environment variable found!' % (__file__))
+    else:
+        print('%s: No translation found at "%s"; using originals instead of locale %s. Complete error:' % (__file__, LocalesPath, language))
+        print(e)
+    def _(message): return message
+else:
+    _ = Translation.ugettext
+def N_(message): return message
+
+
+
+# Package Variables
+Logger = logging.getLogger(__name__)
+
 
 
 class MediaCanvas(wx.Panel, Observer):
@@ -45,6 +73,7 @@ class MediaCanvas(wx.Panel, Observer):
         # events
         self.Bind(wx.EVT_MOUSE_EVENTS, self.onClickCanvas)  # mouse events (move, click) to select image
         self.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)  # context menu actions on Entry objects
+        self.Bind(wx.EVT_KEY_DOWN, self.onKeyPressed)
         # internal state
         self.model = None
         self.entry = None
@@ -70,19 +99,19 @@ class MediaCanvas(wx.Panel, Observer):
         self.setEntry(self.model.getSelectedEntry())
 
 
-    def setEntryProfiled(self, entry, forceUpdate=False):
-        profiler = cProfile.Profile()
-        profiler.enable()
-        self.setEntry(entry, forceUpdate)
-        profiler.disable()
-        resultStream = StringIO.StringIO()
-        ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
-        ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
-        ps.sort_stats('time')  # sort according to time per function call, excluding called functions
-        ps.print_stats(20)  # print top 20 
-        print('Profiling Results for MediaCanvas.setEntry()')
-        print(resultStream.getvalue())
-        print('---')
+#     def setEntryProfiled(self, entry, forceUpdate=False):
+#         profiler = cProfile.Profile()
+#         profiler.enable()
+#         self.setEntry(entry, forceUpdate)
+#         profiler.disable()
+#         resultStream = StringIO.StringIO()
+#         ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
+#         ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
+#         ps.sort_stats('time')  # sort according to time per function call, excluding called functions
+#         ps.print_stats(20)  # print top 20 
+#         print('Profiling Results for MediaCanvas.setEntry()')
+#         print(resultStream.getvalue())
+#         print('---')
 
 
     def setEntry(self, entry, forceUpdate=False):
@@ -96,14 +125,17 @@ class MediaCanvas(wx.Panel, Observer):
             entry = self.model.initialEntry
         if (forceUpdate 
             or (self.entry <> entry)):
-            wx.BeginBusyCursor()
-            self.Freeze() 
+            wx.GetApp().freezeWidgets()
             column = 1  # count columns when placing images in grid
             (x, y) = (0, 0)  # position of image
             self.clear()  # unbind events and unregister observable
             self.entry = entry
             self.entry.addObserverForAspect(self, 'children')
             displayedEntries = entry.getEntriesForDisplay()
+            progressBar = None
+            if (10 < len(displayedEntries)):
+                progressBar = wx.GetApp().createProgressBar(_('Resizing images...'))  
+#                 progressBar.beginPhase(len(displayedEntries))  
             self.calculateGrid(len(displayedEntries))
             for entry in displayedEntries:  # TODO: use multiprocessing.Pool() or similar
                 entry.addObserverForAspect(self, 'name')
@@ -126,10 +158,14 @@ class MediaCanvas(wx.Panel, Observer):
                 else:  
                     x = (x + self.imageWidth + self.ImagePadding)
                     column = (column + 1)
-            self.Thaw()
+                if (progressBar):
+#                     progressBar.finishStep()
+                    pass
+            if (progressBar):
+                wx.GetApp().removeProgressBar(_('Ready'))
+            wx.GetApp().thawWidgets()
             self.Refresh()
             self.Update()
-            wx.EndBusyCursor()
         MediaCanvas.Logger.debug('MediaCanvas.setEntry() finished')
 
 
@@ -163,7 +199,12 @@ class MediaCanvas(wx.Panel, Observer):
             pass  # TODO: display in status bar
         wx.EndBusyCursor()
 
-    
+
+    def onKeyPressed(self, event):
+        Logger.debug('MediaCanvasPane.onKeyPressed(): %s' % event.GetKeyCode())
+        self.PostEvent(self.parent, event)
+
+
 
 # Inheritance - ObserverPattern
     def updateAspect(self, observable, aspect):
