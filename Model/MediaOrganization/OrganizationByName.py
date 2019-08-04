@@ -419,16 +419,14 @@ class OrganizationByName(MediaOrganization):
         logging.debug('OrganizationByName.relabelToScene(): Moving entries from scene %s to scene %s (from "%s")' 
                       % (oldScene, newScene, self.context.getPath()))
         parentGroup = self.getContext().getParentGroup()
-        progressBar = wx.GetApp().createProgressBar(_('Renaming scene %s to %s') % (oldScene, newScene))
-        progressBar.beginPhase(len(parentGroup.getSubEntries()))
+        wx.GetApp().beginPhase(len(parentGroup.getSubEntries()), (_('Renaming scene %s to %s') % (oldScene, newScene)))
         for entry in parentGroup.getSubEntries(filtering=False):
+            wx.GetApp().beginStep()
             if (entry.organizer.getScene() == oldScene):
                 pathInfo = entry.getOrganizer().getPathInfo()
                 pathInfo['scene'] = newScene
                 pathInfo['makeUnique'] = True
                 entry.renameTo(**pathInfo)
-            progressBar.finishStep()
-        wx.GetApp().removeProgressBar()
 
 
 

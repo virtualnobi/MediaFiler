@@ -21,6 +21,17 @@ import wx
 Logger = logging.getLogger(__name__)
 
 
+class PhasedProgressBarError(RuntimeError):
+    """Signals too many calls to beginStep() or beginPhase() of a PhasedProgressBar.
+    """
+    def __init__(self, message):
+        self.message = message
+
+
+    def __str__(self):
+        return('PhasedProgressBarError("%s")' % self.message)
+
+
 
 class PhasedProgressBar(wx.Gauge):
     """A progress bar for processes with a hierarchy of steps, consisting of an unknown number of steps.
@@ -79,31 +90,53 @@ class PhasedProgressBar(wx.Gauge):
     def restart(self):
         """Reset the progress bar to the beginning.
         """
-        self.currentPercentage = 0.0  # use float for correct calculation
-        self.remainingStops = [0.0, 100.0]
+        self.remainingStops = [0.0, 100.0]   # use float for correct calculation
         self.SetValue(0)
+
+
+    def finish(self):
+        """Finish the progress bar. 
+        """
+        # do not move to completion, as this takes additional time, and leaves a full bar visible
+        # self.remainingStops = [100.0]
+        # self.SetValue(100)
+        self.restart()
+
+
+    def SetValue(self, percentage):
+        """Set the progress bar to the given percentage, and display it. 
+
+        This is about being as real-time as possible; 
+        wx delays screen updates to lag up to two invocations after this call.
+        """
+        super(PhasedProgressBar, self).SetValue(percentage)
+        self.Show()
+        wx.GetApp().ProcessPendingEvents()
+        # wx.SafeYield()  # will disable user input, then execute wx.Yield(), then reenable user input
 
 
 
 # Getters
-    def __repr__(self):
-        return('PhasedProgressBar(%s%%, %s remaining)' % (self.currentPercentage, self.remainingStops))
+    def __str__(self):
+        return('PhasedProgressBar(%s)' % self.remainingStops)
 
 
 
 # Other API
     def beginPhase(self, numberOfSteps):
-        """Begin a new phase consisting of the given number of steps.
+        """Split the next step into a phase consisting of the given number of steps.
 
-        For each call to this method, beginStep() should be called numberOfSteps times.
+        For each call to this method, beginStep() can be called numberOfSteps times.
 
         int numberOfSteps must be larger than 1, indicates number of steps in new phase
         """
         if ((not isinstance(numberOfSteps, int))
-            or (numberOfSteps < 1)):
+            or (numberOfSteps < 2)):
             raise ValueError, 'numberOfSteps must be an integer larger than 1'
         if (len(self.remainingStops) < 2):
-            raise RuntimeError, 'PhasedProgressBar.beginPhase() called after completion (maybe beginStep() called too often)'
+#             raise PhasedProgressBarError ('beginPhase() called after completion (maybe beginStep() called too often)')
+            print('PhasedProgressBar.beginPhase(): Called after completion (maybe beginStep() called too often)')
+            self.remainingStops = [0.0, 100.0]
         phaseDuration = (self.remainingStops[1] - self.remainingStops[0])
         stepDuration = (phaseDuration / numberOfSteps)
         for i in range(1, numberOfSteps):
@@ -114,34 +147,11 @@ class PhasedProgressBar(wx.Gauge):
         """Begin a step, i.e., advance the progress bar to signal completion of the previous step.
         """
         if (len(self.remainingStops) < 2):
-            raise RuntimeError, 'PhasedProgressBar.beginStep() called after completion (maybe called too often)'
-        self.currentPercentage = self.remainingStops.pop(0)
-        self.SetValue(int(self.currentPercentage))
-
-
-    def finishStep(self):
-        self.beginStep()
-
-
-    def finish(self):
-        """Finish the progress bar. 
-        """
-        self.remainingStops = []
-        self.SetValue(100)
-
-
-
-    def SetValue(self, percentage):
-        """Set the progress bar to the given percentage, and display it. 
-        
-        This is about being as real-time as possible; 
-        wx delays screen updates to lag up to two invocations after this call.
-        """
-        # print('Set to %s' % percentage)
-        super(PhasedProgressBar, self).SetValue(percentage)
-        self.Show()
-        wx.GetApp().ProcessPendingEvents()
-        wx.SafeYield()  # will disable user input, then execute wx.Yield(), then reenable user input
+#             raise PhasedProgressBarError('beginStep() called after completion (maybe called too often)')
+            print('PhasedProgressBar.beginStep(): Called after completion (maybe called too often)')
+            self.remainingStops = [0.0, 100.0]
+        currentPercentage = self.remainingStops.pop(0)
+        self.SetValue(int(currentPercentage))
 
 
         
@@ -168,28 +178,26 @@ if __name__ == "__main__":
             self.ppb.restart()
             self.run()
 
-        def run(self):
-            self.ppb.beginPhase(4)
-            time.sleep(1)
-            self.ppb.beginStep()
-            time.sleep(1)
-            self.ppb.beginStep()
-            steps = 5
-            self.ppb.beginPhase(steps)
-            for x in range(steps):  # @UnusedVariable
+        def runPhase(self, counter):
+            self.ppb.beginPhase(counter)
+            for x in range(counter):  # @UnusedVariable
                 self.ppb.beginStep()
-                print('At Embedded Step %s' % x)
-            time.sleep(1)
-            self.ppb.beginPhase(2)
-            time.sleep(1)
-            self.ppb.beginStep()
-            time.sleep(1)
-            self.ppb.beginStep()
+                time.sleep(0.05)
+
+        def run(self):
+            self.ppb.beginPhase(9)
+            for x in range(9):
+                print('Phase %s' % x)
+                self.runPhase((x + 1) * 10)
+            print('%s' % self.ppb) 
+            try:
+                self.ppb.beginPhase(3)
+            except PhasedProgressBarError as exc:
+                print('Caught %s' % exc)
             try:
                 self.ppb.beginStep()
-            except RuntimeError:
-                print('Caught RuntimeError resulting from surplus call to beginStep()')
-            self.ppb.finish()
+            except PhasedProgressBarError as exc:
+                print('Caught %s' % exc)
 
     app = wx.App(0)
     frame = MyFrame(None)

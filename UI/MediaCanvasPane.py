@@ -74,6 +74,7 @@ class MediaCanvas(wx.Panel, Observer):
         self.Bind(wx.EVT_MOUSE_EVENTS, self.onClickCanvas)  # mouse events (move, click) to select image
         self.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)  # context menu actions on Entry objects
         self.Bind(wx.EVT_KEY_DOWN, self.onKeyPressed)
+        self.Bind(wx.EVT_SIZE, self.onResize)
         # internal state
         self.model = None
         self.entry = None
@@ -99,21 +100,6 @@ class MediaCanvas(wx.Panel, Observer):
         self.setEntry(self.model.getSelectedEntry())
 
 
-#     def setEntryProfiled(self, entry, forceUpdate=False):
-#         profiler = cProfile.Profile()
-#         profiler.enable()
-#         self.setEntry(entry, forceUpdate)
-#         profiler.disable()
-#         resultStream = StringIO.StringIO()
-#         ps = pstats.Stats(profiler, stream=resultStream)  # .ps.strip_dirs()  # remove module paths
-#         ps.sort_stats('cumulative')  # sort according to time per function call, including called functions
-#         ps.sort_stats('time')  # sort according to time per function call, excluding called functions
-#         ps.print_stats(20)  # print top 20 
-#         print('Profiling Results for MediaCanvas.setEntry()')
-#         print(resultStream.getvalue())
-#         print('---')
-
-
     def setEntry(self, entry, forceUpdate=False):
         """Set the entry to display.
         
@@ -125,47 +111,11 @@ class MediaCanvas(wx.Panel, Observer):
             entry = self.model.initialEntry
         if (forceUpdate 
             or (self.entry <> entry)):
-            wx.GetApp().freezeWidgets()
-            column = 1  # count columns when placing images in grid
-            (x, y) = (0, 0)  # position of image
             self.clear()  # unbind events and unregister observable
             self.entry = entry
             self.entry.addObserverForAspect(self, 'children')
-            displayedEntries = entry.getEntriesForDisplay()
-            progressBar = None
-            if (10 < len(displayedEntries)):
-                progressBar = wx.GetApp().createProgressBar(_('Resizing images...'))  
-#                 progressBar.beginPhase(len(displayedEntries))  
-            self.calculateGrid(len(displayedEntries))
-            for entry in displayedEntries:  # TODO: use multiprocessing.Pool() or similar
-                entry.addObserverForAspect(self, 'name')
-                # place image on canvas
-                MediaCanvas.Logger.debug('MediaCanvasPane.setEntry(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
-                bitmap = ImageBitmap(self, 
-                                     -1, 
-                                     entry, 
-                                     (x + (self.ImagePadding / 2)), 
-                                     (y + (self.ImagePadding / 2)), 
-                                     self.imageWidth, 
-                                     self.imageHeight)
-                bitmap.Bind(wx.EVT_MOUSE_EVENTS, self.onClickImage)
-                bitmap.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)
-                # calculate next image position
-                if (column == self.cols): 
-                    x = 0
-                    y = (y + self.imageHeight + self.ImagePadding)
-                    column = 1
-                else:  
-                    x = (x + self.imageWidth + self.ImagePadding)
-                    column = (column + 1)
-                if (progressBar):
-#                     progressBar.finishStep()
-                    pass
-            if (progressBar):
-                wx.GetApp().removeProgressBar(_('Ready'))
-            wx.GetApp().thawWidgets()
-            self.Refresh()
-            self.Update()
+            displayedEntries = self.entry.getEntriesForDisplay()
+            self.sizeAndDisplayEntries(displayedEntries)
         MediaCanvas.Logger.debug('MediaCanvas.setEntry() finished')
 
 
@@ -174,17 +124,19 @@ class MediaCanvas(wx.Panel, Observer):
         """User clicked the canvas.
         """
         if (self.entry == None):
-            pass  # print('CanvasPane.onClickCanvas() with entry being NONE')
+            Logger.error('MediaCanvasPane.onClickCanvas() with entry being NONE')
+            pass
         elif (self.entry.getParentGroup() == None):
-            pass  # print('CanvasPane.ClickCanvas() on entry "%s" without parent' % self.entry.getPath())
+            Logger.error('MediaCanvasPane.onClickCanvas() on entry without parent "%s"' % self.entry)
+            pass
         else:
-            self.onClick(event, self.entry)
+            self.handleImageClick(event, self.entry)
         
         
     def onClickImage(self, event):
         """User clicked an image. 
         """
-        self.onClick(event, event.GetEventObject().getEntry())
+        self.handleImageClick(event, event.GetEventObject().getEntry())
         
 
     def onContextMenuSelection(self, event):
@@ -193,17 +145,25 @@ class MediaCanvas(wx.Panel, Observer):
         Route to current Entry.
         """
         print('User selected context menu item %s' % event.Id)
-        wx.BeginBusyCursor()
+        wx.GetApp().startProcessIndicator()
         message = event.EventObject.currentEntry.runContextMenuItem(event.Id, self)
         if (isinstance(message, basestring)):
             pass  # TODO: display in status bar
-        wx.EndBusyCursor()
+        wx.GetApp().stopProcessIndicator()
 
 
     def onKeyPressed(self, event):
         Logger.debug('MediaCanvasPane.onKeyPressed(): %s' % event.GetKeyCode())
-        self.PostEvent(self.parent, event)
+        wx.PostEvent(self.GetParent(), event)
 
+
+    def onResize(self, event):
+        if (self.entry <> None):
+            wx.GetApp().startProcessIndicator()
+            Logger.debug('MediaCanvasPane.onResize(): ...')
+            displayedEntries = self.entry.getEntriesForDisplay()
+            self.sizeAndDisplayEntries(displayedEntries)
+            wx.GetApp().stopProcessIndicator()
 
 
 # Inheritance - ObserverPattern
@@ -278,13 +238,61 @@ class MediaCanvas(wx.Panel, Observer):
         # calculate image size
         self.imageWidth = int((self.width - ((self.cols + 1) * self.ImagePadding)) / self.cols)
         self.imageHeight = int((self.height - ((self.rows + 1) * self.ImagePadding)) / self.rows)
-        #print '%d items sized %dx%d placed in %dx%d grid in %dx%d pane' % (numberOfImages, self.imageWidth, self.imageHeight, self.cols, self.rows, self.width, self.height)
+        Logger.debug('MediaCanvasPane.calculateGrid(): Placing %d items of %dx%d in %dx%d grid on %dx%d pane' % (numberOfImages, self.imageWidth, self.imageHeight, self.cols, self.rows, self.width, self.height))
 
+
+    def sizeAndDisplayEntries(self, entries):
+        """Determine size and place of entries and add them to canvas. 
         
-    def onClick(self, event, target):
+        Try to refactor for multiprocessing.Pool()
+        """
+        # remove images from grid
+        for child in self.GetChildren():
+            #self.gridSizer.Remove (child)
+            child.Unbind(wx.EVT_MOUSE_EVENTS)
+            child.Unbind(wx.EVT_MENU_RANGE)
+            child.Destroy()
+        self.ClearBackground()
+        # 
+        progressIndicator = None
+        if (10 < len(entries)):
+            progressIndicator = wx.GetApp()
+            Logger.debug('MediaCanvas.sizeAndDisplayEntries(): Progress bar is %s' % progressIndicator.getProgressBar())
+            progressIndicator.beginPhase(len(entries), (_('Resizing images in "%s"') % self.entry.getIdentifier()))  
+        column = 1  # count columns when placing images in grid
+        (x, y) = (0, 0)  # position of image
+        self.calculateGrid(len(entries))
+        for entry in entries:  # TODO: use multiprocessing.Pool() or similar
+            if (progressIndicator):
+                progressIndicator.beginStep()
+            entry.addObserverForAspect(self, 'name')
+            # place image on canvas
+            Logger.debug('MediaCanvasPane.sizeAndDisplayEntries(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
+            bitmap = ImageBitmap(self, 
+                                 -1, 
+                                 entry, 
+                                 (x + (self.ImagePadding / 2)), 
+                                 (y + (self.ImagePadding / 2)), 
+                                 self.imageWidth, 
+                                 self.imageHeight)
+            bitmap.Bind(wx.EVT_MOUSE_EVENTS, self.onClickImage)
+            bitmap.Bind(wx.EVT_MENU_RANGE, self.onContextMenuSelection, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)
+            # calculate next image position
+            if (column == self.cols): 
+                x = 0
+                y = (y + self.imageHeight + self.ImagePadding)
+                column = 1
+            else:  
+                x = (x + self.imageWidth + self.ImagePadding)
+                column = (column + 1)
+        self.Refresh()
+        self.Update()
+
+
+    def handleImageClick(self, event, target):
         """User clicked the canvas. If this is a valid click (i.e., left up/down on same object), select Entry target.
         """
-        #print('MediaCanvasPane onClick on "%s"' % target.getPath())
+        #print('MediaCanvasPane handleImageClick on "%s"' % target.getPath())
         if (event.LeftDown()):
             #print('LeftDown on %s' % target.getPath())
             self.lastLeftDownImage = target

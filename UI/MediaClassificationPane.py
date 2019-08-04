@@ -156,31 +156,6 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # 
         entryElements = self.entry.getKnownElements()
         self.setTags(entryElements)
-#         for className in self.model.getClassHandler().getClassNames():
-#             selectionBox = self.selectionBoxes[className]
-#             # enable first button in each group (the 'n/a' one) only if entry is a group
-#             selectionBox.EnableItem(MediaClassificationPane.ClassDontChangeIndex, self.entry.isGroup())
-#             # fill in data from the selected entry/group
-#             hits = entryElements.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
-#             if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes
-#                 selectionBox.clearAll() 
-#                 if (len(hits) == 0):  # no tag of this class selected
-#                     if (self.entry.isGroup()):
-#                         selectionBox.setValue(MediaClassificationPane.ClassDontChangeIndex, True)
-#                 else:  # tag(s) of this class selected
-#                     for element in self.model.getClassHandler().getElementsOfClassByName(className):
-#                         selectionBox.setValue(element, (element in hits))
-#             else:  # single selection, radioboxes
-#                 if (len(hits) == 0):  # no tag of this class selected
-#                     if (self.entry.isGroup()):  # for a group, select "n/a" item
-#                         selectionBox.SetSelection(MediaClassificationPane.ClassDontChangeIndex)
-#                     else:  # for an image, select empty item
-#                         selectionBox.SetSelection(MediaClassificationPane.ClassUnselectedIndex)
-#                 else:  # tag of this class selected
-#                     selectionBox.SetStringSelection(hits.pop())
-#         # relayout
-#         self.SetupScrolling()
-#         self.GetSizer().Layout()
 
 
     def setTags(self, tagSet):
@@ -193,7 +168,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
             # enable first button in each group (the 'n/a' one) only if entry is a group
             selectionBox.EnableItem(MediaClassificationPane.ClassDontChangeIndex, self.entry.isGroup())
             # fill in data from the selected entry/group
-            hits = tagSet.intersection(self.model.getClassHandler().getElementsOfClassByName(className))
+            hits = tagSet.intersection(set(self.model.getClassHandler().getElementsOfClassByName(className)))
             if (self.model.getClassHandler().isMultipleClassByName(className)):  # multiple selection, checkboxes
                 selectionBox.clearAll() 
                 if (len(hits) == 0):  # no tag of this class selected

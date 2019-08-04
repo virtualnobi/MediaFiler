@@ -16,7 +16,7 @@ import pkgutil
 import wx.aui
 import wx.lib.dialogs
 ## nobi
-from nobi.wx.PhasedProgressBar import PhasedProgressBar
+from nobi.wx.PhasedProgressBar import PhasedProgressBarError, PhasedProgressBar
 from nobi.wx.ResizableDialog import ResizableDialog 
 from nobi.ObserverPattern import Observable, Observer
 from nobi.wx.ProgressSplashApp import ProgressSplashApp
@@ -70,7 +70,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
     PerspectiveIndexFilter = 1
     PerspectiveNameFilter = _('Search')
     PerspectiveIndexPresent = 2
-    PerspectiveNamePresent = _('Present')
+    PerspectiveNamePresent = _('Show')
     PerspectiveIndexAll = 3
     PerspectiveNameAll = _('All Views')
     PerspectiveNameLastUsed = _('Last Used')
@@ -90,7 +90,8 @@ class MediaFiler(wx.Frame, Observer, Observable):
     LogHandlerFile = None  # logging handler to output to file
 
 
-## Lifecycle
+
+# Lifecycle
     def __init__(self,
                  parent,
                  title = '',
@@ -360,13 +361,22 @@ class MediaFiler(wx.Frame, Observer, Observable):
         #        self.Bind(wx.EVT_UPDATE_UI, self.OnUpdateUI, id=ID_HorizontalGradient)
 
 
+# Setters
+# Getters
+    def getProgressBar(self):
+        return(self.progressbar)
+
+
+
 # Event Handlers - File Menu events 
     def onLoadRecent(self, event):
         """Change root to selected recent root directory.
         """
         indexOfRecent = (event.GetId() - GUIId.LoadRecentDirectory)
         if (indexOfRecent <= len(self.recentRootDirectories)):
+            wx.GetApp().startProcessIndicator(_('Loading %s') % self.recentRootDirectories[indexOfRecent])
             self.setModel(self.recentRootDirectories[indexOfRecent])
+            wx.GetApp().stopProcessIndicator()
 
 
     def onChangeRoot(self, event):  # @UnusedVariable
@@ -374,14 +384,18 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         dialog = wx.DirDialog(self, _('Select New Image Directory:'), style = (wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST))
         if (dialog.ShowModal() == wx.ID_OK):  # user selected directory
+            wx.GetApp().startProcessIndicator(_('Loading %') % dialog.GetPath())
             self.setModel(dialog.GetPath())
+            wx.GetApp().stopProcessIndicator()
         dialog.Destroy()  # destroy after getting the user input
 
 
     def onReload (self, event):  # @UnusedVariable
         """Reload from current root directory.
         """
-        self.setModel(self.model.rootDirectory, lambda x, y: None)
+        wx.GetApp().startProcessIndicator(_('Reloading...'))
+        self.setModel(self.model.rootDirectory)
+        wx.GetApp().stopProcessIndicator()
 
 
     def onExport(self, event):  # @UnusedVariable
@@ -391,19 +405,28 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         dialog = wx.DirDialog(self, _('Select Directory to Export into:'), style = (wx.DD_DEFAULT_STYLE))
         if (dialog.ShowModal() == wx.ID_OK):  # user selected directory
-            wx.BeginBusyCursor()
+            wx.GetApp().startProcessIndicator(_('Exporting to %s') % dialog.GetPath())
             if (not os.path.isdir(dialog.GetPath())):
                 os.makedirs(dialog.GetPath())
             count = 0
+            # TODO: wx.GetApp().beginPhase(size of MediaCollection)
             for entry in self.model:
+                # TODO: wx.GetApp().beginStep()
                 if ((not entry.isGroup())
                     and (not entry.filteredFlag)):
                     #print('Exporting "%s" to "%s"' % (entry.getPath(), destination))
-                    shutil.copy(entry.getPath(), dialog.GetPath())
-                    # TODO: check for failure, e.g. device full
+                    try:
+                        shutil.copy(entry.getPath(), dialog.GetPath())
+                    except Exception as e:
+                        dlg = wx.MessageDialog(self, 
+                                               ('%s' % e),
+                                               _('An Error Occurred'),
+                                               wx.OK | wx.ICON_INFORMATION) #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL
+                        dlg.ShowModal()
+                        dlg.Destroy()
+                        break
                     count = (count + 1)
-            wx.EndBusyCursor()
-            self.displayInfoMessage(_('%d media exported to "%s"') % (count, dialog.GetPath()))
+            wx.GetApp().stopProcessIndicator(_('%d media exported to "%s"') % (count, dialog.GetPath()))
         dialog.Destroy()  # destroy after getting the user input
 
 
@@ -411,7 +434,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """Close window and terminate.
         """
         #print("MediaFiler.App onExit(")
-        self.displayInfoMessage(_('Closing...'))
+        wx.GetApp().setInfoMessage(_('Closing...'))
         self.imageTree.ignoreSelectionChanges = True
         self.imageTree.destroy()
         self.paneManager.UnInit()
@@ -423,12 +446,16 @@ class MediaFiler(wx.Frame, Observer, Observable):
     def onMergeDuplicates(self, event):
         """Search for duplicates, merge file names, and remove one. 
         """
+        wx.GetApp().startProcessIndicator()
         self.model.mergeDuplicates()
+        wx.GetApp().stopProcessIndicator()
 
 
     def onDelegateToEntry(self, event):
+        wx.GetApp().startProcessIndicator()
         entry = self.model.getSelectedEntry()
         entry.runContextMenuItem(event.GetId(), self)
+        wx.GetApp().stopProcessIndicator()
    
     
 # - View Menu events
@@ -448,9 +475,9 @@ class MediaFiler(wx.Frame, Observer, Observable):
         EVENT is the event raised by the CheckMenuItem
         """
         # toggling menu item is done by CheckMenuItem
-        wx.BeginBusyCursor()
+        wx.GetApp().startProcessIndicator()
         self.model.getFilter().setConditions(active=(not self.model.getFilter().active))
-        wx.EndBusyCursor()
+        wx.GetApp().stopProcessIndicator()
 
 
     def onToggleTreePane (self, event):
@@ -511,16 +538,6 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
 # - Import Menu events
-#     def onImportProfiled(self, event):
-#         fname = ('%s.profile' % __file__)
-#         cProfile.runctx('self.onImport(event)',
-#                         globals(),
-#                         locals(),
-#                         fname)
-#         profile = pstats.Stats(fname)
-#         profile.strip_dirs().sort_stats('cumulative').print_stats()
-
-
     def onImport(self, event):
         """Import images. 
            Ask for a directory to scan (recursively), and import all images contained.
@@ -530,49 +547,55 @@ class MediaFiler(wx.Frame, Observer, Observable):
         if (event.GetId() == GUIId.TestImport):  
             testRun = True
             statusText = _('Testing import from %s')
+            messageTemplate = _('%d media would have been imported from "%s"')
         else:  
             testRun = False
             statusText = _('Importing from %s')
+            messageTemplate = _('%d media imported from "%s"')
         # prepare import parameters
         importParameters = ImportParameterObject(self.model)
         importParameters.setTestRun(testRun)
-        # ask user for directory
         dialog = ImportDialog(self, self.model, importParameters)
         if (dialog.ShowModal() == wx.ID_OK):
-            wx.BeginBusyCursor()
-            self.displayInfoMessage(statusText % dialog.getParameterObject().getImportDirectory())
-            try:
-                log = self.model.importImages(importParameters)
-            except WindowsError as exc: 
-                if (exc.winerror == 3):
-                    dlg = wx.MessageDialog(self, _('No files to import!'), _('Empty Directory'), (wx.OK | wx.ICON_INFORMATION))
-                    dlg.ShowModal()
-                    dlg.Destroy()
-                else:
-                    raise exc
-            else:
-                try:
-                    logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, log, _('Import Report'), style=wx.RESIZE_BORDER)
-                except:
-                    logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
+            with wx.GetApp() as processIndicator:
+#                 importParameters.setProcessIndicator(wx.GetApp().startProcessIndicator())
+                importParameters.setProcessIndicator(processIndicator)
                 if (not testRun):
-                    self.onReload(None)
-                # TODO: make dialog resizable
-                logDialog.Maximize(True)  # logDialog.SetSize(wx.Size(1000,600))
-                logDialog.ShowModal()
-                logDialog.Destroy()
-                info = (_('%d media imported from "%s"') if (not testRun) else _('%d media would have been imported from "%s"'))
-                self.displayInfoMessage(info % (dialog.getParameterObject().getNumberOfImportedFiles(), dialog.getParameterObject().getImportDirectory()))
-            wx.EndBusyCursor()
+                    wx.GetApp().beginPhase(2)  # second step is to reload model; only if non-test import
+                wx.GetApp().beginStep(statusText % importParameters.getImportDirectory())
+                try:
+                    log = self.model.importImages(importParameters, processIndicator)
+                except WindowsError as exc: 
+                    if (exc.winerror == 3):
+                        dlg = wx.MessageDialog(self, _('No files to import!'), _('Empty Directory'), (wx.OK | wx.ICON_INFORMATION))
+                        dlg.ShowModal()
+                        dlg.Destroy()
+                        message = _('No files to import')
+                    else:
+                        raise exc
+                else:
+                    try:
+                        logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, log, _('Import Report'), style=wx.RESIZE_BORDER)
+                    except:
+                        logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
+                    if (not testRun):
+                        self.onReload(None)  # 2nd step of progress bar phase
+                    logDialog.Maximize(True)  # logDialog.SetSize(wx.Size(1000,600))  # TODO: make dialog resizable
+                    logDialog.ShowModal()
+                    logDialog.Destroy()
+                    message = (messageTemplate % (dialog.getParameterObject().getNumberOfImportedFiles(), 
+                                                  dialog.getParameterObject().getImportDirectory()))
+#             wx.GetApp().stopProcessIndicator(message)
+            wx.GetApp().setInfoMessage(message)
         dialog.Destroy() 
-    
+
 
     def onRemoveNew(self, event):  # @UnusedVariable
         """Remove the new indicator from all (non-filtered) media.
         """
-        wx.BeginBusyCursor()
+        wx.GetApp().startProcessIndicator()
         self.model.getRootEntry().removeNewIndicator()
-        wx.EndBusyCursor()
+        wx.GetApp().stopProcessIndicator()
 
 
 
@@ -646,7 +669,9 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 result = dlg.ShowModal()
                 sizer.Remove(messageText)
             else: 
+                wx.GetApp().startProcessIndicator()
                 self.model.replaceTagBy(originalField.GetValue(), replacementField.GetValue())
+                wx.GetApp().stopProcessIndicator()
         dlg.Destroy()
 
     
@@ -751,6 +776,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         If PageDown, show next image. 
         If PageUp, show previous image. 
         If Space, resume automatic presentation.
+        If Escape, exit.
         """
         keyCode = event.GetKeyCode()
         MediaFiler.Logger.debug('MediaFiler.onKeyDown(): Registered "down" for key code %s' % keyCode)
@@ -766,7 +792,9 @@ class MediaFiler(wx.Frame, Observer, Observable):
             else:
                 MediaFiler.Logger.debug('MediaFiler.onKeyDown(): Stop presentation %s' % self.presentationTimer)
                 self.presentationTimer.cancel()
-            
+        elif (keyCode == 27):  # Escape
+            self.onExit(None)
+
 
 
 # Inheritance - ObserverPattern.Observer
@@ -774,11 +802,11 @@ class MediaFiler(wx.Frame, Observer, Observable):
         '''ASPECT of OBSERVABLE has changed.
         '''
         if (aspect == 'startFiltering'):  # filter has changed, starting to filter entries
-            self.displayInfoMessage('Filtering...')
+            wx.GetApp().setInfoMessage('Filtering...')
         elif (aspect == 'stopFiltering'):  # filter has changed, filtering complete
             self.imageTree.DeleteAllItems() 
             self.imageTree.addSubTree(self.model.getRootEntry(), None)
-            self.displayInfoMessage('Ok')
+            wx.GetApp().setInfoMessage('Ok')
         elif (aspect == 'size'):
             self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
             self.statusbar.Show()
@@ -788,37 +816,23 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
 # Other API Functions
-    def displayInfoMessage(self, aString):
-        """Display aString in the main window's status bar. 
-        """
-        self.statusbar.SetStatusText(aString, GUIId.SB_Info)
-        self.statusbar.Show()
-
-
-    def getProgressBar(self):
-        return(self.progressbar)
-
-
 # section: Internal State
-    def setModel(self, directory, progressFunction):
+    def setModel(self, directory):
         """Set the model from its root directory.
 
         Update status and load initial image.
         
         String directory
-        Callable progressFunction to show progress
         """
-        wx.BeginBusyCursor()
         self.statusbar.SetStatusText(directory, GUIId.SB_Organization)
-        self.displayInfoMessage(_('Loading...'))
         MediaFiler.Logger.debug('MediaFiler.setModel(): Loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
-        progressFunction(15, _('Reading media'))
+        wx.GetApp().beginPhase(3)
         try:
-            self.model = MediaCollection(directory, progressFunction)
+            self.model = MediaCollection(directory, wx.GetApp())  # implicit beginPhase() 
         except Exception as e:
             raise BaseException("Could not create MediaCollection model! \n%s" % e)
-        progressFunction(85, _('Setting up MVC models'))
+        wx.GetApp().beginStep(_('Setting up window panes'))
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
         self.model.addObserverForAspect(self, 'size')
@@ -832,21 +846,17 @@ class MediaFiler(wx.Frame, Observer, Observable):
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up classification pane')
         self.classificationPane.setModel(self.model)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up canvas pane')
-        self.canvas.setModel(self.model)
+        self.canvas.setModel(self.model)  # implicit beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up presentation pane')
         self.presentationPane.setModel(self.model)
-        progressFunction(90, _('Setting up tree model'))
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up tree pane')
         self.imageTree.setModel(self.model)
         self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
         self.statusbar.Show()
-        progressFunction(95, _('Loading perspective'))
         lastPerspective = self.model.getConfiguration(GlobalConfigurationOptions.LastPerspective)
         if (lastPerspective):
             self.paneManager.LoadPerspective(self.perspectives[int(lastPerspective)])
         self.paneManager.Update()
-        self.displayInfoMessage(_('Ready'))
-        wx.EndBusyCursor()
 
 
     def updateMenuAccordingToModel(self, mediaCollection):
@@ -887,6 +897,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
     def setLoggedModules(self):
         """
+        #TODO: Must be called before MediaCollection.__init__() to log this, but for that, configuration options must be accessible independent of mediacollection
         """
         loggedModules = self.model.getConfiguration(GlobalConfigurationOptions.LastLoggedModules)
         if (loggedModules):
@@ -900,23 +911,22 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
     def resizeProgressBar(self):
-        rect = self.statusbar.GetFieldRect(GUIId.SB_Progress)
-        self.progressbar.SetPosition((rect.x+2, rect.y+2))
-        self.progressbar.SetSize((rect.width-4, rect.height-4))
-        """
-        self.progressbar.Hide()
-        Then whenever I want to use the progress bar, I call
-        self.progress_bar.Show() 
-        """
+        if (self.progressbar):
+            rect = self.statusbar.GetFieldRect(GUIId.SB_Progress)
+            self.progressbar.SetPosition((rect.x+2, rect.y+2))
+            self.progressbar.SetSize((rect.width-4, rect.height-4))
 
 
 
 class MediaFilerApp(ProgressSplashApp):
     """
     """
+
+# Lifecycle
     def OnInit(self):
         """
         """
+        self.duringOnInit = True
         fname = Installer.getSplashPath()
         ProgressSplashApp.OnInit(self, fname)
         fname = os.path.join(Installer.InstallationPath, (Installer.LogFilename % 1))
@@ -926,12 +936,9 @@ class MediaFilerApp(ProgressSplashApp):
         logging.getLogger().addHandler(logHandler)
         logging.getLogger().setLevel(logging.DEBUG)
         logging.debug('MediaFiler.__main__(): Temporarily logging to "%s"' % fname)
-        self.SetProgress(3, _('Creating window'))
-        frame = MediaFiler(None, title=GUIId.AppTitle)
-        self.SetTopWindow(frame)
-        self.SetProgress(6, _('Checking installation'))
-        if (Installer.ensureInstallationOk(frame)):
-            self.SetProgress(9, _('Setting up temporary logging'))
+        self.frame = MediaFiler(None, title=GUIId.AppTitle)
+        self.SetTopWindow(self.frame)
+        if (Installer.ensureInstallationOk(self.frame)):
             fname = (Installer.getLogFilePath() % 1)
             logging.debug('MediaFiler.__main__(): Now permanently logging to "%s"' % fname)
             logging.getLogger().removeHandler(logHandler)
@@ -939,26 +946,148 @@ class MediaFilerApp(ProgressSplashApp):
             logHandler = logging.FileHandler(fname, mode='w')
             logHandler.setFormatter(logFormatter)
             logging.getLogger().addHandler(logHandler)
-            self.SetProgress(12, _('Creating media collection'))
-            frame.setModel(unicode(Installer.getMediaPath()), self.SetProgress)
-            self.SetProgress(99, _('Finalizing'))
-            frame.setLoggedModules()
+            self.frame.setModel(unicode(Installer.getMediaPath()))  # TODO: Installer must only return unicode        
+            self.frame.setLoggedModules()  # TODO: move App itself
             MediaFiler.Logger.debug('MediaFiler.__main__(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
-            self.SetProgress(101)
-            if (frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
+            self.finish(_('Ready'))
+            if (self.frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
                 MediaFiler.Logger.debug('MediaFiler.__main__(): Maximizing window')
-                frame.Maximize(True)
+                self.frame.Maximize(True)
+            self.duringOnInit = False
         else:
             self.Exit()
         return(True)
 
 
-    def getProgressFunction(self):
-        """Return a progress indicating function.
-        
-        Return f(percent, text)
+# Setters
+    def setInfoMessage(self, aString):
+        """Display aString in the main window's status bar. 
         """
-        pass
+        if (self.duringOnInit):
+            self.getProgressText().SetLabel(aString)
+            self.getProgressText().Show()
+        else:  # OnInit() finished
+            # TODO: do not fiddle with frame's variables
+            self.frame.statusbar.SetStatusText(aString, GUIId.SB_Info)
+            self.frame.statusbar.Show()
+        wx.GetApp().ProcessPendingEvents()
+        # wx.SafeYield()
+
+
+# Getters
+    def getProgressBar(self):
+        """
+        """
+        if (self.duringOnInit):
+            return(super(MediaFilerApp, self).getProgressBar())
+        else:  # OnInit() finished
+            return(self.frame.getProgressBar())
+
+
+# Other API 
+    def freezeWidgets(self):
+        """Freeze widgets and show busy cursor. 
+        """
+        wx.BeginBusyCursor()
+        self.frame.imageTree.Freeze()
+        self.frame.canvas.Freeze()
+        
+
+    def thawWidgets(self):
+        """Thaw widgets and show regular cursor.
+        """
+        self.frame.imageTree.Thaw()
+        self.frame.canvas.Thaw()
+        wx.EndBusyCursor()
+
+
+    def displayInfoMessage(self, aString):
+        print('Deprecated use of MediaFilerApp.displayInfoMessage()')
+        self.setInfoMessage(aString)
+
+    
+    def createProgressBar(self, message=''):
+        return(self.startProcessIndicator(message))
+
+
+    def startProcessIndicator(self, message=''):
+        """Begin a long-running process, and return a PhasedProgressBar to indicate that.
+        
+        Shows the message, freezes the widgets, and displays the busy cursor as well.
+        
+        String message to be displayed as information
+        Return self, as an object understanding .beginStep() and .beginPhase()
+        """
+        self.freezeWidgets()
+        self.setInfoMessage(message)
+        self.getProgressBar().restart()
+        MediaFiler.Logger.debug('MediaFilerApp.startProcessIndicator(): Created %s with message "%s"' % (self.getProgressBar(), message)) 
+        return(self)
+    
+    
+    def removeProgressBar(self, message=''):
+        self.stopProcessIndicator(message)
+
+
+    def beginPhase(self, numberOfSteps, message=''):
+        MediaFiler.Logger.debug('MediaFilerApp.beginPhase(%s, "%s")' % (numberOfSteps, message))
+        self.setInfoMessage(message)
+        self.getProgressBar().beginPhase(numberOfSteps)
+
+
+    def beginStep(self, message=''):
+        MediaFiler.Logger.debug('MediaFilerApp.beginStep("%s"): Progress bar is %s' % (message, self.getProgressBar()))
+        self.setInfoMessage(message)
+        self.getProgressBar().beginStep()
+
+
+    def stopProcessIndicator(self, message=''):
+        """The long-running process has finished.
+        
+        To be called once after each call to startProcessIndicator().
+        
+        Resets the progress bar, shows the messages, thaws the widgets, and displays the regular cursor. 
+        
+        String message to be displayed as information
+        """
+        MediaFiler.Logger.debug('MediaFilerApp.stopProcessIndicator(): %s' % self.frame.getProgressBar())
+        if (message == ''):
+            message = _('Ready')
+        self.setInfoMessage(message)
+        self.getProgressBar().finish()
+        self.thawWidgets()
+
+
+
+## Context Manager
+    def setRaiseError(self, raiseError):
+        """
+        """
+        self.raiseError = raiseError
+
+
+    def __enter__(self):
+        """
+        """
+        self.setRaiseError(True)
+        self.startProcessIndicator()
+        return(self)
+
+
+    def __exit__(self, exceptionType, exceptionValue, exceptionTraceback):
+        """
+        """
+        if (exceptionType == PhasedProgressBarError):
+            if (self.raiseError):
+                return(False)
+            else:
+                print('MediaFilerApp.__exit__(). Caught %s %s %s' % (exceptionType, exceptionValue, exceptionTraceback))
+                self.stopProcessIndicator()
+                return(True)
+        elif (exceptionType <> None):  # other exceptions are passed on
+            return(False)
+        else:  # no exception
+            self.stopProcessIndicator()
 
 
 

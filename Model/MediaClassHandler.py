@@ -32,6 +32,7 @@ class MediaClassHandler(object):
     KeyMultiple = u'multiple'  # key in class dictionary mapping to Boolean indicating whether multiple elements can be selected
     KeyElements = u'elements'  # key in class dictionary mapping to list of elements
     KeyRequired = u'required'  # key in class dictionary mapping to list of required elements
+    KeyRequiredClasses = u'requiredClass'  # key in class dictionary mapping to list of required classes
     KeyProhibited = u'prohibited'  # key in class dictionary mapping to list of prohibited elements
     TagSeparator = u'.'  # character to introduce a tag/element
     RETagSeparatorsRecognized = ('[, _' + TagSeparator + '-]')
@@ -89,14 +90,21 @@ class MediaClassHandler(object):
 
 
     def getElementsOfClass(self, aClass):
-        """Return a list of all elements in aClass. 
         """
-        return(aClass[self.KeyElements])
+        dict aClass
+        
+        Return list of all tags in aClass, ordered as in definition. 
+        """
+        return(list(aClass[self.KeyElements]))
 
     
     def getElementsOfClassByName(self, className):
-        """Return a list of all elements in className. 
-           Return None if className does not exist.
+        """
+        String className 
+
+        Raises KeyError if no class exists with name className 
+        
+        Return list of all tags in className, ordered as in definition.
         """
         aClass = self.getClassByName(className)
         if (aClass == None):
@@ -150,7 +158,7 @@ class MediaClassHandler(object):
         for priorityTag in priorityTagSet:
             priorityClass = self.getClassOfTag(priorityTag)
             if (priorityClass in singleSelectionClasses):
-                result.difference_update(self.getElementsOfClass(priorityClass))
+                result.difference_update(set(self.getElementsOfClass(priorityClass)))
             result.add(priorityTag)
         return(result)
 
@@ -164,23 +172,26 @@ class MediaClassHandler(object):
         
         Return Set of String containing the tags after addition and removal
         """
+        Logger.debug('MediaClassHandler.getTagsOnChange(%s +%s -%s)' % (tagSet, addedTag, removedTags))
         result = copy.copy(tagSet)
         if (addedTag):
-            result.update(self.includeRequiredElements(set([addedTag])))
+            result.update(set([addedTag]))
+            result = self.includeRequiredElements(result)
+        Logger.debug('MediaClassHandler.getTagsOnChange(): Added %s' % result.difference(tagSet))
         for tag in removedTags:
             result.discard(tag)
             for aClass in self.getClasses():
                 if (tag in self.getRequiredElementsOfClass(aClass)):
-                    result.difference_update(self.getElementsOfClass(aClass))
-        Logger.debug('MediaClassHandler.getTagsOnChange(): Changed %s to %s' % (tagSet, result))
+                    result.difference_update(set(self.getElementsOfClass(aClass)))
+        Logger.debug('MediaClassHandler.getTagsOnChange(): Removed %s' % tagSet.difference(result))
         return(result)
 
 
     def includeRequiredElements(self, elements):
-        """Add all required tags. 
+        """Add all required tags to a tagset.
         
-        Sequence elements contains tags
-        Return a Set containing all tags as well as additional tags required by them 
+        Set elements contains tags as String
+        Return Set containing all tags as well as additional tags required by them 
         """
         result = set(elements)
         for aClass in self.getClasses():
@@ -188,9 +199,14 @@ class MediaClassHandler(object):
                 if (anElement in elements):
                     for requiredElement in self.getRequiredElementsOfClass(aClass):
                         result.add(requiredElement)
+                    for requiredClass in self.getRequiredClassesOfClass(aClass):
+                        requiredTags = set(self.getElementsOfClassByName(requiredClass))
+                        if (len(requiredTags.intersection(elements)) == 0):
+                            result.add(requiredTags.pop())
                     for prohibitedElement in self.getProhibitedElementsOfClass(aClass):
                         if (prohibitedElement in elements):
                             result.add(self.ElementIllegal)
+        Logger.debug('MediaClassHandler.includeRequiredElements(%s): Added %s' % (elements, (result - elements)))
         return(result)
     
 
@@ -287,34 +303,20 @@ class MediaClassHandler(object):
         """
         return(aClass[self.KeyRequired])
     
-    
-#     def getRequiredElementsOfClassByName(self, className):
-#         """Return a list of all elements which must apply for className to be applicable. 
-#            Return None if className does not exist.
-#         """
-#         aClass = self.getClassByName(className)
-#         if (aClass == None):
-#             return(None)
-#         else:
-#             return(self.getRequiredElementsOfClass(aClass))
-    
-    
+
+    def getRequiredClassesOfClass(self, aClass):
+        """Return a list of all classes which must apply for aClass to be applicable.
+        
+        At least one tag from the resulting classes must be applied for aClass to be applicable.
+        """
+        return(aClass[self.KeyRequiredClasses])
+
+   
     def getProhibitedElementsOfClass(self, aClass):
         """Return a list of all elements which may not apply for className to be applicable. 
            Return None if className does not exist.
         """
         return(aClass[self.KeyProhibited])
-
-
-#     def getProhibitedElementsOfClassByName(self, className):
-#         """Return a list of all elements which may not apply for className to be applicable. 
-#            Return None if className does not exist.
-#         """
-#         aClass = self.getClassByName(className)
-#         if (aClass == None):
-#             return(None)
-#         else:
-#             return(self.getProhibitedElementsOfClass(aClass))
 
 
     def readClassesFromFile(self, pathname):
@@ -337,9 +339,10 @@ class MediaClassHandler(object):
             else: # non-comment, interpret
                 tokens = line.split()
                 className = tokens.pop(0) 
-                #print ("Interpreting definition of class %s to be %s" % (className, tokens))
+                Logger.debug('MediaClassHandler.readClassesFromFile(): Definition of "%s" is "%s"' % (className, tokens))
                 multiple = False
                 required = []
+                requiredClasses = []
                 prohibited = []
                 elements = []
                 while (len(tokens) > 0):
@@ -347,16 +350,24 @@ class MediaClassHandler(object):
                     if (token == '[]'):  # this is a multiple-selection class
                         multiple = True
                     elif (token[0] == '+'):
-                        #print ("Adding required token %s" % token[1:])
-                        required.append(token[1:])
+                        name = token[1:]
+                        if (self.isLegalElement(name)):
+                            Logger.debug('MediaClassHandler.readClassesFromFile(): Required tag "%s"' % name)
+                            required.append(name)
+                        elif (self.getClassByName(name)):
+                            Logger.debug('MediaClassHandler.readClassesFromFile(): Required class "%s"' % name)
+                            requiredClasses.append(name)
+                        else:
+                            Logger.debug('MediaClassHandler.readClassesFromFile(): Requiring unknown tag "%s"' % name)
+                            required.append(name)
                     elif (token[0] == '-'):
-                        #print ("Adding prohibited token %s" % token[1:])
                         prohibited.append(token[1:])
                     else:
                         #print ("Adding element %s" % token)
                         elements.append(token)
                 aClass = {self.KeyName:className, 
                           self.KeyRequired:required, 
+                          self.KeyRequiredClasses:requiredClasses,
                           self.KeyProhibited:prohibited,
                           self.KeyMultiple:multiple, 
                           self.KeyElements:elements}

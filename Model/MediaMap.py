@@ -33,17 +33,46 @@ class MediaMap(object):
 
 
 # Class Variables
+    Instances = {}  # mapping MediaCollections to instances of corresponding MediaMap
+
+
+
 # Class Methods
+    @classmethod
+    def getMap(cls, aMediaCollection, aProgressIndicator=None):
+        """Return a media map for aMediaCollection
+        
+        MediaFiler.MediaCollection aMediaCollection
+        ProgressIndicator
+        Return MediaMap
+        """
+        if (aMediaCollection in cls.Instances):
+            return(cls.Instances[aMediaCollection])
+        else:
+#             instance = MediaMap(aMediaCollection, aProgressIndicator)
+#             cls.Instances[aMediaCollection] = instance
+#             return(instance)
+            return(None)
+
+
+
 # Lifecycle
-    def __init__(self, aMediaCollection):
+    def __init__(self, aMediaCollection, aProgressIndicator=None):
         """Create a MediaMap containing all Single objects from aMediaCollection
+        
+        MediaFiler.MediaCollection
+        ProgressIndicator
         """
         # inheritance
         super(MediaMap, self).__init__()
         # internal state
         self.mediaCollection = aMediaCollection
         self.mediaMapping = {}
-        for entry in self.mediaCollection: 
+        if (aProgressIndicator):
+            aProgressIndicator.beginPhase(aMediaCollection.getCollectionSize())
+        for entry in self.mediaCollection:
+            if (aProgressIndicator):
+                aProgressIndicator.beginStep()
             if (isinstance(entry, Single)):
                 self.addSingle(entry)
         Logger.debug('MediaMap(): %s collisions with %s participants' % self.getCollisions())

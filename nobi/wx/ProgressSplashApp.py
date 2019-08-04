@@ -12,11 +12,12 @@ import time
 ## Contributed
 import wx
 ## nobi
+from nobi.wx.PhasedProgressBar import PhasedProgressBar 
 ## Project
 
 
 class ProgressSplashApp(wx.App):
-    """A wx.App which shows a splash screen with a progress indicator and phase string.
+    """A wx.App which shows a splash screen with a progress indicator and phase name.
     
     Use a background image with white background in lower area, as the wx.StaticText used for the
     phase text does not allow a transparent background, and so is set to white. 
@@ -37,9 +38,7 @@ class ProgressSplashApp(wx.App):
 
         There are two methods for progress calculation. Both shall be called during OnInit, and shall not be mixed:
         - Use SetProgress() if the percentages can be calculated directly. 
-        - Use BeginPhase() and FinishStep() for more complex calculations:
-        BeginPhase() divides the current phase duration (initially 100%) by the given number of steps, 
-        and FinishSteps() advances the progress by this step duration.
+        - Use beginPhase() and beginStep() for more complex calculations, see PhasedProgressBarNew for details.
 
         String splashFilename names a BMP bitmap to show as splash image.
         Return True
@@ -61,17 +60,16 @@ class ProgressSplashApp(wx.App):
                                                 -1,
                                                 label='Processing...',
                                                 pos=(5, (height - 30)),
-                                                size=((width - 10), 20))
+                                                size=((width - 10), (20)))
                 self.splashText.SetBackgroundColour('white')
-                self.splashGauge = wx.Gauge(self.splashScreen, 
+                self.progressBar = PhasedProgressBar(self.splashScreen, 
                                             -1,
                                             pos=(0, (height-10)),
                                             size=(width, 10), 
                                             range=100)
-#                 self.splashGauge.SetValue(1)
-                wx.Yield()
-#                 time.sleep(0.1)
-        self.remainingStops = [0, 100]
+                wx.SafeYield()
+        self.currentPercentage = 0.0
+        self.remainingStops = [0.0, 100.0]
         return(True)
 
 
@@ -79,30 +77,30 @@ class ProgressSplashApp(wx.App):
 # Setters
     def SetProgress(self, percent, phase=None):
         """Set the progress of loading to percent (0..100).
-        
+    
         Shall be called during wx.App.OnInit() to display loading progress.
-        Will close the splash screen and show the app's top window if called with percent above 100. 
+        Will close the splash screen and show the app's top window if called with percent <= 100. 
         
         Raises ValueError if progress bar would move backwards
         Number percent indicates completion of loading, use 101 to close splash screen
         String phase is displayed above progress bar
         """
         if (phase == None):
-            phase = ('[Processed %d%%]' % percent)
-        phase = '%s [%s%%, remaining stops %s]' % (phase, percent, self.remainingStops)
+            phase = ('(Processed %d%%)' % percent)
+        phase = '%s (%s%%, remaining stops %s)' % (phase, percent, self.getProgressBar().remainingStops)
         print(phase)
         self.splashText.SetLabel(phase)
         percent = int(percent)
-        if (percent < self.splashGauge.GetValue()):
-            raise ValueError, ('Progress bar cannot run backwards (%s smaller than current progress %s)' % (percent, self.splashGauge.GetValue()))
-        elif (percent <= 100):
+        if (percent < self.getProgressBar().GetValue()):
+            raise ValueError, ('Progress bar cannot run backwards (%s smaller than current progress %s)' % (percent, self.getProgressBar().GetValue()))
+        elif (percent < 100):
             try:
-                self.splashGauge.SetValue(percent)  # doing SetValue() twice does not help
+                self.getProgressBar().SetValue(percent)
             except: 
                 pass
-            wx.Yield()  # doing wx.Yield() twice does not help; time.sleep(1) does not help
-            print('=%s' % self.splashGauge.GetValue())
-        else:  # 100 < percent
+            wx.SafeYield()  # doing wx.Yield() twice does not help; time.sleep(1) does not help
+            # print('=%s' % self.progressBar.GetValue())
+        else:  # 100 <= percent
             try: 
                 self.splashScreen.Close()
             except:
@@ -110,88 +108,124 @@ class ProgressSplashApp(wx.App):
             self.GetTopWindow().Show()
 
 
-    def BeginPhase(self, numberOfSteps):
+    def beginPhase(self, numberOfSteps, description=''):
         """Begin a new phase consisting of the given number of steps.
-
-        For a call to this method, BeginStep() must be called numberSteps times.
-
+        
         int numberOfSteps
         String description displayed as description of the first step
         """
-        if ((not isinstance(numberOfSteps, int))
-            or (numberOfSteps < 1)):
-            raise ValueError, 'numberOfSteps must be a Number larger than 1'
-        if (len(self.remainingStops) < 2):
-            raise ValueError, 'BeginPhase() called when final step runnning (maybe BeginStep() called too often)!'
-        if (1 == numberOfSteps):
-            self.remainingStops.insert(1, self.remainingStops[1])
-        else:
-            phaseDuration = (self.remainingStops[1] - self.remainingStops[0])
-            stepDuration = int(phaseDuration / numberOfSteps)
-            for i in range(1, numberOfSteps):
-                self.remainingStops.insert(i, (self.remainingStops[0] + (i * stepDuration)))
-        print('BeginPhase(%s) results in %s' % (numberOfSteps, self.remainingStops))
+#         if ((not isinstance(numberOfSteps, int))
+#             or (numberOfSteps < 1)):
+#             raise ValueError, 'numberOfSteps must be a Number larger than 1'
+#         if (len(self.remainingStops) < 2):
+#             raise ValueError, 'ProgressSplashApp.beginPhase() called when final step runnning (maybe beginStep() called too often)!'
+#         phaseDuration = (self.remainingStops[1] - self.remainingStops[0])
+#         stepDuration = (phaseDuration / numberOfSteps)
+#         for i in range(1, numberOfSteps):
+#             self.remainingStops.insert(i, (self.remainingStops[0] + (i * stepDuration)))
+#         print('ProgressSplashApp.beginPhase(%s) results in %s' % (numberOfSteps, self.remainingStops))
+        print('begin phase %s (%s)' % (numberOfSteps, self.getProgressBar()))
+        self.getProgressBar().beginPhase(numberOfSteps)
+        if (description == ''):
+            description = (_('(was: %s') % self.getProgressText().GetLabel())
+        self.getProgressText().SetLabel(description)
+        self.getProgressText().Show()
+        wx.GetApp().ProcessPendingEvents()
+        wx.SafeYield()
 
 
-    def BeginStep(self, description=None):
+    def beginStep(self, description=''):
         """Begin a new step, i.e., display its description and advance the progress bar to signal completion of previous step. 
         
         String description displayed as description of the next step
         """
-        currentPercentage = self.remainingStops.pop(0)
-        self.SetProgress(currentPercentage, description)
+#         if (len(self.remainingStops) < 2):
+#             raise RuntimeError, 'ProgressSplashApp.beginStep() called after completion (maybe called too often)'
+#         self.currentPercentage = self.remainingStops.pop(0)
+#        self.SetProgress(int(self.getProgressBar().currentPercentage), description)
+        print('begin step %s (%s)' % (description, self.getProgressBar()))
+        self.getProgressBar().beginStep()
+        self.getProgressBar().Show()
+        description = self.getPhaseDescription(description)
+        self.getProgressText().SetLabel(description)
+        self.getProgressText().Show()
+        wx.GetApp().ProcessPendingEvents()
+        wx.SafeYield()
+
+
+    def finish(self, description=''):
+        """
+        """
+        print('finish (%s)' % self.getProgressBar())
+        self.getProgressBar().finish()
+        description = self.getPhaseDescription(description)
+        self.getProgressText().SetLabel(description)
+        self.splashScreen.Close()
+        self.GetTopWindow().Show()
 
 
 
 # Getters
+    def getPhaseDescription(self, description):
+        """Return description with added internal state.
+        
+        String description
+        Return String
+        """
+        if ((description == None)
+            or (description == '')):
+            description = 'Processing...'
+        description = '%s (%s)' % (description, self.getProgressBar())
+        return(description)
+
+        
+    def getProgressText(self):
+        """Return an object to show the step descriptions.
+        
+        Returns an object with a SetLabel(string) method.
+        """
+        return(self.splashText)
+
+
+    def getProgressBar(self):
+        """Return an object to show the progress.
+        
+        Returns an object with beginPhase(Number), beginStep(string), finish(string) methods. 
+        """
+        return(self.progressBar)
+
+
+
 # Event Handlers
 # Inheritance - Superclass
 # Other API Functions
 # Internal - to change without notice
-    pass
-
-
 # Class Initialization
-pass
-
-
-
 # Executable Script
 if __name__ == "__main__":
-#     import time
-    steps = 10
+
     
-    
-    class TestApp(ProgressSplashApp):
+    class TestProgressSplashApp(ProgressSplashApp):
         def OnInit(self):
-            global timer
             ProgressSplashApp.OnInit(self, 'ProgressSplashApp.bmp')
-            for step in xrange(1, steps):
-                print(step)
-                self.SetProgress(int(step * (100 / steps)))
-                time.sleep(0.1)
-            frame = wx.Frame(None, title='A Splashed Gauge')
-            self.mainGauge = wx.Gauge(frame, -1, range=100)
-            self.percent = 0
-            self.ringTwice(None)
-            self.SetTopWindow(frame)
-            frame.Bind(wx.EVT_TIMER, self.ringTwice)
-            timer = wx.Timer(frame)
-            timer.Start(100)
-            print('Top window set to %s' % frame)
-            self.SetProgress(101)
+            self.testPhase(4)
+            self.Exit()
             return(True)
-    
-    
-        def ringTwice(self, event):  # @UnusedVariable
-            print('ring ring %d' % self.percent)
-            self.mainGauge.SetValue(self.percent)
-            if (100 < self.percent):
-                wx.GetApp().Exit()
-            self.percent = (self.percent + 10)
-    
-    
-    app = TestApp(False)
+     
+     
+        def testPhase(self, steps):
+            ppb = self.getProgressBar()
+            ppb.beginPhase(steps)
+            for step in range(steps):
+                if ((step == 2)
+                    or (step == 3)):
+                    self.testPhase(step)
+                else:
+                    ppb.beginStep('Phase with %s steps, at Step %s' % (steps, (step +1)))
+                    time.sleep(steps)
+
+
+    app = TestProgressSplashApp(False)
     app.MainLoop()
 
 

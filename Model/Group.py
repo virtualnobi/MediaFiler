@@ -361,11 +361,9 @@ class Group(Entry, Observer):
         """
         Logger.debug('Group.runContextMenu(): Running %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.DeleteDoubles):
-            wx.GetApp().displayInfoMessage(_('Searching doubles...'))
-            wx.GetApp().freezeWidgets()
-            deleted = self.deleteDoubles(wx.GetApp().frame.createProgressBar(_('Removing duplicates...')))
-            wx.GetApp().frame.removeProgressBar()
-            wx.GetApp().thawWidgets()
+            processIndicator = wx.GetApp().startProcessIndicator('Removing doubles...')  # TODO: i14n
+            deleted = self.deleteDoubles(processIndicator)
+            wx.GetApp().stopProcessIndicator(GUIId.MessageDuplicatesDeleted % deleted)
             return(GUIId.MessageDuplicatesDeleted % deleted)
         else:
             return(super(Group, self).runContextMenuItem(menuId, parentWindow))
@@ -393,6 +391,8 @@ class Group(Entry, Observer):
         if (aProgressBar):
             aProgressBar.beginPhase(len(subEntries1))
         for entry1 in subEntries1:
+            if (aProgressBar):
+                aProgressBar.beginStep()
             if (entry1.isGroup()):
                 doubles = (doubles + entry1.deleteDoubles())
             else:
@@ -406,8 +406,6 @@ class Group(Entry, Observer):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
                         entry1.getOrganizer().deleteDouble(entry2)
                         doubles = (doubles + 1)
-            if (aProgressBar):
-                aProgressBar.finishStep()
         return(doubles)
 
 

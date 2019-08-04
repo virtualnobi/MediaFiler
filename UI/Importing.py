@@ -72,6 +72,7 @@ class ImportParameterObject(object):
         self.testRun = True
         self.numberOfImportedFiles = 0
         self.mediaMap = None
+        self.processIndicator = None
         # the following are options on the UI, which are defaulted to last used values
         self.importDirectory = self.model.getConfiguration(GlobalConfigurationOptions.ImportPath)
         if (self.importDirectory == None):
@@ -116,7 +117,6 @@ class ImportParameterObject(object):
             self.checkForDuplicates = False
         else: 
             self.checkForDuplicates = (stringValue == 'True')
-        self.progressBar = None
         # parameters for OrganizationByDate
         stringValue = self.model.getConfiguration(GlobalConfigurationOptions.ImportPreferExif)
         if (stringValue == None):
@@ -178,13 +178,19 @@ class ImportParameterObject(object):
         self.keepUnknownTags = value
 
 
-    def setProgressBar(self, aPhasedProgressBar):
-        self.progressBar = aPhasedProgressBar
-
-
     def logString(self, strng):
         self.log.write(strng)
         self.log.write('\n')
+
+
+    def setProcessIndicator(self, aProcessIndicator):
+        """Store an object which understands the following methods:
+        
+        .beginStep(message='')
+        .beginPhase(numberOfSteps, message='')
+        """
+        self.processIndicator = aProcessIndicator
+
 
 
 # Getters
@@ -236,10 +242,6 @@ class ImportParameterObject(object):
         return(self.preferPathDateOverExifDate)
 
 
-    def getProgressBar(self):
-        return(self.progressBar)
-
-
     def getLog(self):
         return(self.log.getvalue())
 
@@ -259,6 +261,11 @@ class ImportParameterObject(object):
 
     def getKeepUnknownTags(self):
         return(self.keepUnknownTags)
+
+
+    def getProcessIndicator(self):
+        return(self.processIndicator)
+
 
 
 # Other API functions

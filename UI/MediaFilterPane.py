@@ -545,10 +545,9 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
     def onActivate(self, event):
-        wx.BeginBusyCursor()
-        self.filterModel.setConditions(active=event.GetEventObject().GetValue())
-        self.setActivateButtonText()
-        wx.EndBusyCursor()
+        with wx.GetApp() as processIndicator:
+            self.filterModel.setConditions(active=event.GetEventObject().GetValue())
+            self.setActivateButtonText()
 
 
     def onModeChanged(self, event):  # @UnusedVariable

@@ -147,6 +147,9 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
                                    entry.getFilename(), 
                                    self.typeIconsIndices[entry.__class__], 
                                    data=item)
+            if (not node):  # should not happen, report
+                print('MediaTreePane.addSubTree(): AppendItem returned None for (%s, %s, %s, %s)' 
+                      % (parent, entry.getFilename(), self.typeIconsIndices[entry.__class__], item))
         # register as observer for entry
         entry.addObserverForAspect(self, 'name')
         entry.addObserverForAspect(self, 'remove')
@@ -191,7 +194,9 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             entry = self.GetItemData(event.GetItem()).GetData()
             Logger.debug('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry)
             self.ignoreSelectionChanges = True
+            wx.GetApp().startProcessIndicator()
             self.model.setSelectedEntry(entry)
+            wx.GetApp().stopProcessIndicator()
             self.ignoreSelectionChanges = False
 
 
@@ -210,15 +215,11 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         Route to selected Entry.
         """
         #print('User selected context menu item %s' % event.Id)
-        wx.GetApp().freezeWidgets()
-#         wx.BeginBusyCursor()
-#         self.Freeze()
+        wx.GetApp().startProcessIndicator()
         message = event.EventObject.currentEntry.runContextMenuItem(event.Id, self)
         if (isinstance(message, basestring)):
-            wx.GetApp().displayInfoMessage(message)
-        wx.GetApp().thawWidgets()
-#         self.Thaw()
-#         wx.EndBusyCursor()
+            wx.GetApp().setInfoMessage(message)
+        wx.GetApp().stopProcessIndicator()
 
 
     def onResize(self, event): 

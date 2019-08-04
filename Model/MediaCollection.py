@@ -33,9 +33,6 @@ from UI import GUIId
 
 # Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
 import UI  # to access UI.PackagePath
-from nt import remove
-from numpy.lib.utils import source
-from pip._vendor import progress
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)
@@ -95,7 +92,7 @@ class MediaCollection(Observable, Observer):
 
 # Class Methods
 # Lifecycle 
-    def __init__(self, rootDir, progressIndicator):
+    def __init__(self, rootDir, processIndicator):
         """Create a new MediaCollection.
         
         String rootDir specifies the path to the image root directory.
@@ -106,24 +103,25 @@ class MediaCollection(Observable, Observer):
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection', 'size'])
         # internal state
         if (rootDir):
-            self.setRootDirectory(rootDir, progressIndicator)
+            self.setRootDirectory(rootDir, processIndicator)
         Logger.debug('MediaCollection.init() finished')
 
     
     @profiledOnLogger(Logger, sort='time')
-    def setRootDirectory (self, rootDir, progressIndicator):
+    def setRootDirectory (self, rootDir, processIndicator):
         """Change the root directory to process a different image set.
         
         String rootDir
         PhasedProgressBar progressIndicator
         """
-        progressIndicator.beginPhase(3)
+        processIndicator.beginPhase(3)
         self.rootDirectory = os.path.normpath(rootDir)
         # clear all data
         self.selectedEntry = None
         self.initialEntry = None
         CachingController.clear()
         # set up the configuration persistence
+        #TODO: Must move to app to be available while mediacollection is created
         self.configuration = SecureConfigParser(Installer.getConfigurationFilePath())
         self.configuration.read(Installer.getConfigurationFilePath())
         if (not self.configuration.has_section(GUIId.AppTitle)):
@@ -136,7 +134,7 @@ class MediaCollection(Observable, Observer):
             self.organizedByDate = True
             self.organizationStrategy = OrganizationByDate
         self.organizationStrategy.setModel(self)
-        progressIndicator.beginStep(_('Reading tag definitions'))
+        processIndicator.beginStep(_('Reading tag definitions'))
         self.classHandler = MediaClassHandler(Installer.getClassFilePath())
         if (self.classHandler.isLegalElement(MediaCollection.ReorderTemporaryTag)):
             index = 1
@@ -148,8 +146,8 @@ class MediaCollection(Observable, Observer):
             Logger.warning('MediaCollection.setRootDirectory(): Temporary reordering tag changed to "%s"' % tag)
         # read groups and images
         self.root = Entry.createInstance(self, self.rootDirectory)
-        self.loadSubentries(self.root, progressIndicator)  # implicit progressIndicator.beginStep()
-        progressIndicator.beginStep(_('Calculating collection properties'))
+        self.loadSubentries(self.root, processIndicator)  # implicit progressIndicator.beginStep()
+        processIndicator.beginStep(_('Calculating collection properties'))
         self.cacheCollectionProperties()
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'filterChanged')
@@ -202,15 +200,11 @@ class MediaCollection(Observable, Observer):
             parentDir = entry.getPath()
         fileList = os.listdir(parentDir)
         if (progressIndicator):
-            print('loadSubentries before phase: %s' % progressIndicator.getProgressBar())
             progressIndicator.beginPhase(len(fileList))
-            print('loadSubentries after phase: %s' % progressIndicator.getProgressBar())
         # read files in directory
         for fileName in fileList:
             if (progressIndicator):
-                print('loadSubentries before step: %s' % progressIndicator.getProgressBar())
                 progressIndicator.beginStep(_('Reading media from %s') % fileName)
-                print('loadSubentries after step: %s' % progressIndicator.getProgressBar())
             fileName = os.path.join(parentDir, fileName)
             subEntry = Entry.createInstance(self, fileName)
             if (subEntry):
@@ -227,6 +221,8 @@ class MediaCollection(Observable, Observer):
         
         String option
         String value
+
+        #TODO: Must move to app to be available while mediacollection is created
         """
         if (not self.configuration.has_section(GUIId.AppTitle)):
             self.configuration.add_section(GUIId.AppTitle)
@@ -373,6 +369,7 @@ class MediaCollection(Observable, Observer):
         
         String option
         Returns String containing value or None if not existing
+        #TODO: Must move to app to be available while mediacollection is created
         """
         if (self.configuration.has_section(GUIId.AppTitle)
             and self.configuration.has_option(GUIId.AppTitle, option)):
@@ -512,18 +509,23 @@ class MediaCollection(Observable, Observer):
 
 
 ## Importing
-    def importImages(self, importParameters):
+    def importImages(self, importParameters, processIndicator=None):
         """Import images from a directory. 
         
         Importing.ImportParameterObject importParameters contains all import parameters
-        
+        ProcessIndicator object 
+
         Return a String containing the log.
         """
         if (0 == len(os.listdir(importParameters.getImportDirectory()))):  # shortcut to be quick
             importParameters.logString(_('Import directory "%s" is empty' % importParameters.getImportDirectory()))
             return(importParameters.getLog())
         if (importParameters.getCheckForDuplicates()):
-            importParameters.setMediaMap(MediaMap(self))
+            processIndicator.beginPhase(2)
+            processIndicator.beginStep(_('Creating media map to detect doubles'))
+            importParameters.setMediaMap(MediaMap.getMap(self, processIndicator))
+            if (importParameters.getMediaMap() == None):
+                importParameters.setCheckForDuplicates(False)
         importParameters.logString('Importing by %s from "%s" into "%s"\n' 
                                    % (('date' if (self.organizationStrategy == OrganizationByDate) else 'name'),
                                       importParameters.getImportDirectory(), 
@@ -566,8 +568,10 @@ class MediaCollection(Observable, Observer):
                                 and (importParameters.getDeleteOriginals()))
         allFiles = os.listdir(sourceDir)
         allFiles.sort()  # ensure that existing numbers are respected in new numbering
-        importParameters.getProgressBar().beginPhase(len(allFiles))
+        if (level == 0):
+            importParameters.getProcessIndicator().beginPhase(len(allFiles))
         for oldName in allFiles:
+            importParameters.getProcessIndicator().beginStep()
             importParameters.logString(' ')
             sourcePath = os.path.join(sourceDir, oldName)
             newTargetPathInfo = self.organizationStrategy.pathInfoForImport(importParameters,
@@ -637,7 +641,6 @@ class MediaCollection(Observable, Observer):
                             os.remove(sourcePath)
                         except Exception as e:
                             importParameters.logString('Can''t remove "%s"\n%s' % (sourcePath, e))
-            importParameters.getProgressBar().finishStep()
 
 
     def fixPathWhileImporting(self, parameters, oldPath):
