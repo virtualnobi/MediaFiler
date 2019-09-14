@@ -75,7 +75,8 @@ class MediaMap(object):
                 aProgressIndicator.beginStep()
             if (isinstance(entry, Single)):
                 self.addSingle(entry)
-        Logger.debug('MediaMap(): %s collisions with %s participants' % self.getCollisions())
+        Logger.debug('MediaMap(): %s collisions with %s items' % self.getCollisions())
+        MediaMap.Instances[self.mediaCollection] = self
 
 
 

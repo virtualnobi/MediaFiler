@@ -240,16 +240,19 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                                                                className))
         Logger.debug('MediaClassificationPane.onSelect(): %s' % change)
         Logger.debug('MediaClassificationPane.onSelect(): added "%s", removed %s' % (addedTag, removedTags))
-        classesToRemove = self.getClassesToRemove()  # store before self.setTags()
+        classesToRemove1 = self.getClassesToRemove()  # store before self.setTags()
         # adapt other tags as needed
-        elements = self.model.getClassHandler().getTagsOnChange(self.entry.getKnownElements(), addedTag, removedTags)
+        elements = self.model.getClassHandler().getTagsOnChange(self.entry.getKnownElements(filtering=True), addedTag, removedTags)
         self.setTags(elements)
+        classesToRemove2 = self.getClassesToRemove()  # after self.setTags() to pick up tags added due to tag class definitions
+        if (classesToRemove1 <> classesToRemove2):
+            print('MediaClassificationPane.onSelect(): Classes to remove have changed!')
         elements.update(self.entry.getUnknownElements())
         # change media pathname
-        pathInfo = self.entry.getOrganizer().getPathInfo()
+        pathInfo = self.entry.getOrganizer().getPathInfo(filtering=True)
         pathInfo['elements'] = elements
-        if (0 < len(classesToRemove)):
-            pathInfo['classesToRemove'] = classesToRemove
+        if (0 < len(classesToRemove2)):
+            pathInfo['classesToRemove'] = classesToRemove2
         self.entry.renameTo(**pathInfo)
 
 

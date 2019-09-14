@@ -199,10 +199,10 @@ class MediaClassHandler(object):
                 if (anElement in elements):
                     for requiredElement in self.getRequiredElementsOfClass(aClass):
                         result.add(requiredElement)
-                    for requiredClass in self.getRequiredClassesOfClass(aClass):
-                        requiredTags = set(self.getElementsOfClassByName(requiredClass))
+                    for requiredClassName in self.getRequiredClassesOfClass(aClass):
+                        requiredTags = set(self.getElementsOfClassByName(requiredClassName))
                         if (len(requiredTags.intersection(elements)) == 0):
-                            result.add(requiredTags.pop())
+                            result.add(self.getElementsOfClassByName(requiredClassName)[0])  # requiredTags.pop())  # choose first tag from class definition
                     for prohibitedElement in self.getProhibitedElementsOfClass(aClass):
                         if (prohibitedElement in elements):
                             result.add(self.ElementIllegal)
@@ -305,9 +305,11 @@ class MediaClassHandler(object):
     
 
     def getRequiredClassesOfClass(self, aClass):
-        """Return a list of all classes which must apply for aClass to be applicable.
+        """Return a list of all class names which must apply for aClass to be applicable.
         
         At least one tag from the resulting classes must be applied for aClass to be applicable.
+        
+        Return List of String
         """
         return(aClass[self.KeyRequiredClasses])
 

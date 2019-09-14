@@ -96,10 +96,9 @@ class PhasedProgressBar(wx.Gauge):
 
     def finish(self):
         """Finish the progress bar. 
+
+        Do not move to completion, as this takes additional time, and leaves a full bar visible.
         """
-        # do not move to completion, as this takes additional time, and leaves a full bar visible
-        # self.remainingStops = [100.0]
-        # self.SetValue(100)
         self.restart()
 
 
@@ -112,7 +111,7 @@ class PhasedProgressBar(wx.Gauge):
         super(PhasedProgressBar, self).SetValue(percentage)
         self.Show()
         wx.GetApp().ProcessPendingEvents()
-        # wx.SafeYield()  # will disable user input, then execute wx.Yield(), then reenable user input
+        #wx.SafeYield()  # assert violation: recursively called, but where?
 
 
 
@@ -128,11 +127,11 @@ class PhasedProgressBar(wx.Gauge):
 
         For each call to this method, beginStep() can be called numberOfSteps times.
 
-        int numberOfSteps must be larger than 1, indicates number of steps in new phase
+        int numberOfSteps must be larger than 0, indicates number of steps in new phase
         """
         if ((not isinstance(numberOfSteps, int))
-            or (numberOfSteps < 2)):
-            raise ValueError, 'numberOfSteps must be an integer larger than 1'
+            or (numberOfSteps < 1)):
+            raise ValueError, 'PhasedProgressBar.beginPhase(): numberOfSteps must be an integer larger than 0'
         if (len(self.remainingStops) < 2):
 #             raise PhasedProgressBarError ('beginPhase() called after completion (maybe beginStep() called too often)')
             print('PhasedProgressBar.beginPhase(): Called after completion (maybe beginStep() called too often)')

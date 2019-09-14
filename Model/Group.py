@@ -155,13 +155,13 @@ class Group(Entry, Observer):
         return(result)
 
 
-    def getKnownElements (self):
+    def getKnownElements (self, filtering=False):
         """Return a Set of all known elements of self.
         
         Return Set of String.
         """
         result = None
-        for subEntry in self.getSubEntries(filtering=False):
+        for subEntry in self.getSubEntries(filtering):
             if (result == None):  # first iteration
                 result = set(subEntry.getKnownElements())
             else:

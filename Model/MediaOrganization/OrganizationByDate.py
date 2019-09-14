@@ -28,6 +28,7 @@ from ..MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from UI.MediaFilterPane import FilterCondition
+from collections import OrderedDict
 
 
 
@@ -484,16 +485,18 @@ class OrganizationByDate(MediaOrganization):
     def registerMoveToLocation(cls, pathInfo):
         """overwrite MediaOrganization.registerMoveToLocation()
         """
-        register = {}
+        register = OrderedDict()
         for value in ('year', 'month', 'day'):
             if (value in pathInfo):
                 register[value] = pathInfo[value]
-        super(OrganizationByDate, cls).registerMoveToLocation(pathInfo)
+        super(OrganizationByDate, cls).registerMoveToLocation(register)
 
 
     @classmethod
     def initNamePane(cls, aMediaNamePane):
         """Add controls to MediaNamePane to represent the organization's identifiers.
+        
+        Adds year, month, day fields.
         """
         # year
         aMediaNamePane.yearInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(80,-1), style=wx.TE_PROCESS_ENTER)
@@ -517,7 +520,9 @@ class OrganizationByDate(MediaOrganization):
 
     @classmethod
     def initFilterPane(cls, aMediaFilterPane):
-        """Add date filter to filter pane.
+        """Add controls to MediaFilterPane to represent the organization's search capabilities.
+        
+        Adds date filter.
         """
         super(OrganizationByDate, cls).initFilterPane(aMediaFilterPane)
         aMediaFilterPane.addCondition(DateFilter(aMediaFilterPane))
@@ -601,10 +606,10 @@ class OrganizationByDate(MediaOrganization):
         return(False)
 
 
-    def getPathInfo(self):
+    def getPathInfo(self, filtering=False):
         """override MediaOrganization.getPathInfo(self)
         """
-        result = MediaOrganization.getPathInfo(self)
+        result = MediaOrganization.getPathInfo(self, filtering)
         if (self.getYear() <> OrganizationByDate.UnknownDateName):
             result['year'] = self.getYear()
             if (self.getMonth()):
@@ -655,28 +660,6 @@ class OrganizationByDate(MediaOrganization):
         return(self.timeTaken)
 
 
-#     def constructPathForSelf(self, **kwargs):
-#         """
-#         """
-#         checkMakeUnique = False
-#         if (not 'year' in kwargs):
-#             kwargs['year'] = self.getYear()
-#         elif (kwargs['year'] <> self.getYear()):
-#             checkMakeUnique = True
-#         if (not 'month' in kwargs):
-#             kwargs['month'] = self.getMonth()
-#         elif (kwargs['month'] <> self.getMonth()):
-#             checkMakeUnique = True
-#         if (not 'day' in kwargs):
-#             kwargs['day'] = self.getDay()
-#         elif (kwargs['day'] <> self.getDay()):
-#             checkMakeUnique = True
-#         if (checkMakeUnique
-#             and (not 'number' in kwargs)):
-#             kwargs['makeUnique'] = True
-#         return(MediaOrganization.constructPathForSelf(self, **kwargs))
-
-
     def extendContextMenu(self, menu):
         """Extend the context menu to contain functions relevant for organization by date.
 
@@ -702,20 +685,12 @@ class OrganizationByDate(MediaOrganization):
     def runContextMenuItem(self, menuId, parentWindow):
         """Run functions to handle the menu items added in extendContextMenu()
         """
-        if ((GUIId.SelectMoveTo <= menuId)
-            and (menuId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations))):
-            mtlIndex = (menuId - GUIId.SelectMoveTo)
-            print('NYI: Moving "%s" to "%s"' % (self.context.getPath(), OrganizationByDate.MoveToLocations[mtlIndex]))
-#             mtlText = sorted(self.__class__.MoveToLocations.keys())[mtlIndex]
-#             mtl = self.__class__.MoveToLocations[mtlText]
-#             print('Moving "%s" to %s' % (self.getPath(), mtl))
-#             self.context.renameTo(makeUnique=True, **mtl)
-        elif (menuId == GUIId.ReorderByTime):
+        if (menuId == GUIId.ReorderByTime):
             return(self.onReorderByTime(parentWindow))
         elif (menuId == GUIId.UndoReorder):
             return(self.onUndoReorder(parentWindow))
         else:
-            return(MediaOrganization.runContextMenuItem(self, menuId, parentWindow))
+            return(super(OrganizationByDate, self).runContextMenuItem(menuId, parentWindow))
 
 
     def getDateTaken(self):

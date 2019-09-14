@@ -114,16 +114,6 @@ class ProgressSplashApp(wx.App):
         int numberOfSteps
         String description displayed as description of the first step
         """
-#         if ((not isinstance(numberOfSteps, int))
-#             or (numberOfSteps < 1)):
-#             raise ValueError, 'numberOfSteps must be a Number larger than 1'
-#         if (len(self.remainingStops) < 2):
-#             raise ValueError, 'ProgressSplashApp.beginPhase() called when final step runnning (maybe beginStep() called too often)!'
-#         phaseDuration = (self.remainingStops[1] - self.remainingStops[0])
-#         stepDuration = (phaseDuration / numberOfSteps)
-#         for i in range(1, numberOfSteps):
-#             self.remainingStops.insert(i, (self.remainingStops[0] + (i * stepDuration)))
-#         print('ProgressSplashApp.beginPhase(%s) results in %s' % (numberOfSteps, self.remainingStops))
         print('begin phase %s (%s)' % (numberOfSteps, self.getProgressBar()))
         self.getProgressBar().beginPhase(numberOfSteps)
         if (description == ''):
@@ -139,10 +129,6 @@ class ProgressSplashApp(wx.App):
         
         String description displayed as description of the next step
         """
-#         if (len(self.remainingStops) < 2):
-#             raise RuntimeError, 'ProgressSplashApp.beginStep() called after completion (maybe called too often)'
-#         self.currentPercentage = self.remainingStops.pop(0)
-#        self.SetProgress(int(self.getProgressBar().currentPercentage), description)
         print('begin step %s (%s)' % (description, self.getProgressBar()))
         self.getProgressBar().beginStep()
         self.getProgressBar().Show()

@@ -352,8 +352,12 @@ class Entry(Observable):
         return(self.knownElementsDictionary)
 
 
-    def getKnownElements(self):
+    def getKnownElements(self, filtering=False):
         """Return a Set containing the Strings of all known elements.
+        
+        filtering is required as parameter as the subclass Group requires it. It has no significance here.
+        
+        Boolean filtering specifies whether to ignore filtered entries (in Group)
         """
         elements = set()
         classMap = self.getKnownElementsDictionary()
@@ -368,20 +372,24 @@ class Entry(Observable):
         return(set(self.unknownElements))
 
 
-    def getElements(self):
+    def getElements(self, filtering=False):
         """Return a Set containing all elements of self.
         
+        filtering is required as parameter as the subclass Group requires it. It has no significance here.
+        
+        Boolean filtering specifies whether to ignore filtered entries (in Group)
         Returns Set of String
         """
         return(self.getKnownElements().union(self.getUnknownElements()))
     
     
-    def getElementString (self):
+    def getElementString (self, filtering=False):
         """Return a String containing all elements of self. 
 
+        Boolean filtering specifies whether to ignore filtered entries (in Group)
         Return String
         """
-        return(self.model.getClassHandler().elementsToString(self.getElements()))
+        return(self.model.getClassHandler().elementsToString(self.getElements(filtering)))
 
 
     def getEntriesForDisplay (self):

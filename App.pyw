@@ -447,7 +447,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """Search for duplicates, merge file names, and remove one. 
         """
         wx.GetApp().startProcessIndicator()
-        self.model.mergeDuplicates()
+        self.model.mergeDuplicates(wx.GetApp())
         wx.GetApp().stopProcessIndicator()
 
 
@@ -827,28 +827,34 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.statusbar.SetStatusText(directory, GUIId.SB_Organization)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
-        wx.GetApp().beginPhase(3)
+        wx.GetApp().beginPhase(2)
         try:
-            self.model = MediaCollection(directory, wx.GetApp())  # implicit beginPhase() 
+            self.model = MediaCollection(directory, wx.GetApp()) 
         except Exception as e:
             raise BaseException("Could not create MediaCollection model! \n%s" % e)
-        wx.GetApp().beginStep(_('Setting up window panes'))
+        wx.GetApp().beginPhase(6, (_('Setting up window panes')))
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
         self.model.addObserverForAspect(self, 'size')
         self.updateMenuAccordingToModel(self.model)
+        wx.GetApp().beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up name pane')
         self.namePane.setModel(self.model)
+        wx.GetApp().beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up filter pane')
         self.filterPane.setModel(self.model)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Filter pane best size is %s' % self.filterPane.GetBestSize())
         self.paneManager.GetPane('filter').BestSize(self.filterPane.GetBestSize())
+        wx.GetApp().beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up classification pane')
         self.classificationPane.setModel(self.model)
+        wx.GetApp().beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up canvas pane')
         self.canvas.setModel(self.model)  # implicit beginStep()
+        wx.GetApp().beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up presentation pane')
         self.presentationPane.setModel(self.model)
+        wx.GetApp().beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up tree pane')
         self.imageTree.setModel(self.model)
         self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
@@ -1021,7 +1027,8 @@ class MediaFilerApp(ProgressSplashApp):
         self.freezeWidgets()
         self.setInfoMessage(message)
         self.getProgressBar().restart()
-        MediaFiler.Logger.debug('MediaFilerApp.startProcessIndicator(): Created %s with message "%s"' % (self.getProgressBar(), message)) 
+        MediaFiler.Logger.debug('MediaFilerApp.startProcessIndicator(): Created %s with message "%s"' % (self.getProgressBar(), message))
+        self.numberOfStepsToGo = 0 
         return(self)
     
     
@@ -1031,13 +1038,15 @@ class MediaFilerApp(ProgressSplashApp):
 
     def beginPhase(self, numberOfSteps, message=''):
         MediaFiler.Logger.debug('MediaFilerApp.beginPhase(%s, "%s")' % (numberOfSteps, message))
+        self.numberOfStepsToGo = numberOfSteps
         self.setInfoMessage(message)
         self.getProgressBar().beginPhase(numberOfSteps)
 
 
     def beginStep(self, message=''):
         MediaFiler.Logger.debug('MediaFilerApp.beginStep("%s"): Progress bar is %s' % (message, self.getProgressBar()))
-        self.setInfoMessage(message)
+        self.setInfoMessage('%s (%d)' % (message, self.numberOfStepsToGo))
+        self.numberOfStepsToGo = (self.numberOfStepsToGo - 1)
         self.getProgressBar().beginStep()
 
 

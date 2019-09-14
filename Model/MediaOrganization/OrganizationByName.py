@@ -13,6 +13,7 @@ import glob
 #import StringIO
 import logging
 import gettext
+from collections import OrderedDict
 ## Contributed 
 #import wx
 import wx.lib.masked
@@ -302,7 +303,7 @@ class OrganizationByName(MediaOrganization):
     def registerMoveToLocation(cls, pathInfo):
         """overwrite MediaOrganization.registerMoveToLocation()
         """
-        register = {}
+        register = OrderedDict()
         for value in ('name', 'scene'):
             if (value in pathInfo):
                 register[value] = pathInfo[value]
@@ -476,10 +477,10 @@ class OrganizationByName(MediaOrganization):
         return(False)
 
 
-    def getPathInfo(self):
+    def getPathInfo(self, filtering=False):
         """override MediaOrganization.getPathInfo(self)
         """
-        result = MediaOrganization.getPathInfo(self)
+        result = MediaOrganization.getPathInfo(self, filtering)
         if (self.isSingleton()):
             try:
                 del result['number']

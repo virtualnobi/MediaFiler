@@ -463,10 +463,12 @@ class MediaCollection(Observable, Observer):
         return(True)
 
 
-    def mergeDuplicates(self):
+    def mergeDuplicates(self, aProgressIndicator=None):
         """Search duplicates, merge file names, and remove one. 
+        
+        aProgressIndicator shall understand beginStep() 
         """
-        pass
+        MediaMap(self, aProgressIndicator)
 
 
 
@@ -521,8 +523,6 @@ class MediaCollection(Observable, Observer):
             importParameters.logString(_('Import directory "%s" is empty' % importParameters.getImportDirectory()))
             return(importParameters.getLog())
         if (importParameters.getCheckForDuplicates()):
-            processIndicator.beginPhase(2)
-            processIndicator.beginStep(_('Creating media map to detect doubles'))
             importParameters.setMediaMap(MediaMap.getMap(self, processIndicator))
             if (importParameters.getMediaMap() == None):
                 importParameters.setCheckForDuplicates(False)
@@ -540,6 +540,7 @@ class MediaCollection(Observable, Observer):
         except StopIteration:
             pass
         except Exception as e:
+            raise
             importParameters.logString('\nImport was cancelled due to an error:\n%s' % e)
         if (importParameters.getReportIllegalElements()):
             for key in importParameters.getIllegalElements():  

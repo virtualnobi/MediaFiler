@@ -414,11 +414,13 @@ class MediaOrganization(object):
         raise NotImplementedError
 
 
-    def getPathInfo(self):
+    def getPathInfo(self, filtering=False):
         """Return dictionary containing organization-specific identifiers.
+        
+        Boolean filtering specifies whether to include all entries (in a group) or only filtered ones
         """
         result = {}
-        result['elements'] = self.getContext().getElements()
+        result['elements'] = self.getContext().getElements(filtering)
         if (not self.getContext().isGroup()):
             result['number'] = self.getNumber()
             result['extension'] = self.getContext().getExtension()
