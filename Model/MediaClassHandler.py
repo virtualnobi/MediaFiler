@@ -183,6 +183,8 @@ class MediaClassHandler(object):
             for aClass in self.getClasses():
                 if (tag in self.getRequiredElementsOfClass(aClass)):
                     result.difference_update(set(self.getElementsOfClass(aClass)))
+                if (self.getClassOfTag(tag)[MediaClassHandler.KeyName] in self.getRequiredClassesOfClass(aClass)):
+                    result.difference_update(set(self.getElementsOfClass(aClass)))
         Logger.debug('MediaClassHandler.getTagsOnChange(): Removed %s' % tagSet.difference(result))
         return(result)
 
