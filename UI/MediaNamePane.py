@@ -7,14 +7,35 @@
 # Imports
 ## standard
 import logging
-import sys
+import os
+import gettext
 ## contributed
 import wx
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
+import UI
 from UI import GUIId
-#from Model.Entry import Entry
+
+
+
+# Internationalization
+# requires "PackagePath = __path__[0]" in _init_.py
+try:
+    LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
+    Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['de'])
+except BaseException as e:  # likely an IOError because no translation file found
+    try:
+        language = os.environ['LANGUAGE']
+    except:
+        print('%s: No LANGUAGE environment variable found!' % (__file__))
+    else:
+        print('%s: No translation found at %s; using originals instead of %s. Complete error:' % (__file__, LocalesPath, language))
+        print(e)
+    def _(message): return message
+else:
+    _ = Translation.ugettext
+def N_(message): return message
 
 
 
@@ -189,6 +210,7 @@ class MediaNamePane(wx.Panel, Observer):
             tagSet = self.model.getClassHandler().stringToElements(tagString)
             pathInfo['elements'] = tagSet
         pathInfo['removeIllegalElements'] = removeUnknownTags
+        wx.GetApp().startProcessIndicator(_('Renaming...'))
         try:
             resultingSelection = self.entry.renameTo(**pathInfo)
         except Exception as e:
@@ -201,4 +223,5 @@ class MediaNamePane(wx.Panel, Observer):
         else:
             self.model.setSelectedEntry(resultingSelection) 
             self.rememberElements()
+        wx.GetApp().stopProcessIndicator()
 
