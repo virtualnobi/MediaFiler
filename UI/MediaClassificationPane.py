@@ -196,64 +196,72 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         change = ''
         groupBox = event.GetEventObject()
-        className = None
         for className in self.selectionBoxes: 
             if (groupBox == self.selectionBoxes[className]):
                 break
-        if (className == None):
-            Logger.warning('MediaClassificationPane.onSelect(): Did not find selected group %s' % groupBox)
-        # determine which tag is removed and which one added
+        if (groupBox != self.selectionBoxes[className]):
+            Logger.error('MediaClassificationPane.onSelect(): Did not find selected group %s' % groupBox)
+            return
+        # determine added and removed tags and classes
         if (isinstance(event, CheckBoxGroupEvent)):
             if (groupBox.isChecked(MediaClassificationPane.ClassDontChangeIndex)
                 and (event.index <> MediaClassificationPane.ClassDontChangeIndex)
                 and (event.value == True)):
                 addedTag = groupBox.getItemLabel(event.index)
                 removedTags = set()
+                removedClass = None
                 groupBox.setValue(MediaClassificationPane.ClassDontChangeIndex, False)
-                change = ('added tag %s in check group "%s"' % (addedTag, className))
+                change = ('added tag %s in checkbox group "%s"' % (addedTag, className))
             elif (groupBox.isChecked(MediaClassificationPane.ClassDontChangeIndex)
                   and (event.index == MediaClassificationPane.ClassDontChangeIndex)):
                 addedTag = None
                 removedTags = [tag for tag in groupBox.getAllItemLabels() if groupBox.isItemEnabled(tag)]
+                removedClass = None
                 groupBox.clearAll()
                 groupBox.setValue(MediaClassificationPane.ClassDontChangeIndex, True)
-                change = ('removed tags from check group "%s"' % className)
+                change = ('removed tags from checkbox group "%s"' % className)
             else:  # regular tag in a CheckBoxGroup
                 if (event.value):
                     addedTag = groupBox.getItemLabel(event.index)
                     removedTags = set()
+                    removedClass = None
                 else:
                     addedTag = None
                     removedTags = set([groupBox.getItemLabel(event.index)])
-                change = ('%s tag "%s" in check group "%s"' % (('added' if event.value else 'removed'), 
+                    removedClass = None
+                change = ('%s tag "%s" in checkbox group "%s"' % (('added' if event.value else 'removed'), 
                                                            groupBox.getItemLabel(event.index),
                                                            className))
         else:  # RadioBox event
             if (groupBox.GetSelection() == MediaClassificationPane.ClassDontChangeIndex):
                 addedTag = None
+                removedTags = set()
+                removedClass = None
+                change = 'No change'
             elif (groupBox.GetSelection() == MediaClassificationPane.ClassUnselectedIndex):
                 addedTag = None
+                removedTags = (self.entry.getKnownElements() - self.getTags())
+                if (MediaClassificationPane.ClassUnselectedText in removedTags):
+                    removedTags = set()
+                removedClass = className
+                change = ('Removed tag %s and class %s' % (removedTags, removedClass))
             else:  # real tag selected
                 addedTag = groupBox.GetItemLabel(groupBox.GetSelection())
-            removedTags = (self.entry.getKnownElements() - self.getTags())
-            change = ('changed to tag %s in radio group %s' % (addedTag, 
-                                                               className))
+                removedTags = (self.entry.getKnownElements() - self.getTags())
+                removedClass = None
+                change = ('changed to tag %s in radio group %s' % (addedTag, className))
         Logger.debug('MediaClassificationPane.onSelect(): %s' % change)
-        Logger.debug('MediaClassificationPane.onSelect(): added "%s", removed %s' % (addedTag, removedTags))
-        classesToRemove1 = self.getClassesToRemove()  # store before self.setTags()
-        # adapt other tags as needed
+        Logger.debug('MediaClassificationPane.onSelect(): added "%s", removed tags %s, removed class %s' % (addedTag, removedTags, removedClass))
         elements = self.model.getClassHandler().getTagsOnChange(self.entry.getKnownElements(filtering=True), addedTag, removedTags)
-        self.setTags(elements)
-        classesToRemove2 = self.getClassesToRemove()  # after self.setTags() to pick up tags added due to tag class definitions
-        if (classesToRemove1 <> classesToRemove2):
-            print('MediaClassificationPane.onSelect(): Classes to remove have changed!')
         elements.update(self.entry.getUnknownElements())
-        # change media pathname
+        self.setTags(elements)
         pathInfo = self.entry.getOrganizer().getPathInfo(filtering=True)
         pathInfo['elements'] = elements
-        if (0 < len(classesToRemove2)):
-            pathInfo['classesToRemove'] = classesToRemove2
+        if (removedClass):
+            pathInfo['classesToRemove'] = [removedClass]
+        wx.GetApp().startProcessIndicator(_('Renaming...'))
         self.entry.renameTo(**pathInfo)
+        wx.GetApp().stopProcessIndicator()
 
 
 
