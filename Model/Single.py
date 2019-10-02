@@ -10,7 +10,6 @@ from __future__ import print_function
 ## standard
 from decimal import Decimal
 import os
-import glob
 import shlex
 import sys
 import subprocess
@@ -128,6 +127,7 @@ class Single(Entry):
         self.rawImageWidth = 0
         self.rawImageHeight = 0
         self.bitmap = None
+        self.duplicates = []
 
 
 
@@ -143,8 +143,23 @@ class Single(Entry):
         return(self.getOrganizer().renameSingle(**kwargs))
 
 
+    def setDuplicates(self, duplicates):
+        """Store a list of Single instances which have identical content. 
+        """
+        self.duplicates = duplicates
+
+
 
 # Getters
+    def getDuplicates(self):
+        """Return the stored list of other Single instances which have identical content.
+        
+        Returns a List of Single
+        """
+        return(self.duplicates)
+
+
+
 # Inheritance - Entry
     def getEntriesForDisplay (self):
         """Return the list of entries to represent self in an image display.

@@ -82,17 +82,49 @@ class MediaMap(object):
 
 # Setters
     def addSingle(self, aSingle):
-        """
+        """Add aSingle to self. 
         """
         key = self.getKeyFromFile(aSingle.getPath())
         if (key in self.mediaMapping):
-            self.mediaMapping[key].append(aSingle)
+            if (not aSingle in self.mediaMapping[key]):
+                self.mediaMapping[key].append(aSingle)
         else:
             self.mediaMapping[key] = [aSingle]
 
 
 
 # Getters
+    def contains(self, aSingle):
+        """Check whether self already contains an entry identical to aSingle.
+        
+        Return a Single different from aSingle, but with identical content, if it exists
+            or None if it does not exist
+        """
+        key = self.getKeyFromFile(aSingle.getPath())
+        if (key in self.mediaMapping):
+            duplicate = None
+            for candidate in self.mediaCollection[key]:
+                if ((aSingle <> candidate)
+                    and (aSingle.isIdentical(candidate))):
+                    duplicate = candidate
+                    break
+            if (duplicate == None):
+                Logger.info('MediaMap.contains(): Same key, but different files for %s' % aSingle)
+            return(duplicate)
+
+
+    def getDuplicates(self, aSingle):
+        """Return a list of duplicates of aSingle.
+        
+        Return list of Single (empty if no duplicates exist)
+        """
+        key = self.getKeyFromFile(aSingle.getPath())
+        if (key in self.mediaMapping):
+            return(duplicate for duplicate in self.mediaMapping[key] if (duplicate != aSingle))
+        else:
+            return([])
+
+
     def getDuplicate(self, fileName, fileSize):
         """Search for an Entry with identical media content as in the specified file.
         

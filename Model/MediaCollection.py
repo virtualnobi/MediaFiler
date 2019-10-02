@@ -23,6 +23,7 @@ from Model import Installer
 from Model.MediaClassHandler import MediaClassHandler 
 from Model.MediaFilter import MediaFilter
 from Model.Entry import Entry
+from Model.Single import Single
 from Model.MediaMap import MediaMap
 from Model.MediaOrganization.OrganizationByDate import OrganizationByDate
 from Model.MediaOrganization.OrganizationByName import OrganizationByName
@@ -468,7 +469,15 @@ class MediaCollection(Observable, Observer):
         
         aProgressIndicator shall understand beginStep() 
         """
-        MediaMap(self, aProgressIndicator)
+        mmap = MediaMap(self, aProgressIndicator)
+        for entry in self:
+            if (isinstance(entry, Single)):
+                duplicates = mmap.getDuplicates(entry)
+                entry.setDuplicates(duplicates)
+                if (0 < len(duplicates)):
+                    print('MediaCollection.mergeDuplicates(): %s duplicates of %s found:' % (len(duplicates), entry.getFileName())) 
+                    for dupEntry in duplicates:
+                        print('\t%s' % dupEntry.getFileName())
 
 
 
