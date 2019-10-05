@@ -22,6 +22,8 @@ import copy
 # contributed 
 # nobi
 from nobi.ObserverPattern import Observable
+from multiprocessing.forking import duplicate
+from UI.MediaCanvasPane import MediaCanvas
 # project 
 
 
@@ -37,11 +39,13 @@ class MediaFilter(Observable):
 
 
 # Constants
+    DuplicateKey = 'Duplicate'
     SceneConditionKey = 'Scene'
     SingleConditionKey = 'Singleton'
     DateFromConditionKey = 'DateFrom'
     DateToConditionKey = 'DateTo'
-    ConditionKeys = [SingleConditionKey,
+    ConditionKeys = [DuplicateKey,
+                     SingleConditionKey,
                      SceneConditionKey,
                      DateFromConditionKey,
                      DateToConditionKey]
@@ -57,7 +61,8 @@ class MediaFilter(Observable):
         # initialize (cannot use self.clear() since instance variables not yet defined)
         self.model = model
         self.active = False
-        self.conditionMap = {MediaFilter.SingleConditionKey: None,
+        self.conditionMap = {MediaFilter.DuplicateKey: None,
+                             MediaFilter.SingleConditionKey: None,
                              MediaFilter.SceneConditionKey: None,
                              MediaFilter.DateFromConditionKey: None,
                              MediaFilter.DateToConditionKey: None}
@@ -81,6 +86,7 @@ class MediaFilter(Observable):
                       requiredUnknownTags=None, prohibitedUnknownTags=None, unknownRequired=None, 
                       minimum=None, maximum=None,
                       requiredMediaTypes=None, prohibitedMediaTypes=None, 
+                      duplicate=None,
                       fromDate=None, toDate=None,
                       single=None, Scene=None):
         """Set conditions as specified. Not passing an argument does not change conditions.
@@ -97,6 +103,7 @@ class MediaFilter(Observable):
         Boolean         unknownRequired
         Number          minimum
         Number          maximum
+        Boolean        duplicate filters Single which are duplicates (and containing groups)
         Boolean         single filters all groups (for organization by name)
         fromDate
         toDate
@@ -113,6 +120,7 @@ class MediaFilter(Observable):
                    or ((maximum <> None) and (self.maximumSize <> maximum))
                    or ((requiredMediaTypes <> None) and (self.requiredMediaTypes <> requiredMediaTypes))
                    or ((prohibitedMediaTypes <> None) and (self.prohibitedMediaTypes <> prohibitedMediaTypes))
+                   or ((duplicate <> None) and (self.conditionMap[MediaFilter.DuplicateKey] <> duplicate))
                    or ((single <> None) and (self.singleCondition <> single))
                    or (self.setDateRange(DateFrom=fromDate, DateTo=toDate))
 #                    or ((Scene <> None) 
@@ -147,6 +155,8 @@ class MediaFilter(Observable):
         if (prohibitedMediaTypes <> None):
             self.prohibitedMediaTypes = prohibitedMediaTypes
             self.requiredMediaTypes.difference_update(prohibitedMediaTypes)
+        if (duplicate <> None):
+            self.conditionMap[MediaFilter.DuplicateKey] = duplicate
         if (self.model.organizedByDate):  # TODO: move to MediaOrganization
             pass
         else:
@@ -179,6 +189,7 @@ class MediaFilter(Observable):
                            maximum=self.model.getMaximumSize(),
                            requiredMediaTypes=set(),
                            prohibitedMediaTypes=set(),
+                           duplicate=None,  # TODO: use generic keys
                            single=None,
                            fromDate=False,
                            toDate=False,
@@ -186,9 +197,26 @@ class MediaFilter(Observable):
         Logger.debug('MediaFilter.clear() finished as %s' % self)
 
 
+    def setFilterValueFor(self, conditionKey, conditionValue):
+        """Set the filter for the given condition to the given value.
+        
+        String conditionKey must be in MediaFilter.ConditionKeys
+        Object conditionValue
+        """
+        if (conditionKey in MediaFilter.ConditionKeys):
+            if (self.conditionMap[conditionKey] <> conditionValue):
+                self.conditionMap[conditionKey] = conditionValue
+                self.changedAspect('changed')
+                if (self.active):
+                    self.changedAspect('filterChanged')
+        else:
+            raise ValueError, ('MediaFilter.setFilterValueFor(): Unknown condition key %s' % conditionKey)
+
+
     def setDateRange(self, **kwargs):
         """
         TODO: Move to OrganizationByDate
+        TODO: use generic keys
         
         Return Boolean indicating the filter has changed
         """
@@ -238,13 +266,17 @@ class MediaFilter(Observable):
     def __repr__(self):
         """Return a string representing self.
         """
+        duplicateString = ('duplicates' if (self.conditionMap[MediaFilter.DuplicateKey] == True) else
+                           'no duplicates' if (self.conditionMap[MediaFilter.DuplicateKey] == False) else
+                           '')
         result = (('active, ' if self.active else '')
                   + (('requires %s, ' % self.requiredElements) if 0 < len(self.requiredElements) else '')
                   + (('prohibits %s, ' % self.prohibitedElements) if 0 < len(self.prohibitedElements) else '')
                   + ('requires unknown, ' if self.unknownElementRequired else '')
                   + (('larger %s, ' % self.minimumSize) if self.minimumSize else '')
                   + (('smaller %s, ' % self.maximumSize) if self.maximumSize else '')
-                  + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '') 
+                  + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '')
+                  + duplicateString + ', '
                   + (('from %s, ' % self.conditionMap[MediaFilter.DateFromConditionKey]) if self.conditionMap[MediaFilter.DateFromConditionKey] else '')  # TODO: Move to MediaOrganization
                   + (('to %s, ' % self.conditionMap[MediaFilter.DateToConditionKey]) if self.conditionMap[MediaFilter.DateToConditionKey] else '')
                   + ('single, ' if self.singleCondition else '')
@@ -326,6 +358,13 @@ class MediaFilter(Observable):
                copy.copy(self.prohibitedMediaTypes))
 
 
+    def getDuplicate(self):
+        """
+        Return Boolean (or None) indicating whether duplicates are required
+        """
+        return(self.conditionMap[MediaFilter.DuplicateKey])
+
+
     def getDateRange(self):
         """TODO: Move to MediaOrganization
         """
@@ -357,8 +396,8 @@ class MediaFilter(Observable):
                 or (self.conditionMap[MediaFilter.DateToConditionKey])
                 or (0 < len(self.requiredMediaTypes))
                 or (0 < len(self.prohibitedMediaTypes))
-                or ((MediaFilter.SceneConditionKey in self.conditionMap) 
-                    and (self.conditionMap[MediaFilter.SceneConditionKey]))):
+                or (self.conditionMap[MediaFilter.DuplicateKey] <> None)
+                or (self.conditionMap[MediaFilter.SceneConditionKey])):
                 return(False)
         return(True)
 
@@ -399,6 +438,14 @@ class MediaFilter(Observable):
                     break  # match!
             else:  # no match in the loop
                 return(True)
+        # duplicates
+        if (self.conditionMap[MediaFilter.DuplicateKey] <> None):
+            if (self.conditionMap[MediaFilter.DuplicateKey]):  # Entries without duplicates shall not appear
+                if (0 == len(entry.getDuplicates())):
+                    return(True)
+            else:  # Entries with duplicates shall not appear
+                if (0 <> len(entry.getDuplicates())):
+                    return(True)
         # organization-specific conditions
         if (entry.getOrganizer().isFilteredBy(self)):
             return(True)

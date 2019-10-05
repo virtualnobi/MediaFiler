@@ -194,6 +194,11 @@ class Single(Entry):
                            newId=GUIId.SendMail)
         if (not self.model.getConfiguration(Single.ConfigurationOptionEmailClient)):
             menu.Enable(GUIId.SendMail, enable=False)
+        menu.insertAfterId(GUIId.SendMail,
+                           newText=GUIId.FunctionNames[GUIId.ShowDuplicates],
+                           newMenu=self.constructDuplicateMenu())
+        menu.Enable(GUIId.ShowDuplicates, (0 < len(self.getDuplicates())))
+        
         # structure functions
         # group functions
         # delete functions
@@ -214,6 +219,8 @@ class Single(Entry):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):
             message = self.sendMail()
+        elif (menuId == GUIId.ShowDuplicates):
+            pass # TODO: set duplicate as selected in model
         else:
             message = super(Single, self).runContextMenuItem(menuId, parentWindow)
         return(message)
@@ -381,6 +388,20 @@ class Single(Entry):
 
 # Other API Functions
 # Internal
+    def constructDuplicateMenu(self):
+        """Return submenu containing all duplicates of self.
+        
+        Return wx.Menu
+        """
+        result = wx.Menu()
+        duplicateId = GUIId.ShowDuplicates
+        for duplicate in self.getDuplicates():
+            result.Append(duplicateId, duplicate.getOrganizationIdentifier())
+            duplicateId = (duplicateId + 1)
+        return(result)
+
+
+
     def runExternalViewer(self, parentWindow):
         """Run an external viewer, as given in MediaFiler configuration, to view self's media.
         

@@ -860,7 +860,7 @@ class OrganizationByName(MediaOrganization):
 
 
 
-class SingletonFilter(FilterConditionWithMode):
+class SingletonFilter(FilterConditionWithMode):  # TODO: replace by BooleanFilter
     """Represents a filter for singletons (media not in a named group).
     """
     def __init__(self, parent):

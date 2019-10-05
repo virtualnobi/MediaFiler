@@ -464,7 +464,7 @@ class MediaCollection(Observable, Observer):
         return(True)
 
 
-    def mergeDuplicates(self, aProgressIndicator=None):
+    def findDuplicates(self, aProgressIndicator=None):
         """Search duplicates, merge file names, and remove one. 
         
         aProgressIndicator shall understand beginStep() 
@@ -475,9 +475,9 @@ class MediaCollection(Observable, Observer):
                 duplicates = mmap.getDuplicates(entry)
                 entry.setDuplicates(duplicates)
                 if (0 < len(duplicates)):
-                    print('MediaCollection.mergeDuplicates(): %s duplicates of %s found:' % (len(duplicates), entry.getFileName())) 
+                    print('MediaCollection.findDuplicates(): %s duplicates of %s found:' % (len(duplicates), entry.getPath())) 
                     for dupEntry in duplicates:
-                        print('\t%s' % dupEntry.getFileName())
+                        print('\t%s' % dupEntry.getPath())
 
 
 

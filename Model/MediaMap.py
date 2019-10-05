@@ -120,7 +120,7 @@ class MediaMap(object):
         """
         key = self.getKeyFromFile(aSingle.getPath())
         if (key in self.mediaMapping):
-            return(duplicate for duplicate in self.mediaMapping[key] if (duplicate != aSingle))
+            return([duplicate for duplicate in self.mediaMapping[key] if (duplicate != aSingle)])
         else:
             return([])
 

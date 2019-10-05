@@ -50,6 +50,7 @@ MaxNumberNumbers = 999 # max number of change number functions
 MaxNumberPerspectives = 10  # maximum number of stored perspectives
 MaxNumberMoveToLocations = 10  # max number of remembered last move-to locations
 MaxNumberLogging = 30  # max number of modules to toggle logging
+MaxNumberDuplicates = 10  # max number for showing duplicate to a Single
 
 
 # Status Bar components
@@ -79,7 +80,10 @@ ExportImages = generateWxIdForLabel(_('Export (Filtered) Media'))
 FunctionNames[wx.ID_EXIT] = _('Exit')
 
 ## Image
-MergeDuplicates = generateWxIdForLabel(_('Merge Duplicates'))
+FindDuplicates = generateWxIdForLabel(_('Find Duplicates'))
+ShowDuplicates = generateWxIdForLabel(_('Show Duplicates'))
+for i in xrange(MaxNumberDuplicates - 1):  # reserve additional menu items for more duplicates
+    wx.NewId()
 
 EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
 DeleteImage = generateWxIdForLabel(_('Delete Media "%s"'))

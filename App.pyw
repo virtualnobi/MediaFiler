@@ -248,7 +248,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         # Media
         self.imageMenu = wx.Menu()
         mb.Append(self.imageMenu, self.MenuTitleImage)
-        self.imageMenu.Append(GUIId.MergeDuplicates, GUIId.FunctionNames[GUIId.MergeDuplicates])
+        self.imageMenu.Append(GUIId.FindDuplicates, GUIId.FunctionNames[GUIId.FindDuplicates])
         self.imageMenu.AppendSeparator()
         self.imageMenu.Append(GUIId.DeleteImage, GUIId.FunctionNames[GUIId.DeleteImage])
         self.imageMenu.Append(GUIId.StartExternalViewer, GUIId.FunctionNames[GUIId.StartExternalViewer])
@@ -329,7 +329,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.Bind(wx.EVT_MENU, self.onExport, id=GUIId.ExportImages)
         self.Bind(wx.EVT_MENU, self.onExit, id=wx.ID_EXIT)
         # - image menu
-        self.Bind(wx.EVT_MENU, self.onMergeDuplicates, id=GUIId.MergeDuplicates)
+        self.Bind(wx.EVT_MENU, self.onFindDuplicates, id=GUIId.FindDuplicates)
         self.Bind(wx.EVT_MENU_RANGE, self.onDelegateToEntry, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)
         # - view menu
         self.Bind(wx.EVT_MENU, self.onToggleFilterPane, id=GUIId.ToggleFilterPane)
@@ -443,11 +443,11 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
 # - Image menu events
-    def onMergeDuplicates(self, event):
+    def onFindDuplicates(self, event):
         """Search for duplicates, merge file names, and remove one. 
         """
         wx.GetApp().startProcessIndicator()
-        self.model.mergeDuplicates(wx.GetApp())
+        self.model.findDuplicates(wx.GetApp())
         wx.GetApp().stopProcessIndicator()
 
 

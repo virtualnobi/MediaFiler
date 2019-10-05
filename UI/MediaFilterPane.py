@@ -19,7 +19,7 @@ import UI  # to access UI.PackagePath
 from UI import GUIId
 from Model.MediaClassHandler import MediaClassHandler
 from Model.Single import Single
-# from Model.MediaFilter import MediaFilter
+from Model.MediaFilter import MediaFilter
 
 
 
@@ -134,6 +134,54 @@ class FilterConditionWithMode(FilterCondition):
         self.modeChoice = wx.Choice(parent, wx.ID_ANY, choices=FilterConditionWithMode.FilterModeNames)
         self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
         self.modeChoice.Bind(wx.EVT_CHOICE, self.onChange, self.modeChoice)
+
+
+
+class BooleanFilter(FilterConditionWithMode):
+    """Represents a filter for a boolean condition.
+    """
+    def __init__(self, parent, label, conditionKey):
+        """Create a controls for a boolean condition.
+        
+        wx.Window  parent
+        String     label is the condition label
+        String     conditionKey is the internal key of the condition, see MediaFilter.ConditionKeys
+        """
+        FilterConditionWithMode.__init__(self, parent, label)
+        self.conditionKey = conditionKey
+
+
+    def getConditionControls(self):
+        return([self.modeChoice])
+
+
+    def onChange(self, event):  # @UnusedVariable
+        wx.BeginBusyCursor()
+        newMode = self.modeChoice.GetSelection()
+        if (newMode == FilterConditionWithMode.FilterModeIndexRequire):
+            newFilterValue = True
+        elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
+            newFilterValue = False
+        else:
+            newFilterValue = None
+        Logger.debug('BooleanFilter.onChange(): Changing mode of "%s" to "%s"' % (self.conditionKey, newFilterValue))
+        self.filterModel.setFilterValueFor(self.conditionKey, newFilterValue)
+        wx.EndBusyCursor()
+
+
+    def updateAspect(self, observable, aspect):
+        if (aspect == 'changed'):
+            Logger.debug('BooleanFilter.updateAspect(): Processing change of "%s" filter' % self.conditionKey)
+            newFilterValue = self.filterModel.getFilterValueFor(self.conditionKey)
+            if (newFilterValue == True):
+                self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexRequire)
+            elif (newFilterValue == False):
+                self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexExclude)
+            else:
+                self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexIgnore)
+            Logger.debug('BooleanFilter.updateAspect(): Setting "%s" to "%s"' % (self.conditionKey, newFilterValue))
+        else:
+            Logger.error('BooleanFilter.updateAspect(): Unknown aspect "%s" of object "%s" on "%s"' % (aspect, observable, self.conditionKey))
 
 
     
@@ -400,7 +448,6 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.usedGridRows = 0
         # clear internal state
         self.filterConditions = {}
-#         self.popupMenu = None
         self.filterModes = {}  # Dictionary mapping class name to filter mode wx.Choice
         self.filterValues = {}  # Dictionary mapping class name to filter value wx.Choice
 
@@ -427,7 +474,6 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         self.usedGridRows = (self.usedGridRows + 1)
         self.addSeparator()
         # filter area
-#         self.constructFilterConditionMap()  # create map from wx IDs to filter conditions
         self.unknownFilterRow = self.addCondition(UnknownTagFilter(self))
         self.addSeparator()
         # create one row per class with class name, value, and mode
@@ -446,11 +492,12 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
             # advance row count
             self.usedGridRows = (self.usedGridRows + 1)
         self.addSeparator()
-        # add minimum/maximum size filter
+        # add other filters
         self.sizeFilterRow = self.addCondition(MediaSizeFilter(self))
-        self.addSeparator()
         self.mediaTypeFilterRow = self.addCondition(MediaTypeFilter(self))
+        self.duplicateFilter = self.addCondition(BooleanFilter(self, _('Duplicates'), MediaFilter.DuplicateKey))
         self.addSeparator()
+        # add organization-specific filters
         self.imageModel.organizationStrategy.initFilterPane(self)
 #         # add new-style conditions
 #         addConditionButton = wx.Button(self, id=0, label=_('Add Condition'))
@@ -545,7 +592,7 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
     def onActivate(self, event):
-        with wx.GetApp() as processIndicator:
+        with wx.GetApp() as processIndicator:  # @UnusedVariable
             self.filterModel.setConditions(active=event.GetEventObject().GetValue())
             self.setActivateButtonText()
 
