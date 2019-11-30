@@ -20,8 +20,9 @@ import gettext
 ## Contributed 
 import wx
 ## nobi
-from nobi.wx.Menu import Menu
 from nobi.LastUpdateOrderedDict import LastUpdateOrderedDict
+from nobi.wx.Menu import Menu
+from nobi.wx.Validator import TextCtrlIsIntValidator
 ## Project
 import Model.Installer
 from ..Entry import Entry
@@ -289,7 +290,10 @@ class MediaOrganization(object):
         """
         aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.IdentifierSeparator), 
                                       flag=(wx.ALIGN_CENTER_VERTICAL))
-        aMediaNamePane.numberInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(60,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.numberInput = wx.TextCtrl(aMediaNamePane, 
+                                                 size=wx.Size(60,-1), 
+                                                 style=wx.TE_PROCESS_ENTER,
+                                                 validator=TextCtrlIsIntValidator(label=_('Media Number'), minimum=1, maximum=999))
         aMediaNamePane.numberInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.numberInput, flag=(wx.ALIGN_CENTER_VERTICAL))
 
@@ -501,23 +505,24 @@ class MediaOrganization(object):
     def deleteDouble(self, otherEntry):
         """Remove otherEntry, but rename self to keep its information.         
 
-        # TODO: Why is this function defined here and not in Entry/Group?
-        # TODO: check whether redundant with organizer.rename()
-        
+        self and otherEntry have already been determined to have identical content.
+
         MediaFiler.Entry otherEntry
         """
-        newElements = self.context.getElements().union(otherEntry.getElements())
-        if ((not MediaClassHandler.ElementNew in self.context.getElements())
-            or (not MediaClassHandler.ElementNew in otherEntry.getElements())):
+        selfElements = self.getContext().getElements()
+        otherElements = otherEntry.getElements()
+        newElements = selfElements.union(otherElements)
+        if ((not MediaClassHandler.ElementNew in selfElements)
+            or (not MediaClassHandler.ElementNew in otherElements)):
             newElements.discard(MediaClassHandler.ElementNew)
-        if (newElements <> self.getContext().getElements()):
+        if (newElements != selfElements):
             Logger.debug('MediaOrganization.deleteDouble(): Adding tags %s to "%s"' % (newElements, self.context))
             pathInfo = self.getPathInfo()
             pathInfo['elements'] = newElements
             self.getContext().renameTo(**pathInfo)
-        else:
-            Logger.debug('MediaOrganization.deleteDouble(): Removing "%s"', otherEntry)
+        Logger.debug('MediaOrganization.deleteDouble(): Removing "%s"', otherEntry)
         otherEntry.remove()
+        self.getContext().getDuplicates().remove(otherEntry)  # duplicate has been removed
 
 
     def setValuesInNamePane(self, aMediaNamePane):

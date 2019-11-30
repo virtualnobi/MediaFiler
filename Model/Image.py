@@ -51,7 +51,6 @@ class Image(Single):
     LegalExtensions = ['jpg', 'png', 'gif', 'tif', 'jpeg']
     ConfigurationOptionViewer = 'viewer-image'
     PreviewImageFilename = 'Image.jpg'
-#    Logger = logging.getLogger(__name__)
 
 
 
@@ -99,6 +98,8 @@ class Image(Single):
             rawImage = wx.Image(path, imageType)
             if (rawImage == None):
                 Logger.warning('Image.getRawImageFromPath(): Failed to load "%s"!' % path)
+                rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Image.PreviewImageFilename),
+                                    wx.BITMAP_TYPE_JPEG)
         else: 
             Logger.warning('Image.getRawImageFromPath(): Illegal type in "%s"!' % path)
         return(rawImage)
@@ -126,58 +127,17 @@ class Image(Single):
         self.bitmap = None
 
 
+
 ## Inheritance - Entry
 ## Inheritance - Single
-    def isIdentical(self, anEntry):
+    def isIdenticalContent(self, anEntry):
         """Check whether self and anEntry have the same content.
         """
-#         smallImage = None
-        if (super(Image, self).isIdentical(anEntry)):
+        if (super(Image, self).isIdenticalContent(anEntry)):
             identical = (self.getRawImage().GetData() == anEntry.getRawImage().GetData())
-#             if (not identical):  # normalization to small size does not work 
-#                 if (not smallImage):
-#                     smallImage = self.getRawImage().Rescale(500, 500).GetData()
-#                 if (smallImage == anEntry.getRawImage().Rescale(500, 500).GetData()):
-#                     Image.Logger.info('Image.isIdentical(): Reduced images identical for\n\t%s\n\t%s' % (self.getPath(), anEntry.getPath()))
-#             # TODO: check whether color reduction (or b/w) works 
             return(identical)
         else:
             return(False)
-
-
-#     def getRawImage(self):
-#         """Retrieve raw data (JPG or PNG or GIF) for image.
-#         """
-#         print('Image.getRawImage(): Deprecated!')
-#         if (self.rawImage == None):  # lazily load raw image
-#             imageType = None
-#             if ((self.getExtension() == 'jpg')
-#                 or (self.getExtension() == 'jpeg')):
-#                 imageType = wx.BITMAP_TYPE_JPEG
-#             elif (self.getExtension() == 'png'):
-#                 imageType = wx.BITMAP_TYPE_PNG
-#             elif (self.getExtension() == 'gif'):
-#                 imageType = wx.BITMAP_TYPE_GIF
-#             elif (self.getExtension() == 'tif'):
-#                 imageType = wx.BITMAP_TYPE_TIF
-#             if (imageType):
-#                 self.rawImage = wx.Image(self.getPath(), imageType)
-#                 if (self.rawImage == None):
-#                     Image.Logger.warning('Image.getRawImage(): Failed to load "%s"!' % self.getPath())
-#             else: 
-#                 Image.Logger.warning('Image.getRawImage(): Illegal type in "%s"!' % self.getPath())
-#             if (self.rawImage == None):
-#                 self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.PreviewImageFilename),
-#                                          wx.BITMAP_TYPE_JPEG)
-#                 assert(self.rawImage <> None), ('Cannot load default image for "%s"!' % self.getPath())
-#             self.rawImageWidth = self.rawImage.GetWidth()
-#             self.rawImageHeight = self.rawImage.GetHeight()
-#             CachingController.allocateMemory(self, 
-#                                              self.getRawDataMemoryUsage(), 
-#                                              cachePriority=self.__class__.CachingLevelRawData)
-#             self.releaseCacheWithPriority(self.__class__.CachingLevelFullsizeBitmap)
-#             self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
-#         return(self.rawImage)
 
 
 

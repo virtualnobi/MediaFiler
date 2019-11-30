@@ -260,7 +260,7 @@ class Entry(Observable):
         return(self.filteredFlag)
 
         
-    def isIdentical(self, anEntry):  # TODO: rename, as it's about content equality, not about identity
+    def isIdenticalContent(self, anEntry):
         """Check whether self and anEntry have the same content.
         
         Returns True iff self and anEntry are identical

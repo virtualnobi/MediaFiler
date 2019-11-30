@@ -19,6 +19,7 @@ from collections import OrderedDict
 import wx.lib.masked
 ## nobi
 from nobi.wx.Menu import Menu
+from nobi.wx.Validator import TextCtrlIsIntValidator
 ## Project
 from Model import Installer
 from Model.MediaClassHandler import MediaClassHandler
@@ -30,8 +31,6 @@ from Model.Group import Group
 from UI.MediaFilterPane import MediaFilterPane, FilterConditionWithMode
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from msilib.schema import Media
-
 
 
 
@@ -320,7 +319,10 @@ class OrganizationByName(MediaOrganization):
         # separator
         aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, '/'), flag=(wx.ALIGN_CENTER_VERTICAL))
         #scene
-        aMediaNamePane.sceneInput = wx.TextCtrl (aMediaNamePane, size=wx.Size(40,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.sceneInput = wx.TextCtrl(aMediaNamePane, 
+                                                size=wx.Size(40,-1), 
+                                                style=wx.TE_PROCESS_ENTER,
+                                                validator=TextCtrlIsIntValidator(label=_('Scene'), minimum=1))
         aMediaNamePane.sceneInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.sceneInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # number

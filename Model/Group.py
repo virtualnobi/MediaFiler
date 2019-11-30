@@ -197,7 +197,7 @@ class Group(Entry, Observer):
         return(GUIId.TextGroupSizeString % self.getGroupSize())
 
 
-    def isIdentical(self, anEntry):
+    def isIdenticalContent(self, anEntry):
         """Check whether self and anEntry are identical.
         
         For Groups, do not check all subentries, just check object identity.
@@ -386,7 +386,7 @@ class Group(Entry, Observer):
         nobi.wx.PhasedProgressBar aProgressBar displays progress if defined
         Return Number indicating how many doubles were deleted. 
         """
-        doubles = 0
+        deletionCount = 0
         subEntries1 = self.getSubEntries(filtering=False)
         if (aProgressBar):
             aProgressBar.beginPhase(len(subEntries1))
@@ -394,7 +394,7 @@ class Group(Entry, Observer):
             if (aProgressBar):
                 aProgressBar.beginStep()
             if (entry1.isGroup()):
-                doubles = (doubles + entry1.deleteDoubles())
+                deletionCount = (deletionCount + entry1.deleteDoubles())
             else:
                 subEntries2 = self.getSubEntries(filtering=False)
                 for entry2 in subEntries2:
@@ -402,11 +402,15 @@ class Group(Entry, Observer):
                         pass  # entry1 is not a Group, so can't be a double
                     elif (entry1 == entry2):
                         break  # avoid checking pairs twice
-                    elif (entry1.isIdentical(entry2)):
+                    elif (entry1.isIdenticalContent(entry2)):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
-                        entry1.getOrganizer().deleteDouble(entry2)
-                        doubles = (doubles + 1)
-        return(doubles)
+                        if ((entry1.getParentGroup() == entry2.getParentGroup()) 
+                            and (entry1.getOrganizer().getNumber() > entry2.getOrganizer().getNumber())):   
+                            entry2.getOrganizer().deleteDouble(entry1)  # keep the entry with lower number
+                        else:
+                            entry1.getOrganizer().deleteDouble(entry2)
+                        deletionCount = (deletionCount + 1)
+        return(deletionCount)
 
 
     def removeNewIndicator(self):

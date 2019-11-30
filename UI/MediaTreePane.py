@@ -333,15 +333,19 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             Logger.debug('MediaTreeCtrl.EnsureVisible(): self is a dead object')
 
 
-    def GetDescendants (self, treeItemID):
+    def getDescendants (self, treeItemID):
         """Return the set of all descendants (direct children and, recursively, their descendants) of treeItemID.
+        
+        wx.TreeCtrl only defines GetFirstChild() and GetNextChild()
+        
+        wx.TreeItemID treeItemID
+        Return Set of all treeItemIDs in self
         """
-        # TODO: why is this needed?
         result = set()
         child = self.GetFirstChild(treeItemID)[0]
         result.add(treeItemID)  # include item here
         while (child.IsOk()):  # while there are children
-            result.update(self.GetDescendants(child))  # get child's descendants
+            result.update(self.getDescendants(child))  # get child's descendants
             child = self.GetNextSibling(child)  # get next child
         return(result)
 
@@ -376,7 +380,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
     def storeExpansionState(self):
         """Store the expansion state of all Groups, to restore after filtering.
         """
-        for itemID in self.GetDescendants(self.GetRootItem()):
+        for itemID in self.getDescendants(self.GetRootItem()):
             entry = self.GetItemData(itemID).GetData()
             if (entry <> self.model.getRootEntry()):
                 entry.isExpanded = (entry.isGroup()
@@ -386,7 +390,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
     def restoreExpansionState(self):
         """Restore the expansion state of all unfiltered Groups after filtering.
         """
-        for itemID in self.GetDescendants(self.GetRootItem()):
+        for itemID in self.getDescendants(self.GetRootItem()):
             entry = self.GetItemData(itemID).GetData()
             if (entry <> self.model.getRootEntry()):
                 if (entry.isExpanded):

@@ -67,6 +67,9 @@ class PhasedProgressBar(wx.Gauge):
     https://softwareengineering.stackexchange.com/questions/382003/how-to-calculate-overall-progress-in-independent-phases
     """
 # Constants
+    MaxSteps = 100.0  # if more steps are requested, aggregate steps to keep this maximum; float for precision
+
+
 # Class Variables
 # Class Methods
 # Lifecycle
@@ -83,6 +86,8 @@ class PhasedProgressBar(wx.Gauge):
         super(PhasedProgressBar, self).__init__(*args, **kwargs)
         # internal state
         self.restart()
+        self.aggregationFactor = 1  # this many calls to beginStep() result in a step of progress
+        self.aggregatedSteps = 0  # count of calls to beginStep(), to wait until aggregationFactor is reached
 
 
 
@@ -136,8 +141,13 @@ class PhasedProgressBar(wx.Gauge):
 #             raise PhasedProgressBarError ('beginPhase() called after completion (maybe beginStep() called too often)')
             print('PhasedProgressBar.beginPhase(): Called after completion (maybe beginStep() called too often)')
             self.remainingStops = [0.0, 100.0]
+        if (PhasedProgressBar.MaxSteps < numberOfSteps):
+            self.aggregationFactor = (numberOfSteps / PhasedProgressBar.MaxSteps)
+            numberOfSteps = int(numberOfSteps / self.aggregationFactor)
+            Logger.debug('PhasedProgressBar.beginPhase(): Aggregating %s steps into one.' % self.aggregationFactor)
         phaseDuration = (self.remainingStops[1] - self.remainingStops[0])
         stepDuration = (phaseDuration / numberOfSteps)
+        Logger.debug('PhasedProgressBar.beginPhase(): Expecting %s steps with duration %s.' % (numberOfSteps, stepDuration))
         for i in range(1, numberOfSteps):
             self.remainingStops.insert(i, (self.remainingStops[0] + (i * stepDuration)))
 
@@ -149,11 +159,19 @@ class PhasedProgressBar(wx.Gauge):
 #             raise PhasedProgressBarError('beginStep() called after completion (maybe called too often)')
             print('PhasedProgressBar.beginStep(): Called after completion (maybe called too often)')
             self.remainingStops = [0.0, 100.0]
-        currentPercentage = self.remainingStops.pop(0)
-        self.SetValue(int(currentPercentage))
+        if (1 == self.aggregationFactor):
+            currentPercentage = self.remainingStops.pop(0)
+            self.SetValue(int(currentPercentage))
+        else:
+            self.aggregatedSteps = (self.aggregatedSteps + 1)
+            # print('PhasedProgressBar.beginStep(): Aggregation is %s' % self.aggregatedSteps)
+            if (self.aggregationFactor < self.aggregatedSteps):
+                currentPercentage = self.remainingStops.pop(0)
+                self.SetValue(int(currentPercentage))
+                self.aggregatedSteps = 0
+                # print('PhasedProgressBar.beginStep(): Aggregation complete')
 
 
-        
 # Event Handlers
 # Internal - to change without notice
 # Class Initialization

@@ -602,7 +602,6 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         wx.BeginBusyCursor()
         kwargs = {}  # parameter set to pass to MediaFilter.setConditions()
-        # TODO: Check whether class definition requires (de)activation of other choices
         self.requiredElements = set()
         self.prohibitedElements = set()
         # for all classes, set up value filters

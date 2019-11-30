@@ -178,6 +178,10 @@ class ImportParameterObject(object):
         self.keepUnknownTags = value
 
 
+    def setNumberOfImportedFiles(self, count):
+        self.numberOfImportedFiles = count
+
+
     def logString(self, strng):
         self.log.write(strng)
         self.log.write('\n')
@@ -255,7 +259,7 @@ class ImportParameterObject(object):
         
         Return Boolean indicating whether import can continue
         """
-        self.numberOfImportedFiles = (self.numberOfImportedFiles + 1)
+        #self.numberOfImportedFiles = (self.numberOfImportedFiles + 1)
         return(self.numberOfImportedFiles <= self.maxFilesToImport)
 
 

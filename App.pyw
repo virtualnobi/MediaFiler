@@ -307,6 +307,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
             result.AppendCheckItem((GUIId.ManageLogging + cnt), module)
             cnt = (cnt + 1)
             if (GUIId.MaxNumberLogging < cnt):
+                MediaFiler.Logger.debug('MediaFiler.getLoggingMenu(): Restricting menu length to %s' % GUIId.MaxNumberLogging)
                 break
         # TODO: store & retrieve logging state from configuration
         return(result)
@@ -405,16 +406,15 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         dialog = wx.DirDialog(self, _('Select Directory to Export into:'), style = (wx.DD_DEFAULT_STYLE))
         if (dialog.ShowModal() == wx.ID_OK):  # user selected directory
-            wx.GetApp().startProcessIndicator(_('Exporting to %s') % dialog.GetPath())
+            progressIndicator = wx.GetApp().startProcessIndicator(_('Exporting to %s') % dialog.GetPath())
             if (not os.path.isdir(dialog.GetPath())):
                 os.makedirs(dialog.GetPath())
             count = 0
-            # TODO: wx.GetApp().beginPhase(size of MediaCollection)
+            progressIndicator.beginPhase(self.model.getCollectionSize())
             for entry in self.model:
-                # TODO: wx.GetApp().beginStep()
+                progressIndicator.beginStep()
                 if ((not entry.isGroup())
                     and (not entry.filteredFlag)):
-                    #print('Exporting "%s" to "%s"' % (entry.getPath(), destination))
                     try:
                         shutil.copy(entry.getPath(), dialog.GetPath())
                     except Exception as e:
@@ -447,8 +447,9 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """Search for duplicates, merge file names, and remove one. 
         """
         wx.GetApp().startProcessIndicator()
-        self.model.findDuplicates(wx.GetApp())
+        (collisions, participants) = self.model.findDuplicates(wx.GetApp())
         wx.GetApp().stopProcessIndicator()
+        return(_('%s media involved in %s collisions') % (collisions, participants))
 
 
     def onDelegateToEntry(self, event):
@@ -558,7 +559,6 @@ class MediaFiler(wx.Frame, Observer, Observable):
         dialog = ImportDialog(self, self.model, importParameters)
         if (dialog.ShowModal() == wx.ID_OK):
             with wx.GetApp() as processIndicator:
-#                 importParameters.setProcessIndicator(wx.GetApp().startProcessIndicator())
                 importParameters.setProcessIndicator(processIndicator)
                 if (not testRun):
                     wx.GetApp().beginPhase(2)  # second step is to reload model; only if non-test import
@@ -579,7 +579,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                     except:
                         logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
                     if (not testRun):
-                        self.onReload(None)  # 2nd step of progress bar phase
+                        self.setModel(self.model.rootDirectory)
                     logDialog.Maximize(True)  # logDialog.SetSize(wx.Size(1000,600))  # TODO: make dialog resizable
                     logDialog.ShowModal()
                     logDialog.Destroy()
@@ -685,7 +685,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
             commandArgs = shlex.split(editorName)  # editorName.split() does not respect quotes
             logging.debug('App.onEditClasses(): Calling %s' % commandArgs)
             retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
-            if (retCode <> 0):
+            if (retCode != 0):
                 MediaFiler.Logger.warn('MediaFiler.onEditClasses(): Call failed with return code %s!' % retCode)
                 dlg = wx.MessageDialog(self, 
                                        (_('The external program failed with return code %s.') % retCode),
@@ -711,7 +711,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 commandArgs = shlex.split(editorName)
                 MediaFiler.Logger.debug('MediaFiler.onEditNames(): Calling %s' % commandArgs)
                 retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
-                if (retCode <> 0):
+                if (retCode != 0):
                     MediaFiler.Logger.warn('App.onEditNames(): Call failed with return code %s!' % retCode)
                     dlg = wx.MessageDialog(self, 
                                            (_('The external program failed with return code %s.') % retCode),
@@ -746,7 +746,15 @@ class MediaFiler(wx.Frame, Observer, Observable):
             logging.getLogger(moduleName).addHandler(self.__class__.LogHandlerInteractive)
         else:
             logging.getLogger(moduleName).removeHandler(self.__class__.LogHandlerInteractive)
-        loggedModules = [name for name in loggableModules if menu.IsChecked(menu.FindItem(name))]
+        # loggedModules = [name for name in loggableModules if menu.IsChecked(menu.FindItem(name))]  # might fail due to limitation of menu entries, therefor:
+        loggedModules = []
+        for name in loggableModules: 
+            i = menu.FindItem(name)
+            try:
+                if (menu.IsChecked(i)):
+                    loggedModules.append(name)
+            except: 
+                pass  # IsChecked() might fail due to limitation of number of menu entries
         self.model.setConfiguration(GlobalConfigurationOptions.LastLoggedModules,
                                     ' '.join(loggedModules))
 
@@ -887,16 +895,17 @@ class MediaFiler(wx.Frame, Observer, Observable):
         def findNames(prefix, pathList):
             MediaFiler.Logger.debug('MediaFiler.getLoggableModules(): Looking at %s' % pathList)
             for dummy, moduleName, isPackage in pkgutil.iter_modules(pathList):
-                if (moduleName.find('test') <> 0):
+                if (moduleName.find('test') != 0):
                     result.append(prefix + '.' + moduleName)
                     if (isPackage):
                         findNames((prefix + '.' + moduleName),
                                   [os.path.join(pathList[0], moduleName)])
+        # findNames('', <sourceDirectory>)  does not find the modules
         import Model  # @UnusedImport
         findNames('Model', Model.__path__)
         import UI  # @Reimport @UnusedImport
         findNames('UI', UI.__path__)
-        # findNames('', <sourceDirectory>)  does not find the modules
+        result.append('nobi.wx.PhasedProgressBar')
         MediaFiler.Logger.debug('MediaFiler.getLoggableModules(): Returning %s' % result)
         return(result)
 
@@ -1093,7 +1102,7 @@ class MediaFilerApp(ProgressSplashApp):
                 print('MediaFilerApp.__exit__(). Caught %s %s %s' % (exceptionType, exceptionValue, exceptionTraceback))
                 self.stopProcessIndicator()
                 return(True)
-        elif (exceptionType <> None):  # other exceptions are passed on
+        elif (exceptionType):  # other exceptions are passed on
             return(False)
         else:  # no exception
             self.stopProcessIndicator()

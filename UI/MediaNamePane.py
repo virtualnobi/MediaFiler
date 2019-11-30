@@ -60,8 +60,9 @@ class MediaNamePane(wx.Panel, Observer):
         
         wx.Window parent is the parent window to display the new pane
         """
+        # style = (style | wx.FULL_REPAINT_ON_RESIZE)
         # inheritance
-        wx.Panel.__init__(self, parent, style=(style | wx.FULL_REPAINT_ON_RESIZE))
+        wx.Panel.__init__(self, parent, style)
         Observer.__init__(self)
         # internal state
         self.model = None
@@ -177,6 +178,20 @@ class MediaNamePane(wx.Panel, Observer):
 
 
 # Other API Functions
+    def Validate(self):
+        """Recursively validate self.
+        """
+        if True:  # (super(MediaNamePane, self).Validate()):
+            for widget in self.GetChildren():
+                if ((widget.GetValidator()) 
+                    and (not widget.GetValidator().Validate())): # (not widget.Validate()):
+                    return(False)
+            return(True)
+        else:
+            return(False)
+
+
+
 # Internal
     def setElementField(self):
         """Set value of tag input field from selected entry.
@@ -203,25 +218,26 @@ class MediaNamePane(wx.Panel, Observer):
 
         Boolean removeUnknownTags indicates whether unknown tags shall be cleared from entry
         """
-        pathInfo = self.entry.getOrganizer().getPathInfo()
-        pathInfo.update(self.entry.getOrganizer().getValuesFromNamePane(self))
-        if (removeUnknownTags == False):
-            tagString = self.elementInput.GetValue()
-            tagSet = self.model.getClassHandler().stringToElements(tagString)
-            pathInfo['elements'] = tagSet
-        pathInfo['removeIllegalElements'] = removeUnknownTags
-        wx.GetApp().startProcessIndicator(_('Renaming...'))
-        try:
-            resultingSelection = self.entry.renameTo(**pathInfo)
-        except Exception as e:
-            dlg = wx.MessageDialog(self,   # TODO: add error message to Dialog
-                                   ('Cannot rename media!\n%s' % e),
-                                   'Error',
-                                   wx.OK | wx.ICON_ERROR)
-            dlg.ShowModal()
-            dlg.Destroy()
-        else:
-            self.model.setSelectedEntry(resultingSelection) 
-            self.rememberElements()
-        wx.GetApp().stopProcessIndicator()
+        if (self.Validate()):
+            pathInfo = self.entry.getOrganizer().getPathInfo()
+            pathInfo.update(self.entry.getOrganizer().getValuesFromNamePane(self))
+            if (removeUnknownTags == False):
+                tagString = self.elementInput.GetValue()
+                tagSet = self.model.getClassHandler().stringToElements(tagString)
+                pathInfo['elements'] = tagSet
+            pathInfo['removeIllegalElements'] = removeUnknownTags
+            wx.GetApp().startProcessIndicator(_('Renaming...'))
+            try:
+                resultingSelection = self.entry.renameTo(**pathInfo)
+            except Exception as e:
+                dlg = wx.MessageDialog(self,   # TODO: add error message to Dialog
+                                       ('Cannot rename media!\n%s' % e),
+                                       'Error',
+                                       wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
+            else:
+                self.model.setSelectedEntry(resultingSelection) 
+                self.rememberElements()
+            wx.GetApp().stopProcessIndicator()
 

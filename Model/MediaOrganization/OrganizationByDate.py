@@ -13,13 +13,14 @@ import logging
 import gettext
 from operator import itemgetter
 ## Contributed 
+from collections import OrderedDict
 import exifread
 #import wx
 import wx.calendar
 ## nobi
-#from nobi.wx.Menu import Menu
 from nobi.PartialDateTime import PartialDateTime
 from nobi.SortedCollection import SortedCollection
+from nobi.wx.Validator import TextCtrlIsIntValidator
 ## Project
 from . import MediaOrganization
 from ..MediaFilter import MediaFilter
@@ -28,7 +29,6 @@ from ..MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from UI.MediaFilterPane import FilterCondition
-from collections import OrderedDict
 
 
 
@@ -499,19 +499,28 @@ class OrganizationByDate(MediaOrganization):
         Adds year, month, day fields.
         """
         # year
-        aMediaNamePane.yearInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(80,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.yearInput = wx.TextCtrl(aMediaNamePane, 
+                                               size=wx.Size(80,-1), 
+                                               style=wx.TE_PROCESS_ENTER,
+                                               validator=TextCtrlIsIntValidator(label=_('Year'), minimum=1900, maximum=2099))
         aMediaNamePane.yearInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.yearInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # separator
         aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.IdentifierSeparator), flag=(wx.ALIGN_CENTER_VERTICAL))
         # month
-        aMediaNamePane.monthInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(40,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.monthInput = wx.TextCtrl(aMediaNamePane, 
+                                                size=wx.Size(40,-1), 
+                                                style=wx.TE_PROCESS_ENTER,
+                                                validator=TextCtrlIsIntValidator(label=_('Month'), minimum=1, maximum=12))
         aMediaNamePane.monthInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.monthInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # separator
         aMediaNamePane.GetSizer().Add(wx.StaticText(aMediaNamePane, -1, cls.IdentifierSeparator), flag=(wx.ALIGN_CENTER_VERTICAL))
         # day
-        aMediaNamePane.dayInput = wx.TextCtrl(aMediaNamePane, size=wx.Size(40,-1), style=wx.TE_PROCESS_ENTER)
+        aMediaNamePane.dayInput = wx.TextCtrl(aMediaNamePane, 
+                                              size=wx.Size(40,-1), 
+                                              style=wx.TE_PROCESS_ENTER,
+                                              validator=TextCtrlIsIntValidator(label=_('Day'), minimum=1, maximum=31))
         aMediaNamePane.dayInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.dayInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # generic 

@@ -106,9 +106,6 @@ class MediaCanvas(wx.Panel, Observer):
         Boolean forceUpdate redisplays even if the same entry is already selected (after filtering)
         """
         MediaCanvas.Logger.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
-        if (entry == self.model.root):  # TODO: remove
-            MediaCanvas.Logger.error('MediaCanvas.setEntry() should not get model root as entry...')
-            entry = self.model.initialEntry
         if (forceUpdate 
             or (self.entry <> entry)):
             self.clear()  # unbind events and unregister observable
@@ -159,11 +156,11 @@ class MediaCanvas(wx.Panel, Observer):
 
     def onResize(self, event):
         if (self.entry <> None):
-            wx.GetApp().startProcessIndicator()
+#             wx.GetApp().startProcessIndicator()
             Logger.debug('MediaCanvasPane.onResize(): ...')
             displayedEntries = self.entry.getEntriesForDisplay()
             self.sizeAndDisplayEntries(displayedEntries)
-            wx.GetApp().stopProcessIndicator()
+#             wx.GetApp().stopProcessIndicator()
 
 
 # Inheritance - ObserverPattern
@@ -212,6 +209,10 @@ class MediaCanvas(wx.Panel, Observer):
         """
         # determine aspect ratio of canvas
         (self.width, self.height) = self.GetSizeTuple()
+        if ((0 == self.width)
+            or (0 == self.height)):
+            Logger.error('MediaCanvasPane.calculateGrid(): Pane width or height are zero!')
+            raise ValueError
         ratio = (float(self.width) / float(self.height))
         # calculate number of columns
         if (numberOfImages == 0): # special case - no images, no display
@@ -256,7 +257,7 @@ class MediaCanvas(wx.Panel, Observer):
         # 
         progressIndicator = None
         if (10 < len(entries)):
-            progressIndicator = wx.GetApp()
+            progressIndicator = wx.GetApp().startProcessIndicator()
             Logger.debug('MediaCanvas.sizeAndDisplayEntries(): Progress bar is %s' % progressIndicator.getProgressBar())
             progressIndicator.beginPhase(len(entries), (_('Resizing images in "%s"') % self.entry.getIdentifier()))  
         column = 1  # count columns when placing images in grid
@@ -285,6 +286,8 @@ class MediaCanvas(wx.Panel, Observer):
             else:  
                 x = (x + self.imageWidth + self.ImagePadding)
                 column = (column + 1)
+        if (progressIndicator):
+            wx.GetApp().stopProcessIndicator()
         self.Refresh()
         self.Update()
 

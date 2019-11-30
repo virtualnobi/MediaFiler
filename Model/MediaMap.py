@@ -15,6 +15,7 @@ import hashlib
 ## Project
 from .Entry import Entry
 from .Single import Single
+from multiprocessing.forking import duplicate
 
 
 
@@ -84,7 +85,7 @@ class MediaMap(object):
     def addSingle(self, aSingle):
         """Add aSingle to self. 
         """
-        key = self.getKeyFromFile(aSingle.getPath())
+        key = aSingle.getKey()
         if (key in self.mediaMapping):
             if (not aSingle in self.mediaMapping[key]):
                 self.mediaMapping[key].append(aSingle)
@@ -100,17 +101,19 @@ class MediaMap(object):
         Return a Single different from aSingle, but with identical content, if it exists
             or None if it does not exist
         """
-        key = self.getKeyFromFile(aSingle.getPath())
+        key = aSingle.getKey()
         if (key in self.mediaMapping):
             duplicate = None
             for candidate in self.mediaCollection[key]:
-                if ((aSingle <> candidate)
-                    and (aSingle.isIdentical(candidate))):
+                if ((aSingle != candidate)
+                    and (aSingle.isIdenticalContent(candidate))):
                     duplicate = candidate
                     break
             if (duplicate == None):
                 Logger.info('MediaMap.contains(): Same key, but different files for %s' % aSingle)
             return(duplicate)
+        else:
+            return(None)
 
 
     def getDuplicates(self, aSingle):
@@ -118,9 +121,11 @@ class MediaMap(object):
         
         Return list of Single (empty if no duplicates exist)
         """
-        key = self.getKeyFromFile(aSingle.getPath())
+        key = aSingle.getKey()
         if (key in self.mediaMapping):
-            return([duplicate for duplicate in self.mediaMapping[key] if (duplicate != aSingle)])
+            return([duplicate 
+                    for duplicate in self.mediaMapping[key] 
+                    if ((duplicate != aSingle) and (aSingle.isIdenticalContent(duplicate)))])
         else:
             return([])
 
@@ -132,7 +137,7 @@ class MediaMap(object):
         Number fileSize contains the filesize of the media file to check
         Return Single with identical media content, or None if none exists 
         """
-        key = self.getKeyFromFile(fileName)
+        key = Single.getKeyFromFile(fileName)
         if (key in self.mediaMapping):
             candidates = self.mediaMapping[key] 
             Logger.debug('MediaMap.getDuplicate(): %s potential duplicates found for "%s"' % (len(candidates), fileName))
@@ -149,14 +154,14 @@ class MediaMap(object):
     def getCollisions(self):
         """Return the count of collisions with the count of objects involved.
         
-        Return Sequence (collisions, participants)
+        Return Sequence of Number (collisions, participants)
         """
         collisions = 0
         participants = 0
         for key, value in self.mediaMapping.items(): 
             if (1 < len(value)):
                 collisions = (collisions + 1)
-                participants = (participants + len(value))
+                participants = (participants + len(value) - 1)
                 Logger.debug('MediaMap.getCollisions(): Collision at "%s" with \n\t%s\n\t%s' % (key, value[0], value[1]))
         return(collisions, participants)
 

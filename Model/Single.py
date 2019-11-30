@@ -14,6 +14,7 @@ import shlex
 import sys
 import subprocess
 import logging
+import hashlib
 #from collections import OrderedDict
 ## contributed
 import wx
@@ -76,6 +77,7 @@ class Single(Entry):
 
 # Constants
     ConfigurationOptionEmailClient = 'editor-email'
+    InputLengthForKey = (1024 * 8)
 
 
 
@@ -111,6 +113,26 @@ class Single(Entry):
         Return the external command string, or None if none given.
         """
         return(None)
+
+
+    @classmethod
+    def getKeyFromFile(self, path):
+        """Calculate a key to be used in MediaMap, from a Single's file
+        
+        Return String
+        """
+#         # just use filesize
+#         # use prefix of file content
+#         with open(path, 'rb') as f:
+#             key = f.read(MediaMap.KeyLength)
+#         key = unicode(key, 'ascii', 'replace')
+        # use hash of longer prefix of file content
+        with open(path, 'rb') as f:
+            prefix = f.read(Single.InputLengthForKey)
+        algorithm = hashlib.md5()
+        algorithm.update(prefix)
+        key = algorithm.hexdigest()
+        return(key)
 
 
 
@@ -151,6 +173,14 @@ class Single(Entry):
 
 
 # Getters
+    def getKey(self):
+        """Calculate a key for self to be used in MediaMap.
+        
+        Return String
+        """
+        return(Single.getKeyFromFile(self.getPath()))
+
+    
     def getDuplicates(self):
         """Return the stored list of other Single instances which have identical content.
         
@@ -197,8 +227,6 @@ class Single(Entry):
         menu.insertAfterId(GUIId.SendMail,
                            newText=GUIId.FunctionNames[GUIId.ShowDuplicates],
                            newMenu=self.constructDuplicateMenu())
-        menu.Enable(GUIId.ShowDuplicates, (0 < len(self.getDuplicates())))
-        
         # structure functions
         # group functions
         # delete functions
@@ -219,8 +247,11 @@ class Single(Entry):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):
             message = self.sendMail()
-        elif (menuId == GUIId.ShowDuplicates):
-            pass # TODO: set duplicate as selected in model
+        elif ((menuId <= GUIId.ShowDuplicates)
+              and ((GUIId.ShowDuplicates + GUIId.MaxNumberDuplicates) <= menuId)):
+            duplicateIndex = (menuId - GUIId.ShowDuplicates)
+            duplicate = self.duplicates[duplicateIndex]
+            self.getModel().setSelectedEntry(duplicate)
         else:
             message = super(Single, self).runContextMenuItem(menuId, parentWindow)
         return(message)
@@ -250,35 +281,29 @@ class Single(Entry):
         return(self.fileSize)
         
 
-    def isIdentical(self, anEntry):
+    def isIdenticalContent(self, anEntry):
         """Check whether self and anEntry have the same content.
         
         Subclasses have to check for content, but this provides a quick check based on class and filesize.
         
         Returns a Boolean indicating that self and anEntry are identical
         """
-        return(super(Single, self).isIdentical(anEntry) 
+        return(super(Single, self).isIdenticalContent(anEntry) 
                and (self.getFileSize() == anEntry.getFileSize()))
 
 
-    def isIdenticalContent(self, pathName):
-        """Check whether self's media contains the same as another file. 
-        
-        Boolean pathName specifies the file to compare to.
-        Return Boolean indicated whether the two media are identical
-        """
-        return(False)  # TODO: 
-
-
-    def getRawImage(self, debug=False):
+    def getRawImage(self):
         """Retrieve raw data (JPG or PNG or GIF) for media.
         """
         if (self.rawImage):
             return(self.rawImage)
         encodedPath = self.getPath()  # .encode(sys.getfilesystemencoding())
-        self.rawImage = self.__class__.getRawImageFromPath(self.model, encodedPath)
-        self.rawImageHeight = self.rawImage.GetHeight()
-        self.rawImageWidth = self.rawImage.GetWidth()
+        try:
+            self.rawImage = self.__class__.getRawImageFromPath(self.model, encodedPath)
+            self.rawImageHeight = self.rawImage.GetHeight()
+            self.rawImageWidth = self.rawImage.GetWidth()
+        except:  # getting here means even the default preview images are corrupt
+            self.rawImage = wx.Image(10, 10)
         CachingController.allocateMemory(self, 
                                          self.getRawDataMemoryUsage(), 
                                          cachePriority=Entry.CachingLevelRawData)
@@ -355,10 +380,10 @@ class Single(Entry):
                 else: # image taller than pane, use full pane height
                     width = int(height * imageRatio)
                     Logger.debug('    changed width to %s' % width)
-            Logger.debug('    using size %sx%s' % (width, height))
+            Logger.debug('    using size %sx%s for %s' % (width, height, self.getPath()))
             return(width, height)
         else:
-            raise ValueError, 'Single.getSizeFittedTo(): Only one of width and height are given!'
+            raise ValueError, ('Single.getSizeFittedTo(): Only one of width and height are given for %s!' % self.getPath())
 
     
     def getBitmap(self, width, height):
@@ -367,7 +392,7 @@ class Single(Entry):
         Number width
         Number height
         Boolean cacheAsThumbnail indicates whether width x height is fullsize or thumbnail
-         Returns MediaFiler.Single.ImageBitmap
+        Returns MediaFiler.Single.ImageBitmap
         """
         (w, h) = self.getSizeFittedTo(width, height)
         if ((self.bitmap == None)
@@ -383,6 +408,33 @@ class Single(Entry):
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
             self.registerCacheWithPriority(Single.CachingLevelThumbnailBitmap)
         return(self.bitmap)
+
+
+#     def getRealBitmap(self, width, height, cacheAsThumbnail = True):
+#         """Return a wx.StaticBitmap for self's image, resized to fit into given size.
+#         
+#         Number width
+#         Number height
+#         Boolean cacheAsThumbnail indicates whether width x height is fullsize or thumbnail
+#         Returns MediaFiler.Single.ImageBitmap
+#         """
+#         (w, h) = self.getSizeFittedTo(width, height)
+#         if (w == 0):
+#             w = 1
+#         if (h == 0):
+#             h = 1
+#         if ((self.bitmap == None)
+#             or (self.bitmapWidth <> w)
+#             or (self.bitmapHeight <> h)):
+#             self.releaseCacheWithPriority(Single.CachingLevelThumbnailBitmap)
+#             Logger.debug('Single.getBitmap(): Creating %dx%d bitmap' % (w, h))
+#             self.bitmap = self.getRawImage().Copy().Rescale(w, h).ConvertToBitmap()
+#             (self.bitmapWidth, self.bitmapHeight) = (w, h)
+#             self.registerCacheWithPriority(Single.CachingLevelThumbnailBitmap)
+# #             x = x + ((width - w) / 2)
+# #             y = y + ((height - h) / 2)
+# #             wx.StaticBitmap.__init__(self, parent, ident, bitmap, pos=(x, y))
+#         return(self.bitmap)
 
 
 

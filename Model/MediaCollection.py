@@ -464,10 +464,14 @@ class MediaCollection(Observable, Observer):
         return(True)
 
 
+    @profiledOnLogger(Logger)
     def findDuplicates(self, aProgressIndicator=None):
         """Search duplicates, merge file names, and remove one. 
         
-        aProgressIndicator shall understand beginStep() 
+        aProgressIndicator shall understand beginStep()
+        Return Sequence of Number (collisions, participants) where
+            collisions gives the number of groups of identical Singles
+            participants gives the total of Singles involved in collisions
         """
         mmap = MediaMap(self, aProgressIndicator)
         for entry in self:
@@ -478,6 +482,7 @@ class MediaCollection(Observable, Observer):
                     print('MediaCollection.findDuplicates(): %s duplicates of %s found:' % (len(duplicates), entry.getPath())) 
                     for dupEntry in duplicates:
                         print('\t%s' % dupEntry.getPath())
+        return(mmap.getCollisions())
 
 
 
@@ -535,6 +540,9 @@ class MediaCollection(Observable, Observer):
             importParameters.setMediaMap(MediaMap.getMap(self, processIndicator))
             if (importParameters.getMediaMap() == None):
                 importParameters.setCheckForDuplicates(False)
+                importParameters.logString('No media map created; will not check for duplicates.')
+            else:
+                importParameters.logString('Media map exists; will check for duplicates.')
         importParameters.logString('Importing by %s from "%s" into "%s"\n' 
                                    % (('date' if (self.organizationStrategy == OrganizationByDate) else 'name'),
                                       importParameters.getImportDirectory(), 
@@ -610,6 +618,8 @@ class MediaCollection(Observable, Observer):
                             duplicate = None
                             if (importParameters.getCheckForDuplicates()):
                                 duplicate = importParameters.getMediaMap().getDuplicate(sourcePath, fileSize)
+                                if (duplicate != None):
+                                    pass
                             if (duplicate == None):
                                 self.organizationStrategy.importMedia(importParameters, 
                                                                       sourcePath, 
@@ -618,6 +628,7 @@ class MediaCollection(Observable, Observer):
                                                                       targetDir,
                                                                       newTargetPathInfo,
                                                                       importParameters.getIllegalElements())
+                                importParameters.setNumberOfImportedFiles(importParameters.getNumberOfImportedFiles() + 1)
                                 if (removeProcessedFiles):
                                     importParameters.logString('Removing imported file "%s"' % sourcePath)
                                     try:
