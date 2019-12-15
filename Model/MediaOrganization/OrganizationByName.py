@@ -218,7 +218,7 @@ class OrganizationByName(MediaOrganization):
         """
         group = cls.ImageFilerModel.getEntry(group=True, path=path)
         if (group == None):
-            group = Group(cls.ImageFilerModel, path)
+            group = Group(cls.ImageFilerModel, path)  # TODO: recursion unlimited when "random name" 
             groupPathPattern = os.path.join(cls.ImageFilerModel.getRootDirectory(), '[a-z]')
             match = re.match(groupPathPattern, path)
             if (match):
@@ -322,7 +322,9 @@ class OrganizationByName(MediaOrganization):
         aMediaNamePane.sceneInput = wx.TextCtrl(aMediaNamePane, 
                                                 size=wx.Size(40,-1), 
                                                 style=wx.TE_PROCESS_ENTER,
-                                                validator=TextCtrlIsIntValidator(label=_('Scene'), minimum=1))
+                                                validator=TextCtrlIsIntValidator(label=_('Scene'), 
+                                                                                 minimum=1,
+                                                                                 emptyAllowed=True))
         aMediaNamePane.sceneInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.sceneInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # number

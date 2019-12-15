@@ -293,7 +293,10 @@ class MediaOrganization(object):
         aMediaNamePane.numberInput = wx.TextCtrl(aMediaNamePane, 
                                                  size=wx.Size(60,-1), 
                                                  style=wx.TE_PROCESS_ENTER,
-                                                 validator=TextCtrlIsIntValidator(label=_('Media Number'), minimum=1, maximum=999))
+                                                 validator=TextCtrlIsIntValidator(label=_('Media Number'), 
+                                                                                  minimum=1, 
+                                                                                  maximum=999,
+                                                                                  emptyAllowed=True))
         aMediaNamePane.numberInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.numberInput, flag=(wx.ALIGN_CENTER_VERTICAL))
 
@@ -542,7 +545,8 @@ class MediaOrganization(object):
         result = {}
         if (not self.getContext().isGroup()):
             number = aMediaNamePane.numberInput.GetValue()
-            if (number <> ''):
+            number = number.strip()
+            if (number <> u''):
                 try:
                     result['number'] = int(number)
                 except:
