@@ -267,7 +267,8 @@ class MediaCollection(Observable, Observer):
 
         Returns an Entry, or None
         """
-        searching = self.getRootEntry().getSubEntries(filtering)
+        # searching = self.getRootEntry().getSubEntries(filtering)
+        searching = [self.getRootEntry()]
         while (len(searching) > 0):
             entry = searching.pop()
             if (((group == None) or (group == entry.isGroup()))
@@ -618,8 +619,6 @@ class MediaCollection(Observable, Observer):
                             duplicate = None
                             if (importParameters.getCheckForDuplicates()):
                                 duplicate = importParameters.getMediaMap().getDuplicate(sourcePath, fileSize)
-                                if (duplicate != None):
-                                    pass
                             if (duplicate == None):
                                 self.organizationStrategy.importMedia(importParameters, 
                                                                       sourcePath, 
