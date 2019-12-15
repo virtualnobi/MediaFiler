@@ -1,7 +1,7 @@
 #################
 ## Project
 #################
-log*.txt
+log-1.txt
 
 
 #################
@@ -67,11 +67,14 @@ pip-log.txt
 .coverage
 .tox
 
-#Translations
-*.mo
-
 #Mr Developer
 .mr.developer.cfg
+
+
+#############
+## Poedit Translations
+#############
+*.mo
 
 
 #############
@@ -88,7 +91,9 @@ Desktop.ini
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
 
-# Mac crap
+#############
+## Mac crap
+#############
 .DS_Store
 
 
