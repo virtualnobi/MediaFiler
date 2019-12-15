@@ -54,12 +54,14 @@ class ImageBitmap(wx.StaticBitmap):
         """
         # correct position (x, y) to place image in middle of frame
         bitmap = entry.getBitmap(width, height)
+#         bitmap = wx.Bitmap.FromRGBA(width, height, red=255, green=0, blue=0, alpha=0)
         (w, h) = bitmap.GetSize()
         x = x + ((width - w) / 2)
         y = y + ((height - h) / 2)
         # inheritance
         wx.StaticBitmap.__init__(self, parent, ident, bitmap, pos=(x, y))
         # internal state
+#         self.SetBitmap(entry.getBitmap(width, height))
         self.entry = entry
  
          

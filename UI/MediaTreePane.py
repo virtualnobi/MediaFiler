@@ -246,6 +246,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             node = observable.getTreeItemID()
             self.SetItemText(node, observable.getFilename())
             self.SortChildren(self.GetItemParent(node))
+            self.EnsureVisible(node)
             Logger.debug('MediaTreeCtrl.updateAspect(): Changed name of %s' % observable)
         elif (aspect == 'remove'):  # Entry deleted
             observable.removeObserver(self)
@@ -273,6 +274,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             self.storeExpansionState()
             Logger.debug('MediaTreeCtrl.updateAspect(): Stored state before filtering')
         elif (aspect == 'stopFiltering'):  # filtering done, try to restore selection
+            self.Freeze()
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
             if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
@@ -280,6 +282,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             else:
                 self.setEntry(self.model.getSelectedEntry())
             self.restoreExpansionState()
+            self.Thaw()
             Logger.debug('MediaTreeCtrl.updateAspect(): Recreated tree state after filtering')
         else:
             super(MediaTreeCtrl, self).update(observable, aspect)
@@ -324,7 +327,8 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
 #                     else:
                     Logger.debug('MediaTreeCtrl.EnsureVisible: invisible, scrolling to %s' % entry)
                     wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
-                    wx.TreeCtrl.ScrollTo(self, item) 
+                    wx.TreeCtrl.ScrollTo(self, item)
+                    Logger.debug('MediaTreeCtrl.EnsureVisible(): GetBoundingRect() is now %s' % self.GetBoundingRect(item))                    
                 else:
                     Logger.debug('MediaTreeCtrl.EnsureVisible(): %s already visible' % entry)
             else:

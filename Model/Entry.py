@@ -520,7 +520,6 @@ class Entry(Observable):
         Return the Entry to be shown after renaming
         """
         raise NotImplementedError
-#         return(self.getOrganizer().renameSingle(elements=elements, removeIllegalElements=removeIllegalElements, **kwargs))
 
 
     def renameToFilename(self, fname):

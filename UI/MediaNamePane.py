@@ -229,8 +229,8 @@ class MediaNamePane(wx.Panel, Observer):
             wx.GetApp().startProcessIndicator(_('Renaming...'))
             try:
                 resultingSelection = self.entry.renameTo(**pathInfo)
-            except Exception as e:
-                dlg = wx.MessageDialog(self,   # TODO: add error message to Dialog
+            except WindowsError as e:
+                dlg = wx.MessageDialog(self,
                                        ('Cannot rename media!\n%s' % e),
                                        'Error',
                                        wx.OK | wx.ICON_ERROR)

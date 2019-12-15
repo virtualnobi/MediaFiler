@@ -10,7 +10,7 @@ import math
 import logging
 import os.path
 import gettext
-#import cProfile, pstats, StringIO
+import psutil
 ## contributed
 import wx
 ## nobi
@@ -244,18 +244,30 @@ class MediaCanvas(wx.Panel, Observer):
 
     def sizeAndDisplayEntries(self, entries):
         """Determine size and place of entries and add them to canvas. 
+
+        psutil.cpu_count() gives too many (= logical) cores
         
-        Try to refactor for multiprocessing.Pool()
+        https://wiki.wxpython.org/LongRunningTasks
+        
+        TODO: refactor for multiprocessing.Pool():
+        from multiprocessing import Process, Queue
+        def f(q):
+            q.put([42, None, 'hello'])
+        if __name__ == '__main__':
+            q = Queue()
+            p = Process(target=f, args=(q,))
+            p.start()
+            print q.get()    # prints "[42, None, 'hello']"
+            p.join()
         """
         # remove images from grid
         for child in self.GetChildren():
-            #self.gridSizer.Remove (child)
             child.Unbind(wx.EVT_MOUSE_EVENTS)
             child.Unbind(wx.EVT_MENU_RANGE)
             child.Destroy()
         self.ClearBackground()
         # 
-        progressIndicator = None
+        progressIndicator = None  # TODO: accept progressIndicator from outside, to allow embedded progress...
         if (10 < len(entries)):
             progressIndicator = wx.GetApp().startProcessIndicator()
             Logger.debug('MediaCanvas.sizeAndDisplayEntries(): Progress bar is %s' % progressIndicator.getProgressBar())
@@ -263,7 +275,7 @@ class MediaCanvas(wx.Panel, Observer):
         column = 1  # count columns when placing images in grid
         (x, y) = (0, 0)  # position of image
         self.calculateGrid(len(entries))
-        for entry in entries:  # TODO: use multiprocessing.Pool() or similar
+        for entry in entries:
             if (progressIndicator):
                 progressIndicator.beginStep()
             entry.addObserverForAspect(self, 'name')
@@ -286,10 +298,11 @@ class MediaCanvas(wx.Panel, Observer):
             else:  
                 x = (x + self.imageWidth + self.ImagePadding)
                 column = (column + 1)
+            self.Update()
+            wx.GetApp().ProcessPendingEvents()
         if (progressIndicator):
             wx.GetApp().stopProcessIndicator()
-        self.Refresh()
-        self.Update()
+#         self.Update()
 
 
     def handleImageClick(self, event, target):
