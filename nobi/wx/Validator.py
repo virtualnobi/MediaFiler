@@ -18,6 +18,7 @@ import wx
 ## nobi
 ## Project
 import UI  # to access UI.PackagePath
+from __builtin__ import True
 
 
 
@@ -52,10 +53,13 @@ class TextCtrlIsIntValidator(wx.PyValidator):
 # Class Variables
 # Class Methods
 # Lifecycle
-    def __init__(self, title=_('Validation Error'), label=_('Value'), minimum=(-sys.maxint-1), maximum=sys.maxint):
+    def __init__(self, title=_('Validation Error'), label=_('Value'), minimum=(-sys.maxint-1), maximum=sys.maxint, emptyAllowed=False):
         """
         String title is the title of the Dialog indicating a validation error.
-        String text is the text shown on the Dialog indicating a validation error.
+        String label is the text shown to indicating the erroneous field.
+        Number minimum is the minimum allowed number
+        Number maximum is the maximum allowed number
+        Boolean emptyAllowed indicates whether the TextCtrl may be left empty
         """
         # inheritance
 #        super(TextCtrlIsIntValidator, self).__init__()
@@ -66,6 +70,7 @@ class TextCtrlIsIntValidator(wx.PyValidator):
         self.fieldLabel = label
         self.minimumValue = minimum
         self.maximumValue = maximum
+        self.emptyAllowed = emptyAllowed
 
 
     def Clone(self):
@@ -74,7 +79,8 @@ class TextCtrlIsIntValidator(wx.PyValidator):
         return(TextCtrlIsIntValidator(title=self.validationErrorTitle, 
                                       label=self.fieldLabel, 
                                       minimum=self.minimumValue, 
-                                      maximum=self.maximumValue))
+                                      maximum=self.maximumValue,
+                                      emptyAllowed=self.emptyAllowed))
 
 
 # Setters
@@ -92,15 +98,15 @@ class TextCtrlIsIntValidator(wx.PyValidator):
         """Override
         """
         if (self.GetWindow().IsEnabled()):  # can trigger validation error only if enabled for input
+            message = None
             self.TransferFromWindow()
             if (self.integerValue == None):
-                message = _('%s requires an integer value' % self.fieldLabel)
+                if (not self.emptyAllowed):
+                    message = _('%s requires an integer value' % self.fieldLabel)
             elif (self.integerValue < self.minimumValue): 
                 message = _('%s must be an integer larger or equal to %s' % (self.fieldLabel, self.minimumValue))
             elif (self.maximumValue < self.integerValue):
                 message = _('%s must be an integer smaller or equal to %s' % (self.fieldLabel, self.maximumValue))
-            else:
-                message = None
             if (message):
                 dlg = wx.MessageDialog(self.GetWindow(), message, self.validationErrorTitle, (wx.OK))
                 dlg.ShowModal()

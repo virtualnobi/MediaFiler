@@ -502,7 +502,10 @@ class OrganizationByDate(MediaOrganization):
         aMediaNamePane.yearInput = wx.TextCtrl(aMediaNamePane, 
                                                size=wx.Size(80,-1), 
                                                style=wx.TE_PROCESS_ENTER,
-                                               validator=TextCtrlIsIntValidator(label=_('Year'), minimum=1900, maximum=2099))
+                                               validator=TextCtrlIsIntValidator(label=_('Year'), 
+                                                                                minimum=1900, 
+                                                                                maximum=2099,
+                                                                                emptyAllowed=True))
         aMediaNamePane.yearInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.yearInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # separator
@@ -511,7 +514,10 @@ class OrganizationByDate(MediaOrganization):
         aMediaNamePane.monthInput = wx.TextCtrl(aMediaNamePane, 
                                                 size=wx.Size(40,-1), 
                                                 style=wx.TE_PROCESS_ENTER,
-                                                validator=TextCtrlIsIntValidator(label=_('Month'), minimum=1, maximum=12))
+                                                validator=TextCtrlIsIntValidator(label=_('Month'), 
+                                                                                 minimum=1, 
+                                                                                 maximum=12,
+                                                                                 emptyAllowed=True))
         aMediaNamePane.monthInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.monthInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # separator
@@ -520,7 +526,10 @@ class OrganizationByDate(MediaOrganization):
         aMediaNamePane.dayInput = wx.TextCtrl(aMediaNamePane, 
                                               size=wx.Size(40,-1), 
                                               style=wx.TE_PROCESS_ENTER,
-                                              validator=TextCtrlIsIntValidator(label=_('Day'), minimum=1, maximum=31))
+                                              validator=TextCtrlIsIntValidator(label=_('Day'), 
+                                                                               minimum=1, 
+                                                                               maximum=31,
+                                                                               emptyAllowed=True))
         aMediaNamePane.dayInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
         aMediaNamePane.GetSizer().Add(aMediaNamePane.dayInput, flag=(wx.ALIGN_CENTER_VERTICAL))
         # generic 
@@ -791,7 +800,8 @@ class OrganizationByDate(MediaOrganization):
             newParent = model.getEntry(group=True, year=year, month=month, day=day)
             if (not newParent):
                 newParent = Group.createAndPersist(model, 
-                                                   self.__class__.constructPath(self.__class__, year=year, month=month, day=day))
+#                                                    self.__class__.constructPath(self.__class__, year=year, month=month, day=day))
+                                                   self.__class__.constructPath(year=year, month=month, day=day))
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=filtering):
             pathInfo = subEntry.getOrganizer().getPathInfo()
