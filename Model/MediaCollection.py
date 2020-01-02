@@ -401,7 +401,10 @@ class MediaCollection(Observable, Observer):
         if (observable == self.filter):  # filter changed
             self.filterEntries()
         elif (aspect == 'remove'):  # entry removed
-            self.cachedCollectionSize = (self.cachedCollectionSize - 1)
+            if (isinstance(observable, Single)):
+                self.cachedCollectionSize = (self.cachedCollectionSize - 1)
+            else:  # observable is a Group
+                self.cachedCollectionSize = (self.cachedCollectionSize - 1)  # TOOD: decrease by group descendants
             # invalidate cached properties if affected
             if (observable.getFileSize() == self.cachedMinimumSize):
                 self.cachedMinimumSize = 0

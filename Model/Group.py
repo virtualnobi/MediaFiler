@@ -272,15 +272,15 @@ class Group(Entry, Observer):
         if (entry):
             index = (self.subEntriesSorted.index(entry) - 1)
             if (filtering):
-                while ((self.subEntriesSorted[index].isFiltered()) 
-                       and (0 < index)): 
+                while ((0 < index)
+                       and (self.subEntriesSorted[index].isFiltered())): 
                     index = (index - 1)
-            if (0 <= index):
+            if (0 <= index):  # previous entry is inside this group
                 prevEntry = self.subEntriesSorted[index]
                 if (prevEntry.isGroup()):
                     prevEntry = prevEntry.getLastEntry(filtering=filtering)
                 return(prevEntry)
-            else:
+            else:  # previous entry is before this group
                 return(super(Group, self).getPreviousEntry(self, filtering=filtering))
         else:
             return(super(Group, self).getPreviousEntry(self, filtering=filtering))

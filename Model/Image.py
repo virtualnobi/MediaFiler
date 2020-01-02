@@ -10,13 +10,12 @@ import gettext
 import logging
 ## contributed
 import wx
+import pyexiv2
 ## nobi
 ## project
 import Installer
-# from .Entry import Entry
 from .Single import Single
 import UI  # to access UI.PackagePath
-#from Model.CachingController import CachingController
 
 
 
@@ -77,6 +76,10 @@ class Image(Single):
     def getRawImageFromPath(cls, aMediaCollection, path):
         """Return a raw image to represent the media content of the given file.
         
+        Credits: 
+        https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
+        https://github.com/LeoHsiao1/pyexiv2#usage
+        
         Model.MediaCollection aMediaCollection
         String path
         Return wx.Image or None
@@ -85,9 +88,27 @@ class Image(Single):
         extension = extension[1:].lower()
         imageType = None
         rawImage = None
+        orientation = 1  # EXIF orientation as-is
+        rotation = 'N'  # N: normal, L: left, R:right, M: mirror
         if ((extension == 'jpg')
             or (extension == 'jpeg')):
             imageType = wx.BITMAP_TYPE_JPEG
+            try:  # to determine orientation from EXIF metadata in path
+                Logger.debug('Image.getRawImageFromPath(): Reading metadata from "%s"' % path)
+                image = pyexiv2.Image(path)
+                metadata = image.read_exif()  # {'Exif.Image.DateTime': '2019:06:23 19:45:17', 'Exif.Image.Artist': 'TEST', ...}
+                Logger.debug('Image.getRawImageFromPath(): Read metadata %s' % metadata)
+                orientation = int(metadata['Exif.Image.Orientation'])
+                Logger.debug('Image.getRawImageFromPath(): EXIF orientation is %s' % orientation)
+            except:  # failed, assume as-is
+                Logger.debug('Image.getRawImageFromPath(): No EXIF orientation information, assuming as-is')
+                orientation = 1
+            if (orientation == 6):  # clockwise 90 degrees
+                rotation = 'R'
+            elif (orientation == 8):  # clockwise 270 degrees
+                rotation = 'L'
+            elif (orientation == 3):  # clockwise 180 degrees
+                rotation = 'M'
         elif (extension == 'png'):
             imageType = wx.BITMAP_TYPE_PNG
         elif (extension == 'gif'):
@@ -100,6 +121,16 @@ class Image(Single):
                 Logger.warning('Image.getRawImageFromPath(): Failed to load "%s"!' % path)
                 rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Image.PreviewImageFilename),
                                     wx.BITMAP_TYPE_JPEG)
+            if (rotation != 'N'):
+                Logger.debug('Image.getRawImageFromPath(): Rotating %s degrees' % rotation)
+                #centerPoint = (rawImage.GetWidth()/2, rawImage.GetHeight()/2)
+                #rawImage = rawImage.Rotate(rotation, centerPoint, interpolating=True)
+                if (rotation == 'R'):
+                    rawImage = rawImage.Rotate90(True)
+                elif (rotation == 'L'):
+                    pass # rawImage = rawImage.Rotate90(False)
+                else:  # must be 'M'
+                    rawImage = rawImage.Rotate180()
         else: 
             Logger.warning('Image.getRawImageFromPath(): Illegal type in "%s"!' % path)
         return(rawImage)

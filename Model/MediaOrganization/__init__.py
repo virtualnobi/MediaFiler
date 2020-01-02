@@ -456,7 +456,8 @@ class MediaOrganization(object):
             renumberList.append(lastNumber + 1)
             if (len(renumberList) == GUIId.MaxNumberNumbers):
                 break
-            lastNumber = currentNumber
+            if (currentNumber != None):
+                lastNumber = currentNumber
         renumberList.append(lastNumber + 1)
         assignNumberMenu = wx.Menu()
         for i in renumberList:

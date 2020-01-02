@@ -436,7 +436,7 @@ class Entry(Observable):
         if (self.getParentGroup()):
             return(self.getParentGroup().getPreviousEntry(entry, filtering))
         else:
-            return(None)
+            return(self.getModel().getInitialEntry())
 
 
     def releaseCacheWithPriority(self, cachePriority):
