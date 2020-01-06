@@ -73,12 +73,31 @@ class Image(Single):
 
     
     @classmethod
+    def getMetadataFromPath(cls, path):
+        """Return metadata from the given file, if it exists.
+
+        Credits:
+        https://github.com/LeoHsiao1/pyexiv2#usage
+        
+        Return dict (empty if no metadata available)
+        """
+        try:
+            Logger.debug('Image.getMetadataFromPath(): Reading metadata from "%s"' % path)
+            image = pyexiv2.Image(path)
+            result = image.read_exif()  # {'Exif.Image.DateTime': '2019:06:23 19:45:17', 'Exif.Image.Artist': 'TEST', ...}
+            Logger.debug('Image.getMetadataFromPath(): Metadata is %s' % result)
+        except:
+            Logger.debug('Image.getMetadataFromPath(): No metadata found')
+            result = {}
+        return(result)
+
+
+    @classmethod
     def getRawImageFromPath(cls, aMediaCollection, path):
         """Return a raw image to represent the media content of the given file.
         
         Credits: 
         https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
-        https://github.com/LeoHsiao1/pyexiv2#usage
         
         Model.MediaCollection aMediaCollection
         String path
@@ -93,11 +112,8 @@ class Image(Single):
         if ((extension == 'jpg')
             or (extension == 'jpeg')):
             imageType = wx.BITMAP_TYPE_JPEG
-            try:  # to determine orientation from EXIF metadata in path
-                Logger.debug('Image.getRawImageFromPath(): Reading metadata from "%s"' % path)
-                image = pyexiv2.Image(path)
-                metadata = image.read_exif()  # {'Exif.Image.DateTime': '2019:06:23 19:45:17', 'Exif.Image.Artist': 'TEST', ...}
-                Logger.debug('Image.getRawImageFromPath(): Read metadata %s' % metadata)
+            metadata = cls.getMetadataFromPath(path)
+            try:
                 orientation = int(metadata['Exif.Image.Orientation'])
                 Logger.debug('Image.getRawImageFromPath(): EXIF orientation is %s' % orientation)
             except:  # failed, assume as-is
@@ -155,6 +171,7 @@ class Image(Single):
         # inheritance
         super(Image, self).__init__(model, path) 
         # internal state
+        self.metadataExif = None
         self.bitmap = None
 
 
@@ -180,6 +197,22 @@ class Image(Single):
         Return a String
         """
         return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
+
+
+    def getMetadata(self):
+        """Return image metadata, depending on image file type.
+        
+        Supported so far: 
+        - JPG/EXIF
+        
+        Return dict (empty if no metadata available)
+        """
+        if ((self.getExtension() == 'jpg')
+            or (self.getExtension() == 'jpeg')):
+            if (self.metadataExif == None):
+                self.metadataExif = self.__class__.getMetadataFromPath(self.getPath())
+            return(self.metadataExif)
+        return({})
 
 
 
