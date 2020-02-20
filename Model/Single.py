@@ -15,21 +15,16 @@ import sys
 import subprocess
 import logging
 import hashlib
-#from collections import OrderedDict
 ## contributed
 import wx
-#from oset import oset 
 ## nobi
 ## project
-import GlobalConfigurationOptions
+from Model import GlobalConfigurationOptions
 from UI import GUIId
-#from .MediaCollection import MediaCollection
-from Model.Entry import Entry
-#from Model.Group import Group
-#from Model.MediaOrganization import MediaOrganization
-from Model.CachingController import CachingController
+from .Entry import Entry
+from .CachingController import CachingController
 from .MediaClassHandler import MediaClassHandler
-
+from Model import Installer
 
 
 # Package Variables
@@ -302,10 +297,11 @@ class Single(Entry):
         encodedPath = self.getPath()  # .encode(sys.getfilesystemencoding())
         try:
             self.rawImage = self.__class__.getRawImageFromPath(self.model, encodedPath)
-            self.rawImageHeight = self.rawImage.GetHeight()
+            self.rawImageHeight = self.rawImage.GetHeight()  # this may fail even if rawImage is an instance of wx.Image!
             self.rawImageWidth = self.rawImage.GetWidth()
-        except:  # getting here means even the default preview images are corrupt
-            self.rawImage = wx.Image(10, 10)
+        except:  # loading failed or file is corrupted
+            self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.__class__.PreviewImageFilename),
+                                     wx.BITMAP_TYPE_JPEG)
         CachingController.allocateMemory(self, 
                                          self.getRawDataMemoryUsage(), 
                                          cachePriority=Entry.CachingLevelRawData)
@@ -412,33 +408,6 @@ class Single(Entry):
         return(self.bitmap)
 
 
-#     def getRealBitmap(self, width, height, cacheAsThumbnail = True):
-#         """Return a wx.StaticBitmap for self's image, resized to fit into given size.
-#         
-#         Number width
-#         Number height
-#         Boolean cacheAsThumbnail indicates whether width x height is fullsize or thumbnail
-#         Returns MediaFiler.Single.ImageBitmap
-#         """
-#         (w, h) = self.getSizeFittedTo(width, height)
-#         if (w == 0):
-#             w = 1
-#         if (h == 0):
-#             h = 1
-#         if ((self.bitmap == None)
-#             or (self.bitmapWidth <> w)
-#             or (self.bitmapHeight <> h)):
-#             self.releaseCacheWithPriority(Single.CachingLevelThumbnailBitmap)
-#             Logger.debug('Single.getBitmap(): Creating %dx%d bitmap' % (w, h))
-#             self.bitmap = self.getRawImage().Copy().Rescale(w, h).ConvertToBitmap()
-#             (self.bitmapWidth, self.bitmapHeight) = (w, h)
-#             self.registerCacheWithPriority(Single.CachingLevelThumbnailBitmap)
-# #             x = x + ((width - w) / 2)
-# #             y = y + ((height - h) / 2)
-# #             wx.StaticBitmap.__init__(self, parent, ident, bitmap, pos=(x, y))
-#         return(self.bitmap)
-
-
 
 # Other API Functions
 # Internal
@@ -478,11 +447,18 @@ class Single(Entry):
         viewerName = viewerName.encode(sys.getfilesystemencoding())
         commandArgs = shlex.split(viewerName)  # viewerName.split() will not respect quoting (for whitespace in file names)
         Logger.debug('Single.runExternalViewer(): Calling "%s"' % commandArgs)
-        result = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
+        try:
+            result = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
+        except Exception as exc:
+            result = -1
+            message = ('External command "%s" failed with exception\n %s' % (commandArgs, exc))
+        finally:
+            if (result <> 0):
+                message = ('External command "%s" failed with error code %s' % (commandArgs, result))
         if (result <> 0):
-            Logger.warn('Single.runExternalViewer(): External command "%s" failed with %s' % (commandArgs, result))
+            Logger.warn('Single.runExternalViewer(): %s' % message)
             dlg = wx.MessageDialog(parentWindow,
-                                   ('External command\n"%s"\nfailed with error code %d!' % (viewerName, result)),
+                                   message,
                                    'Error',
                                    wx.OK | wx.ICON_ERROR)
             dlg.ShowModal()
