@@ -96,7 +96,7 @@ class Image(Single):
     def getRawImageFromPath(cls, aMediaCollection, path):
         """Return a raw image to represent the media content of the given file.
         
-        Credits: 
+        Credits for JPG/EXIF rotation: 
         https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
         
         Model.MediaCollection aMediaCollection
@@ -108,7 +108,7 @@ class Image(Single):
         imageType = None
         rawImage = None
         orientation = 1  # EXIF orientation as-is
-        rotation = 'N'  # N: normal, L: left, R:right, M: mirror
+        rotation = 'N'  # N: normal, L: left, R: right, M: mirror
         if ((extension == 'jpg')
             or (extension == 'jpeg')):
             imageType = wx.BITMAP_TYPE_JPEG
@@ -118,7 +118,6 @@ class Image(Single):
                 Logger.debug('Image.getRawImageFromPath(): EXIF orientation is %s' % orientation)
             except:  # failed, assume as-is
                 Logger.debug('Image.getRawImageFromPath(): No EXIF orientation information, assuming as-is')
-                orientation = 1
             if (orientation == 6):  # clockwise 90 degrees
                 rotation = 'R'
             elif (orientation == 8):  # clockwise 270 degrees
@@ -144,7 +143,7 @@ class Image(Single):
                 if (rotation == 'R'):
                     rawImage = rawImage.Rotate90(True)
                 elif (rotation == 'L'):
-                    pass # rawImage = rawImage.Rotate90(False)
+                    rawImage = rawImage.Rotate90(False)
                 else:  # must be 'M'
                     rawImage = rawImage.Rotate180()
         else: 
