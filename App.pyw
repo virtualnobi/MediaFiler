@@ -455,8 +455,8 @@ class MediaFiler(wx.Frame, Observer, Observable):
     def onDelegateToEntry(self, event):
         wx.GetApp().startProcessIndicator()
         entry = self.model.getSelectedEntry()
-        entry.runContextMenuItem(event.GetId(), self)
-        wx.GetApp().stopProcessIndicator()
+        message = entry.runContextMenuItem(event.GetId(), self)
+        wx.GetApp().stopProcessIndicator(message)
    
     
 # - View Menu events
@@ -814,7 +814,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         elif (aspect == 'stopFiltering'):  # filter has changed, filtering complete
             self.imageTree.DeleteAllItems() 
             self.imageTree.addSubTree(self.model.getRootEntry(), None)
-            wx.GetApp().setInfoMessage('Ok')
+            wx.GetApp().setInfoMessage('')
         elif (aspect == 'size'):
             self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
             self.statusbar.Show()
@@ -1069,7 +1069,8 @@ class MediaFilerApp(ProgressSplashApp):
         String message to be displayed as information
         """
         MediaFiler.Logger.debug('MediaFilerApp.stopProcessIndicator(): %s' % self.frame.getProgressBar())
-        if (message == ''):
+        if ((not isinstance(message, basestring)) 
+            or (message == '')):
             message = _('Ready')
         self.setInfoMessage(message)
         self.getProgressBar().finish()

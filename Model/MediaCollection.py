@@ -13,6 +13,7 @@ import re
 import logging
 import gettext
 # Contributed 
+import wx
 # nobi
 from nobi.ObserverPattern import Observable, Observer
 from nobi.SecureConfigParser import SecureConfigParser
@@ -97,7 +98,7 @@ class MediaCollection(Observable, Observer):
         """Create a new MediaCollection.
         
         String rootDir specifies the path to the image root directory.
-        Callable progressFunction
+        nobi.ProgressIndicator progressIndicator
         """
         Logger.debug('MediaCollection.init()')
         # inheritance
@@ -152,6 +153,7 @@ class MediaCollection(Observable, Observer):
         self.cacheCollectionProperties()
         self.filter = MediaFilter(self)
         self.filter.addObserverForAspect(self, 'filterChanged')
+        self.filteredEntries = self.getCollectionSize()
         # select initial entry
         if (os.path.exists(Installer.getInitialFilePath())):
             self.initialEntry = Entry.createInstance(self, Installer.getInitialFilePath())
@@ -385,9 +387,10 @@ class MediaCollection(Observable, Observer):
         
         Return String
         """
-        result = ('%s: %d %s, %s' % (self.rootDirectory,
+        result = ('%s: %d %s%s, %s' % (self.rootDirectory,
                                      self.getCollectionSize(),
-                                     _('media'), 
+                                     _('media'),
+                                     ((' (%s filtered)' % self.getFilteredEntriesCount()) if (self.getFilter().isActive()) else ''), 
                                      self.organizationStrategy.getDescription()))
         return(result)
 
@@ -399,7 +402,7 @@ class MediaCollection(Observable, Observer):
         """
         Observer.updateAspect(self, observable, aspect)
         if (observable == self.filter):  # filter changed
-            self.filterEntries()
+            self.filterEntries(wx.GetApp().getProgressBar())
         elif (aspect == 'remove'):  # entry removed
             if (isinstance(observable, Single)):
                 self.cachedCollectionSize = (self.cachedCollectionSize - 1)
@@ -497,6 +500,13 @@ class MediaCollection(Observable, Observer):
         return(self.filter)
 
 
+    def getFilteredEntriesCount(self):
+        """Return the count of visible Entries after filtering.
+        Return Number
+        """
+        return(self.filteredEntries)
+
+
     def filterEntries(self, progressIndicator=None):
         """Self's filter has changed. Recalculate the filtered entries. 
         """
@@ -505,12 +515,16 @@ class MediaCollection(Observable, Observer):
         if (self.getFilter().isEmpty()): 
             for entry in self:
                 entry.setFilter(False)
+                self.filteredEntries = self.getCollectionSize()
         else:  # filters exist
-            increment = 100
+            self.filteredEntries = 0 
+            increment = 100  #  TODO: use ProgressIndicator instead
             number = 0
             entryFilter = self.getFilter()
             for entry in self: 
                 entry.setFilter(entryFilter.isFiltered(entry))
+                if (entry.isFiltered()):
+                    self.filteredEntries = (self.filteredEntries + 1)
                 number = (number + 1)
                 if ((number % increment) == 0):
                     Logger.debug('MediaCollection.filterEntries() reached "%s"' % entry.getPath())
@@ -562,7 +576,7 @@ class MediaCollection(Observable, Observer):
             pass
         except Exception as e:
             raise
-            importParameters.logString('\nImport was cancelled due to an error:\n%s' % e)
+            importParameters.logString('Import was cancelled due to an error:\n%s' % e)
         if (importParameters.getReportIllegalElements()):
             for key in importParameters.getIllegalElements():  
                 count = len(importParameters.getIllegalElements()[key])
@@ -610,7 +624,7 @@ class MediaCollection(Observable, Observer):
                                              newTargetPathInfo)
                 if (removeProcessedFiles
                     and (len(os.listdir(sourcePath)) == 0)):
-                    importParameters.logString('Removing empty directory "%s"' % sourcePath)
+                    # importParameters.logString('Removing empty directory "%s"' % sourcePath)
                     os.rmdir(sourcePath)
             else:  # import a media file
                 (dummy, extension) = os.path.splitext(sourcePath)
@@ -632,7 +646,7 @@ class MediaCollection(Observable, Observer):
                                                                       importParameters.getIllegalElements())
                                 importParameters.setNumberOfImportedFiles(importParameters.getNumberOfImportedFiles() + 1)
                                 if (removeProcessedFiles):
-                                    importParameters.logString('Removing imported file "%s"' % sourcePath)
+                                    # importParameters.logString('Removing imported file "%s"' % sourcePath)
                                     try:
                                         os.remove(sourcePath)
                                     except Exception as e:
@@ -640,7 +654,7 @@ class MediaCollection(Observable, Observer):
                             else:
                                 importParameters.logString('Duplicate of "%s"\n  found in "%s"' % (sourcePath, duplicate))
                                 if (removeProcessedFiles):
-                                    importParameters.logString('Removing duplicate media "%s"' % sourcePath)
+                                    # importParameters.logString('Removing duplicate media "%s"' % sourcePath)
                                     try:
                                         os.remove(sourcePath)
                                     except Exception as e:
@@ -649,21 +663,21 @@ class MediaCollection(Observable, Observer):
                             importParameters.logString('Maximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
                             raise StopIteration
                     else:
-                        importParameters.logString('Ignoring small %sb file "%s"' % (fileSize, sourcePath))
+                        # importParameters.logString('Ignoring small %sb file "%s"' % (fileSize, sourcePath))
                         if (removeProcessedFiles):
-                            importParameters.logString('Removing ignored small file "%s"' % sourcePath)
+                            # importParameters.logString('Removing ignored small file "%s"' % sourcePath)
                             try:
                                 os.remove(sourcePath)
                             except Exception as e: 
-                                importParameters.logString('Can''t remove "%s"\n%s' % (sourcePath, e))
+                                importParameters.logString('Can''t remove (small) file "%s"\n%s' % (sourcePath, e))
                 else:
-                    importParameters.logString('Ignoring unhandled file "%s"' % sourcePath)
+                    # importParameters.logString('Ignoring unhandled file "%s"' % sourcePath)
                     if (removeProcessedFiles):
-                        importParameters.logString('Removing unknown file "%s"' % sourcePath)
+                        # importParameters.logString('Removing unhandled file "%s"' % sourcePath)
                         try:
                             os.remove(sourcePath)
                         except Exception as e:
-                            importParameters.logString('Can''t remove "%s"\n%s' % (sourcePath, e))
+                            importParameters.logString('Can''t remove (unhandled) file "%s"\n%s' % (sourcePath, e))
 
 
     def fixPathWhileImporting(self, parameters, oldPath):

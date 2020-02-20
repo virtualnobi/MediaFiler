@@ -230,7 +230,7 @@ class MediaOrganization(object):
         Dictionary illegalElements collects a mapping of illegal elements to source pathnames
         """
         if (targetDir <> targetPathInfo['rootDir']):
-            raise ValueError, ('targetDir %s does not match %s!' % (targetDir, targetPathInfo['rootDir']))
+            raise ValueError, ('targetDir "%s" does not match target path info "%s"!' % (targetDir, targetPathInfo['rootDir']))
         newPath = cls.constructPathFromImport(importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements)
         importParameters.logString('Importing "%s"\n  as "%s"' % (sourcePath, newPath))
         if (not importParameters.getTestRun()):
@@ -480,9 +480,8 @@ class MediaOrganization(object):
             and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
             number = (menuId - GUIId.AssignNumber)
             Logger.debug('MediaOrganization.runContextMenu(): Renaming to number %d' % number)
-            progressBar = wx.GetApp().createProgressBar(_('Renumbering...'))
-            result = self.renumberTo(number, progressBar)
-            wx.GetApp().removeProgressBar()
+            wx.GetApp().setInfoMessage(_('Renumbering...'))
+            result = self.renumberTo(number, wx.GetApp().getProgressBar())
             return(result)
         elif ((GUIId.SelectMoveTo <= menuId)
               and (menuId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations))):
@@ -497,6 +496,7 @@ class MediaOrganization(object):
             for key in newPathInfo.keys():
                 currentPathInfo[key] = newPathInfo[key]
             Logger.debug('MediaOrganization.runContextMenu(): Renaming to %s' % currentPathInfo)
+            wx.GetApp().setInfoMessage('Moving...')
             if (self.getContext().isGroup()):
                 self.renameGroup(**currentPathInfo)
             else:  # must be a Single

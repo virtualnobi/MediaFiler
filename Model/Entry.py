@@ -9,19 +9,17 @@
 import re
 import os.path
 import logging
-#import datetime
 ## Contributed
+import wx
 ## nobi
 from nobi.ObserverPattern import Observable
 from nobi.wx.Menu import Menu
-#from nobi.logging import profiledOnLogger
 from nobi.os import makeUnique
 ## Project
 from UI import GUIId
 import Installer
 from Model.MediaClassHandler import MediaClassHandler
 from Model.CachingController import CachingController
-
 
 
 # Package Variables
@@ -594,9 +592,11 @@ class Entry(Observable):
         message = None
         Logger.debug('Entry.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.FilterIdentical):
-            self.filterImages(True)
+            wx.GetApp().setInfoMessage('Filtering exact matches...')
+            self.filterImages(True, wx.GetApp().getProgressBar())
         elif (menuId == GUIId.FilterSimilar):
-            self.filterImages(False)
+            wx.GetApp().setInfoMessage('Filtering similar matches...')
+            self.filterImages(False, wx.GetApp().getProgressBar())
         elif (menuId == GUIId.DeleteImage):
             self.remove()
         else: 
@@ -614,11 +614,13 @@ class Entry(Observable):
 
 
 ## Context Menu Functions
-    def filterImages(self, identical):
-        """Set the filter so that only images are visible which have the elements that self has. 
+    def filterImages(self, identical, aProgressIndicator=None):
+        """Set the filter so that only images are visible which have the elements that self has.
+         
         Boolean IDENTICAL controls whether the filter shall exclude all elements not shared with self. 
+        ProgressIndicator aProgressIndicator
         """
-        print('Entry.filterImages(%s)' % identical)
+        Logger.debug('Entry.filterImages(%s)' % identical)
         required = set()
         prohibited = set()
         unknown=False
@@ -637,7 +639,7 @@ class Entry(Observable):
             and (len(self.getUnknownElements()) > 0)):
             unknown = True
         # turn on filter
-        print('(Identical=%s) Filtering required %s, prohibited %s, unknown %s)' % (identical, required, prohibited, unknown))
+        Logger.debug('(Identical=%s) Filtering required %s, prohibited %s, unknown %s)' % (identical, required, prohibited, unknown))
         self.model.getFilter().setConditions(active=True,
                                              required=required, 
                                              prohibited=prohibited, 

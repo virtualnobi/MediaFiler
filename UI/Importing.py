@@ -198,6 +198,10 @@ class ImportParameterObject(object):
 
 
 # Getters
+    def getModel(self):
+        return(self.model)
+
+
     def getImportDirectory(self):
         return(self.importDirectory)
 

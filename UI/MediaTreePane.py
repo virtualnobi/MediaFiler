@@ -214,12 +214,10 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         
         Route to selected Entry.
         """
-        #print('User selected context menu item %s' % event.Id)
+        Logger.debug('MediaTreePane.onContextMenuSelection(): User selected item %s' % event.Id)
         wx.GetApp().startProcessIndicator()
         message = event.EventObject.currentEntry.runContextMenuItem(event.Id, self)
-        if (isinstance(message, basestring)):
-            wx.GetApp().setInfoMessage(message)
-        wx.GetApp().stopProcessIndicator()
+        wx.GetApp().stopProcessIndicator(message)
 
 
     def onResize(self, event): 

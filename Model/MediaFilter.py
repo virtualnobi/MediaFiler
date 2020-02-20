@@ -22,8 +22,6 @@ import copy
 # contributed 
 # nobi
 from nobi.ObserverPattern import Observable
-from multiprocessing.forking import duplicate
-from UI.MediaCanvasPane import MediaCanvas
 # project 
 
 

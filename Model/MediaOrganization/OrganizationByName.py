@@ -159,8 +159,8 @@ class OrganizationByName(MediaOrganization):
         if (not 'name' in pathInfo):
             raise ('OrganizationByName.constructPathFromImport(): targetPathInfo must contain "name"!')
         singleton = True
-        if (level == 0):  # not embedded, is a single
-            groupExists = os.path.isdir(cls.constructPath(**pathInfo))
+        if (level == 0):  # not embedded, single file to import
+            groupExists = (importParameters.getModel().getEntry(name=pathInfo['name'], group=True) <> None)
             singleExists = (len(glob.glob(cls.constructPath(**pathInfo) + MediaOrganization.IdentifierSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
                 importParameters.logString('OrganizationByName: Cannot merge two singles into group (NYI)!')
@@ -172,7 +172,7 @@ class OrganizationByName(MediaOrganization):
                 singleton = False
             else:  # neither Single nor Group exist, create singleton
                 pass
-        else:  # embedded, is inside a group, name already contained in targetDir
+        else:  # embedded, is inside an import folder, name already contained in targetDir
             singleExists = (len(glob.glob(targetDir + MediaOrganization.IdentifierSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
                 importParameters.logString('OrganizationByName: Cannot merge single with group (NYI)!')
@@ -576,7 +576,7 @@ class OrganizationByName(MediaOrganization):
                 entry = self.getModel().getEntry(name=newName)
                 if (entry):  # name exists
                     if (not entry.isGroup()):
-                        entry.convertToGroup()
+                        entry.getOrganizer().convertToGroup()
                     if (self.isSingleton()):
                         pathInfo['scene'] = MediaClassHandler.ElementNew
                         pathInfo['makeUnique'] = True
@@ -588,14 +588,10 @@ class OrganizationByName(MediaOrganization):
                 else:  # name unused
                     if (not (self.isSingleton() 
                              or self.getContext().isGroup())):  # Single extracted out of a named Group
-                        try:
+                        if ('scene' in pathInfo):
                             del pathInfo['scene']
-                        except: 
-                            pass
-                        try:
+                        if ('number' in pathInfo):
                             del pathInfo['number']
-                        except: 
-                            pass
                 resultingSelection = self.getContext().renameTo(**pathInfo)
                 if (resultingSelection):
                     self.getModel().setSelectedEntry(resultingSelection)
@@ -882,7 +878,7 @@ class SingletonFilter(FilterConditionWithMode):  # TODO: replace by BooleanFilte
             newFilterValue = True
         elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
             newFilterValue = False
-        else:
+        else:  # TODO: distringuish between (1) don't change settings (for filter set and clear) and (2) ignore this attribute in media
             newFilterValue = None
         Logger.debug('SingletonFilter.onChange(): Changing mode to %s' % newFilterValue)
         self.filterModel.setConditions(single=newFilterValue)

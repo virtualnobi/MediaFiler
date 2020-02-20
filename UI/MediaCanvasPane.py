@@ -10,7 +10,6 @@ import math
 import logging
 import os.path
 import gettext
-import psutil
 ## contributed
 import wx
 ## nobi
@@ -144,9 +143,7 @@ class MediaCanvas(wx.Panel, Observer):
         print('User selected context menu item %s' % event.Id)
         wx.GetApp().startProcessIndicator()
         message = event.EventObject.currentEntry.runContextMenuItem(event.Id, self)
-        if (isinstance(message, basestring)):
-            pass  # TODO: display in status bar
-        wx.GetApp().stopProcessIndicator()
+        wx.GetApp().stopProcessIndicator(message)
 
 
     def onKeyPressed(self, event):
