@@ -495,7 +495,7 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         # add other filters
         self.sizeFilterRow = self.addCondition(MediaSizeFilter(self))
         self.mediaTypeFilterRow = self.addCondition(MediaTypeFilter(self))
-        self.duplicateFilter = self.addCondition(BooleanFilter(self, _('Duplicates'), MediaFilter.DuplicateKey))
+        self.duplicateFilter = self.addCondition(BooleanFilter(self, _('Duplicates'), MediaFilter.ConditionKeyDuplicate))
         self.addSeparator()
         # add organization-specific filters
         self.imageModel.organizationStrategy.initFilterPane(self)

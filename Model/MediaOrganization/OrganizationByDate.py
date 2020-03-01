@@ -611,12 +611,12 @@ class OrganizationByDate(MediaOrganization):
         
         Return True if context shall be hidden, False otherwise
         """
-        fromDate = aFilter.getFilterValueFor(MediaFilter.DateFromConditionKey)
+        fromDate = aFilter.getFilterValueFor(MediaFilter.ConditionKeyDateFrom)
         if ((fromDate)
             and (self.getDateTaken() <= fromDate)):
             Logger.debug('OrganizationByDate.isFilteredBy(): %s later than "%s"' % (fromDate, self.getContext().getPath()))
             return(True)
-        toDate = aFilter.getFilterValueFor(MediaFilter.DateToConditionKey)
+        toDate = aFilter.getFilterValueFor(MediaFilter.ConditionKeyDateTo)
         if ((toDate)
             and (self.getDateTaken() >= toDate)):
             Logger.debug('OrganizationByDate.isFilteredBy(): %s earlier than "%s"' % (toDate, self.getContext().getPath()))

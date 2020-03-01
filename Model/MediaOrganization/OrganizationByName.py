@@ -5,7 +5,6 @@
 
 # Imports
 ## Standard
-from __builtin__ import classmethod
 import copy
 import re
 import os.path
@@ -31,6 +30,7 @@ from Model.Group import Group
 from UI.MediaFilterPane import MediaFilterPane, FilterConditionWithMode
 import UI  # to access UI.PackagePath
 from UI import GUIId
+from msilib.schema import Condition
 
 
 
@@ -857,6 +857,42 @@ class OrganizationByName(MediaOrganization):
                 newSceneString = None
         dialog.Destroy()
         return(newSceneString)
+
+
+
+class FilterByName(MediaFilter):
+    """A filter for media organized by name, i.e., including scene and singleton.
+    """
+
+
+# Class Constants
+    SceneConditionKey = 'Scene'
+    SingleConditionKey = 'Singleton'
+
+
+# Lifecycle 
+    def __init__ (self, model):
+        """
+        """
+        # inheritance
+        super(FilterByName, self).__init__(self, model)
+        # internal state
+        self.conditionMap[FilterByName.SingleConditionKey] = None
+        self.conditionMap[FilterByName.SceneConditionKey] = None
+        return(None)
+
+
+# Setters
+    def setConditionsAndCalculateChange(self, **kwargs):
+        """overwrite MediaFilter.setConditionsAndCalculateChange"""
+        changed = super(FilterByName, self).setConditions(**kwargs)
+        for key in [FilterByName.SingleConditionKey, FilterByName.SceneConditionKey]:
+            condition = (kwargs[key] if (key in kwargs) else None)
+            if (condition
+                and (condition <> self.conditionMap[key])):
+                self.conditionMap[key] = condition
+                changed = True
+        return(changed)
 
 
 

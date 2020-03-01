@@ -135,7 +135,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
                                     data=item)  
             else:   
                 node = self.AppendItem(parent, 
-                                       entry.getFilename(), 
+                                       entry.getIdentifier(), 
                                        self.closedFolderIcon, 
                                        self.openFolderIcon, 
                                        data=item)
@@ -144,11 +144,11 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
                     self.addSubTree(subentry, node)
         else:  # add a leaf for entry
             node = self.AppendItem(parent, 
-                                   entry.getFilename(), 
+                                   entry.getIdentifier(), 
                                    self.typeIconsIndices[entry.__class__], 
                                    data=item)
             if (not node):  # should not happen, report
-                print('MediaTreePane.addSubTree(): AppendItem returned None for (%s, %s, %s, %s)' 
+                raise('MediaTreePane.addSubTree(): AppendItem() returned None for (%s, %s, %s, %s)' 
                       % (parent, entry.getFilename(), self.typeIconsIndices[entry.__class__], item))
         # register as observer for entry
         entry.addObserverForAspect(self, 'name')
@@ -172,12 +172,6 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             if (expand):
                 self.Expand(entry.getTreeItemID())
             self.EnsureVisible(entry.getTreeItemID())
-# safety only
-#             if (self.GetItemData(entry.getTreeItemID())):
-#                 if (entry <> self.GetItemData(entry.getTreeItemID()).GetData()):
-#                     Logger.error('MediaTreeCtrl.setEntry(): Inconsistent data (%sfiltered) for %s' % (('un' if entry.isFiltered() else ''), entry))     
-#             else: 
-#                 Logger.error('MediaTreeCtrl.setEntry(): No item data for tree item "%s"' % entry)
         else:
             Logger.error('MediaTreeCtrl.setEntry(): No tree item ID for "%s"' % entry)
         self.Thaw()
@@ -242,7 +236,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         self.Freeze()
         if (aspect == 'name'):  # name of an Entry changed
             node = observable.getTreeItemID()
-            self.SetItemText(node, observable.getFilename())
+            self.SetItemText(node, observable.getIdentifier())
             self.SortChildren(self.GetItemParent(node))
             self.EnsureVisible(node)
             Logger.debug('MediaTreeCtrl.updateAspect(): Changed name of %s' % observable)
@@ -264,7 +258,10 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         elif (aspect == 'selection'):  # model changed selection
             entry = observable.getSelectedEntry()
             self.ignoreSelectionChanges = True
+            isExpanded = self.IsExpanded(entry.getTreeItemID())  # new version of wxPython expands when selecting, therefor remember expansion state...
             self.setEntry(entry)
+            if (not isExpanded):  # ... and collapse entry if it was not expanded prior to selection
+                self.Collapse(entry.getTreeItemID())
             self.ignoreSelectionChanges = False
             Logger.debug('MediaTreeCtrl.updateAspect(): Selected %s' % entry)
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection

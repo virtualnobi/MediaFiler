@@ -37,16 +37,25 @@ class MediaFilter(Observable):
 
 
 # Constants
-    DuplicateKey = 'Duplicate'
-    SceneConditionKey = 'Scene'
+    ConditionKeyRequired = 'required'
+    ConditionKeyProhibited = 'prohibited'
+    ConditionKeyUnknownRequired = 'unknownRequired'
+    ConditionKeyUnknownTagsRequired = 'requiredUnknownTags'
+    ConditionKeyUnknownTagsProhibited = 'prohibitedUnknownTags'
+    ConditionKeySizeMinimum = 'minimum'
+    ConditionKeySizeMaximum = 'maximum'
+    ConditionKeyMediaTypesRequired = 'requiredMediaTypes'
+    ConditionKeyMediaTypesProhibited ='prohibitedMediaTypes' 
+    ConditionKeyDuplicate = 'Duplicate'
+    ConditionKeyDateFrom = 'fromDate'  # TODO: move to OrganizsationByDate
+    ConditionKeyDateTo = 'toDate'    
+    SceneConditionKey = 'Scene'  # TODO: move to OrganizationByName
     SingleConditionKey = 'Singleton'
-    DateFromConditionKey = 'DateFrom'
-    DateToConditionKey = 'DateTo'
-    ConditionKeys = [DuplicateKey,
+    ConditionKeys = [ConditionKeyDuplicate,
                      SingleConditionKey,
                      SceneConditionKey,
-                     DateFromConditionKey,
-                     DateToConditionKey]
+                     ConditionKeyDateFrom,
+                     ConditionKeyDateTo]
 
 
 
@@ -59,11 +68,7 @@ class MediaFilter(Observable):
         # initialize (cannot use self.clear() since instance variables not yet defined)
         self.model = model
         self.active = False
-        self.conditionMap = {MediaFilter.DuplicateKey: None,
-                             MediaFilter.SingleConditionKey: None,
-                             MediaFilter.SceneConditionKey: None,
-                             MediaFilter.DateFromConditionKey: None,
-                             MediaFilter.DateToConditionKey: None}
+        self.conditionMap = {key: None for key in MediaFilter.ConditionKeys}
         self.requiredElements = set()
         self.prohibitedElements = set()
         self.unknownElementRequired = False
@@ -118,13 +123,29 @@ class MediaFilter(Observable):
                    or ((maximum <> None) and (self.maximumSize <> maximum))
                    or ((requiredMediaTypes <> None) and (self.requiredMediaTypes <> requiredMediaTypes))
                    or ((prohibitedMediaTypes <> None) and (self.prohibitedMediaTypes <> prohibitedMediaTypes))
-                   or ((duplicate <> None) and (self.conditionMap[MediaFilter.DuplicateKey] <> duplicate))
-                   or ((single <> None) and (self.singleCondition <> single))
+                   or ((duplicate <> None) and (self.conditionMap[MediaFilter.ConditionKeyDuplicate] <> duplicate))
                    or (self.setDateRange(DateFrom=fromDate, DateTo=toDate))
-#                    or ((Scene <> None) 
-#                        and (MediaFilter.SceneConditionKey in self.conditionMap) 
-#                        and (Scene <> self.conditionMap[MediaFilter.SceneConditionKey]))
-                   or (self.setScene(Scene=Scene)))
+                   or ((single <> None) and (self.singleCondition <> single))
+                   or (self.setScene(Scene=Scene))
+                   )
+        kwargs = {'required': required,
+                  'prohibited': prohibited,
+                  'requiredUnknownTags': requiredUnknownTags,
+                  'prohibitedUnknownTags': prohibitedUnknownTags,
+                  'unknownRequired': unknownRequired, 
+                  'minimum': minimum,
+                  'maximum': maximum,
+                  'requiredMediaTypes': requiredMediaTypes,
+                  'prohibitedMediaTypes': prohibitedMediaTypes, 
+                  'duplicate': duplicate,
+                  'fromDate': fromDate, 
+                  'toDate': toDate,
+                  'single': single, 
+                  'Scene': Scene
+                  }
+        testChanged = self.setConditionsAndCalculateChange(**kwargs)
+        if (testChanged != changed): 
+            print('MediaFilter.setConditions(): Test function (%s) differs in result (%s,\n %s)' % (testChanged, changed, kwargs))
         if ((not self.active) and (active <> True)):
             filterChanged = False
         else:
@@ -154,18 +175,12 @@ class MediaFilter(Observable):
             self.prohibitedMediaTypes = prohibitedMediaTypes
             self.requiredMediaTypes.difference_update(prohibitedMediaTypes)
         if (duplicate <> None):
-            self.conditionMap[MediaFilter.DuplicateKey] = duplicate
+            self.conditionMap[MediaFilter.ConditionKeyDuplicate] = duplicate
         if (self.model.organizedByDate):  # TODO: move to MediaOrganization
             pass
         else:
             if (single <> None):
                 self.singleCondition = single
-#             if (Scene <> None):
-#                 if (Scene == 0):
-#                     if (MediaFilter.SceneConditionKey in self.conditionMap):
-#                         del self.conditionMap[MediaFilter.SceneConditionKey]
-#                 else:
-#                     self.conditionMap[MediaFilter.SceneConditionKey] = Scene
         if (changed): 
             Logger.debug('MediaFiler.setConditions(): Throwing "changed"')
             self.changedAspect('changed')
@@ -219,24 +234,24 @@ class MediaFilter(Observable):
         Return Boolean indicating the filter has changed
         """
         changed = False
-        if ((MediaFilter.DateFromConditionKey in kwargs)
-            and (kwargs[MediaFilter.DateFromConditionKey])):
-            if (self.conditionMap[MediaFilter.DateFromConditionKey] <> kwargs[MediaFilter.DateFromConditionKey]):
+        if ((MediaFilter.ConditionKeyDateFrom in kwargs)
+            and (kwargs[MediaFilter.ConditionKeyDateFrom])):
+            if (self.conditionMap[MediaFilter.ConditionKeyDateFrom] <> kwargs[MediaFilter.ConditionKeyDateFrom]):
                 changed = True
-            self.conditionMap[MediaFilter.DateFromConditionKey] = kwargs[MediaFilter.DateFromConditionKey]
+            self.conditionMap[MediaFilter.ConditionKeyDateFrom] = kwargs[MediaFilter.ConditionKeyDateFrom]
         else:
-            if (self.conditionMap[MediaFilter.DateFromConditionKey] <> None):
+            if (self.conditionMap[MediaFilter.ConditionKeyDateFrom] <> None):
                 changed = True
-            self.conditionMap[MediaFilter.DateFromConditionKey] = None
-        if ((MediaFilter.DateToConditionKey in kwargs)
-            and (kwargs[MediaFilter.DateToConditionKey])):
-            if (self.conditionMap[MediaFilter.DateToConditionKey] <> kwargs[MediaFilter.DateToConditionKey]):
+            self.conditionMap[MediaFilter.ConditionKeyDateFrom] = None
+        if ((MediaFilter.ConditionKeyDateTo in kwargs)
+            and (kwargs[MediaFilter.ConditionKeyDateTo])):
+            if (self.conditionMap[MediaFilter.ConditionKeyDateTo] <> kwargs[MediaFilter.ConditionKeyDateTo]):
                 changed = True
-            self.conditionMap[MediaFilter.DateToConditionKey] = kwargs[MediaFilter.DateToConditionKey]
+            self.conditionMap[MediaFilter.ConditionKeyDateTo] = kwargs[MediaFilter.ConditionKeyDateTo]
         else:
-            if (self.conditionMap[MediaFilter.DateToConditionKey] <> None):
+            if (self.conditionMap[MediaFilter.ConditionKeyDateTo] <> None):
                 changed = True
-            self.conditionMap[MediaFilter.DateToConditionKey] = None
+            self.conditionMap[MediaFilter.ConditionKeyDateTo] = None
         return(changed)
 
 
@@ -264,8 +279,8 @@ class MediaFilter(Observable):
     def __repr__(self):
         """Return a string representing self.
         """
-        duplicateString = ('duplicates' if (self.conditionMap[MediaFilter.DuplicateKey] == True) else
-                           'no duplicates' if (self.conditionMap[MediaFilter.DuplicateKey] == False) else
+        duplicateString = ('duplicates' if (self.conditionMap[MediaFilter.ConditionKeyDuplicate] == True) else
+                           'no duplicates' if (self.conditionMap[MediaFilter.ConditionKeyDuplicate] == False) else
                            '')
         result = (('active, ' if self.active else '')
                   + (('requires %s, ' % self.requiredElements) if 0 < len(self.requiredElements) else '')
@@ -275,8 +290,8 @@ class MediaFilter(Observable):
                   + (('smaller %s, ' % self.maximumSize) if self.maximumSize else '')
                   + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '')
                   + duplicateString + ', '
-                  + (('from %s, ' % self.conditionMap[MediaFilter.DateFromConditionKey]) if self.conditionMap[MediaFilter.DateFromConditionKey] else '')  # TODO: Move to MediaOrganization
-                  + (('to %s, ' % self.conditionMap[MediaFilter.DateToConditionKey]) if self.conditionMap[MediaFilter.DateToConditionKey] else '')
+                  + (('from %s, ' % self.conditionMap[MediaFilter.ConditionKeyDateFrom]) if self.conditionMap[MediaFilter.ConditionKeyDateFrom] else '')  # TODO: Move to MediaOrganization
+                  + (('to %s, ' % self.conditionMap[MediaFilter.ConditionKeyDateTo]) if self.conditionMap[MediaFilter.ConditionKeyDateTo] else '')
                   + ('single, ' if self.singleCondition else '')
                   + (('scene=%s, ' % self.conditionMap[MediaFilter.SceneConditionKey]) if (MediaFilter.SceneConditionKey in self.conditionMap) else '')
                   )
@@ -360,14 +375,14 @@ class MediaFilter(Observable):
         """
         Return Boolean (or None) indicating whether duplicates are required
         """
-        return(self.conditionMap[MediaFilter.DuplicateKey])
+        return(self.conditionMap[MediaFilter.ConditionKeyDuplicate])
 
 
     def getDateRange(self):
         """TODO: Move to MediaOrganization
         """
 #         return(self.fromDate, self.toDate)
-        return(self.conditionMap[MediaFilter.DateFromConditionKey], self.conditionMap[MediaFilter.DateToConditionKey])
+        return(self.conditionMap[MediaFilter.ConditionKeyDateFrom], self.conditionMap[MediaFilter.ConditionKeyDateTo])
 
 
     def getSingleton(self):
@@ -390,11 +405,11 @@ class MediaFilter(Observable):
                 or (self.minimumSize > self.model.getMinimumSize())
                 or (self.maximumSize < self.model.getMaximumSize())
                 or (self.singleCondition <> None)
-                or (self.conditionMap[MediaFilter.DateFromConditionKey])  # TODO: Move to MediaOrganization
-                or (self.conditionMap[MediaFilter.DateToConditionKey])
+                or (self.conditionMap[MediaFilter.ConditionKeyDateFrom])  # TODO: Move to MediaOrganization
+                or (self.conditionMap[MediaFilter.ConditionKeyDateTo])
                 or (0 < len(self.requiredMediaTypes))
                 or (0 < len(self.prohibitedMediaTypes))
-                or (self.conditionMap[MediaFilter.DuplicateKey] <> None)
+                or (self.conditionMap[MediaFilter.ConditionKeyDuplicate] <> None)
                 or (self.conditionMap[MediaFilter.SceneConditionKey])):
                 return(False)
         return(True)
@@ -437,8 +452,8 @@ class MediaFilter(Observable):
             else:  # no match in the loop
                 return(True)
         # duplicates
-        if (self.conditionMap[MediaFilter.DuplicateKey] <> None):
-            if (self.conditionMap[MediaFilter.DuplicateKey]):  # Entries without duplicates shall not appear
+        if (self.conditionMap[MediaFilter.ConditionKeyDuplicate] <> None):
+            if (self.conditionMap[MediaFilter.ConditionKeyDuplicate]):  # Entries without duplicates shall not appear
                 if (0 == len(entry.getDuplicates())):
                     return(True)
             else:  # Entries with duplicates shall not appear
@@ -452,6 +467,32 @@ class MediaFilter(Observable):
 
 
 # Internal
+    def setConditionsAndCalculateChange(self, **kwargs):
+        """Set conditions according to specified parameters, and return indicator whether conditions changed
+        
+        Return Boolean indicating whether self's conditions changed
+        """
+        changed = False
+        for key in MediaFilter.ConditionKeys:
+            if ((key in kwargs)
+                and (kwargs[key] <> self.conditionMap[key])):
+                self.conditionMap[key] = kwargs[key]
+                changed = True
+                if (key == MediaFilter.ConditionKeyRequired):
+                    self.conditionMap[key].difference_update(self.conditionMap[MediaFilter.ConditionKeyProhibited])
+                elif (key == MediaFilter.ConditionKeyProhibited):
+                    self.conditionMap[key].difference_update(self.conditionMap[MediaFilter.ConditionKeyRequired])
+                elif (key == MediaFilter.ConditionKeyUnknownTagsRequired):
+                    self.conditionMap[key].difference_update(self.conditionMap[MediaFilter.ConditionKeyUnknownTagsProhibited])
+                elif (key == MediaFilter.ConditionKeyUnknownTagsProhibited):
+                    self.conditionMap[key].difference_update(self.conditionMap[MediaFilter.ConditionKeyUnknownTagsRequired])
+                elif (key == MediaFilter.ConditionKeyMediaTypesRequired):
+                    self.conditionMap[key].difference_update(self.conditionMap[MediaFilter.ConditionKeyMediaTypesProhibited])
+                elif (key == MediaFilter.ConditionKeyMediaTypesProhibited):
+                    self.conditionMap[key].difference_update(self.conditionMap[MediaFilter.ConditionKeyMediaTypesRequired])                
+        return(changed)
+
+
     def filteredByElements(self, entry):
         """Check whether entry shall be filtered due to class element conditions.
 
