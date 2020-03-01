@@ -141,7 +141,7 @@ class Entry(Observable):
         self.fileSize = self.getFileSize()
         if (self.isGroup() 
             and (self.getExtension() <> '')):
-            Logger.warn('Entry.initFromPath(): Group "%s" should not use an extension' % self.getPath())
+            print('Group "%s" should not use an extension' % self.getPath())
         elementStart = fname.find(MediaClassHandler.TagSeparator)
         if (0 <= elementStart):
             elements = fname[elementStart:]
@@ -332,19 +332,16 @@ class Entry(Observable):
             return(pathRest)
 
 
-    def getIdentifier(self):
+    def getIdentifier (self):
         """Return a short identifier of self for use on the UI
         
         Returns a String 
         """
-#         result = ''
-#         elementStart = self.getFilename().find('.')
-#         if (0 <= elementStart):
-#             result = self.getFilename()[:elementStart]
-#         else:
-#             result = self.getFilename()
-#         return(result)
-        return(self.getFilename())
+        elementStart = self.getFilename().find('.')
+        if (0 <= elementStart):
+            return(self.getFilename()[:elementStart])
+        else:
+            return(self.getFilename())
 
 
     def getKnownElementsDictionary(self):
@@ -462,12 +459,12 @@ class Entry(Observable):
             pass
             
 
-#     def getBitmap(self, width, height):  # @UnusedVariable
-#         """
-#         """
-#         print('Entry.getBitmap() deprecated')
-#         CachingController.allocateMemory(self, self.getBitmapMemoryUsage(), bitmap=True)
-#         return(self.bitmap)
+    def getBitmap(self, width, height):  # @UnusedVariable
+        """
+        """
+        print('Entry.getBitmap() deprecated')
+        CachingController.allocateMemory(self, self.getBitmapMemoryUsage(), bitmap=True)
+        return(self.bitmap)
 
 
     def getBitmapMemoryUsage(self):

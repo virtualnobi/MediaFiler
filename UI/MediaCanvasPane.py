@@ -52,6 +52,7 @@ class MediaCanvas(wx.Panel, Observer):
 
 
 # Constants
+    Logger = logging.getLogger(__name__)
     ImagePadding = 1  # pixel distance between images on canvas in X and Y direction
 
 
@@ -76,7 +77,6 @@ class MediaCanvas(wx.Panel, Observer):
         # internal state
         self.model = None
         self.entry = None
-        self.ignoreNameChanges = False  # ignore observable updates on 'name' aspect
         self.SetBackgroundColour('white')
         self.ClearBackground()
         (self.width, self.height) = self.GetSizeTuple()
@@ -104,7 +104,7 @@ class MediaCanvas(wx.Panel, Observer):
         
         Boolean forceUpdate redisplays even if the same entry is already selected (after filtering)
         """
-        Logger.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
+        MediaCanvas.Logger.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
         if (forceUpdate 
             or (self.entry <> entry)):
             self.clear()  # unbind events and unregister observable
@@ -112,7 +112,7 @@ class MediaCanvas(wx.Panel, Observer):
             self.entry.addObserverForAspect(self, 'children')
             displayedEntries = self.entry.getEntriesForDisplay()
             self.sizeAndDisplayEntries(displayedEntries)
-        Logger.debug('MediaCanvas.setEntry() finished')
+        MediaCanvas.Logger.debug('MediaCanvas.setEntry() finished')
 
 
 # Event Handling
@@ -153,9 +153,11 @@ class MediaCanvas(wx.Panel, Observer):
 
     def onResize(self, event):
         if (self.entry <> None):
+#             wx.GetApp().startProcessIndicator()
             Logger.debug('MediaCanvasPane.onResize(): ...')
             displayedEntries = self.entry.getEntriesForDisplay()
             self.sizeAndDisplayEntries(displayedEntries)
+#             wx.GetApp().stopProcessIndicator()
 
 
 # Inheritance - ObserverPattern
@@ -174,8 +176,7 @@ class MediaCanvas(wx.Panel, Observer):
             self.clear()
             self.setEntry(observable)
         elif (aspect == 'name'):  # an Entry changed its name
-            if ((not self.ignoreNameChanges)
-                and (observable <> self.entry)):  # child of currently selected Entry changed, redisplay to keep order correct
+            if (observable <> self.entry):  # child of currently selected Entry changed, redisplay to keep order correct
                 parent = self.entry
                 self.setEntry(parent, forceUpdate=True)
 
@@ -256,7 +257,6 @@ class MediaCanvas(wx.Panel, Observer):
             print q.get()    # prints "[42, None, 'hello']"
             p.join()
         """
-        self.ignoreNameChanges = True  # stop reacting on observable 'name' changes, because it causes recursion
         # remove images from grid
         for child in self.GetChildren():
             child.Unbind(wx.EVT_MOUSE_EVENTS)
@@ -266,10 +266,9 @@ class MediaCanvas(wx.Panel, Observer):
         # 
         progressIndicator = None  # TODO: accept progressIndicator from outside, to allow embedded progress...
         if (10 < len(entries)):
-#             progressIndicator = wx.GetApp().startProcessIndicator()
-            progressIndicator = wx.GetApp()
+            progressIndicator = wx.GetApp().startProcessIndicator()
+            Logger.debug('MediaCanvas.sizeAndDisplayEntries(): Progress bar is %s' % progressIndicator.getProgressBar())
             progressIndicator.beginPhase(len(entries), (_('Resizing images in "%s"') % self.entry.getIdentifier()))  
-            Logger.debug('MediaCanvas.sizeAndDisplayEntries(): Progress indicator is %s' % progressIndicator)
         column = 1  # count columns when placing images in grid
         (x, y) = (0, 0)  # position of image
         self.calculateGrid(len(entries))
@@ -296,41 +295,42 @@ class MediaCanvas(wx.Panel, Observer):
             else:  
                 x = (x + self.imageWidth + self.ImagePadding)
                 column = (column + 1)
-#         if (progressIndicator):
-#             wx.GetApp().stopProcessIndicator()
-        self.Update()
-        self.ignoreNameChanges = False
+            self.Update()
+            wx.GetApp().ProcessPendingEvents()
+        if (progressIndicator):
+            wx.GetApp().stopProcessIndicator()
+#         self.Update()
 
 
     def handleImageClick(self, event, target):
         """User clicked the canvas. If this is a valid click (i.e., left up/down on same object), select Entry target.
         """
-        Logger.debug('MediaCanvasPane.handleImageClick(): on "%s"' % target.getPath())
+        #print('MediaCanvasPane handleImageClick on "%s"' % target.getPath())
         if (event.LeftDown()):
-            Logger.debug('MediaCanvasPane.handleImageClick(): LeftDown on %s' % target.getPath())
+            #print('LeftDown on %s' % target.getPath())
             self.lastLeftDownImage = target
         elif (event.LeftUp()):
-            Logger.debug('MediaCanvasPane.handleImageClick(): LeftUp on %s' % target.getPath())
+            #print('LeftUp on %s' % target.getPath())
             if (self.lastLeftDownImage == target):  # mouse down/up on same Image
                 if ((target == self.entry)  # clicked on blank area, navigate to parent of self.entry
                     and (target.getParentGroup() <> None)):
                     target = target.getParentGroup()
-                Logger.debug('MediaCanvasPane.handleImageClick(): Change selection to %s' % target.getPath())
+                #print('Change selection to %s' % target.getPath())
                 self.model.setSelectedEntry(target)
             self.lastLeftDownImage = None
         elif (event.RightDown()):
-            Logger.debug('MediaCanvasPane.handleImageClick(): RightDown on %s' % target.getPath())
+            #print('RightDown on %s' % target.getPath())
             self.lastRightDownImage = target
         elif (event.RightUp()):
-            Logger.debug('MediaCanvasPane.handleImageClick(): RightUp on %s' % target.getPath())
+            #print('RightUp on %s' % target.getPath())
             if (target == self.lastRightDownImage):
-                Logger.debug('MediaCanvasPane.handleImageClick(): Context menu on %s' % target.getPath())
+                #print('Context menu on %s' % target.getPath())
                 menu = target.getContextMenu()  # create context menu for selected Entry
                 self.PopupMenu(menu)  # let user select item, and execute its function
                 menu.Destroy()  # clear context menu
                 self.lastRightDownImage = None
         else:
-            Logger.debug('MediaCanvasPane.handleImageClick(): Other mouse event')
+            #print('Other mouse event')
             self.lastLeftDownImage = None
             self.lastRightDownImage = None
         
