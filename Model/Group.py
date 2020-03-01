@@ -361,7 +361,7 @@ class Group(Entry, Observer):
         """
         Logger.debug('Group.runContextMenu(): Running %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.DeleteDoubles):
-            wx.GetApp().setInfoMessage('Removing doubles...')  # TODO: i14n
+            wx.GetApp().setInfoMessage(_('Removing duplicates...'))
             deleted = self.deleteDoubles(wx.GetApp().getProgressBar())
             return(GUIId.MessageDuplicatesDeleted % deleted)
         else:

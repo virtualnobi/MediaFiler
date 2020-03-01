@@ -385,7 +385,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         dialog = wx.DirDialog(self, _('Select New Image Directory:'), style = (wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST))
         if (dialog.ShowModal() == wx.ID_OK):  # user selected directory
-            wx.GetApp().startProcessIndicator(_('Loading %') % dialog.GetPath())
+            wx.GetApp().startProcessIndicator(_('Loading %s') % dialog.GetPath())
             self.setModel(dialog.GetPath())
             wx.GetApp().stopProcessIndicator()
         dialog.Destroy()  # destroy after getting the user input
@@ -912,7 +912,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
     def setLoggedModules(self):
         """
-        #TODO: Must be called before MediaCollection.__init__() to log this, but for that, configuration options must be accessible independent of mediacollection
+        #TODO: Must be called before MediaCollection.__init__() to log it, but for that, configuration options must be accessible independent of mediacollection
         """
         loggedModules = self.model.getConfiguration(GlobalConfigurationOptions.LastLoggedModules)
         if (loggedModules):
@@ -1079,16 +1079,18 @@ class MediaFilerApp(ProgressSplashApp):
 
 
 ## Context Manager
-    def setRaiseError(self, raiseError):
+    def setRaiseException(self, raiseException):
+        """Specify whether exceptions raised inside Context Manager shall be re-raised.
+        
+        Boolean raiseException indicates exceptions shall be re-raised.
         """
-        """
-        self.raiseError = raiseError
+        self.raiseException = raiseException
 
 
     def __enter__(self):
         """
         """
-        self.setRaiseError(True)
+        self.setRaiseException(True)
         self.startProcessIndicator()
         return(self)
 
@@ -1097,7 +1099,7 @@ class MediaFilerApp(ProgressSplashApp):
         """
         """
         if (exceptionType == PhasedProgressBarError):
-            if (self.raiseError):
+            if (self.raiseException):
                 return(False)
             else:
                 print('MediaFilerApp.__exit__(). Caught %s %s %s' % (exceptionType, exceptionValue, exceptionTraceback))

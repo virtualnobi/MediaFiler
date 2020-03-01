@@ -49,14 +49,12 @@ class ImageBitmap(wx.StaticBitmap):
         """
         # correct position (x, y) to place image in middle of frame
         bitmap = entry.getBitmap(width, height)
-#         bitmap = wx.Bitmap.FromRGBA(width, height, red=255, green=0, blue=0, alpha=0)
         (w, h) = bitmap.GetSize()
         x = x + ((width - w) / 2)
         y = y + ((height - h) / 2)
         # inheritance
         wx.StaticBitmap.__init__(self, parent, ident, bitmap, pos=(x, y))
         # internal state
-#         self.SetBitmap(entry.getBitmap(width, height))
         self.entry = entry
  
          
@@ -95,7 +93,6 @@ class Single(Entry):
         String path
         Return 
         """
-#         raise NotImplementedError
         Logger.error('Single.getRawImageFromPath(): Subclass should implement this method!')
         return(None)
 
@@ -401,7 +398,7 @@ class Single(Entry):
                 w = 1
             if (h == 0):
                 h = 1
-            Logger.debug('Single.getBitmap(): Creating %dx%d bitmap' % (w, h))
+            Logger.debug('Single.getBitmap(): Creating %dx%d bitmap for %s' % (w, h, self))
             self.bitmap = self.getRawImage().Copy().Rescale(w, h).ConvertToBitmap()
             (self.bitmapWidth, self.bitmapHeight) = (w, h)
             self.registerCacheWithPriority(Single.CachingLevelThumbnailBitmap)

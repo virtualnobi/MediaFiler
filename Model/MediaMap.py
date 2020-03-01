@@ -145,7 +145,7 @@ class MediaMap(object):
             if (subclass):
                 candidateRawImage = subclass.getRawImageFromPath(self.mediaCollection, fileName)
                 for entry in candidates: 
-                    if (candidateRawImage.GetData() == entry.getRawImage().GetData()):
+                    if (candidateRawImage.GetData() == entry.getRawImage().GetData()):  # TODO: verify this checks data, not object identity
                         Logger.debug('MediaMap.getDuplicate(): Duplicate is "%s"' % entry)
                         return(entry)
         return(None)

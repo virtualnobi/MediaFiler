@@ -169,7 +169,7 @@ class MediaOrganization(object):
 
 
     @classmethod
-    def pathInfoForImport(cls, importParameters, sourcePath, level, oldName, pathInfo):
+    def pathInfoForImport(cls, importParameters, sourcePath, level, oldName, pathInfo):  # @UnusedVariable
         """Return a pathInfo mapping extended according to directory name oldName.
         """
         result = copy.copy(pathInfo)
