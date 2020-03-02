@@ -93,6 +93,32 @@ class Image(Single):
 
 
     @classmethod
+    def getRotationFromMetadata(cls, metadata):
+        """Return rotation applied to original (file) image.
+        
+        dict metadata contains JPG/EXIF metadata
+        Returns 'N' = normal, no rotation
+                'R' = right
+                'L' = left
+                'M' = mirror, upside
+        """
+        orientation = 1
+        rotation = 'N'  # N: normal, L: left, R: right, M: mirror
+        try:
+            orientation = int(metadata['Exif.Image.Orientation'])
+            Logger.debug('Image.getRawImageFromPath(): EXIF orientation is %s' % orientation)
+        except:  # failed, assume as-is
+            Logger.debug('Image.getRawImageFromPath(): No EXIF orientation information, assuming as-is')
+        if (orientation == 6):  # clockwise 90 degrees
+            rotation = 'R'
+        elif (orientation == 8):  # clockwise 270 degrees
+            rotation = 'L'
+        elif (orientation == 3):  # clockwise 180 degrees
+            rotation = 'M'
+        return(rotation)
+
+    
+    @classmethod
     def getRawImageFromPath(cls, aMediaCollection, path):
         """Return a raw image to represent the media content of the given file.
         
@@ -107,23 +133,12 @@ class Image(Single):
         extension = extension[1:].lower()
         imageType = None
         rawImage = None
-        orientation = 1  # EXIF orientation as-is
         rotation = 'N'  # N: normal, L: left, R: right, M: mirror
         if ((extension == 'jpg')
             or (extension == 'jpeg')):
             imageType = wx.BITMAP_TYPE_JPEG
             metadata = cls.getMetadataFromPath(path)
-            try:
-                orientation = int(metadata['Exif.Image.Orientation'])
-                Logger.debug('Image.getRawImageFromPath(): EXIF orientation is %s' % orientation)
-            except:  # failed, assume as-is
-                Logger.debug('Image.getRawImageFromPath(): No EXIF orientation information, assuming as-is')
-            if (orientation == 6):  # clockwise 90 degrees
-                rotation = 'R'
-            elif (orientation == 8):  # clockwise 270 degrees
-                rotation = 'L'
-            elif (orientation == 3):  # clockwise 180 degrees
-                rotation = 'M'
+            rotation = cls.getRotationFromMetadata(metadata)
         elif (extension == 'png'):
             imageType = wx.BITMAP_TYPE_PNG
         elif (extension == 'gif'):
@@ -137,9 +152,7 @@ class Image(Single):
                 rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Image.PreviewImageFilename),
                                     wx.BITMAP_TYPE_JPEG)
             if (rotation != 'N'):
-                Logger.debug('Image.getRawImageFromPath(): Rotating %s degrees' % rotation)
-                #centerPoint = (rawImage.GetWidth()/2, rawImage.GetHeight()/2)
-                #rawImage = rawImage.Rotate(rotation, centerPoint, interpolating=True)
+                Logger.debug('Image.getRawImageFromPath(): Rotating %s' % rotation)
                 if (rotation == 'R'):
                     rawImage = rawImage.Rotate90(True)
                 elif (rotation == 'L'):
@@ -171,6 +184,7 @@ class Image(Single):
         super(Image, self).__init__(model, path) 
         # internal state
         self.metadataExif = None
+        self.rotation = None
         self.bitmap = None
 
 
@@ -190,12 +204,34 @@ class Image(Single):
 
 # Setters
 # Getters
-    def getSizeString(self):
-        """Return a String describing the size of self.
+    def getIdentifier(self):
+        """override Entry.getIdentifier()
         
-        Return a String
+        Add a rotation indicator to the identifier
         """
-        return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
+        result = super(Image, self).getIdentifier()
+        if (self.rotation 
+            and (self.rotation != 'N')):
+            result = ('%s (%s)' % (result, self.rotation))
+        return(result)
+
+
+    def getRawImage(self):
+        """override Single.getRawImage()
+        
+        If image needs to be loaded, make sure the rotation indicator is added to self's name in tree.
+        """
+        Logger.debug('Image.getRawImage(%s)' % self)
+        if (self.getOrganizer().getNumber() == 81):
+            pass
+        if (self.rawImage):
+            return(self.rawImage)
+        result = super(Image, self).getRawImage()
+        self.rotation = self.__class__.getRotationFromMetadata(self.getMetadata())
+        if (self.rotation
+            and (self.rotation != 'N')):
+            self.changedAspect('name') 
+        return(result)
 
 
     def getMetadata(self):
@@ -212,6 +248,14 @@ class Image(Single):
                 self.metadataExif = self.__class__.getMetadataFromPath(self.getPath())
             return(self.metadataExif)
         return({})
+        
+
+    def getSizeString(self):
+        """Return a String describing the size of self.
+        
+        Return a String
+        """
+        return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
 
 
 
