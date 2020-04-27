@@ -6,12 +6,12 @@
 ## Imports
 # Standard
 from __future__ import print_function
-import types
 # import copy
 import os.path
 import re
 import logging
 import gettext
+import subprocess
 # Contributed 
 import wx
 # nobi
@@ -19,7 +19,7 @@ from nobi.ObserverPattern import Observable, Observer
 from nobi.SecureConfigParser import SecureConfigParser
 from nobi.logging import profiledOnLogger
 # Project 
-import GlobalConfigurationOptions
+from Model import GlobalConfigurationOptions
 from Model import Installer
 from Model.MediaClassHandler import MediaClassHandler 
 from Model.MediaFilter import MediaFilter
@@ -27,7 +27,7 @@ from Model.Entry import Entry
 from Model.Single import Single
 from Model.MediaMap import MediaMap
 from Model.MediaOrganization.OrganizationByDate import OrganizationByDate
-from Model.MediaOrganization.OrganizationByName import OrganizationByName
+from Model.MediaOrganization.OrganizationByName import OrganizationByName, FilterByName
 from Model.CachingController import CachingController
 from UI import GUIId
 
@@ -48,7 +48,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3 
 def N_(message): return message
 
 
@@ -93,6 +94,58 @@ class MediaCollection(Observable, Observer):
 
 
 # Class Methods
+    def runConfiguredProgram(self, option, fileName, parentWindow):
+        """Run the external program configured for the given option on the given file.
+        
+        The option string must be valid configuration option. 
+        
+        
+        String option specifies which configuration option to use
+        String fileName specifies the file name to insert instead of the placeholder
+        wx.Window parentWindow to display an error dialog if required
+        Return Boolean indicating successful execution
+        """
+        Logger.debug('MediaCollection.runConfiguredProgram(): Looking for configuration of "%s"' % option)
+        progName = self.getConfiguration(option)
+        if (not progName):
+            Logger.warn('MediaCollection.runConfiguredProgram(): No external program specified for option "%s"' % option)
+            dlg = wx.MessageDialog(parentWindow,
+                                   ('No external command specified for the\n"%s" option!' % option),
+                                   'Error',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return(False)
+        Logger.debug('MediaCollection.runConfiguredProgram(): Found external command "%s"' % progName)
+        if (GlobalConfigurationOptions.Parameter in progName):
+            command = progName.replace(GlobalConfigurationOptions.Parameter, fileName)
+        else:
+            command = progName
+        Logger.debug('MediaCollection.runConfiguredProgram(): Calling "%s"' % command)
+        try:
+            run = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            result = run.returncode
+        except Exception as exc:
+            result = -1
+            message = ('External command "%s" failed with exception\n %s' % (command, exc))
+        finally:
+            if (result != 0):
+                message = ('External command "%s" failed with error code %s' % (command, result))
+        if (result != 0):
+            Logger.warn('MediaCollection.runConfiguredProgram(): Failed with message "%s"' % message)
+            dlg = wx.MessageDialog(parentWindow,
+                                   message,
+                                   'Error',
+                                   wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return(False)
+        return(True)
+
+
+
+
+
 # Lifecycle 
     def __init__(self, rootDir, processIndicator):
         """Create a new MediaCollection.
@@ -106,6 +159,7 @@ class MediaCollection(Observable, Observer):
         # internal state
         if (rootDir):
             self.setRootDirectory(rootDir, processIndicator)
+        self.iteratorState = []
         Logger.debug('MediaCollection.init() finished')
 
     
@@ -132,9 +186,11 @@ class MediaCollection(Observable, Observer):
         if (os.path.exists(Installer.getNamesFilePath())): 
             self.organizedByDate = False
             self.organizationStrategy = OrganizationByName
+            filterClass = FilterByName
         else:
             self.organizedByDate = True
             self.organizationStrategy = OrganizationByDate
+            filterClass = MediaFilter
         self.organizationStrategy.setModel(self)
         processIndicator.beginStep(_('Reading tag definitions'))
         self.classHandler = MediaClassHandler(Installer.getClassFilePath())
@@ -151,7 +207,7 @@ class MediaCollection(Observable, Observer):
         self.loadSubentries(self.root, processIndicator)  # implicit progressIndicator.beginStep()
         processIndicator.beginStep(_('Calculating collection properties'))
         self.cacheCollectionProperties()
-        self.filter = MediaFilter(self)
+        self.filter = filterClass(self) 
         self.filter.addObserverForAspect(self, 'filterChanged')
         self.filteredEntries = self.getCollectionSize()
         # select initial entry
@@ -179,12 +235,14 @@ class MediaCollection(Observable, Observer):
         """Set the selected entry.
         """
         Logger.debug('MediaCollection.setSelectedEntry(%s)' % entry)
+        previousSelection = self.selectedEntry
         self.selectedEntry = entry
-        if (self.selectedEntry):
+        if (self.selectedEntry):  # store selected entry for next program run
             path = entry.getPath()
-            path = path[len(Installer.getMediaPath())+1:]  # remove "/" as well
-            self.setConfiguration(GlobalConfigurationOptions.LastMedia, path)  # entry.getPath())
-        self.changedAspect('selection')
+            path = path[len(Installer.getMediaPath()) + 1:]  # remove "/" as well
+            self.setConfiguration(GlobalConfigurationOptions.LastMedia, path)
+        if (previousSelection != self.selectedEntry):
+            self.changedAspect('selection')
 
 
     def loadSubentries (self, entry=None, progressIndicator=None):
@@ -288,13 +346,12 @@ class MediaCollection(Observable, Observer):
     def getSelectedEntry(self):
         """Return the selected entry.
         
-        Will return a special initial entry in case the root entry or no entry is selected.
+        If no entry is selected, returns the root Group.
         
         Return Model.Entry
         """
-        if ((self.selectedEntry == None)
-            or (self.selectedEntry == self.root)):
-            return(self.getInitialEntry())
+        if (self.selectedEntry == None):
+            return(self.root)
         else:
             return(self.selectedEntry)
 
@@ -320,6 +377,29 @@ class MediaCollection(Observable, Observer):
                 if (self.cachedMaximumSize < fsize):  # bigger one found
                     self.cachedMaximumSize = fsize
         return (self.cachedMaximumSize)
+
+
+    def getMinimumResolution(self):
+        """Return the smallest image resolution.
+        """
+        if (self.cachedMinimumResolution == 0):
+            for entry in self:
+                resolution = entry.getResolution()
+                if ((resolution < self.cachedMinimumResolution)  # smaller one found
+                    or (self.cachedMinimumResolution == 0)):  # no image found so far
+                    self.cachedMinimumResolution = resolution
+        return(self.cachedMinimumResolution)
+
+
+    def getMaximumResolution(self):
+        """Return the biggest image resolution.
+        """
+        if (self.cachedMaximumResolution == 0):
+            for entry in self:
+                resolution = entry.getResolution()
+                if (self.cachedMaximumResolution < resolution):  # bigger one found
+                    self.cachedMaximumResolution = resolution
+        return (self.cachedMaximumResolution)
 
 
     def getCollectionSize(self):
@@ -377,7 +457,8 @@ class MediaCollection(Observable, Observer):
         """
         if (self.configuration.has_section(GUIId.AppTitle)
             and self.configuration.has_option(GUIId.AppTitle, option)):
-            return(unicode(self.configuration.get(GUIId.AppTitle, option)))
+            return(self.configuration.get(GUIId.AppTitle, option))
+#             return(unicode(self.configuration.get(GUIId.AppTitle, option)))
         else: 
             return(None)
 
@@ -407,15 +488,19 @@ class MediaCollection(Observable, Observer):
             if (isinstance(observable, Single)):
                 self.cachedCollectionSize = (self.cachedCollectionSize - 1)
             else:  # observable is a Group
-                self.cachedCollectionSize = (self.cachedCollectionSize - 1)  # TOOD: decrease by group descendants
+                self.cachedCollectionSize = (self.cachedCollectionSize - observable.getGroupSize())
             # invalidate cached properties if affected
             if (observable.getFileSize() == self.cachedMinimumSize):
                 self.cachedMinimumSize = 0
             if (observable.getFileSize() == self.cachedMaximumSize):
                 self.cachedMaximumSize = 0
+            if (observable.getResolution() == self.cachedMinimumResolution):
+                self.cachedMinimumResolution = 0
+            if (observable.getResolution() == self.cachedMaximumResolution):
+                self.cachedMaximumResolution = 0
             # ensure selected entry is not subitem of removed entry
             entry = self.selectedEntry
-            while (entry <> None):
+            while (entry != None):
                 if (entry == observable):
                     if ('True' == self.getConfiguration(GlobalConfigurationOptions.ShowParentAfterRemove)):
                         self.setSelectedEntry(observable.getParentGroup())
@@ -446,14 +531,14 @@ class MediaCollection(Observable, Observer):
         for (entry, oldPath, newPath) in renameList:
             if (progressBar):
                 progressBar.beginStep()
-            if ((entry.getPath() <> oldPath) 
+            if ((entry.getPath() != oldPath) 
                 or (not os.path.exists(oldPath))):
                 Logger.warning('MediaCollection.renameList(): Entry "%s" was expected to be named "%s"!' % (entry.getPath(), oldPath))
                 return(False)
             if (oldPath == newPath):
                 Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % oldPath)
             elif os.path.exists(newPath):
-                tmpElements = set((MediaCollection.ReorderTemporaryTag, )).union(entry.getElements())
+                tmpElements = set((MediaCollection.ReorderTemporaryTag, )).union(entry.getTags())
                 pathInfo = entry.getOrganizer().getPathInfo()
                 pathInfo['elements'] = tmpElements
                 tmpPath = entry.getOrganizer().__class__.constructPath(**pathInfo)
@@ -522,16 +607,19 @@ class MediaCollection(Observable, Observer):
             number = 0
             entryFilter = self.getFilter()
             for entry in self: 
-                entry.setFilter(entryFilter.isFiltered(entry))
-                if (entry.isFiltered()):
-                    self.filteredEntries = (self.filteredEntries + 1)
-                number = (number + 1)
-                if ((number % increment) == 0):
-                    Logger.debug('MediaCollection.filterEntries() reached "%s"' % entry.getPath())
+                if (entry.isGroup()):  # Group is filtered when all its children are
+                    entry.setFilter(len(entry.getSubEntries(filtering=True)) == 0)
+                else:
+                    entry.setFilter(entryFilter.isFiltered(entry))
+                    if (entry.isFiltered()):
+                        self.filteredEntries = (self.filteredEntries + 1)
+                    number = (number + 1)
+                    if ((number % increment) == 0):
+                        Logger.debug('MediaCollection.filterEntries() reached "%s"' % entry.getPath())
         # if selected entry is filtered, search for unfiltered parent
         if (self.getSelectedEntry().isFiltered()):
             entry = self.getSelectedEntry().getParentGroup()
-            while ((entry <> self.getRootEntry())
+            while ((entry != self.getRootEntry())
                 and entry.isFiltered()):
                 entry = entry.getParentGroup()
             if (entry == None):
@@ -733,7 +821,8 @@ class MediaCollection(Observable, Observer):
         """
         words = set()
         RegexCameraIdentifiers = re.compile('CAM|IMG|HPIM|DSC')  # TODO: make configurable
-        for word in re.split(r'[\W_/\\]+', path, flags=re.UNICODE):
+#         for word in re.split(r'[\W_/\\]+', path, flags=re.UNICODE):
+        for word in re.split(r'[\W_/\\]+', path):
             if ((word == '')
                 or (Entry.isLegalExtension(word))
                 or re.match(r'^\d+$', word)  
@@ -751,7 +840,6 @@ class MediaCollection(Observable, Observer):
          
         Note this returns self, suitably initialized. This means only one iteration can run on self at any time.
         """
-        #print("photoFilerModel.__iter__")
         self.iteratorState = [(None, 0, False)]  # push a triple (entry, index, childrenVisited) representing start position
         return(self)
         
@@ -761,9 +849,7 @@ class MediaCollection(Observable, Observer):
         
         Return an Entry, or raise StopIteration if last entry was already returned
         """
-        #print ("photoFilerModel next")
-        if ((not isinstance (self.iteratorState, types.ListType))  # not yet initialized
-            or (len(self.iteratorState) == 0)):  # stack of positions already exhausted
+        if (len(self.iteratorState) == 0):  # stack of positions already exhausted
             raise StopIteration
         while (len(self.iteratorState) > 0):  # while there are positions on the stack
             (entry, index, childrenVisited) = self.iteratorState.pop(0)
@@ -784,8 +870,13 @@ class MediaCollection(Observable, Observer):
                 self.iteratorState.insert(0, (entry, (index + 1), False))  # push position after this image
                 return(entryList[index])  # return this image
         raise StopIteration  # stack of positions is exhausted, no more entries
-    
-                
+
+
+    def __next__(self):  # Python 3
+        return(self.next())
+
+
+
 #  Internal
     def cacheCollectionProperties(self):
         """Calculate and cache properties of the entire collection, to avoid repeated iterations.
@@ -794,6 +885,8 @@ class MediaCollection(Observable, Observer):
         self.cachedCollectionSize = 0
         self.cachedMinimumSize = 0
         self.cachedMaximumSize = 0
+        self.cachedMinimumResolution = 0
+        self.cachedMaximumResolution = 0
         self.cachedEarliestDate = None
         self.cachedLatestDate = None
         for entry in self:
@@ -804,6 +897,13 @@ class MediaCollection(Observable, Observer):
                 self.cachedMinimumSize = fsize
             if (self.cachedMaximumSize < fsize):  # bigger one found
                 self.cachedMaximumSize = fsize
+# TODO: way to time-consuming (reads all images which have no width/height metadata)
+#             resolution = entry.getResolution() 
+#             if ((resolution < self.cachedMinimumResolution)
+#                 or (self.cachedMinimumResolution == 0)):
+#                 self.cachedMinimumResolution = resolution
+#             if (self.cachedMaximumResolution < resolution):
+#                 self.cachedMaximumResolution = resolution
             if (self.organizedByDate):
                 entryDate = entry.organizer.dateTaken
                 if (entryDate):
@@ -813,10 +913,12 @@ class MediaCollection(Observable, Observer):
                     if ((not self.cachedLatestDate)
                         or (self.cachedLatestDate < entryDate.getLatestDateTime())):
                         self.cachedLatestDate = entryDate.getLatestDateTime()
-        Logger.debug('MediaCollection.cacheCollectionProperties(): Date range from %s to %s' 
+        Logger.debug('MediaCollection.cacheCollectionProperties(): Date ranges from %s to %s' 
                       % (self.cachedEarliestDate, self.cachedLatestDate))
-        Logger.debug('MediaCollection.cacheCollectionProperties(): File size range from %s to %s' 
+        Logger.debug('MediaCollection.cacheCollectionProperties(): File size ranges from %s to %s' 
                       % (self.cachedMinimumSize, self.cachedMaximumSize))                
+        Logger.debug('MediaCollection.cacheCollectionProperties(): Image resolution ranges from %s to %s' 
+                      % (self.cachedMinimumResolution, self.cachedMaximumResolution))                
         Logger.info('MediaCollection.cacheCollectionProperties() finished')
 
 

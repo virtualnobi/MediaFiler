@@ -7,10 +7,12 @@
 
 # Imports
 ## Standard
-from __future__ import print_function
+# from __future__ import print_function
 import time
 ## Contributed
 import wx
+# from wx.adv import SplashScreen
+import wx.adv
 ## nobi
 from nobi.wx.PhasedProgressBar import PhasedProgressBar 
 ## Project
@@ -48,14 +50,14 @@ class ProgressSplashApp(wx.App):
             width, height = splashBitmap.GetSize()
             if ((0 < width) and
                 (0 < height)):
-                self.splashScreen = wx.SplashScreen(splashBitmap,
-                                                    (wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_NO_TIMEOUT),
-                                                    1,  # timeout must be integer, but is ignored due to SPLASH_NO_TIMEOUT 
-                                                    None, 
-                                                    -1, 
-                                                    wx.DefaultPosition, 
-                                                    wx.DefaultSize,
-                                                    wx.BORDER_SIMPLE)
+                self.splashScreen = wx.adv.SplashScreen(splashBitmap,
+                                                        (wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_NO_TIMEOUT),
+                                                        1,  # timeout must be integer, but is ignored due to SPLASH_NO_TIMEOUT 
+                                                        None, 
+                                                        -1, 
+                                                        wx.DefaultPosition, 
+                                                        wx.DefaultSize,
+                                                        wx.BORDER_SIMPLE)
                 self.splashText = wx.StaticText(self.splashScreen,
                                                 -1,
                                                 label='Processing...',
@@ -92,7 +94,7 @@ class ProgressSplashApp(wx.App):
         self.splashText.SetLabel(phase)
         percent = int(percent)
         if (percent < self.getProgressBar().GetValue()):
-            raise ValueError, ('Progress bar cannot run backwards (%s smaller than current progress %s)' % (percent, self.getProgressBar().GetValue()))
+            raise ValueError('Progress bar cannot run backwards (%s smaller than current progress %s)' % (percent, self.getProgressBar().GetValue()))
         elif (percent < 100):
             try:
                 self.getProgressBar().SetValue(percent)

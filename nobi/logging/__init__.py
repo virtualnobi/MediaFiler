@@ -8,7 +8,7 @@ Extensions to the wxPython module.
 from __future__ import print_function
 import cProfile
 import pstats
-import StringIO
+from io import StringIO
 import logging
 
 
@@ -29,7 +29,7 @@ def profiledOnLogger(logger, sort='time'):
             profiler.enable()
             result = function(*args, **kwargs)
             profiler.disable()
-            resultStream = StringIO.StringIO()
+            resultStream = StringIO()
             ps = pstats.Stats(profiler, stream=resultStream)  
             ps.strip_dirs()  # remove module paths
             ps.sort_stats(sort)
@@ -53,7 +53,7 @@ def profiled(function):
         profiler.enable()
         result = function(*args, **kwargs)
         profiler.disable()
-        resultStream = StringIO.StringIO()
+        resultStream = StringIO()
         ps = pstats.Stats(profiler, stream=resultStream)  
         ps.strip_dirs()  # remove module paths
         # ps.sort_stats('cumulative')  # sort according to time per function call, including called functions

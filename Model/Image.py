@@ -13,8 +13,8 @@ import wx
 import pyexiv2
 ## nobi
 ## project
-import Installer
-from .Single import Single
+from Model import Installer
+from Model.Single import Single
 import UI  # to access UI.PackagePath
 
 
@@ -29,7 +29,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
     print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 
@@ -95,6 +96,8 @@ class Image(Single):
     @classmethod
     def getRotationFromMetadata(cls, metadata):
         """Return rotation applied to original (file) image.
+                
+        Must be a class method to be useful during import.
         
         dict metadata contains JPG/EXIF metadata
         Returns 'N' = normal, no rotation
@@ -106,9 +109,9 @@ class Image(Single):
         rotation = 'N'  # N: normal, L: left, R: right, M: mirror
         try:
             orientation = int(metadata['Exif.Image.Orientation'])
-            Logger.debug('Image.getRawImageFromPath(): EXIF orientation is %s' % orientation)
+            Logger.debug('Image.getRotationFromMetadata(): EXIF orientation is %s' % orientation)
         except:  # failed, assume as-is
-            Logger.debug('Image.getRawImageFromPath(): No EXIF orientation information, assuming as-is')
+            Logger.debug('Image.getRotationFromMetadata(): No EXIF orientation information, assuming as-is')
         if (orientation == 6):  # clockwise 90 degrees
             rotation = 'R'
         elif (orientation == 8):  # clockwise 270 degrees
@@ -121,6 +124,8 @@ class Image(Single):
     @classmethod
     def getRawImageFromPath(cls, aMediaCollection, path):
         """Return a raw image to represent the media content of the given file.
+                
+        Must be a class method to be useful during import.
         
         Credits for JPG/EXIF rotation: 
         https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
@@ -151,6 +156,7 @@ class Image(Single):
                 Logger.warning('Image.getRawImageFromPath(): Failed to load "%s"!' % path)
                 rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Image.PreviewImageFilename),
                                     wx.BITMAP_TYPE_JPEG)
+                rotation = 'N'
             if (rotation != 'N'):
                 Logger.debug('Image.getRawImageFromPath(): Rotating %s' % rotation)
                 if (rotation == 'R'):
@@ -195,7 +201,8 @@ class Image(Single):
         """Check whether self and anEntry have the same content.
         """
         if (super(Image, self).isIdenticalContent(anEntry)):
-            identical = (self.getRawImage().GetData() == anEntry.getRawImage().GetData())
+#             identical = (self.getRawImage().GetData() == anEntry.getRawImage().GetData())
+            identical = (self.getRawImage() == anEntry.getRawImage())  # wxPython 4 TODO: Is this checking for bitwise equality?
             return(identical)
         else:
             return(False)
@@ -250,12 +257,24 @@ class Image(Single):
         return({})
         
 
-    def getSizeString(self):
-        """Return a String describing the size of self.
-        
-        Return a String
+    def getResolution(self):
+        """overwrite Single.getResolution()
         """
-        return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
+        result = None
+        md = self.getMetadata()
+        if ('Exif.Photo.PixelXDimension' in md): 
+            result = int(md['Exif.Photo.PixelXDimension']) * int(md['Exif.Photo.PixelYDimension'])
+        else:
+            result = Single.getResolution(self)
+        return result
+
+
+#     def getSizeString(self):
+#         """Return a String describing the size of self.
+#         
+#         Return a String
+#         """
+#         return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
 
 
 

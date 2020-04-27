@@ -11,7 +11,6 @@ from __future__ import print_function
 import sys
 import logging
 from collections import OrderedDict
-from __builtin__ import classmethod
 ## Contributed
 ## nobi
 ## Project
@@ -22,6 +21,24 @@ from __builtin__ import classmethod
 # Class
 class MRUOrderedDict(OrderedDict):
     """Stores dictionary items in the order the keys were last added
+    
+    Python 3 version
+    """
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self.move_to_end(key)
+
+
+    def getOldestItem(self):
+        """Return the oldest item of self, i.e., the one added first.
+        """
+        return(list(self.items())[0])
+
+
+class MRUOrderedDictPy2(OrderedDict):
+    """Stores dictionary items in the order the keys were last added
+    
+    Python 2 version
     """
     def __setitem__(self, key, value):
         if key in self:

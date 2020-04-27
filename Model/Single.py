@@ -10,16 +10,16 @@ from __future__ import print_function
 ## standard
 from decimal import Decimal
 import os
-import shlex
-import sys
-import subprocess
+# import shlex
+#import sys
+# import subprocess
 import logging
 import hashlib
 ## contributed
 import wx
 ## nobi
 ## project
-from Model import GlobalConfigurationOptions
+# from Model import GlobalConfigurationOptions
 from UI import GUIId
 from .Entry import Entry
 from .CachingController import CachingController
@@ -198,6 +198,12 @@ class Single(Entry):
             return([self])
 
 
+    def getResolution(self):
+        """Return the product of image width times height, for filtering.
+        """
+        return(self.getRawImageWidth() * self.getRawImageHeight())
+
+
     def getContextMenu(self):
         """Return a MediaFiler.Menu containing all context menu functions for Singles.
 
@@ -240,7 +246,7 @@ class Single(Entry):
         if (menuId == GUIId.StartExternalViewer):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):
-            message = self.sendMail()
+            message = self.sendMail(parentWindow)
         elif ((menuId <= GUIId.ShowDuplicates)
               and ((GUIId.ShowDuplicates + GUIId.MaxNumberDuplicates) <= menuId)):
             duplicateIndex = (menuId - GUIId.ShowDuplicates)
@@ -251,13 +257,22 @@ class Single(Entry):
         return(message)
 
 
+    def getSizeString(self):
+        """Return a String describing the size of self.
+        
+        Return a String
+        """
+        return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
+
+
+
 ## Setters
     def removeNewIndicator(self):
         """Remove the new indicator on self's filename
         """
         if (MediaClassHandler.ElementNew in self.unknownElements):
             pathInfo = self.getOrganizer().getPathInfo()
-            pathInfo['elements'] = (self.getUnknownElements() - set(MediaClassHandler.ElementNew))
+            pathInfo['elements'] = (self.getUnknownTags() - set(MediaClassHandler.ElementNew))
             self.renameTo(**pathInfo)
 
 
@@ -324,7 +339,7 @@ class Single(Entry):
         
         Return Number
         """
-        if (self.rawImage <> None):
+        if (self.rawImage != None):
             return(self.getRawImage().GetWidth() * self.getRawImage().GetHeight() * 3)  # taken from wx.Image.setData() documentation
         else:
             return(0)
@@ -347,8 +362,8 @@ class Single(Entry):
         if ((width == None)
             and (height == None)):  # return original size
             return(self.getRawImageWidth(), self.getRawImageHeight())
-        elif ((width <> None) 
-              and (height <> None)):  # fit to size given
+        elif ((width != None) 
+              and (height != None)):  # fit to size given
             if (width < 1): 
                 Logger.warning('Single.getSizeFittedTo(): Corrected width to 1 for "%s"', self.getPath())
                 width = 1
@@ -378,7 +393,7 @@ class Single(Entry):
             Logger.debug('    using size %sx%s for %s' % (width, height, self.getPath()))
             return(width, height)
         else:
-            raise ValueError, ('Single.getSizeFittedTo(): Only one of width and height are given for %s!' % self.getPath())
+            raise ValueError('Single.getSizeFittedTo(): Only one of width and height are given for %s!' % self.getPath())
 
     
     def getBitmap(self, width, height):
@@ -391,8 +406,8 @@ class Single(Entry):
         """
         (w, h) = self.getSizeFittedTo(width, height)
         if ((self.bitmap == None)
-            or (self.bitmapWidth <> w)
-            or (self.bitmapHeight <> h)):
+            or (self.bitmapWidth != w)
+            or (self.bitmapHeight != h)):
             self.releaseCacheWithPriority(Single.CachingLevelThumbnailBitmap)
             if (w == 0):
                 w = 1
@@ -428,47 +443,19 @@ class Single(Entry):
         wx.Window parentWindow is the window on which to display an error dialog, if needed
         """
         option = self.__class__.getConfigurationOptionExternalViewer()
-        Logger.debug('Single.runExternalViewer(): Looking for configuration of "%s"' % option)
-        viewerName = self.model.getConfiguration(option)
-        if (not viewerName):
-            Logger.warn('Single.runExternalViewer(): No external program specified for option "%s"' % option)
-            dlg = wx.MessageDialog(parentWindow,
-                                   ('No external command specified with the\n"%s" option!' % option),
-                                   'Error',
-                                   wx.OK | wx.ICON_ERROR)
-            dlg.ShowModal()
-            dlg.Destroy()
-            return
-        Logger.debug('Single.runExternalViewer(): Found external program "%s"' % viewerName)
-        viewerName = viewerName.replace(GlobalConfigurationOptions.Parameter, self.getPath())
-        viewerName = viewerName.encode(sys.getfilesystemencoding())
-        commandArgs = shlex.split(viewerName)  # viewerName.split() will not respect quoting (for whitespace in file names)
-        Logger.debug('Single.runExternalViewer(): Calling "%s"' % commandArgs)
-        try:
-            result = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
-        except Exception as exc:
-            result = -1
-            message = ('External command "%s" failed with exception\n %s' % (commandArgs, exc))
-        finally:
-            if (result <> 0):
-                message = ('External command "%s" failed with error code %s' % (commandArgs, result))
-        if (result <> 0):
-            Logger.warn('Single.runExternalViewer(): %s' % message)
-            dlg = wx.MessageDialog(parentWindow,
-                                   message,
-                                   'Error',
-                                   wx.OK | wx.ICON_ERROR)
-            dlg.ShowModal()
-            dlg.Destroy()
+        self.getModel().runConfiguredProgram(option, self.getPath(), parentWindow)
 
 
-    def sendMail(self):
+    def sendMail(self, parentWindow):
         """Open the email client as listed in the configuration with self's media as attachment.
         """
-        emailClient = self.model.getConfiguration(Single.ConfigurationOptionEmailClient)        
-        if (emailClient):
-            emailClient = emailClient.replace(GlobalConfigurationOptions.Parameter, self.getPath())
-            commandArgs = shlex.split(emailClient)
-            subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
+        self.getModel().runConfiguredProgram(Single.ConfigurationOptionEmailClient, self.getPath(), parentWindow)
+#         emailClient = self.model.getConfiguration(Single.ConfigurationOptionEmailClient)        
+#         if (emailClient):
+#             emailClient = emailClient.replace(GlobalConfigurationOptions.Parameter, self.getPath())
+#             commandArgs = shlex.split(emailClient)
+# #             subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
+#             subprocess.run(commandArgs, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout  # Python 3
+
 
 

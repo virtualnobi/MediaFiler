@@ -34,7 +34,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 
@@ -124,10 +125,8 @@ class MediaNamePane(wx.Panel, Observer):
         self.entry = entry
         self.entry.addObserverForAspect(self, 'name')
         # internal state
-        if (entry <> self.model.root):
+        if (entry != self.model.root):
             self.entry.organizer.setValuesInNamePane(self)
-            self.knownElements = entry.getKnownElements()
-            self.unknownElements = entry.getUnknownElements()
             self.setElementField()
             self.sizeString.SetLabel(self.entry.getSizeString())
         self.GetSizer().Layout()
@@ -148,7 +147,7 @@ class MediaNamePane(wx.Panel, Observer):
         """
         elementString = self.model.getClassHandler().elementsToString(self.lastKnownElements.union(self.lastUnknownElements))
         self.elementInput.ChangeValue(elementString)
-        self.renameEntry(removeUnknownTags=False)
+        self.renameEntry()
 
 
     def onRename(self, event):  # @UnusedVariable
@@ -171,8 +170,6 @@ class MediaNamePane(wx.Panel, Observer):
             self.setEntry(entry)
         elif (aspect == 'name'):  # the selected Entry's name has changed
             self.entry.organizer.setValuesInNamePane(self)
-            self.knownElements = self.entry.getKnownElements()
-            self.unknownElements = self.entry.getUnknownElements()
             self.setElementField()
             self.rememberElements()
 
@@ -196,8 +193,8 @@ class MediaNamePane(wx.Panel, Observer):
     def setElementField(self):
         """Set value of tag input field from selected entry.
         """
-        knownTags = self.entry.getKnownElements()
-        unknownTags= self.entry.getUnknownElements()
+        knownTags = self.entry.getKnownTags(filtering=True)
+        unknownTags= self.entry.getUnknownTags(filtering=True)
         elementString = self.model.getClassHandler().elementsToString(knownTags.union(unknownTags))
         self.elementInput.ChangeValue(elementString)
 
@@ -205,8 +202,8 @@ class MediaNamePane(wx.Panel, Observer):
     def rememberElements(self):
         """Store tags from selected entry, for re-use. 
         """
-        self.lastKnownElements = self.entry.getKnownElements()
-        self.lastUnknownElements = self.entry.getUnknownElements()
+        self.lastKnownElements = self.entry.getKnownTags()
+        self.lastUnknownElements = self.entry.getUnknownTags()
         logging.debug('MediaNamePane.rememberElements(): Saved "%s" and "%s"' % (self.lastKnownElements, self.lastUnknownElements))
 
 
@@ -219,6 +216,7 @@ class MediaNamePane(wx.Panel, Observer):
         Boolean removeUnknownTags indicates whether unknown tags shall be cleared from entry
         """
         if (self.Validate()):
+            wx.GetApp().startProcessIndicator(_('Renaming...'))
             pathInfo = self.entry.getOrganizer().getPathInfo()
             pathInfo.update(self.entry.getOrganizer().getValuesFromNamePane(self))
             if (removeUnknownTags == False):
@@ -226,7 +224,6 @@ class MediaNamePane(wx.Panel, Observer):
                 tagSet = self.model.getClassHandler().stringToElements(tagString)
                 pathInfo['elements'] = tagSet
             pathInfo['removeIllegalElements'] = removeUnknownTags
-            wx.GetApp().startProcessIndicator(_('Renaming...'))
             try:
                 resultingSelection = self.entry.renameTo(**pathInfo)
             except WindowsError as e:

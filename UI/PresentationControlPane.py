@@ -38,7 +38,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 

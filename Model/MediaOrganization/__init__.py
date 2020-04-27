@@ -5,18 +5,17 @@
 
 # Imports
 ## Standard
-from __builtin__ import classmethod
-# from __builtin__ import classmethod
 import datetime
 import re
 import os.path
 import glob
 import shutil
-import StringIO
+from io import StringIO
 import copy
 from collections import OrderedDict
 import logging
 import gettext
+import itertools
 ## Contributed 
 import wx
 ## nobi
@@ -48,7 +47,7 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+    _ = Translation.gettext
 def N_(message): return message
 
 
@@ -114,12 +113,10 @@ class MediaOrganization(object):
 
         Number number contains the new number of the media (in date or name group)
         Boolean makeUnique requests to create a unique new pathname (takes precedence over number)
-        String elements as given by MediaClassHandler().getElementString()
+        set of String elements
         String extension contains the media's extension
 
         Return a String containing the path
-        
-        # TODO: restructure to move element handling to MediaClassHandler
         """
         if (('rootDir' in pathInfo)
             and pathInfo['rootDir']):
@@ -137,16 +134,18 @@ class MediaOrganization(object):
             while (0 < len(glob.glob(result + cls.IdentifierSeparator + (cls.FormatNumber % number) + '*'))):
                 number = (number + 1)
         if (number):
-            if (isinstance(number, str)
-                or isinstance(number, unicode)):
+#             if (isinstance(number, str)
+#                 or isinstance(number, unicode)):
+            if (isinstance(number, str)):
                 print('MediaOrganization.constructPath(): Deprecated use of non-numeric number!')
                 number = int(number)
             result = (result + cls.IdentifierSeparator + (cls.FormatNumber % number))
         if (('elements' in pathInfo)
             and pathInfo['elements']):
             tagSpec = pathInfo['elements']
-            if (isinstance(tagSpec, str)
-                or isinstance(tagSpec, unicode)):
+#             if (isinstance(tagSpec, str)
+#                 or isinstance(tagSpec, unicode)):
+            if (isinstance(tagSpec, str)):
                 print('Organization.constructPath(): Deprecated usage of string parameter for elements!')
                 tagSpec = cls.ImageFilerModel.getClassHandler().stringToElements(tagSpec)
             if (('classesToRemove' in pathInfo)
@@ -229,8 +228,8 @@ class MediaOrganization(object):
         Dictionary targetPathInfo contains information about the target path
         Dictionary illegalElements collects a mapping of illegal elements to source pathnames
         """
-        if (targetDir <> targetPathInfo['rootDir']):
-            raise ValueError, ('targetDir "%s" does not match target path info "%s"!' % (targetDir, targetPathInfo['rootDir']))
+        if (targetDir != targetPathInfo['rootDir']):
+            raise ValueError('targetDir "%s" does not match target path info "%s"!' % (targetDir, targetPathInfo['rootDir']))
         newPath = cls.constructPathFromImport(importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements)
         importParameters.logString('Importing "%s"\n  as "%s"' % (sourcePath, newPath))
         if (not importParameters.getTestRun()):
@@ -267,7 +266,7 @@ class MediaOrganization(object):
         result = u''
         for key in pathInfo.keys():
             result = ('%s%s%s' % (result, pathInfo[key], MediaOrganization.IdentifierSeparator))
-        if (result <> u''):
+        if (result != u''):
             result = result[:-1]
         return(result)
 
@@ -351,6 +350,7 @@ class MediaOrganization(object):
                            ''', 
                           pathRest,
                           flags=re.VERBOSE)  
+#                         pathRest)
         if (match):  # number found  
             self.number = match.group(1)
             return(match.group(2))
@@ -427,7 +427,7 @@ class MediaOrganization(object):
         Boolean filtering specifies whether to include all entries (in a group) or only filtered ones
         """
         result = {}
-        result['elements'] = self.getContext().getElements(filtering)
+        result['elements'] = self.getContext().getTags(filtering)
         if (not self.getContext().isGroup()):
             result['number'] = self.getNumber()
             result['extension'] = self.getContext().getExtension()
@@ -513,8 +513,8 @@ class MediaOrganization(object):
 
         MediaFiler.Entry otherEntry
         """
-        selfElements = self.getContext().getElements()
-        otherElements = otherEntry.getElements()
+        selfElements = self.getContext().getTags()
+        otherElements = otherEntry.getTags()
         newElements = selfElements.union(otherElements)
         if ((not MediaClassHandler.ElementNew in selfElements)
             or (not MediaClassHandler.ElementNew in otherElements)):
@@ -547,7 +547,7 @@ class MediaOrganization(object):
         if (not self.getContext().isGroup()):
             number = aMediaNamePane.numberInput.GetValue()
             number = number.strip()
-            if (number <> u''):
+            if (number != u''):
                 try:
                     result['number'] = int(number)
                 except:
@@ -567,16 +567,17 @@ class MediaOrganization(object):
         Return the Entry to select after renaming 
         """
         if (self.getContext().isGroup()):
-            raise ValueError, ('MediaOrganization.renameSingle(): Called on a Group!')
+            raise ValueError('MediaOrganization.renameSingle(): Called on a Group!')
         # change elements as required
         if (elements 
             or removeIllegalElements):
             if (elements):
                 newElements = elements
             else:
-                newElements = self.getElements()
+                newElements = self.getContext().getTags()
             if (removeIllegalElements):
-                newElements = filter(self.__class__.ImageFilerModel.getClassHandler().isLegalElement, newElements)
+#                 newElements = filter(self.__class__.ImageFilerModel.getClassHandler().isLegalElement, newElements)
+                newElements = set(filter(self.__class__.ImageFilerModel.getClassHandler().isLegalElement, newElements))  # Python 3
             pathInfo['elements'] = newElements
         # rename 
         oldParent = self.getContext().getParentGroup()
@@ -608,10 +609,10 @@ class MediaOrganization(object):
         Return the Entry to select after renaming 
         """
         if (not self.getContext().isGroup()):
-            raise ValueError, ('MediaOrganization.renameGroup(): Called on a Single!')
+            raise ValueError('MediaOrganization.renameGroup(): Called on a Single!')
         if (('number' in pathInfo)
             and (pathInfo['number'])):
-            raise ValueError, ('MediaOrganization.renameGroup(): Number %s specified when renaming group "%s"' % (pathInfo['number'], self.getContext()))
+            raise ValueError('MediaOrganization.renameGroup(): Number %s specified when renaming group "%s"' % (pathInfo['number'], self.getContext()))
         newParent = self.findGroupFor(**pathInfo)
         # rename subentries
         renameList = self.getRenameList(newParent, pathInfo, filtering=filtering)
@@ -682,7 +683,7 @@ class MediaOrganization(object):
         if (target in numberList):
             step = (1 if (gap < target) else -1)
             current = gap
-            while (current <> target):
+            while (current != target):
                 moveList.append(((current + step), current))
                 current = (current + step)
         if (self.getNumber() == gap):  # special case: gap is the place where self is removed

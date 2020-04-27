@@ -35,7 +35,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3 
 def N_(message): return message
 
 
@@ -79,7 +80,8 @@ class MediaCanvas(wx.Panel, Observer):
         self.ignoreNameChanges = False  # ignore observable updates on 'name' aspect
         self.SetBackgroundColour('white')
         self.ClearBackground()
-        (self.width, self.height) = self.GetSizeTuple()
+#         (self.width, self.height) = self.GetSizeTuple()
+        (self.width, self.height) = self.GetSize()  # Python 3
 
 
 # Getters
@@ -106,7 +108,7 @@ class MediaCanvas(wx.Panel, Observer):
         """
         Logger.debug('MediaCanvas.setEntry("%s") with canvas %dx%d' % (entry.getPath(), self.width, self.height))
         if (forceUpdate 
-            or (self.entry <> entry)):
+            or (self.entry != entry)):
             self.clear()  # unbind events and unregister observable
             self.entry = entry
             self.entry.addObserverForAspect(self, 'children')
@@ -152,7 +154,7 @@ class MediaCanvas(wx.Panel, Observer):
 
 
     def onResize(self, event):
-        if (self.entry <> None):
+        if (self.entry != None):
             Logger.debug('MediaCanvasPane.onResize(): ...')
             displayedEntries = self.entry.getEntriesForDisplay()
             self.sizeAndDisplayEntries(displayedEntries)
@@ -175,7 +177,7 @@ class MediaCanvas(wx.Panel, Observer):
             self.setEntry(observable)
         elif (aspect == 'name'):  # an Entry changed its name
             if ((not self.ignoreNameChanges)
-                and (observable <> self.entry)):  # child of currently selected Entry changed, redisplay to keep order correct
+                and (observable != self.entry)):  # child of currently selected Entry changed, redisplay to keep order correct
                 parent = self.entry
                 self.setEntry(parent, forceUpdate=True)
 
@@ -204,7 +206,8 @@ class MediaCanvas(wx.Panel, Observer):
         """Calculate number of rows and columns for given numberOfImages.
         """
         # determine aspect ratio of canvas
-        (self.width, self.height) = self.GetSizeTuple()
+#         (self.width, self.height) = self.GetSizeTuple()
+        (self.width, self.height) = self.GetSize()  # Python 3
         if ((0 == self.width)
             or (0 == self.height)):
             Logger.error('MediaCanvasPane.calculateGrid(): Pane width or height are zero!')
@@ -313,7 +316,7 @@ class MediaCanvas(wx.Panel, Observer):
             Logger.debug('MediaCanvasPane.handleImageClick(): LeftUp on %s' % target.getPath())
             if (self.lastLeftDownImage == target):  # mouse down/up on same Image
                 if ((target == self.entry)  # clicked on blank area, navigate to parent of self.entry
-                    and (target.getParentGroup() <> None)):
+                    and (target.getParentGroup() != None)):
                     target = target.getParentGroup()
                 Logger.debug('MediaCanvasPane.handleImageClick(): Change selection to %s' % target.getPath())
                 self.model.setSelectedEntry(target)

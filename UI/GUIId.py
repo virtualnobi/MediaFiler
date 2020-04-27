@@ -31,7 +31,7 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+    _ = Translation.gettext
 def N_(message): return message
 
 
@@ -40,7 +40,6 @@ def N_(message): return message
 AppTitle = 'MediaFiler'
 MessageDuplicatesDeleted = _('%d duplicate media deleted')
 TextGroupSizeString = _('%d media')
-
 
 
 # Sizes and Ranges
@@ -72,7 +71,7 @@ def generateWxIdForLabel(label):
 
 ## File
 LoadRecentDirectory = wx.NewId()  # load first recent root directory
-for i in xrange(MaxNumberRecentFiles - 1):  # reserve additional menu items for more recent directories
+for i in range(MaxNumberRecentFiles - 1):  # reserve additional menu items for more recent directories
     wx.NewId()
 ChangeRootDirectory = generateWxIdForLabel(_('Change Media Directory'))
 ReloadDirectory = generateWxIdForLabel(_('Reload Media'))
@@ -80,9 +79,9 @@ ExportImages = generateWxIdForLabel(_('Export (Filtered) Media'))
 FunctionNames[wx.ID_EXIT] = _('Exit')
 
 ## Image
-FindDuplicates = generateWxIdForLabel(_('Find Duplicates'))
+FindDuplicates = generateWxIdForLabel(_('Determine Duplicates'))
 ShowDuplicates = generateWxIdForLabel(_('Show Duplicates'))
-for i in xrange(MaxNumberDuplicates - 1):  # reserve additional menu items for more duplicates
+for i in range(MaxNumberDuplicates - 1):  # reserve additional menu items for more duplicates
     wx.NewId()
 
 EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
@@ -98,7 +97,7 @@ RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
 RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Tags'))
 
 AssignNumber = generateWxIdForLabel(_('Move to Number...'))
-for i in xrange(MaxNumberNumbers - 1):  # reserve additional menu items for media numbers
+for i in range(MaxNumberNumbers - 1):  # reserve additional menu items for media numbers
     wx.NewId()
 ReorderByTime = generateWxIdForLabel(_('Reorder by Time Taken'))
 UndoReorder = generateWxIdForLabel(_('Undo Reordering'))
@@ -110,12 +109,12 @@ StartExternalViewer = generateWxIdForLabel(_('View in External Program'))
 SendMail = generateWxIdForLabel(_('Send As Email'))
 # Functions specific to OrganizationByName
 SelectScene = generateWxIdForLabel(_('Move to scene...'))  # TODO: merge with SelectMoveTo
-for i in xrange(MaxNumberScenes - 1):  # reserve additional menu items for more scene numbers
+for i in range(MaxNumberScenes - 1):  # reserve additional menu items for more scene numbers
     wx.NewId()
 RelabelScene = generateWxIdForLabel(_('Rename scene to...'))
 # Functions Specific to OrganizationByDate
 SelectMoveTo = generateWxIdForLabel(_('Move to...'))
-for i in xrange(MaxNumberMoveToLocations - 1):
+for i in range(MaxNumberMoveToLocations - 1):
     wx.NewId()
 EntryFunctionLast = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
 
@@ -137,7 +136,7 @@ SlowSlideshow = generateWxIdForLabel(_('Present Slowly'))
 ## Perspectives
 #-FirstPerspective = wx.ID_HIGHEST + PerspectiveFirstStart  # load first perspective, subsequent codes used by other perspectives
 LoadPerspective = wx.NewId()  # load first perspective
-for i in xrange(MaxNumberPerspectives - 1):  # reserve additional menu idemts for more perspectives
+for i in range(MaxNumberPerspectives - 1):  # reserve additional menu idemts for more perspectives
     wx.NewId()
 CreatePerspective = wx.NewId ()  # create perspective
 DeletePerspective = wx.NewId ()  # delete perspective
@@ -154,7 +153,7 @@ EditClasses = generateWxIdForLabel(_('Edit Tag Classes'))
 EditNames = generateWxIdForLabel(_('Edit Names'))
 HarvestURLs = generateWxIdForLabel(_('Harvest from URL...'))
 ManageLogging = generateWxIdForLabel(_('Manage Logging...'))
-for i in xrange(MaxNumberLogging - 1):
+for i in range(MaxNumberLogging - 1):
     wx.NewId()
 
 ## Importing

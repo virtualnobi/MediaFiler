@@ -9,7 +9,7 @@ Classes to support the importing of media.
 ## Standard
 import gettext
 import os.path
-import StringIO
+from io import StringIO
 import logging
 ## Contributed
 import wx
@@ -39,7 +39,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 
 
 
@@ -67,7 +68,7 @@ class ImportParameterObject(object):
         super(ImportParameterObject, self).__init__()
         # internal state
         self.model = model
-        self.log = StringIO.StringIO()
+        self.log = StringIO()
         self.illegalElements = {}
         self.testRun = True
         self.numberOfImportedFiles = 0

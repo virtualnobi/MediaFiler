@@ -11,14 +11,15 @@ import os.path
 import gettext
 import subprocess
 import logging
-import cStringIO
+#from io import StringIO
+from io import BytesIO
 ## contributed
-import nobi.win_subprocess  # @UnusedImport - this broken subprocess.popen() to handle unicode 
+# import nobi.win_subprocess  # @UnusedImport - this broken subprocess.popen() to handle unicode 
 import wx
 ## nobi
 ## project
-import Installer
-from .Single import Single
+from Model import Installer
+from Model.Single import Single
 import UI  # to access UI.PackagePath
 
 
@@ -33,7 +34,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
     print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message 
 
 
@@ -79,8 +81,68 @@ class Movie(Single):
 
     
     @classmethod
+    def getMetadataFromPath(cls, aMediaCollection, path):
+        """Return metadata from the given file, if it exists.
+
+        MediaCollection
+        String path
+        Return dict (empty if no metadata available)
+        """
+        result = {}
+        ffmpegCmd = aMediaCollection.getConfiguration(Movie.ConfigurationOptionFfmpeg)
+        if (ffmpegCmd):
+            try:
+                args = [ffmpegCmd, u'-i', path]
+                Logger.debug('Movie.getMetadataFromPath(): Calling "%s"' % args)
+                output = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+                for line in output.split('\n'):
+                    Logger.debug('Movie.getMetadataFromPath(): Processing ffmpeg output "%s"' % line)
+                    match = re.search(r'    (\S+)\s*: (.+)', line)
+                    if (match):
+                        if (match.group(1) == 'creation_time'):  # time given as 2014-05-20T14:13:43.000000Z
+                            timestamp = re.search(r'(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d)', match.group(2))
+                            if (timestamp):
+                                Logger.debug('Movie.getMetadataFromPath(): Found creation time "%s"' % match.group(2))
+                                result['year'] = timestamp.group(1)
+                                result['month'] = timestamp.group(2)
+                                result['day'] = timestamp.group(3)
+                                result['hour'] = timestamp.group(4)
+                                result['minute'] = timestamp.group(5)
+                            else:
+                                Logger.debug('Movie.getMetadataFromPath(): Found un-interpretable creation time "%s"' % match.group(1))
+                                result[match.group(1)] = match.group(2)
+                        else:
+                            Logger.debug('Movie.getMetadataFromPath(): Found metadata %s = %s' % (match.group(1), match.group(2)))
+                            result[match.group(1)] = match.group(2)
+                    else:
+                        match = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', line)
+                        if (match):
+                            # Avoiding strptime() here because it has some issues handling milliseconds.
+                            duration = [int(match.group(i)) for i in range(1, 5)]
+                            result['seconds'] = datetime.timedelta(hours=duration[0],
+                                                                   minutes=duration[1],
+                                                                   seconds=duration[2],
+                                                                   milliseconds=duration[3] * 10  # * 10 because truncated to 2 decimal places
+                                                                   ).total_seconds()
+                            Logger.debug('Movie.getMetadataFromPath(): Found duration "%s" = %dsecs' % (duration, result['seconds']))
+                        else:
+                            match = re.search(r'Stream.*Video.*, (\d?\d?\d\d\d)x(\d?\d?\d\d\d)', line)
+                            if (match):
+                                result['width'] = match.group(1)
+                                result['height'] = match.group(2)
+                                Logger.debug('Movie.getMetadataFromPath(): Found resolution %sx%s' % (result['width'], result['height']))
+            except Exception as e:
+                Logger.warning('Movie.getMetadataFromPath(): Cannot read metadata due to error:\n%s' % e)
+        else:
+            Logger.warning('Movie.getMetadataFromPath(): No ffmpeg specified with option "%s"' % Movie.ConfigurationOptionFfmpeg)
+        return(result)
+
+    
+    @classmethod
     def getDurationFromPath(self, aMediaCollection, path):
         """Determine the duration of the given movie, in seconds.
+
+        TODO: Remove if metadataFfmpeg is available
         
         Model.MediaCollection aMediaCollection
         String path
@@ -90,13 +152,12 @@ class Movie(Single):
         ffmpeg = aMediaCollection.getConfiguration(Movie.ConfigurationOptionFfmpeg)
         if (ffmpeg):
             try:
-                args = [ffmpeg,
-                        u'-i',
-                        path]
+                args = [ffmpeg, u'-i', path]
                 Logger.debug('Movie.getDurationFromPath(): Calling "%s"' % args)
-                proc = subprocess.Popen(args, stderr=subprocess.PIPE)
-                (_, result) = proc.communicate()
-                m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', result)
+#                 proc = subprocess.Popen(args, stderr=subprocess.PIPE)
+#                 (_, result) = proc.communicate()
+                output = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout  # Python 3
+                m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', output)
                 if (m == None):
                     Logger.warning('Movie.getDurationFromPath(): Cannot determine duration for "%s"!' % path)
                 else:
@@ -144,14 +205,18 @@ class Movie(Single):
                         "-f", "mjpeg",     # motion jpeg (aka. jpeg since 1 frame) output
                         "pipe:"            # pipe output to stdout
                         ]
-                proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                (output, _) = proc.communicate()
-                if (proc.returncode):
-                    raise subprocess.CalledProcessError(proc.returncode, args)
-                if (not output):
+#                 proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#                 (output, _) = proc.communicate()
+#                 if (proc.returncode):
+#                     raise subprocess.CalledProcessError(proc.returncode, args)
+                cp = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # Python 3
+                if (cp.returncode):
+                    raise subprocess.CalledProcessError(cp.returncode, args)
+                if (not cp.stdout):
                     raise subprocess.CalledProcessError(-2, args)
-                stream = cStringIO.StringIO(output)
-                rawImage = wx.ImageFromStream(stream)
+                stream = BytesIO(cp.stdout)
+#                 rawImage = wx.ImageFromStream(stream, type=wx.BITMAP_TYPE_JPEG)
+                rawImage = wx.Image(stream, type=wx.BITMAP_TYPE_JPEG)  # wxPython 4
             except Exception as e:
                 Logger.error('Movie.getRawImageFromPath(): Cannot retrieve frame from "%s" due to error:\n%s' % (path, e))
         else:
@@ -184,20 +249,31 @@ class Movie(Single):
         # inheritance
         Single.__init__(self, model, path)
         # internal state
+        self.metadataFfmpeg = None
         self.duration = None
-        return(None)
 
 
 
 # Setters
 # Getters
-    def getSizeString(self):
-        """Return a String describing the size of self.
+    def getMetadata(self):
+        """Return video metadata.
         
-        Return a String
+        Return dict (empty if no metadata available)
         """
+        if (self.metadataFfmpeg == None):
+            self.metadataFfmpeg = Movie.getMetadataFromPath(self.model, self.getPath())
+        return(self.metadataFfmpeg)
+
+
+    def getSizeString(self):
+        """overwrite Single.getSizeString()
+        
+        Add duration to the resolution.
+        """
+        resolution = super(Movie, self).getSizeString()
         seconds = self.getDuration()
-        if (seconds <> None):
+        if (seconds != None):
             minutes = int(seconds / 60)
             seconds = int(seconds % 60)
             fmt = _('%d secs')
@@ -205,9 +281,10 @@ class Movie(Single):
             if (0 < minutes):
                 fmt = (_('%d mins, ') + fmt)
                 numberList = (minutes, seconds)
-            return(fmt % numberList)
+            duration = (fmt % numberList)
         else:
-            return(_('unknown duration'))
+            duration = _('unknown duration')
+        return(resolution + ', ' + duration)
 
 
 
@@ -218,33 +295,36 @@ class Movie(Single):
         
         Return Number
         """
-        if (self.duration <> None):
+        if (self.duration != None):
             return(self.duration)
-        ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
-        if (ffmpeg):
-            try:
-                args = [ffmpeg, 
-                        '-i',
-                        self.getPath()]
-                logging.debug('Movie.getDuration(): Calling "%s"' % args)
-                proc = subprocess.Popen(args, stderr=subprocess.PIPE)
-                (_, result) = proc.communicate()
-                m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', result)
-                if (m == None):
-                    logging.warning('Movie.getDuration(): Cannot determine duration for "%s"!' % self.getPath())
-                else:
-                    # Avoiding strptime here because it has some issues handling milliseconds.
-                    m = [int(m.group(i)) for i in range(1, 5)]
-                    self.duration = datetime.timedelta(hours=m[0],
-                                                       minutes=m[1],
-                                                       seconds=m[2],
-                                                       # * 10 because truncated to 2 decimal places
-                                                       milliseconds=m[3] * 10
-                                                       ).total_seconds()
-            except Exception as e:
-                logging.warning('Movie.getDuration(): Cannot determine duration due to error:\n%s' % e)
-        else:
-            logging.warning('Movie.getDuration(): No ffmpeg specified with %s' % Movie.ConfigurationOptionFfmpeg)
+        md = self.getMetadata()
+        self.duration = md['seconds']
+#         ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
+#         if (ffmpeg):
+#             try:
+#                 args = [ffmpeg, 
+#                         '-i',
+#                         self.getPath()]
+#                 logging.debug('Movie.getDuration(): Calling "%s"' % args)
+# #                 proc = subprocess.Popen(args, stderr=subprocess.PIPE)
+# #                 (_, result) = proc.communicate()
+#                 output = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout  # Python 3
+#                 m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', output)
+#                 if (m == None):
+#                     logging.warning('Movie.getDuration(): Cannot determine duration for "%s"!' % self.getPath())
+#                 else:
+#                     # Avoiding strptime here because it has some issues handling milliseconds.
+#                     m = [int(m.group(i)) for i in range(1, 5)]
+#                     self.duration = datetime.timedelta(hours=m[0],
+#                                                        minutes=m[1],
+#                                                        seconds=m[2],
+#                                                        # * 10 because truncated to 2 decimal places
+#                                                        milliseconds=m[3] * 10
+#                                                        ).total_seconds()
+#             except Exception as e:
+#                 logging.warning('Movie.getDuration(): Cannot determine duration due to error:\n%s' % e)
+#         else:
+#             logging.warning('Movie.getDuration(): No ffmpeg specified with %s' % Movie.ConfigurationOptionFfmpeg)
         return(self.duration)
 
 

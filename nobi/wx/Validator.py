@@ -18,7 +18,6 @@ import wx
 ## nobi
 ## Project
 import UI  # to access UI.PackagePath
-from __builtin__ import True
 
 
 
@@ -36,7 +35,7 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+    _ = Translation.gettext
 def N_(message): return message
 
 
@@ -53,7 +52,8 @@ class TextCtrlIsIntValidator(wx.PyValidator):
 # Class Variables
 # Class Methods
 # Lifecycle
-    def __init__(self, title=_('Validation Error'), label=_('Value'), minimum=(-sys.maxint-1), maximum=sys.maxint, emptyAllowed=False):
+#     def __init__(self, title=_('Validation Error'), label=_('Value'), minimum=(-sys.maxint-1), maximum=sys.maxint, emptyAllowed=False):
+    def __init__(self, title=_('Validation Error'), label=_('Value'), minimum=(-sys.maxsize-1), maximum=sys.maxsize, emptyAllowed=False):
         """
         String title is the title of the Dialog indicating a validation error.
         String label is the text shown to indicating the erroneous field.

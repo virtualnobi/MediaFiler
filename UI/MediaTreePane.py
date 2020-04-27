@@ -36,7 +36,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 
@@ -68,9 +69,12 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         Observable.__init__(self, ['selection'])
         # define norgy images
         imglist = wx.ImageList(16, 16, True, 3)
-        self.closedFolderIcon = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16)))
-        self.openFolderIcon = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_OTHER, wx.Size(16, 16)))
-        self.fallBackTypeIconIndex = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16)))
+#         self.closedFolderIcon = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16)))
+#         self.openFolderIcon = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_OTHER, wx.Size(16, 16)))
+#         self.fallBackTypeIconIndex = imglist.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16)))
+        self.closedFolderIcon = imglist.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16)))  # Python 3
+        self.openFolderIcon = imglist.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_OTHER, wx.Size(16, 16)))
+        self.fallBackTypeIconIndex = imglist.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16)))
         self.AssignImageList(imglist)
         # bind events triggered by tree
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSelectionChanged, self)
@@ -124,21 +128,22 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         if (entry.filteredFlag):
             print('MediaTreeCtrl.addSubTree(): Ignoring filtered Entry "%s"' % entry.getPath())
             return(None)
-        # create a tree item
-        item = wx.TreeItemData(entry)
+#         item = wx.TreeItemData(entry)
         # insert tree item
         if (entry.isGroup()):  # entry is a Group, add a collapsible node for entry
             if (parent == None):  # entry is root Group
                 node = self.AddRoot("All", 
                                     self.closedFolderIcon, 
                                     self.openFolderIcon, 
-                                    data=item)  
+#                                     data=item)  
+                                    data=entry)  # Python 3  
             else:   
                 node = self.AppendItem(parent, 
                                        entry.getIdentifier(), 
                                        self.closedFolderIcon, 
                                        self.openFolderIcon, 
-                                       data=item)
+#                                        data=item)
+                                       data=entry)  # Python 3
             for subentry in entry.getSubEntries():
                 if (not subentry.filteredFlag):
                     self.addSubTree(subentry, node)
@@ -146,10 +151,12 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             node = self.AppendItem(parent, 
                                    entry.getIdentifier(), 
                                    self.typeIconsIndices[entry.__class__], 
-                                   data=item)
+#                                    data=item)
+                                   data=entry)  # Python 3
             if (not node):  # should not happen, report
                 raise('MediaTreePane.addSubTree(): AppendItem() returned None for (%s, %s, %s, %s)' 
-                      % (parent, entry.getFilename(), self.typeIconsIndices[entry.__class__], item))
+#                       % (parent, entry.getFilename(), self.typeIconsIndices[entry.__class__], item))
+                      % (parent, entry.getFilename(), self.typeIconsIndices[entry.__class__], entry))  # Python 3
         # register as observer for entry
         entry.addObserverForAspect(self, 'name')
         entry.addObserverForAspect(self, 'remove')
@@ -167,7 +174,8 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         """
         Logger.debug('MediaTreeCtrl.setEntry(%s)' % entry)
         self.Freeze()
-        if (entry.getTreeItemID()):
+        if (entry.getTreeItemID()
+            and (entry != self.model.getRootEntry())):
             self.SelectItem(entry.getTreeItemID())
             if (expand):
                 self.Expand(entry.getTreeItemID())
@@ -185,7 +193,8 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         if (self.ignoreSelectionChanges): 
             pass
         else:
-            entry = self.GetItemData(event.GetItem()).GetData()
+#             entry = self.GetItemData(event.GetItem()).GetData()
+            entry = self.GetItemData(event.GetItem())  # wxPython 4
             Logger.debug('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry)
             self.ignoreSelectionChanges = True
             wx.GetApp().startProcessIndicator()
@@ -197,7 +206,8 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
     def onContextMenuRequest (self, event):
         """User pressed context menu button in the tree.
         """
-        entry = self.GetItemData(event.GetItem()).GetData()
+#         entry = self.GetItemData(event.GetItem()).GetData()
+        entry = self.GetItemData(event.GetItem())  # wxPython 4
         menu = entry.getContextMenu()  # create context menu for current Entry
         self.PopupMenu(menu)  # let user select item
         menu.Destroy()
@@ -217,7 +227,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
     def onResize(self, event): 
         """After conventional resizing, ensure selected entry is still visible.
         """
-        if (self.oldSize <> event.GetSize()):
+        if (self.oldSize != event.GetSize()):
             Logger.debug('MediaTreeCtrl.onResize: Resizing from %s to %s' % (self.oldSize, event.GetSize()))
         self.oldSize = event.GetSize()
         if (self.model
@@ -257,12 +267,13 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             Logger.debug('MediaTreeCtrl.updateAspect(): Changed children of %s' % observable.getPath())
         elif (aspect == 'selection'):  # model changed selection
             entry = observable.getSelectedEntry()
+            if (entry.getTreeItemID() == None):
+                print('No tree item found for %s' % entry)
+            self.storeExpansionState(entry.getTreeItemID())  # new version of wxPython expands when selecting, therefor remember expansion state...
             self.ignoreSelectionChanges = True
-            isExpanded = self.IsExpanded(entry.getTreeItemID())  # new version of wxPython expands when selecting, therefor remember expansion state...
             self.setEntry(entry)
-            if (not isExpanded):  # ... and collapse entry if it was not expanded prior to selection
-                self.Collapse(entry.getTreeItemID())
             self.ignoreSelectionChanges = False
+            self.restoreExpansionState(entry.getTreeItemID())  # ... and collapse entry if it was not expanded prior to selection
             Logger.debug('MediaTreeCtrl.updateAspect(): Selected %s' % entry)
         elif (aspect == 'startFiltering'):  # filter changed, remember current selection
             self.selectionBeforeFiltering = self.model.getSelectedEntry()
@@ -272,7 +283,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             self.Freeze()
             self.DeleteAllItems()
             self.addSubTree(self.model.getRootEntry(), None)
-            if (self.selectionBeforeFiltering <> self.model.getSelectedEntry()):
+            if (self.selectionBeforeFiltering != self.model.getSelectedEntry()):
                 self.setEntry(self.model.getSelectedEntry(), expand=True)
             else:
                 self.setEntry(self.model.getSelectedEntry())
@@ -304,7 +315,8 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         if (isinstance(self, MediaTreeCtrl)):
             item = args[0]
             if (self.GetItemData(item)):
-                entry = self.GetItemData(item).GetData()
+#                 entry = self.GetItemData(item).GetData()
+                entry = self.GetItemData(item)  # wxPython 4
                 Logger.debug('MediaTreeCtrl.EnsureVisible(%s)' % entry)
                 Logger.debug('MediaTreeCtrl.EnsureVisible(): IsVisible()=%s' % self.IsVisible(item))
                 boundingRect = self.GetBoundingRect(item)
@@ -362,8 +374,10 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
     def OnCompareItems(self, item1, item2):
         """Sorts tree items according to full path name.
         """
-        entry1 = self.GetItemData(item1).GetData()
-        entry2 = self.GetItemData(item2).GetData()
+#         entry1 = self.GetItemData(item1).GetData()
+#         entry2 = self.GetItemData(item2).GetData()
+        entry1 = self.GetItemData(item1)  # wxPython 4
+        entry2 = self.GetItemData(item2)
 #         # this will put singles before groups, which is not correct for organization by name
 #         if (entry1.isGroup() == entry2.isGroup()):
 #             return(cmp(entry1.getPath().lower(), entry2.getPath().lower()))
@@ -371,27 +385,46 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
 #             return(1)
 #         else:  # entry2 is a group
 #             return(-1)
-        return(cmp(entry1.getPath().lower(), entry2.getPath().lower()))
+#         return(cmp(entry1.getPath().lower(), entry2.getPath().lower()))
+        if (entry1.getPath().lower() < entry2.getPath().lower()):
+            return(-1)
+        if (entry2.getPath().lower() < entry1.getPath().lower()):
+            return(1)
+        return(0)
 
 
 
 # Internal
-    def storeExpansionState(self):
+    def storeExpansionState(self, treeItem=None):
         """Store the expansion state of all Groups, to restore after filtering.
+
+        wx.TreeItem treeItem to store expansion state of; if None, stores expansion state of all items
         """
-        for itemID in self.getDescendants(self.GetRootItem()):
-            entry = self.GetItemData(itemID).GetData()
-            if (entry <> self.model.getRootEntry()):
+        if (treeItem):
+            items = [treeItem]
+        else:
+            items = self.getDescendants(self.GetRootItem())
+        for itemID in items:
+#             entry = self.GetItemData(itemID).GetData()
+            entry = self.GetItemData(itemID)  # wxPython 4
+            if (entry != self.model.getRootEntry()):
                 entry.isExpanded = (entry.isGroup()
                                     and self.IsExpanded(itemID))
 
 
-    def restoreExpansionState(self):
+    def restoreExpansionState(self, treeItem=None):
         """Restore the expansion state of all unfiltered Groups after filtering.
+
+        wx.TreeItem treeItem to store expansion state of; if None, stores expansion state of all items
         """
-        for itemID in self.getDescendants(self.GetRootItem()):
-            entry = self.GetItemData(itemID).GetData()
-            if (entry <> self.model.getRootEntry()):
+        if (treeItem):
+            items = [treeItem]
+        else:
+            items = self.getDescendants(self.GetRootItem())
+        for itemID in items:
+#             entry = self.GetItemData(itemID).GetData()
+            entry = self.GetItemData(itemID)  # wxPython 4
+            if (entry != self.model.getRootEntry()):
                 if (entry.isExpanded):
                     self.Expand(itemID)
                 else:

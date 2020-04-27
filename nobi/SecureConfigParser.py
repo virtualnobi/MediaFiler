@@ -7,7 +7,7 @@
 
 # Imports
 ## Standard
-from ConfigParser import SafeConfigParser 
+from configparser import SafeConfigParser 
 ## Contributed
 ## nobi
 ## Project
@@ -60,7 +60,9 @@ class SecureConfigParser(SafeConfigParser):
         String option
         unicode value
         """
-        encodedValue = unicode(value).encode(self.EncodingName, 'replace')
+#         encodedValue = unicode(value).encode(self.EncodingName, 'replace')
+#         encodedValue = value.encode(self.EncodingName, 'replace')
+        encodedValue = str(value)  # Python 3
         SafeConfigParser.set(self, section, option, encodedValue)
         with open(self.filename, 'w') as f:
             self.write(f)
@@ -72,7 +74,8 @@ class SecureConfigParser(SafeConfigParser):
         Returns decoded String
         """
         encodedValue = SafeConfigParser.get(self, section, option, raw=True)
-        value = encodedValue.decode(self.EncodingName, 'replace')
+#         value = encodedValue.decode(self.EncodingName, 'replace')
+        value = encodedValue  # Python 3
         return(value)
     
 

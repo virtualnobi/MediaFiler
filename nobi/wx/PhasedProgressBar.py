@@ -136,7 +136,7 @@ class PhasedProgressBar(wx.Gauge):
         """
         if ((not isinstance(numberOfSteps, int))
             or (numberOfSteps < 1)):
-            raise ValueError, 'PhasedProgressBar.beginPhase(): numberOfSteps must be an integer larger than 0'
+            raise ValueError('PhasedProgressBar.beginPhase(): numberOfSteps must be an integer larger than 0')
         if (len(self.remainingStops) < 2):
 #             raise PhasedProgressBarError ('beginPhase() called after completion (maybe beginStep() called too often)')
             print('PhasedProgressBar.beginPhase(): Called after completion (maybe beginStep() called too often)')

@@ -8,28 +8,29 @@
 import datetime
 import re
 import os.path
-import StringIO
+from io import StringIO
 import logging
 import gettext
 from operator import itemgetter
 ## Contributed 
 from collections import OrderedDict
-import exifread
-#import wx
-import wx.calendar
+# import exifread
+# import wx
+import wx.adv
+import wx.lib.calendar as wx_calendar
 ## nobi
 from nobi.PartialDateTime import PartialDateTime
 from nobi.SortedCollection import SortedCollection
 from nobi.wx.Validator import TextCtrlIsIntValidator
 ## Project
-from . import MediaOrganization
-from ..MediaFilter import MediaFilter
-from ..Group import Group
-from ..MediaClassHandler import MediaClassHandler
+from Model.MediaOrganization import MediaOrganization
+from Model.MediaFilter import MediaFilter
+from Model.Group import Group
+from Model.MediaClassHandler import MediaClassHandler
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from UI.MediaFilterPane import FilterCondition
-
+from Model.Image import Image
 
 
 # Internationalization  # requires "PackagePath = __path__[0]" in _init_.py
@@ -46,7 +47,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 
@@ -191,7 +193,7 @@ class OrganizationByDate(MediaOrganization):
             parentGroup = cls.getGroupFromPath(head)
             if (not parentGroup):
                 Logger.error('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
-                raise KeyError, ('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
+                raise KeyError('OrganizationByDate.getGroupFromPath(): Cannot create Group for "%s"' % head)
             group = Group(cls.ImageFilerModel, path)
             group.setParentGroup(parentGroup)
         return(group)
@@ -243,15 +245,15 @@ class OrganizationByDate(MediaOrganization):
         # determine dates
         exifDate = self.deriveDateFromFile(log, path)
         pathDate = self.deriveDateFromPath(log, path)
-        if ((exifDate[0] <> None)
-            and (pathDate[0] <> self.UnknownDateName)
-            and ((exifDate[0] <> pathDate[0])
-                 or (exifDate[1] <> pathDate[1])
-                 or (exifDate[2] <> pathDate[2]))):
+        if ((exifDate[0] != None)
+            and (pathDate[0] != self.UnknownDateName)
+            and ((exifDate[0] != pathDate[0])
+                 or (exifDate[1] != pathDate[1])
+                 or (exifDate[2] != pathDate[2]))):
             datesDiffer = True
         # select date
         if (preferPathDate):  # date derived from path takes precedence
-            if (pathDate[0] <> self.UnknownDateName):
+            if (pathDate[0] != self.UnknownDateName):
                 (year, month, day, dummy) = pathDate
                 # if exif date is more specific than path date, use it
                 if (year == exifDate[0]):
@@ -262,12 +264,12 @@ class OrganizationByDate(MediaOrganization):
                         if (day == None):
                             exifMoreSpecific = True
                             day = exifDate[2]
-            elif (exifDate[0] <> None):
+            elif (exifDate[0] != None):
                 (year, month, day) = exifDate
         else:  # date derived from EXIF takes precedence
             if (exifDate[0]):
                 (year, month, day) = exifDate
-            elif (pathDate[0] <> self.UnknownDateName):
+            elif (pathDate[0] != self.UnknownDateName):
                 (year, month, day, dummy) = pathDate
         if (exifMoreSpecific):
             Logger.debug('OrganizationByDate.deriveDate(): EXIF (%s) more specific than path (%s) in file "%s"\n' % (exifDate, pathDate, path))
@@ -298,12 +300,13 @@ class OrganizationByDate(MediaOrganization):
                       'Software': 'Paint Shop Photo Album'}
         if ((os.path.isfile(path)) 
             and (path[-4:].lower() == '.jpg')): 
-            with open(path, "rb") as f:
-                try:
-                    exifTags = exifread.process_file(f)
-                except:
-                    Logger.debug('OrganizationByDate.deriveDateFromFile(): Cannot read EXIF data from "%s"!' % path)
-                    return(None, None, None)
+#             with open(path, "rb") as f:
+#                 try:
+#                     exifTags = exifread.process_file(f)
+#                 except:
+#                     Logger.debug('OrganizationByDate.deriveDateFromFile(): Cannot read EXIF data from "%s"!' % path)
+#                     return(None, None, None)
+            exifTags = Image.getMetadataFromPath(path)  # Python 3
             for (tag, value) in exclusions.items():
                 if ((tag in exifTags)
                     and (0 <= exifTags[tag].find(value))):
@@ -345,6 +348,8 @@ class OrganizationByDate(MediaOrganization):
         Return a triple (year, month, day, rest) where 
             year, month, and day are either String or None 
             rest is a String containing the rest of path not consumed by the match
+            
+        #TODO: Use file creation/modification date is none given on path
         """
         # intialize variables
         year = None
@@ -565,7 +570,8 @@ class OrganizationByDate(MediaOrganization):
         
         Returns a String containing the remaining part of PATH to the right of the last identifier found.
         """
-        (year, month, day, rest) = self.deriveDateFromPath(StringIO.StringIO(), path)
+#         (year, month, day, rest) = self.deriveDateFromPath(StringIO.StringIO(), path)
+        (year, month, day, rest) = self.deriveDateFromPath(StringIO(), path)  # Python 3 
         self.year = year
         self.month = month
         self.day = day
@@ -628,7 +634,7 @@ class OrganizationByDate(MediaOrganization):
         """override MediaOrganization.getPathInfo(self)
         """
         result = MediaOrganization.getPathInfo(self, filtering)
-        if (self.getYear() <> OrganizationByDate.UnknownDateName):
+        if (self.getYear() != OrganizationByDate.UnknownDateName):
             result['year'] = self.getYear()
             if (self.getMonth()):
                 result['month'] = self.getMonth()
@@ -646,12 +652,13 @@ class OrganizationByDate(MediaOrganization):
         """
         if (not self.timeTaken):
             if (self.getContext().getExtension() == 'jpg'): 
-                with open(self.getContext().getPath(), "rb") as f:
-                    try:
-                        exifTags = exifread.process_file(f)
-                    except:
-                        Logger.warning('OrganizationByDate.getTimeTaken(): cannot read EXIF data from "%s"!' % self.context.getPath())
-                        return(None)
+#                 with open(self.getContext().getPath(), "rb") as f:
+#                     try:
+#                         exifTags = exifread.process_file(f)
+#                     except:
+#                         Logger.warning('OrganizationByDate.getTimeTaken(): cannot read EXIF data from "%s"!' % self.context.getPath())
+#                         return(None)
+                exifTags = self.getContext().getMetadata()  # Python 3
                 if (('Model' in exifTags)
                     and (exifTags['Model'] == 'MS Scanner')):
                     Logger.debug('OrganizationByDate.getTimeTaken(): Ignoring EXIF data because Model=MS Scanner')
@@ -718,9 +725,9 @@ class OrganizationByDate(MediaOrganization):
 
 
     def getYear(self):
-        if (((self.year <> None)
-             and (self.dateTaken <> None)
-             and (int(self.year) <> self.dateTaken.getYear()))
+        if (((self.year != None)
+             and (self.dateTaken != None)
+             and (int(self.year) != self.dateTaken.getYear()))
             or ((self.year == None)
                 and self.dateTaken.getYear())):
             Logger.error('OrganizationByDate.getYear(): explicit and PartialDateTime year do not match')
@@ -739,11 +746,11 @@ class OrganizationByDate(MediaOrganization):
 
 
     def getMonth(self):
-        if (((self.month <> None)
-             and (self.dateTaken <> None)
-             and (int(self.month) <> self.dateTaken.getMonth()))
+        if (((self.month != None)
+             and (self.dateTaken != None)
+             and (int(self.month) != self.dateTaken.getMonth()))
             or ((self.month == None)
-                and (self.dateTaken <> None)
+                and (self.dateTaken != None)
                 and self.dateTaken.getMonth())):
             Logger.error('OrganizationByDate.getMonth(): explicit and PartialDateTime month do not match')
         if (self.month == None):
@@ -761,11 +768,11 @@ class OrganizationByDate(MediaOrganization):
 
     
     def getDay(self):
-        if (((self.day <> None)
-             and (self.dateTaken <> None)
-             and (int(self.day) <> self.dateTaken.getDay()))
+        if (((self.day != None)
+             and (self.dateTaken != None)
+             and (int(self.day) != self.dateTaken.getDay()))
             or ((self.day == None)
-                and (self.dateTaken <> None)
+                and (self.dateTaken != None)
                 and self.dateTaken.getDay())):
             Logger.error('OrganizationByDate.getDay(): explicit and PartialDateTime day do not match')
         if (self.day == None):
@@ -808,7 +815,7 @@ class OrganizationByDate(MediaOrganization):
             pathInfo['elements'].update(elements)
             pathInfo['classesToRemove'] = classesToRemove
             pathInfo['removeIllegalElements'] = removeIllegalElements
-            if (newParent <> self.getContext()):
+            if (newParent != self.getContext()):
                 pathInfo['year'] = year
                 pathInfo['month'] = month
                 pathInfo['day'] = day
@@ -824,7 +831,7 @@ class OrganizationByDate(MediaOrganization):
         """Create a list of <entry, pathInfo> to move self's subentries to newParent.
         """
         if (not self.getContext().isGroup()):
-            raise ValueError, ('OrganizationByName.getRenameList(): Entry "%s" is not a Group!' % self)
+            raise ValueError('OrganizationByName.getRenameList(): Entry "%s" is not a Group!' % self)
         # create list of subentries and their new pathInfo 
         result = []
         for subEntry in self.getContext().getSubEntries(filtering=filtering):
@@ -840,7 +847,7 @@ class OrganizationByDate(MediaOrganization):
             if ('removeIllegalElements' in pathInfo):
                 newPathInfo['removeIllegalElements'] = pathInfo['removeIllegalElements'] 
             if ('elements' in pathInfo):
-                newTags = self.getModel().getClassHandler().combineTagsWithPriority(subEntry.getElements(),
+                newTags = self.getModel().getClassHandler().combineTagsWithPriority(subEntry.getTags(),
                                                                                     pathInfo['elements'])
                 newPathInfo['elements'] = newTags 
             pair = (subEntry.getOrganizer(), newPathInfo)
@@ -893,21 +900,21 @@ class OrganizationByDate(MediaOrganization):
         """
         result = MediaOrganization.getValuesFromNamePane(self, aMediaNamePane)
         year = aMediaNamePane.yearInput.GetValue()
-        if (year <> ''):
+        if (year != ''):
             try:
                 result['year'] = int(year)
             except:
                 Logger.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret year string "%s" as int' % year)
                 return(None)
         month = aMediaNamePane.monthInput.GetValue()
-        if (month <> ''):
+        if (month != ''):
             try:
                 result['month'] = int(month)
             except:
                 Logger.warning('OrganizationByDate.getValuesFromNamePane(): Cannot interpret month string "%s" as int' % month)
                 return(None)
         day = aMediaNamePane.dayInput.GetValue()
-        if (day <> ''):
+        if (day != ''):
             try:
                 result['day'] = int(day)
             except: 
@@ -1004,7 +1011,7 @@ class OrganizationByDate(MediaOrganization):
         Number stepWidth
         """
         if (stepWidth < 1):
-            raise ValueError, 'stepWidth must be greater 0!'
+            raise ValueError('stepWidth must be greater 0')
         sortedEntries = SortedCollection(key=itemgetter(1))
         nextTimeForUntimedMedia = datetime.time(hour=0, minute=0, second=0, microsecond=1)
         untimedMediaAtBottom = []
@@ -1034,7 +1041,7 @@ class OrganizationByDate(MediaOrganization):
                 elif (handleUntimedPolicy == OrganizationByDate.ReorderSelectBottom):
                     untimedMediaAtBottom.append(entry)
                 else:
-                    raise ValueError, ('Illegal policy %d to handle media without timestamp!' % handleUntimedPolicy)
+                    raise ValueError('Illegal policy %d to handle media without timestamp!' % handleUntimedPolicy)
             if (sortTime):
                 sortedEntries.insert((entry, sortTime))
         for entry in untimedMediaAtBottom:
@@ -1051,7 +1058,7 @@ class OrganizationByDate(MediaOrganization):
             pathInfo['number'] = newIndex
             newPath = entry.getOrganizer().__class__.constructPath(**pathInfo)
             newIndex = (newIndex + stepWidth)
-            if (entry.getPath() <> newPath):
+            if (entry.getPath() != newPath):
                 Logger.debug('OrganizationByDate.reorderByTime(): At %s, reordering\n   %s\n  >%s' % (time, entry.getPath(), newPath))
                 doList.append((entry, entry.getPath(), newPath))
                 self.undoList.append((entry, newPath, entry.getPath()))
@@ -1067,10 +1074,10 @@ class DateFilter(FilterCondition):
     """
     def __init__(self, parent):
         FilterCondition.__init__(self, parent, _('Date Taken'))
-        self.fromDatePicker = wx.DatePickerCtrl(parent, style=(wx.DP_DROPDOWN | wx.DP_ALLOWNONE))
-        self.fromDatePicker.Bind(wx.EVT_DATE_CHANGED, self.onChange, self.fromDatePicker)
-        self.toDatePicker = wx.DatePickerCtrl(parent, style=(wx.DP_DROPDOWN | wx.DP_ALLOWNONE))
-        self.toDatePicker.Bind(wx.EVT_DATE_CHANGED, self.onChange, self.toDatePicker)
+        self.fromDatePicker = wx.adv.DatePickerCtrl(parent, style=(wx.adv.DP_DROPDOWN | wx.adv.DP_ALLOWNONE))
+        self.fromDatePicker.Bind(wx.adv.EVT_DATE_CHANGED, self.onChange, self.fromDatePicker)
+        self.toDatePicker = wx.adv.DatePickerCtrl(parent, style=(wx.adv.DP_DROPDOWN | wx.adv.DP_ALLOWNONE))
+        self.toDatePicker.Bind(wx.adv.EVT_DATE_CHANGED, self.onChange, self.toDatePicker)
 
 
     def getConditionControls(self):
@@ -1087,11 +1094,11 @@ class DateFilter(FilterCondition):
         (fromDate, toDate) = self.filterModel.getDateRange()  # need to pass back the unchanged one again
         if (source == self.fromDatePicker):
             wxDate = self.fromDatePicker.GetValue()
-            fromDate = wx.calendar._wxdate2pydate(wxDate)
+            fromDate = wx._wxdate2pydate(wxDate)
             Logger.debug('DateFilter.onChange(): Changing from date to %s' % fromDate)
         elif (event.GetEventObject() == self.toDatePicker):
             wxDate = self.toDatePicker.GetValue()
-            toDate = wx.calendar._wxdate2pydate(wxDate)
+            toDate = wx_calendar._wxdate2pydate(wxDate)
             Logger.debug('DateFilter.onChange(): Changing to date to %s' % toDate)
         self.filterModel.setConditions(fromDate=fromDate, toDate=toDate)
         wx.EndBusyCursor()
@@ -1105,13 +1112,13 @@ class DateFilter(FilterCondition):
             if (not fromDate):
                 wxDate = wx.DateTime()
             else:
-                wxDate = wx.calendar._pydate2wxdate(fromDate)
+                wxDate = wx_calendar._pydate2wxdate(fromDate)
             self.fromDatePicker.SetValue(wxDate)
             Logger.debug('DateFilter.updateAspect(): Setting from date %s' % wxDate)
             if (not toDate):
                 wxDate = wx.DateTime()
             else:
-                wxDate = wxDate = wx.calendar._pydate2wxdate(toDate)
+                wxDate = wxDate = wx_calendar._pydate2wxdate(toDate)
             self.toDatePicker.SetValue(wxDate)
             Logger.debug('DateFilter.updateAspect(): Setting to date %s' % wxDate)
         else:

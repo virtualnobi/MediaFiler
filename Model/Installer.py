@@ -16,8 +16,8 @@ import wx
 from nobi import SecureConfigParser
 from nobi import ProductTraderPattern
 ## Project
-import GlobalConfigurationOptions
-from MediaClassHandler import MediaClassHandler
+from Model import GlobalConfigurationOptions
+from Model.MediaClassHandler import MediaClassHandler
 import UI
 from UI import GUIId
 
@@ -33,7 +33,7 @@ except BaseException as e:  # likely an IOError because no translation file foun
     print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+    _ = Translation.gettext
 def N_(message): return message
 
 
@@ -252,7 +252,7 @@ def ensureInstallationOk(window):
     """
     global CurrentPath
     global Logger
-    CurrentPath = os.getcwdu()
+    CurrentPath = os.getcwd()
     if (not checkInstallation()):
         dlg = wx.DirDialog(window, 
                            _('The current working directory for this program is not a valid media directory. Choose a media directory:'), 

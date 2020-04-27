@@ -5,10 +5,10 @@
 # Imports
 ## standard
 import os 
-import subprocess
+#import subprocess
 import gettext
 import shutil
-import shlex
+#import shlex
 import logging
 import time
 import pkgutil
@@ -48,7 +48,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
     print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 
@@ -225,7 +226,8 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 
     def createStatusBar (self):
-        self.statusbar = self.CreateStatusBar(3, wx.ST_SIZEGRIP)
+#         self.statusbar = self.CreateStatusBar(3, wx.ST_SIZEGRIP)  
+        self.statusbar = self.CreateStatusBar(3, wx.STB_SIZEGRIP)  # Python 3  
         self.statusbar.SetStatusWidths([-2, -1, -3])  # negative means relative sizes
         self.progressbar = PhasedProgressBar(self.statusbar, -1)
         self.resizeProgressBar()
@@ -290,7 +292,8 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.toolsMenu.Append(GUIId.EditClasses, GUIId.FunctionNames[GUIId.EditClasses])
         menuItem = wx.MenuItem(self.toolsMenu, GUIId.EditNames, GUIId.FunctionNames[GUIId.EditNames])
         self.menuItemsByName.append(menuItem)
-        self.toolsMenu.AppendItem(menuItem)
+#         self.toolsMenu.AppendItem(menuItem)
+        self.toolsMenu.Append(menuItem)  # Python 3
         self.toolsMenu.AppendSeparator()
         self.toolsMenu.AppendSubMenu(self.getLoggingMenu(), GUIId.FunctionNames[GUIId.ManageLogging])
 #        tools_menu.AppendSeparator()
@@ -679,25 +682,28 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """Start external editor on class file.
         """
         classFile = Installer.getClassFilePath()
-        editorName = self.model.getConfiguration(GlobalConfigurationOptions.TextEditor)
-        if (editorName):
-            editorName = editorName.replace(GlobalConfigurationOptions.Parameter, classFile)
-            commandArgs = shlex.split(editorName)  # editorName.split() does not respect quotes
-            logging.debug('App.onEditClasses(): Calling %s' % commandArgs)
-            retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
-            if (retCode != 0):
-                MediaFiler.Logger.warn('MediaFiler.onEditClasses(): Call failed with return code %s!' % retCode)
-                dlg = wx.MessageDialog(self, 
-                                       (_('The external program failed with return code %s.') % retCode),
-                                       _('Warning'),
-                                       wx.OK | wx.ICON_WARNING
-                                       )
-                dlg.ShowModal()
-                dlg.Destroy()
-            self.onReload(event)
-        else:
-            MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
-            # TODO: error message, but on which window?
+        self.model.runConfiguredProgram(GlobalConfigurationOptions.TextEditor, classFile, self)
+#         editorName = self.model.getConfiguration(GlobalConfigurationOptions.TextEditor)
+#         if (editorName):
+#             editorName = editorName.replace(GlobalConfigurationOptions.Parameter, classFile)
+#             commandArgs = shlex.split(editorName)  # editorName.split() does not respect quotes
+#             logging.debug('App.onEditClasses(): Calling %s' % commandArgs)
+# #             retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
+#             cp = subprocess.run(commandArgs, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)  # Python 3
+#             retCode = cp.returncode
+#             if (retCode != 0):
+#                 MediaFiler.Logger.warn('MediaFiler.onEditClasses(): Call failed with return code %s!' % retCode)
+#                 dlg = wx.MessageDialog(self, 
+#                                        (_('The external program failed with return code %s.') % retCode),
+#                                        _('Warning'),
+#                                        wx.OK | wx.ICON_WARNING
+#                                        )
+#                 dlg.ShowModal()
+#                 dlg.Destroy()
+#             self.onReload(event)
+#         else:
+#             MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
+#             # TODO: error message, but on which window?
 
 
     def onEditNames(self, event):  # @UnusedVariable
@@ -705,30 +711,33 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         if (not self.model.organizedByDate):
             namesFile = Installer.getNamesFilePath()
-            editorName = self.model.getConfiguration(GlobalConfigurationOptions.TextEditor)
-            if (editorName):
-                editorName = editorName.replace(GlobalConfigurationOptions.Parameter, namesFile)
-                commandArgs = shlex.split(editorName)
-                MediaFiler.Logger.debug('MediaFiler.onEditNames(): Calling %s' % commandArgs)
-                retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
-                if (retCode != 0):
-                    MediaFiler.Logger.warn('App.onEditNames(): Call failed with return code %s!' % retCode)
-                    dlg = wx.MessageDialog(self, 
-                                           (_('The external program failed with return code %s.') % retCode),
-                                           _('Warning'),
-                                           wx.OK | wx.ICON_WARNING
-                                           )
-                    dlg.ShowModal()
-                    dlg.Destroy()
-            else:
-                MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
-                dlg = wx.MessageDialog(self, 
-                                       (_('Define a text editor using configuration option "%s".') % GlobalConfigurationOptions.TextEditor),
-                                       _('Warning'),
-                                       wx.OK | wx.ICON_WARNING
-                                       )
-                dlg.ShowModal()
-                dlg.Destroy()
+            self.model.runConfiguredProgram(GlobalConfigurationOptions.TextEditor, namesFile, self)
+#             editorName = self.model.getConfiguration(GlobalConfigurationOptions.TextEditor)
+#             if (editorName):
+#                 editorName = editorName.replace(GlobalConfigurationOptions.Parameter, namesFile)
+#                 commandArgs = shlex.split(editorName)
+#                 MediaFiler.Logger.debug('MediaFiler.onEditNames(): Calling %s' % commandArgs)
+# #                retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
+#                 cp = subprocess.run(commandArgs, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)  # Python 3
+#                 retCode = cp.returncode
+#                 if (retCode != 0):
+#                     MediaFiler.Logger.warn('App.onEditNames(): Call failed with return code %s!' % retCode)
+#                     dlg = wx.MessageDialog(self, 
+#                                            (_('The external program failed with return code %s.') % retCode),
+#                                            _('Warning'),
+#                                            wx.OK | wx.ICON_WARNING
+#                                            )
+#                     dlg.ShowModal()
+#                     dlg.Destroy()
+#             else:
+#                 MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
+#                 dlg = wx.MessageDialog(self, 
+#                                        (_('Define a text editor using configuration option "%s".') % GlobalConfigurationOptions.TextEditor),
+#                                        _('Warning'),
+#                                        wx.OK | wx.ICON_WARNING
+#                                        )
+#                 dlg.ShowModal()
+#                 dlg.Destroy()
         else:
             MediaFiler.Logger.error('App.onEditNames(): MediaFiler.onEditNames(): Only supported when organized by name!')
     
@@ -961,7 +970,8 @@ class MediaFilerApp(ProgressSplashApp):
             logHandler = logging.FileHandler(fname, mode='w')
             logHandler.setFormatter(logFormatter)
             logging.getLogger().addHandler(logHandler)
-            self.frame.setModel(unicode(Installer.getMediaPath()))  # TODO: Installer must only return unicode        
+#             self.frame.setModel(unicode(Installer.getMediaPath()))         
+            self.frame.setModel(Installer.getMediaPath())        
             self.frame.setLoggedModules()  # TODO: move App itself
             MediaFiler.Logger.debug('MediaFiler.__main__(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
             self.finish(_('Ready'))
@@ -1069,7 +1079,8 @@ class MediaFilerApp(ProgressSplashApp):
         String message to be displayed as information
         """
         MediaFiler.Logger.debug('MediaFilerApp.stopProcessIndicator(): %s' % self.frame.getProgressBar())
-        if ((not isinstance(message, basestring)) 
+#         if ((not isinstance(message, basestring)) 
+        if ((not isinstance(message, str)) 
             or (message == '')):
             message = _('Ready')
         self.setInfoMessage(message)

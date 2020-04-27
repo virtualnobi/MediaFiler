@@ -107,14 +107,14 @@ class CheckBoxGroup(wx.Panel):
         #
         gbSizer = wx.GridBagSizer(vgap=vgap, hgap=hgap)
         gbSizer.SetEmptyCellSize((5, 5))  # otherwise, it's (10, 20)
-        gbSizer.Add(item=wx.StaticText(self, -1, self.groupLabel), pos=(0, 0), span=(1, self.columnCount))
+        gbSizer.Add(wx.StaticText(self, -1, self.groupLabel), (0, 0), span=(1, self.columnCount))  # wxPython 4
         col = 0
         row = 1
         for choice in choices:
             checkBox = wx.CheckBox(self, label=choice)
             self.checkBoxes.append(checkBox)
             self.Bind(wx.EVT_CHECKBOX, self.onClick, source=checkBox)
-            gbSizer.Add(item=checkBox, pos=(row, col), span=(1, 1))  # , border=0)
+            gbSizer.Add(checkBox,(row, col), span=(1, 1))  # wxPython 4
             col = (col + 1)
             if (col > self.columnCount):  # last column reached
                 row = (row + 1)
@@ -256,8 +256,8 @@ class CheckBoxGroup(wx.Panel):
                 if (self.labels[boxLabel].lower() == label.lower()):
                     return(0)
                 index = (index + 1)
-            raise ValueError, ('"%s" not a label in "%s"' % (label, self))
-        raise RuntimeError, ('CheckBoxGroup.findItemLabel() should never reach this statement!')
+            raise ValueError('"%s" not a label in "%s"' % (label, self))
+        raise RuntimeError('CheckBoxGroup.findItemLabel() should never reach this statement!')
 
 
     def getAllItemLabels(self):
@@ -308,11 +308,12 @@ class CheckBoxGroup(wx.Panel):
         checkbox = event.GetEventObject()
         index = self.checkBoxes.index(checkbox)
         choice = self.labels[index][:]  # deep copy to be thread-safe in wx.ProcessEvent()
-        newEvent = CheckBoxGroupEvent(0,
+        newEvent = CheckBoxGroupEvent(0,  # wxPython 4 
                                       index=index, 
                                       choice=choice,
                                       value=checkbox.IsChecked())
-        newEvent.__setattr__('EventObject', self)
+#        newEvent.__setattr__('EventObject', self) 
+        newEvent.SetEventObject(self)  # wxPython 4
         wx.PostEvent(self.GetParent(), newEvent)  # TODO: after migrating to wxPython 4, use QueueEvent() for thread safety
 
 
@@ -329,17 +330,16 @@ class CheckBoxGroup(wx.Panel):
         Return Number
         Raises TypeError or ValueError
         """
-        if (isinstance(indexOrLabel, str)
-             or isinstance(indexOrLabel, unicode)):
+        if (isinstance(indexOrLabel, str)):
             index = self.findItemLabel(indexOrLabel, caseSensitive)
         elif (isinstance(indexOrLabel, int)):
             if ((0 <= indexOrLabel) 
                 and (indexOrLabel <= self.getCount())):
                 index = indexOrLabel
             else:
-                raise ValueError, 'Numeric index out of range!'
+                raise ValueError('Numeric index out of range!')
         else:
-            raise TypeError, 'First parameter can only be int or str!'
+            raise TypeError('First parameter can only be int or str!')
         return(index)
 
         

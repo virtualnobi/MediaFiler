@@ -9,6 +9,7 @@
 import os.path
 import gettext
 import logging
+import functools
 ## contributed
 import wx.lib.scrolledpanel
 ## nobi
@@ -34,7 +35,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 
@@ -102,7 +104,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                     return(len(item))
                 else:
                     return(length)
-            maxChoiceLength = reduce(longest, choices, 0)
+            maxChoiceLength = functools.reduce(longest, choices, 0)
             if (maxChoiceLength < 7):
                 columns = min(len(choices), 5)
             else:
@@ -154,7 +156,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
             return 
         self.entry.addObserverForAspect(self, 'name')
         # 
-        entryElements = self.entry.getKnownElements()
+        entryElements = self.entry.getKnownTags()
         self.setTags(entryElements)
 
 
@@ -194,6 +196,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         
         Let all options be active, and adapt depending options according to user's change. 
         """
+        wx.GetApp().startProcessIndicator(_('Renaming...'))
         change = ''
         groupBox = event.GetEventObject()
         for className in self.selectionBoxes: 
@@ -203,9 +206,9 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
             Logger.error('MediaClassificationPane.onSelect(): Did not find selected group %s' % groupBox)
             return
         # determine added and removed tags and classes
-        if (isinstance(event, CheckBoxGroupEvent)):
+        if (isinstance(groupBox, CheckBoxGroup)):
             if (groupBox.isChecked(MediaClassificationPane.ClassDontChangeIndex)
-                and (event.index <> MediaClassificationPane.ClassDontChangeIndex)
+                and (event.index != MediaClassificationPane.ClassDontChangeIndex)
                 and (event.value == True)):
                 addedTag = groupBox.getItemLabel(event.index)
                 removedTags = set()
@@ -240,26 +243,27 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 change = 'No change'
             elif (groupBox.GetSelection() == MediaClassificationPane.ClassUnselectedIndex):
                 addedTag = None
-                removedTags = (self.entry.getKnownElements() - self.getTags())
+                removedTags = (self.entry.getKnownTags(filtering=True) - self.getTags())
                 if (MediaClassificationPane.ClassUnselectedText in removedTags):
                     removedTags = set()
                 removedClass = className
                 change = ('Removed tag %s and class %s' % (removedTags, removedClass))
             else:  # real tag selected
                 addedTag = groupBox.GetItemLabel(groupBox.GetSelection())
-                removedTags = (self.entry.getKnownElements() - self.getTags())
+#                 removedTags = (self.entry.getKnownTags(filtering=True) - self.getTags())
+                removedTags = self.model.getClassHandler().getElementsOfClassByName(className)  # list.remove() consider u'' strings equivalent, while set.difference() does not
+                removedTags.remove(addedTag)                
                 removedClass = None
                 change = ('changed to tag %s in radio group %s' % (addedTag, className))
         Logger.debug('MediaClassificationPane.onSelect(): %s' % change)
         Logger.debug('MediaClassificationPane.onSelect(): added "%s", removed tags %s, removed class %s' % (addedTag, removedTags, removedClass))
-        elements = self.model.getClassHandler().getTagsOnChange(self.entry.getKnownElements(filtering=True), addedTag, removedTags)
-        elements.update(self.entry.getUnknownElements())
+        elements = self.model.getClassHandler().getTagsOnChange(self.entry.getKnownTags(filtering=True), addedTag, removedTags)
+        elements.update(self.entry.getUnknownTags(filtering=True))
         self.setTags(elements)
         pathInfo = self.entry.getOrganizer().getPathInfo(filtering=True)
         pathInfo['elements'] = elements
         if (removedClass):
             pathInfo['classesToRemove'] = [removedClass]
-        wx.GetApp().startProcessIndicator(_('Renaming...'))
         self.entry.renameTo(**pathInfo)
         wx.GetApp().stopProcessIndicator()
 
@@ -281,10 +285,8 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def clear(self):
         """Remove all widgets from self.
         """
-        # remove all selectionBoxes if there are any
-        for className in self.selectionBoxes.keys():
-            container = self.selectionBoxes[className]
-            self.GetSizer().Remove(container)  # not self.RemoveChild(container)
+        for index in range(0, len(self.selectionBoxes)):  # remove all selectionBoxes if there are any
+            self.GetSizer().Remove(0)
         self.selectionBoxes = {}
         while (0 < len(self.GetSizer().GetChildren())):
             self.GetSizer().Remove(0)
@@ -333,8 +335,8 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                         result.add(tag)
             else:
                 radioBoxGroup = self.selectionBoxes[className]
-                if ((radioBoxGroup.GetSelection() <> self.ClassDontChangeIndex)
-                    and (radioBoxGroup.GetSelection() <> self.ClassUnselectedIndex)):
+                if ((radioBoxGroup.GetSelection() != self.ClassDontChangeIndex)
+                    and (radioBoxGroup.GetSelection() != self.ClassUnselectedIndex)):
                     result.add(radioBoxGroup.GetStringSelection())
         return(result)
 

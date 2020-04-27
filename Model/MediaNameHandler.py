@@ -51,7 +51,7 @@ class MediaNameHandler(object):
         if (self.isNameLegal(name)):
             self.freeNames.add(name)
         else:
-            raise ValueError, ('"%s" is not a legal name!' % name)
+            raise ValueError('"%s" is not a legal name!' % name)
 
 
     def registerNameAsUsed(self, name):
@@ -61,7 +61,7 @@ class MediaNameHandler(object):
             if (name in self.freeNames):
                 self.freeNames.remove(name)
         else:
-            raise ValueError, ('"%s" is not a legal name!' % name)  
+            raise ValueError('"%s" is not a legal name!' % name)  
 
 
 

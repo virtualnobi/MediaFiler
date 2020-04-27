@@ -38,21 +38,22 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 
 
 # Package Variables
 Logger = logging.getLogger(__name__)
-# filtering modes
-TagFilterModeNameIgnore = _('ignore')
-TagFilterModeNameRequire = _('require')
-TagFilterModeNameExclude = _('exclude')
-TagFilterModeNames = [TagFilterModeNameIgnore, TagFilterModeNameRequire, TagFilterModeNameExclude]
-TagFilterModeIndexIgnore = TagFilterModeNames.index(TagFilterModeNameIgnore)
-TagFilterModeIndexRequire = TagFilterModeNames.index(TagFilterModeNameRequire)
-TagFilterModeIndexExclude = TagFilterModeNames.index(TagFilterModeNameExclude)
+# # filtering modes
+# TagFilterModeNameIgnore = _('ignore')
+# TagFilterModeNameRequire = _('require')
+# TagFilterModeNameExclude = _('exclude')
+# TagFilterModeNames = [TagFilterModeNameIgnore, TagFilterModeNameRequire, TagFilterModeNameExclude]
+# TagFilterModeIndexIgnore = TagFilterModeNames.index(TagFilterModeNameIgnore)
+# TagFilterModeIndexRequire = TagFilterModeNames.index(TagFilterModeNameRequire)
+# TagFilterModeIndexExclude = TagFilterModeNames.index(TagFilterModeNameExclude)
 
 
 
@@ -93,6 +94,10 @@ class FilterCondition(Observer):
         raise NotImplementedError
 
 
+    def getFilterModel(self):
+        return(self.filterModel)
+
+
     def setCollectionModel(self, aMediaCollection):
         self.collectionModel = aMediaCollection
 
@@ -121,13 +126,13 @@ class FilterConditionWithMode(FilterCondition):
     self.modeChoice contains a wx.Choice with these three options.
     """
     FilterModeNameIgnore = _('ignore')
-    FilterModeIndexIgnore = 0
     FilterModeNameRequire = _('require')
-    FilterModeIndexRequire = 1
     FilterModeNameExclude = _('exclude')
-    FilterModeIndexExclude = 2
     FilterModeNames = [FilterModeNameIgnore, FilterModeNameRequire, FilterModeNameExclude]
-
+    FilterModeIndexIgnore = FilterModeNames.index(FilterModeNameIgnore)  # 0
+    FilterModeIndexRequire = FilterModeNames.index(FilterModeNameRequire)  # 1
+    FilterModeIndexExclude = FilterModeNames.index(FilterModeNameExclude)  # 2
+    
 
     def __init__(self, parent, label):
         FilterCondition.__init__(self, parent, label)
@@ -226,16 +231,16 @@ class UnknownTagFilter(FilterConditionWithMode):
         elif (source == self.modeChoice):
             Logger.debug('UnknownTagFilter.onChange(): Processing change of mode to "%s"' % newMode)
         else:
-            raise ValueError, 'UnknownTagFilter.onChange(): Unknown event source!'
-        if (newMode == TagFilterModeIndexIgnore):
+            raise ValueError('UnknownTagFilter.onChange(): Unknown event source!')
+        if (newMode == FilterConditionWithMode.FilterModeIndexIgnore):
             self.filterModel.setConditions(requiredUnknownTags=set(),
                                            prohibitedUnknownTags=set(),
                                            unknownRequired=False)
-        elif (newMode == TagFilterModeIndexRequire):
+        elif (newMode == FilterConditionWithMode.FilterModeIndexRequire):
             self.filterModel.setConditions(requiredUnknownTags=newTags,
                                            prohibitedUnknownTags=set(),
                                            unknownRequired=(0 == len(newTags)))
-        elif (newMode == TagFilterModeIndexExclude):
+        elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
             if (0 == len(newTags)):
                 Logger.debug('UnknownTagFilter.onChange(): NYI: Prohibiting any unknown tag.')
                 self.filterModel.setConditions(requiredUnknownTags=set(),
@@ -257,18 +262,18 @@ class UnknownTagFilter(FilterConditionWithMode):
             if (0 < len(requiredUnknownTags)):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to require unknown tags')
                 self.tagInput.SetValue(' '.join(requiredUnknownTags))
-                self.modeChoice.SetSelection(TagFilterModeIndexRequire)
+                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
             elif (0 < len(prohibitedUnknownTags)):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to exclude unknown tags')
                 self.tagInput.SetValue(' '.join(prohibitedUnknownTags))
-                self.modeChoice.SetSelection(TagFilterModeIndexExclude)
+                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexExclude)
             elif (unknownRequired):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to unknown required')
                 self.tagInput.SetValue('')
-                self.modeChoice.SetSelection(TagFilterModeIndexRequire)
+                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
             else:
                 Logger.debug('UnknownTagfilter.updateAspect(): Neither unknown tags, nor unknown required, setting to ignore')
-                self.modeChoice.SetSelection(TagFilterModeIndexIgnore)
+                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
         else:
             Logger.error('UnknownTagFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
 
@@ -310,10 +315,10 @@ class MediaTypeFilter(FilterCondition):
     def updateAspect(self, observable, aspect):
         if (aspect == 'changed'):
             Logger.debug('MediaTypeFilter.updateAspect(): Processing change of filter')
-            self.typeChoice.SetChecked([]) 
+            self.typeChoice.SetCheckedItems([]) 
             (required, prohibited) = self.filterModel.getMediaTypes()  # @UnusedVariable
             requiredTypeIndices = [self.mediaTypes.index(mediaType) for mediaType in required]
-            self.typeChoice.SetChecked(requiredTypeIndices)
+            self.typeChoice.SetCheckedItems(requiredTypeIndices)
             Logger.debug('MediaTypeFilter.updateAspect(): Set %d required types' % len(requiredTypeIndices))
         else:
             Logger.error('MediaTypeFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
@@ -335,7 +340,8 @@ class MediaSizeFilter(FilterCondition):
                                        (30, 60),  # ?
                                        (100, -1),  # size
                                        (wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_BOTTOM))  # styles, wx.SL_SELRANGE only on Windows95
-        self.minimumSlider.SetTickFreq(10, 1)
+#         self.minimumSlider.SetTickFreq(10, 1)
+        self.minimumSlider.SetTickFreq(10)  # wxPython 4
         self.minimumSlider.Bind(wx.EVT_SCROLL_CHANGED, self.onChange)
         # maximum
         self.maximumSlider = wx.Slider(parent, -1, 
@@ -345,7 +351,8 @@ class MediaSizeFilter(FilterCondition):
                                        (30, 60),  # ?
                                        (100, -1),  # size
                                        (wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS | wx.SL_BOTTOM))  # styles, wx.SL_SELRANGE only on Windows95
-        self.maximumSlider.SetTickFreq(10, 1)
+#         self.maximumSlider.SetTickFreq(10, 1)
+        self.maximumSlider.SetTickFreq(10)  # wxPython 4
         self.maximumSlider.Bind(wx.EVT_SCROLL_CHANGED, self.onChange)
 
 
@@ -378,7 +385,8 @@ class MediaSizeFilter(FilterCondition):
         if (aspect == 'changed'):
             Logger.debug('MediaSizeFilter.updateAspect(): Processing change of filter')
             sizeVariation = (self.collectionModel.getMaximumSize() - self.collectionModel.getMinimumSize())
-            (minimumSize, maximumSize) = self.filterModel.getFilterConditions()[4:6]
+            minimumSize = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeySizeMinimum)
+            maximumSize = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeySizeMaximum)
             minimumPercent = ((minimumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
             maximumPercent = ((maximumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
             self.minimumSlider.SetValue(minimumPercent)
@@ -396,7 +404,7 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     """A scrollable, observable Pane which visualizes the filter.
     """
 # Constants
-    SceneConditionKey = N_('Scene')
+#    SceneConditionKey = N_('Scene')
     # unknown elements
     UnknownElementsIndex = N_('unknown')  # string to access unknown filter in dictionary
     # special element to match any element of a class
@@ -548,6 +556,10 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Getters
+    def getFilterModel(self):
+        return(self.filterModel)
+
+
 #     def getCondition(self, filterRow):
 #         """Return the controls registered under filterRow.
 #         
@@ -651,106 +663,6 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
 # Internal
-#     def getConditionPanel(self, parent):
-#         """Create and return a wx.Panel showing the current filter conditions
-#         
-#         wx.Window parent
-#         Return wx.Panel
-#         """
-#         panel = wx.Panel(parent)
-#         sizer = wx.BoxSizer()
-#         panel.SetSizer(sizer)
-#         text = wx.StaticText(panel, 0, 'Conditions go here')
-#         sizer.Add(text)
-#         return(panel)
-
-
-#     def constructFilterConditionMap(self):
-#         """Construct a pop-up with all filter options and a map from wx.IDs to appropriate functions.
-#         
-#         While constructing the pop-up with the filters, a mapping is constructed from wx.IDs 
-#         to functions which will apply the appropriate change to the filter. 
-#         """
-#         classHandler = self.imageModel.getClassHandler()
-#         self.filterConditionMap = {}
-#         self.popupMenu = wx.Menu()
-#         self.Bind(wx.EVT_MENU, self.onAddConditionSelected)
-#         # filter for unknown tags
-#         actionMenu = wx.Menu()
-#         self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-#                                       actionMenu, 
-#                                       lambda : self.filterModel.setConditions(unknownRequired=True))
-#         self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude,
-#                                       actionMenu,
-#                                       lambda : self.filterModel.setConditions(unknownRequired=False))
-#         self.popupMenu.AppendMenu(0, _('<unknown tag>'), actionMenu)
-#         # filter for any known tag
-#         for category in classHandler.getClassNames():
-#             tagMenu = wx.Menu()
-#             self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-#                                           tagMenu, 
-#                                           lambda c=category : self.filterModel.setConditions(required=set([c])))
-#             self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
-#                                           tagMenu, 
-#                                           lambda c=category : self.filterModel.setConditions(prohibited=set([c])))
-#             if (1 < len(classHandler.getElementsOfClassByName(category))):
-#                 tagMenu.AppendSeparator()
-#                 for tag in classHandler.getElementsOfClassByName(category):
-#                     actionMenu = wx.Menu()
-#                     self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-#                                                   actionMenu, 
-#                                                   lambda t=tag : self.filterModel.setConditions(required=set([t])))
-#                     self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
-#                                                   actionMenu, 
-#                                                   lambda t=tag : self.filterModel.setConditions(prohibited=set([t])))
-#                     tagMenu.AppendMenu(0, tag, actionMenu)
-#             self.popupMenu.AppendMenu(0, category, tagMenu)
-#         # filter for media type
-#         self.popupMenu.AppendSeparator()
-#         typeMenu = wx.Menu()
-#         for mediaType in Model.Installer.getProductTrader().getClasses():
-#             if (issubclass(mediaType, Model.Single.Single)):
-#                 actionMenu = wx.Menu()
-#                 self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-#                                               actionMenu, 
-#                                               lambda m=mediaType : self.filterModel.setConditions(requiredMediaTypes=set([m])))
-#                 self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
-#                                               actionMenu, 
-#                                               lambda m=mediaType : self.filterModel.setConditions(prohibitedMediaTypes=set([m])))
-#                 typeMenu.AppendMenu(0, mediaType.getMediaTypeName(), actionMenu)
-#         self.popupMenu.AppendMenu(0, _('Media Type'), typeMenu)
-#         self.popupMenu.Append(0, _('Size'))
-#         if (self.imageModel.organizedByDate):  # filter for dates  TODO: move to OrganzationByDate
-#             self.popupMenu.AppendSeparator()
-#             self.popupMenu.Append(0, _('Date'))
-#         else:  # filter for singletons  TODO: move to OrganizationByName
-#             self.popupMenu.AppendSeparator()
-#             actionMenu = wx.Menu()
-#             self.constructFilterCondition(MediaFilterPane.FilterModeNameRequire, 
-#                                           actionMenu, 
-#                                           lambda : self.filterModel.setConditions(single=True))
-#             self.constructFilterCondition(MediaFilterPane.FilterModeNameExclude, 
-#                                           actionMenu, 
-#                                           lambda : self.filterModel.setConditions(single=False))
-#             self.popupMenu.AppendMenu(1, _('Singleton'), actionMenu)
-            
-
-#     def constructFilterCondition(self, menuString, menu, function):
-#         """Store a new filter condition
-#         
-#         Creates a wx.ID which links the menu with the action, 
-#         appends a menu entry with this id, 
-#         and puts the function in the instance variable self.filterConditionMap.
-#         
-#         String menuString contains the menu entry
-#         wx.Menu menu is the menu to which the new condition shall be added
-#         Callable function contains the function to be executed when the user selects this filter
-#         """
-#         actionId = wx.NewId()
-#         menu.Append(actionId, menuString)
-#         self.filterConditionMap[actionId] = function
-
-        
     def setActivateButtonText(self):
         if (self.activateButton.GetValue()):
             self.activateButton.SetLabel(_('Turn off filter'))
@@ -784,14 +696,8 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def importAndDisplayFilter(self):
         """Redisplay criteria from self's filter. 
         """
-        (active,  # @UnusedVariable
-         requiredElements,
-         prohibitedElements,
-         unknownElementRequired,
-         minimumFileSize,
-         maximumFileSize,
-         singleCondition,
-         kwargs) = self.filterModel.getFilterConditions()
+        requiredElements = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyRequired)
+        prohibitedElements = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyProhibited)
         # tags
         for className in self.imageModel.getClassHandler().getClassNames():
             # reset to no filtering

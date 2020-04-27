@@ -51,7 +51,8 @@ class Menu(wx.Menu):
             if (newId):
                 self.Insert((itemNo + 1), newId, newText, kind=wx.ITEM_NORMAL)
             elif (newMenu):
-                self.InsertMenu((itemNo + 1), 0, newText, newMenu)  # invent an ID for wxPython
+#                 self.InsertMenu((itemNo + 1), 0, newText, newMenu)  # invent an ID for wxPython
+                self.Insert((itemNo + 1), 0, newText, newMenu)  # invent an ID for wxPython  # wxPython 4
             else:
                 self.InsertSeparator(itemNo + 1)
 

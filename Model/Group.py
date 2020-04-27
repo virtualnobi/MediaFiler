@@ -14,8 +14,8 @@ from nobi.SortedCollection import SortedCollection
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
-import Installer
-from .Entry import Entry
+from Model import Installer
+from Model.Entry import Entry
 from UI import GUIId
 
 
@@ -155,34 +155,34 @@ class Group(Entry, Observer):
         return(result)
 
 
-    def getKnownElements (self, filtering=False):
+    def getKnownTags (self, filtering=False):
         """Return a Set of all known elements of self.
         
         Return Set of String.
         """
         result = None
-        for subEntry in self.getSubEntries(filtering):
+        for subEntry in self.getSubEntries(filtering=filtering):
             if (result == None):  # first iteration
-                result = set(subEntry.getKnownElements())
+                result = set(subEntry.getKnownTags(filtering=filtering))
             else:
-                result.intersection_update(subEntry.getKnownElements())
+                result.intersection_update(subEntry.getKnownTags(filtering=filtering))
         if (result == None):
             return(set())
         else:
             return(result)
     
     
-    def getUnknownElements (self):
+    def getUnknownTags (self, filtering=False):
         """Return all unknown elements of self.
         
         Return Set of String
         """
         result = None
-        for subEntry in self.getSubEntries(filtering=False):
+        for subEntry in self.getSubEntries(filtering=filtering):
             if (result == None):  # first iteration
-                result = set(subEntry.getUnknownElements())
+                result = set(subEntry.getUnknownTags(filtering=filtering))
             else:
-                result.intersection_update(subEntry.getUnknownElements())
+                result.intersection_update(subEntry.getUnknownTags(filtering=filtering))
         if (result == None):
             return(set())
         else:
@@ -361,7 +361,7 @@ class Group(Entry, Observer):
         """
         Logger.debug('Group.runContextMenu(): Running %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.DeleteDoubles):
-            wx.GetApp().setInfoMessage(_('Removing duplicates...'))
+            wx.GetApp().setInfoMessage('Removing duplicates...')  # _('Removing duplicates...')) # TODO: How to access translations from model classes?
             deleted = self.deleteDoubles(wx.GetApp().getProgressBar())
             return(GUIId.MessageDuplicatesDeleted % deleted)
         else:

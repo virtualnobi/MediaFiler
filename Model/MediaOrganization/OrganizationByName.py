@@ -13,6 +13,7 @@ import glob
 import logging
 import gettext
 from collections import OrderedDict
+import functools
 ## Contributed 
 #import wx
 import wx.lib.masked
@@ -30,7 +31,6 @@ from Model.Group import Group
 from UI.MediaFilterPane import MediaFilterPane, FilterConditionWithMode
 import UI  # to access UI.PackagePath
 from UI import GUIId
-from msilib.schema import Condition
 
 
 
@@ -48,7 +48,8 @@ except BaseException as e:  # likely an IOError because no translation file foun
         print(e)
     def _(message): return message
 else:
-    _ = Translation.ugettext
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
 def N_(message): return message
 
 
@@ -107,7 +108,7 @@ class OrganizationByName(MediaOrganization):
         if ((not 'name' in kwargs)
             or (not kwargs['name'])
             or (kwargs['name'] == '')):
-            raise ValueError, ('OrganizationByName.constructOrganizationPath(): No name given!')        
+            raise ValueError('OrganizationByName.constructOrganizationPath(): No name given!')        
         result = None
         letter = kwargs['name'][0]
         entry = cls.ImageFilerModel.getEntry(name=kwargs['name'])
@@ -116,8 +117,8 @@ class OrganizationByName(MediaOrganization):
             or ('scene' in kwargs)
             or ('makeUnique' in kwargs)):  # no entry exists, but a group path is required
             if (('scene' in kwargs)
-                and (kwargs['scene'] <> None)
-                and (kwargs['scene'] <> '')):
+                and (kwargs['scene'] != None)
+                and (kwargs['scene'] != '')):
                 try:
                     scene = (cls.FormatScene % (int(kwargs['scene'])))
                 except: 
@@ -160,7 +161,7 @@ class OrganizationByName(MediaOrganization):
             raise ('OrganizationByName.constructPathFromImport(): targetPathInfo must contain "name"!')
         singleton = True
         if (level == 0):  # not embedded, single file to import
-            groupExists = (importParameters.getModel().getEntry(name=pathInfo['name'], group=True) <> None)
+            groupExists = (importParameters.getModel().getEntry(name=pathInfo['name'], group=True) != None)
             singleExists = (len(glob.glob(cls.constructPath(**pathInfo) + MediaOrganization.IdentifierSeparator + '*')) > 0)
             if (singleExists):  # a single of this name exists, turn into group to move into it
                 importParameters.logString('OrganizationByName: Cannot merge two singles into group (NYI)!')
@@ -227,7 +228,7 @@ class OrganizationByName(MediaOrganization):
                 (parentPath, name) = os.path.split(path)  # @UnusedVariable
                 parent = cls.getGroupFromPath(parentPath)
                 if (parent == None):
-                    raise ValueError, ('OrganizationByName.getGroupFromPath(): Cannnot find parent Group for "%s"' % path)
+                    raise ValueError('OrganizationByName.getGroupFromPath(): Cannnot find parent Group for "%s"' % path)
             group.setParentGroup(parent)
         return(group)
 
@@ -262,7 +263,7 @@ class OrganizationByName(MediaOrganization):
         String path contains the name of the file/directory to create a new name for.
         Return String containing the legal name, or None if no names are free anymore. 
         """
-        if (path.find(self.ImageFilerModel.getRootDirectory()) <> 0):
+        if (path.find(self.ImageFilerModel.getRootDirectory()) != 0):
             print('OrganizationByName.deriveName(): Outside of root directory: "%s"' % path)
         else:
             path = path[len(self.ImageFilerModel.getRootDirectory()):]
@@ -278,7 +279,7 @@ class OrganizationByName(MediaOrganization):
                     newName = word
                 else:  # already found a name, stick to it
                     #log.write(', found it a second time\n')
-                    if (newName <> word):
+                    if (newName != word):
                         log.write('File "%s" contains names "%s" (chosen) and "%s" (ignored)\n' % (path, newName, word))
             else:
                 #log.write(', no name :-(\n')
@@ -469,13 +470,14 @@ class OrganizationByName(MediaOrganization):
         
         Return True if context shall be hidden, False otherwise
         """
-        if ((aFilter.singleCondition <> None)
-            and (aFilter.singleCondition <> self.isSingleton())):
+        return(False)  # TODO: remove invocation in MediaFilter.isFiltered()
+        if ((aFilter.singleCondition != None)
+            and (aFilter.singleCondition != self.isSingleton())):
             Logger.debug('OrganizationByName.isFilteredBy(): Single condition filters %s' % self.getContext())
             return(True)
         if ((MediaFilter.SceneConditionKey in aFilter.conditionMap)
             and aFilter.conditionMap[MediaFilter.SceneConditionKey]
-            and (self.getScene() <> (OrganizationByName.FormatScene % aFilter.conditionMap[MediaFilter.SceneConditionKey]))):
+            and (self.getScene() != (OrganizationByName.FormatScene % aFilter.conditionMap[MediaFilter.SceneConditionKey]))):
             Logger.debug('OrganizationByName.isFilteredBy(): Scene condition filters %s' % self.getContext())
             return(True)
         return(False)
@@ -626,7 +628,7 @@ class OrganizationByName(MediaOrganization):
         if (self.context.isGroup()):
             return(False)
         elif (self.getScene()
-              and (self.getScene() <> '')):
+              and (self.getScene() != '')):
             return(False)
         return(True)
 
@@ -637,6 +639,8 @@ class OrganizationByName(MediaOrganization):
     
     def getScene(self):
         # TODO: make getScene() return None if no scene defined, add getSceneString for this semantics
+        if (self.scene == ''):
+            pass
         return(self.scene)
 
     
@@ -674,7 +678,7 @@ class OrganizationByName(MediaOrganization):
             else:
                 return(y)
         scenes = self.getScenes(filtering=False)
-        result = reduce(findHole, scenes, 1)
+        result = functools.reduce(findHole, scenes, 1)
         if (0 <= result):  # no hole found, append
             result = (-len(scenes))
             if (MediaClassHandler.ElementNew in scenes):
@@ -689,7 +693,7 @@ class OrganizationByName(MediaOrganization):
         try:
             name = pathInfo['name']
         except: 
-            raise ValueError, ('OrganizationByName.findGroupFor(): No name given!')
+            raise ValueError('OrganizationByName.findGroupFor(): No name given!')
         if (name == self.getName()):
             if (self.getContext().isGroup()):
                 result = self.getContext()
@@ -718,7 +722,7 @@ class OrganizationByName(MediaOrganization):
         """Create a list of <entry, pathInfo> to move self's subentries to newParent.
         """
         if (not self.getContext().isGroup()):
-            raise ValueError, ('OrganizationByName.getRenameList(): Entry "%s" is not a Group!' % self)
+            raise ValueError('OrganizationByName.getRenameList(): Entry "%s" is not a Group!' % self)
         # create a map from self's scenes to scenes not yet used by newParent
         if (self.getContext() == newParent):
             sceneMap  = {scene:scene for scene in self.getScenes()}
@@ -752,7 +756,7 @@ class OrganizationByName(MediaOrganization):
             if ('removeIllegalElements' in pathInfo):
                 newPathInfo['removeIllegalElements'] = pathInfo['removeIllegalElements'] 
             if ('elements' in pathInfo):
-                newTags = self.getModel().getClassHandler().combineTagsWithPriority(subEntry.getElements(),
+                newTags = self.getModel().getClassHandler().combineTagsWithPriority(subEntry.getTags(),
                                                                                     pathInfo['elements'])
                 newPathInfo['elements'] = newTags 
             pair = (subEntry, newPathInfo)
@@ -786,7 +790,7 @@ class OrganizationByName(MediaOrganization):
             except:
                 pass
         scene = aMediaNamePane.sceneInput.GetValue()
-        if (scene <> ''): 
+        if (scene != ''): 
             if (self.isSingleton()):
                 Logger.debug('Organization.getValuesFromNamePane(): Ignoring scene input for a singleton!')
             else:
@@ -843,7 +847,7 @@ class OrganizationByName(MediaOrganization):
             ok = (dialog.ShowModal() == wx.ID_OK)
             if (ok):
                 newSceneString = dialog.GetValue()
-                if (newSceneString <> MediaClassHandler.ElementNew):
+                if (newSceneString != MediaClassHandler.ElementNew):
                     try: 
                         newScene = int(newSceneString)
                     except: 
@@ -866,8 +870,8 @@ class FilterByName(MediaFilter):
 
 
 # Class Constants
-    SceneConditionKey = 'Scene'
-    SingleConditionKey = 'Singleton'
+    SceneConditionKey = 'scene'
+    SingleConditionKey = 'single'
 
 
 # Lifecycle 
@@ -875,24 +879,56 @@ class FilterByName(MediaFilter):
         """
         """
         # inheritance
-        super(FilterByName, self).__init__(self, model)
+        super(FilterByName, self).__init__(model)
         # internal state
         self.conditionMap[FilterByName.SingleConditionKey] = None
         self.conditionMap[FilterByName.SceneConditionKey] = None
-        return(None)
 
 
 # Setters
-    def setConditionsAndCalculateChange(self, **kwargs):
+    def clear(self):
+        """override MediaFilter.clear()"""
+        super(FilterByName, self).clear()
+        self.conditionMap[FilterByName.SceneConditionKey] = None
+        self.conditionMap[FilterByName.SingleConditionKey] = None
+
+
+    def setConditionsAndCalculateChange(self, active, **kwargs):
         """overwrite MediaFilter.setConditionsAndCalculateChange"""
-        changed = super(FilterByName, self).setConditions(**kwargs)
+        changed = super(FilterByName, self).setConditionsAndCalculateChange(active, **kwargs)
         for key in [FilterByName.SingleConditionKey, FilterByName.SceneConditionKey]:
             condition = (kwargs[key] if (key in kwargs) else None)
             if (condition
-                and (condition <> self.conditionMap[key])):
+                and (condition != self.conditionMap[key])):
                 self.conditionMap[key] = condition
                 changed = True
         return(changed)
+
+
+# Getters
+    def __repr__(self):
+        """override MediaFilter.__repr__()"""
+        result = (super(FilterByName, self).__repr__()
+                  + ('single, ' if self.conditionMap[FilterByName.SingleConditionKey] else '')
+                  + (('scene=%s, ' % self.conditionMap[FilterByName.SceneConditionKey]) if (FilterByName.SceneConditionKey in self.conditionMap) else '')
+                  )
+        return(result)
+
+
+    def isFiltered(self, entry):
+        """override MediaFilter.isFiltered()"""
+        singleCondition = self.conditionMap[FilterByName.SingleConditionKey]
+        if (singleCondition
+            and (singleCondition != entry.getOrganizer().isSingleton())):
+            Logger.debug('FilterByName.isFiltered(): Single condition filters %s' % entry)
+            return(True)
+        sceneCondition = self.conditionMap[FilterByName.SceneConditionKey]
+        if (sceneCondition
+            and (not entry.getOrganizer().isSingleton())
+            and (sceneCondition != entry.getOrganizer().getScene())):
+            Logger.debug('FilterByName.isFiltered(): Scene condition filters %s' % entry)
+            return(True)
+        return(MediaFilter.isFiltered(self, entry))
 
 
 
@@ -939,6 +975,8 @@ class SingletonFilter(FilterConditionWithMode):  # TODO: replace by BooleanFilte
 
 class SceneFilter(FilterConditionWithMode):
     """Represents a filter for scene numbers.
+    
+    #TODO: change to allow "new"
     """
     def __init__(self, parent):
         FilterConditionWithMode.__init__(self, parent, _('Scene'))
@@ -965,17 +1003,17 @@ class SceneFilter(FilterConditionWithMode):
             newMode = self.modeChoice.GetSelection()
             oldScene = self.filterModel.getScene()
             if ((newMode == FilterConditionWithMode.FilterModeIndexIgnore)
-                and (newScene <> oldScene)):
+                and (newScene != oldScene)):
                 newMode = FilterConditionWithMode.FilterModeIndexRequire
         if (newMode == FilterConditionWithMode.FilterModeIndexRequire):
-            self.filterModel.setConditions(Scene=newScene)
+            self.filterModel.setConditions(scene=newScene)
             Logger.debug('SceneFilter.onChange(): Setting newScene filter to %s' % newScene)
         elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
-            self.filterModel.setConditions(Scene=False)
+            self.filterModel.setConditions(scene=False)
             self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
             Logger.warn('SceneFilter.onChange(): Excluding scenes NYI, clearing newScene filter!')
         else:  # mode = ignore
-            self.filterModel.setConditions(Scene=False)
+            self.filterModel.setConditions(scene=False)
             Logger.debug('SceneFilter.onChange(): Clearing newScene filter')
         wx.EndBusyCursor()
 

@@ -9,6 +9,7 @@
 import re
 import os.path
 import logging
+#import subprocess
 ## Contributed
 import wx
 ## nobi
@@ -16,10 +17,11 @@ from nobi.ObserverPattern import Observable
 from nobi.wx.Menu import Menu
 from nobi.os import makeUnique
 ## Project
-from UI import GUIId
-import Installer
+#from Model import GlobalConfigurationOptions
+from Model import Installer
 from Model.MediaClassHandler import MediaClassHandler
 from Model.CachingController import CachingController
+from UI import GUIId
 
 
 # Package Variables
@@ -106,6 +108,13 @@ class Entry(Observable):
             return(None)
 
 
+    @classmethod
+    def getMetadataFromPath(cls, path):
+        """Return an empty metadata dictionary. 
+        """
+        return({})
+
+
 
 # Lifecycle
     def __init__(self, model, path):
@@ -121,7 +130,7 @@ class Entry(Observable):
         self.filteredFlag = False  # initially, no entry is filtered
         self.treeItemID = None  # not inserted into MediaTreePane yet
         self.bitmap = None
-        #path = self.fixNumber(path)
+        self.metadata = None  # for lazy loading
         self.initFromPath(path)
         Logger.debug('Entry(): Created %s' % self)
 
@@ -140,7 +149,7 @@ class Entry(Observable):
             self.setExtension(extension[1:].lower())
         self.fileSize = self.getFileSize()
         if (self.isGroup() 
-            and (self.getExtension() <> '')):
+            and (self.getExtension() != '')):
             Logger.warn('Entry.initFromPath(): Group "%s" should not use an extension' % self.getPath())
         elementStart = fname.find(MediaClassHandler.TagSeparator)
         if (0 <= elementStart):
@@ -157,7 +166,8 @@ class Entry(Observable):
 
 # Setters
     def setPath(self, path):
-        self.filePath = unicode(path)
+#         self.filePath = unicode(path)
+        self.filePath = path
 
 
     def setDirectory(self, directory):
@@ -190,11 +200,11 @@ class Entry(Observable):
         MediaFiler.Group group is the new parent of self
         Boolean notifyObserversOfRemoval indicates whether to notify observers of current parent about removal of self
         """
-        if (self.parentGroup <> group):
-            if (self.parentGroup <> None):
+        if (self.parentGroup != group):
+            if (self.parentGroup != None):
                 self.parentGroup.removeEntryFromGroup(self, notifyObserversOfRemoval)
             self.parentGroup = group
-            if (group <> None):
+            if (group != None):
                 group.addEntryToGroup(self)
 
 
@@ -317,7 +327,7 @@ class Entry(Observable):
 
         Removes the model root directory from the beginning and the final (non-directory) elements from the file path.
         
-        Returns a String
+        Return String
         """
         pathRest = self.getPath()[(len(self.model.rootDirectory) + 1):]  # remove root directory, including slash
         if (0 < len(self.getExtension())):
@@ -335,7 +345,7 @@ class Entry(Observable):
     def getIdentifier(self):
         """Return a short identifier of self for use on the UI
         
-        Returns a String 
+        Return String 
         """
 #         result = ''
 #         elementStart = self.getFilename().find('.')
@@ -347,13 +357,27 @@ class Entry(Observable):
         return(self.getFilename())
 
 
-    def getKnownElementsDictionary(self):
+    def getMetadata(self):
+        """Lazily load metadata for self from file. 
+        """
+        if (not self.metadata):
+            self.metadata = self.__class__.getMetadataFromPath(self.getPath())
+        return(self.metadata)
+
+
+    def getResolution(self):
+        """Return the product of image width times height, for filtering.
+        """
+        return(0)
+
+
+    def getKnownTagsDictionary(self):
         """Return a Dictionary mapping class names to lists of elements.
         """
         return(self.knownElementsDictionary)
 
 
-    def getKnownElements(self, filtering=False):
+    def getKnownTags(self, filtering=False):  # @UnusedVariable
         """Return a Set containing the Strings of all known elements.
         
         filtering is required as parameter as the subclass Group requires it. It has no significance here.
@@ -361,19 +385,19 @@ class Entry(Observable):
         Boolean filtering specifies whether to ignore filtered entries (in Group)
         """
         elements = set()
-        classMap = self.getKnownElementsDictionary()
+        classMap = self.getKnownTagsDictionary()
         for classname in classMap:
             elements.update(classMap[classname])
         return(elements)
 
 
-    def getUnknownElements (self):
+    def getUnknownTags (self, filtering=False):  # @UnusedVariable
         """Return a Set containing the Strings of all unknown elements.
         """
         return(set(self.unknownElements))
 
 
-    def getElements(self, filtering=False):
+    def getTags(self, filtering=False):
         """Return a Set containing all elements of self.
         
         filtering is required as parameter as the subclass Group requires it. It has no significance here.
@@ -381,16 +405,7 @@ class Entry(Observable):
         Boolean filtering specifies whether to ignore filtered entries (in Group)
         Returns Set of String
         """
-        return(self.getKnownElements().union(self.getUnknownElements()))
-    
-    
-    def getElementString (self, filtering=False):
-        """Return a String containing all elements of self. 
-
-        Boolean filtering specifies whether to ignore filtered entries (in Group)
-        Return String
-        """
-        return(self.model.getClassHandler().elementsToString(self.getElements(filtering)))
+        return(self.getKnownTags().union(self.getUnknownTags()))
 
 
     def getEntriesForDisplay (self):
@@ -462,20 +477,12 @@ class Entry(Observable):
             pass
             
 
-#     def getBitmap(self, width, height):  # @UnusedVariable
-#         """
-#         """
-#         print('Entry.getBitmap() deprecated')
-#         CachingController.allocateMemory(self, self.getBitmapMemoryUsage(), bitmap=True)
-#         return(self.bitmap)
-
-
     def getBitmapMemoryUsage(self):
         """Return self's current memory usage for the bitmap.
         
         Return Number of bytes used
         """
-        if (self.bitmap <> None):
+        if (self.bitmap != None):
             return(self.bitmapWidth * self.bitmapHeight * 3)  # assumption
         else:
             return(0)
@@ -545,7 +552,7 @@ class Entry(Observable):
         (head, tail) = os.path.split(fname)  # @UnusedVariable
         newGroup = self.getOrganizer().__class__.getGroupFromPath(head)
         self.initFromPath(fname)  # change name before changing parent: If parent group is shown, image needs to be retrieved
-        if (newGroup <> self.getParentGroup()):
+        if (newGroup != self.getParentGroup()):
             self.setParentGroup(newGroup)
         self.changedAspect('name')
 #         self.getOrganizer().__class__.registerMoveToLocation(fname)
@@ -569,9 +576,12 @@ class Entry(Observable):
         # structure functions
         menu.AppendSeparator()
         moveToMenu = self.getOrganizer().__class__.constructMoveToMenu()
-        menu.AppendMenu(GUIId.SelectMoveTo, 
-                        GUIId.FunctionNames[GUIId.SelectMoveTo],
-                        moveToMenu)
+#         menu.AppendMenu(GUIId.SelectMoveTo, 
+#                         GUIId.FunctionNames[GUIId.SelectMoveTo],
+#                         moveToMenu)
+        menu.Append(GUIId.SelectMoveTo, 
+                    GUIId.FunctionNames[GUIId.SelectMoveTo],
+                    moveToMenu)
         if ((0 == moveToMenu.GetMenuItemCount())
             and (not self.isGroup())):
             menu.Enable(GUIId.SelectMoveTo, False)
@@ -631,7 +641,7 @@ class Entry(Observable):
         for className in self.model.getClassHandler().getClassNames():
             classCovered = False  # no element of this class required yet
             for element in self.model.getClassHandler().getElementsOfClassByName(className):
-                if element in self.getKnownElements():
+                if element in self.getKnownTags():
                     required.add(element)
                     classCovered = True  # element of this class is required
             if (identical  
@@ -639,7 +649,7 @@ class Entry(Observable):
                 prohibited.add(className)
         # for identical filtering, check unknown elements as well
         if (identical
-            and (len(self.getUnknownElements()) > 0)):
+            and (len(self.getUnknownTags()) > 0)):
             unknown = True
         # turn on filter
         Logger.debug('(Identical=%s) Filtering required %s, prohibited %s, unknown %s)' % (identical, required, prohibited, unknown))

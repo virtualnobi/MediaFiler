@@ -15,7 +15,7 @@ from __future__ import print_function
 
 
 # Constants
-Parameter = u'%%1'
+Parameter = u'%1'
 
 TextEditor = 'editor-text'
 
