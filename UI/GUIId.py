@@ -83,6 +83,7 @@ FindDuplicates = generateWxIdForLabel(_('Determine Duplicates'))
 ShowDuplicates = generateWxIdForLabel(_('Show Duplicates'))
 for i in range(MaxNumberDuplicates - 1):  # reserve additional menu items for more duplicates
     wx.NewId()
+RemoveDuplicatesElsewhere = generateWxIdForLabel(_('Remove Duplicates in another folder'))
 
 EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
 DeleteImage = generateWxIdForLabel(_('Delete Media "%s"'))

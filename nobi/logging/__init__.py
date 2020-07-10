@@ -12,6 +12,9 @@ from io import StringIO
 import logging
 
 
+# TODO: Create a subclass of Logger which will handle an "No space left on device" by removing the existing log and try to continue.
+
+
 def profiledOnLogger(logger, sort='time'):
     """Return a decorator which will profile a function and log the profiling information (at the DEBUG level). 
 

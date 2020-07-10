@@ -576,9 +576,6 @@ class Entry(Observable):
         # structure functions
         menu.AppendSeparator()
         moveToMenu = self.getOrganizer().__class__.constructMoveToMenu()
-#         menu.AppendMenu(GUIId.SelectMoveTo, 
-#                         GUIId.FunctionNames[GUIId.SelectMoveTo],
-#                         moveToMenu)
         menu.Append(GUIId.SelectMoveTo, 
                     GUIId.FunctionNames[GUIId.SelectMoveTo],
                     moveToMenu)

@@ -298,7 +298,7 @@ class Movie(Single):
         if (self.duration != None):
             return(self.duration)
         md = self.getMetadata()
-        self.duration = md['seconds']
+        self.duration = (md['seconds'] if 'seconds' in md else -1)
 #         ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
 #         if (ffmpeg):
 #             try:

@@ -26,7 +26,7 @@ from Model.MediaFilter import MediaFilter
 from Model.Entry import Entry
 from Model.Single import Single
 from Model.MediaMap import MediaMap
-from Model.MediaOrganization.OrganizationByDate import OrganizationByDate
+from Model.MediaOrganization.OrganizationByDate import OrganizationByDate, FilterByDate
 from Model.MediaOrganization.OrganizationByName import OrganizationByName, FilterByName
 from Model.CachingController import CachingController
 from UI import GUIId
@@ -190,7 +190,7 @@ class MediaCollection(Observable, Observer):
         else:
             self.organizedByDate = True
             self.organizationStrategy = OrganizationByDate
-            filterClass = MediaFilter
+            filterClass = FilterByDate  # MediaFilter
         self.organizationStrategy.setModel(self)
         processIndicator.beginStep(_('Reading tag definitions'))
         self.classHandler = MediaClassHandler(Installer.getClassFilePath())
@@ -220,6 +220,10 @@ class MediaCollection(Observable, Observer):
             entry = self.getEntry(path=path)
             if (entry):
                 Logger.info('MediaCollection.setRootDirectory(): selecting "%s" from last run.' % path)
+                if (entry.isGroup() 
+                    and (100 < len(entry.getSubEntries()))):
+                    entry = entry.getSubEntries()[0]
+                    Logger.info('MediaColleection.setRootDirectory(): Reselected "%s" because initial group contained more than 100 entries.' % entry)
                 self.setSelectedEntry(entry)
             else:
                 Logger.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
@@ -359,22 +363,33 @@ class MediaCollection(Observable, Observer):
     def getMinimumSize(self):
         """Return the smallest image size in bytes.
         """
-        if (self.cachedMinimumSize == 0):
+        if (self.cachedMinimumSize == None):
+            for entry in self:  # get size of some entry
+                self.cachedMinimumSize = entry.getFileSize()
+                self.cachedMaximumSize = self.cachedMinimumSize
+                break
             for entry in self:
                 fsize = entry.getFileSize()
-                if ((fsize < self.cachedMinimumSize)  # smaller one found
-                    or (self.cachedMinimumSize == 0)):  # no image found so far
+                if (fsize < self.cachedMinimumSize):  # smaller one found
                     self.cachedMinimumSize = fsize
+                if (self.cachedMaximumSize < fsize):  # bigger one found
+                    self.cachedMaximumSize = fsize
         return(self.cachedMinimumSize)
 
 
     def getMaximumSize(self):
         """Return the biggest image size in bytes.
         """
-        if (self.cachedMaximumSize == 0):
+        if (self.cachedMaximumSize == None):
+            for entry in self:  # get size of some entry
+                self.cachedMinimumSize = entry.getFileSize()
+                self.cachedMaximumSize = self.cachedMinimumSize
+                break
             for entry in self:
                 fsize = entry.getFileSize()
-                if (self.cachedMaximumSize < fsize):  # bigger one found
+                if (fsize < self.cachedMinimumSize):  # smaller one found
+                    self.cachedMinimumSize = fsize
+                elif (self.cachedMaximumSize < fsize):  # bigger one found
                     self.cachedMaximumSize = fsize
         return (self.cachedMaximumSize)
 
@@ -382,21 +397,32 @@ class MediaCollection(Observable, Observer):
     def getMinimumResolution(self):
         """Return the smallest image resolution.
         """
-        if (self.cachedMinimumResolution == 0):
+        if (self.cachedMinimumResolution == None):
+            for entry in self:  # get resolution of some entry
+                self.cachedMinimumResolution = entry.getResolution()
+                self.cachedMaximumResolution = self.cachedMinimumResolution
+                break
             for entry in self:
                 resolution = entry.getResolution()
-                if ((resolution < self.cachedMinimumResolution)  # smaller one found
-                    or (self.cachedMinimumResolution == 0)):  # no image found so far
+                if (resolution < self.cachedMinimumResolution):  # smaller one found
                     self.cachedMinimumResolution = resolution
+                elif (self.cachedMaximumResolution < resolution):  # larger one found
+                    self.cachedMaximumResolution = resolution
         return(self.cachedMinimumResolution)
 
 
     def getMaximumResolution(self):
         """Return the biggest image resolution.
         """
-        if (self.cachedMaximumResolution == 0):
+        if (self.cachedMaximumResolution == None):
+            for entry in self:  # get resolution of some entry
+                self.cachedMinimumResolution = entry.getResolution()
+                self.cachedMaximumResolution = self.cachedMinimumResolution
+                break
             for entry in self:
                 resolution = entry.getResolution()
+                if (resolution < self.cachedMinimumResolution):  # smaller one found
+                    self.cachedMinimumResolution = resolution
                 if (self.cachedMaximumResolution < resolution):  # bigger one found
                     self.cachedMaximumResolution = resolution
         return (self.cachedMaximumResolution)
@@ -483,7 +509,7 @@ class MediaCollection(Observable, Observer):
         """
         Observer.updateAspect(self, observable, aspect)
         if (observable == self.filter):  # filter changed
-            self.filterEntries(wx.GetApp().getProgressBar())
+            self.filterEntries(wx.GetApp())
         elif (aspect == 'remove'):  # entry removed
             if (isinstance(observable, Single)):
                 self.cachedCollectionSize = (self.cachedCollectionSize - 1)
@@ -491,13 +517,13 @@ class MediaCollection(Observable, Observer):
                 self.cachedCollectionSize = (self.cachedCollectionSize - observable.getGroupSize())
             # invalidate cached properties if affected
             if (observable.getFileSize() == self.cachedMinimumSize):
-                self.cachedMinimumSize = 0
+                self.cachedMinimumSize = None
             if (observable.getFileSize() == self.cachedMaximumSize):
-                self.cachedMaximumSize = 0
+                self.cachedMaximumSize = None
             if (observable.getResolution() == self.cachedMinimumResolution):
-                self.cachedMinimumResolution = 0
+                self.cachedMinimumResolution = None
             if (observable.getResolution() == self.cachedMaximumResolution):
-                self.cachedMaximumResolution = 0
+                self.cachedMaximumResolution = None
             # ensure selected entry is not subitem of removed entry
             entry = self.selectedEntry
             while (entry != None):
@@ -565,15 +591,22 @@ class MediaCollection(Observable, Observer):
             collisions gives the number of groups of identical Singles
             participants gives the total of Singles involved in collisions
         """
+        if (aProgressIndicator):
+            aProgressIndicator.beginPhase(2, _('Finding duplicates'))        
         mmap = MediaMap(self, aProgressIndicator)
+        if (aProgressIndicator):
+            aProgressIndicator.beginPhase(self.getCollectionSize(), _('Linking duplicates'))
         for entry in self:
             if (isinstance(entry, Single)):
+                if (aProgressIndicator):
+                    aProgressIndicator.beginStep()
                 duplicates = mmap.getDuplicates(entry)
                 entry.setDuplicates(duplicates)
                 if (0 < len(duplicates)):
-                    print('MediaCollection.findDuplicates(): %s duplicates of %s found:' % (len(duplicates), entry.getPath())) 
-                    for dupEntry in duplicates:
-                        print('\t%s' % dupEntry.getPath())
+#                     print('MediaCollection.findDuplicates(): %s duplicates of %s found:' % (len(duplicates), entry.getPath())) 
+#                     for dupEntry in duplicates:
+#                         print('\t%s' % dupEntry.getPath())
+                    Logger.debug('MediaCollection.findDuplicates(): %s duplicates found for "%s"' % (len(duplicates), entry.getPath()))
         return(mmap.getCollisions())
 
 
@@ -597,25 +630,23 @@ class MediaCollection(Observable, Observer):
         """
         Logger.debug('MediaCollection.filterEntries() started')
         self.changedAspect('startFiltering')
+        progressIndicator.beginPhase(self.getCollectionSize(), 'Filtering media')
         if (self.getFilter().isEmpty()): 
             for entry in self:
+                progressIndicator.beginStep()
                 entry.setFilter(False)
-                self.filteredEntries = self.getCollectionSize()
+            self.filteredEntries = self.getCollectionSize()
         else:  # filters exist
             self.filteredEntries = 0 
-            increment = 100  #  TODO: use ProgressIndicator instead
-            number = 0
             entryFilter = self.getFilter()
             for entry in self: 
                 if (entry.isGroup()):  # Group is filtered when all its children are
                     entry.setFilter(len(entry.getSubEntries(filtering=True)) == 0)
                 else:
-                    entry.setFilter(entryFilter.isFiltered(entry))
+                    progressIndicator.beginStep()
+                    entry.setFilter(entryFilter.isFiltering(entry))
                     if (entry.isFiltered()):
                         self.filteredEntries = (self.filteredEntries + 1)
-                    number = (number + 1)
-                    if ((number % increment) == 0):
-                        Logger.debug('MediaCollection.filterEntries() reached "%s"' % entry.getPath())
         # if selected entry is filtered, search for unfiltered parent
         if (self.getSelectedEntry().isFiltered()):
             entry = self.getSelectedEntry().getParentGroup()
@@ -631,11 +662,10 @@ class MediaCollection(Observable, Observer):
 
 
 ## Importing
-    def importImages(self, importParameters, processIndicator=None):
+    def importImages(self, importParameters):
         """Import images from a directory. 
         
         Importing.ImportParameterObject importParameters contains all import parameters
-        ProcessIndicator object 
 
         Return a String containing the log.
         """
@@ -643,7 +673,7 @@ class MediaCollection(Observable, Observer):
             importParameters.logString(_('Import directory "%s" is empty' % importParameters.getImportDirectory()))
             return(importParameters.getLog())
         if (importParameters.getCheckForDuplicates()):
-            importParameters.setMediaMap(MediaMap.getMap(self, processIndicator))
+#             importParameters.setMediaMap(MediaMap.getMap(self, importParameters.getProcessIndicator()))
             if (importParameters.getMediaMap() == None):
                 importParameters.setCheckForDuplicates(False)
                 importParameters.logString('No media map created; will not check for duplicates.')
@@ -664,7 +694,7 @@ class MediaCollection(Observable, Observer):
             pass
         except Exception as e:
             raise
-            importParameters.logString('Import was cancelled due to an error:\n%s' % e)
+            importParameters.logString('Import was interrupted due to this error:\n%s' % e)
         if (importParameters.getReportIllegalElements()):
             for key in importParameters.getIllegalElements():  
                 count = len(importParameters.getIllegalElements()[key])
@@ -693,10 +723,14 @@ class MediaCollection(Observable, Observer):
         allFiles = os.listdir(sourceDir)
         allFiles.sort()  # ensure that existing numbers are respected in new numbering
         if (level == 0):
-            importParameters.getProcessIndicator().beginPhase(len(allFiles))
+            if (importParameters.getTestRun()):
+                statusText = _('Testing import from %s')
+            else:  
+                statusText = _('Importing from %s')
+            importParameters.getProcessIndicator().beginPhase(len(allFiles), (statusText % importParameters.getImportDirectory()))
         for oldName in allFiles:
             importParameters.getProcessIndicator().beginStep()
-            importParameters.logString(' ')
+#            importParameters.logString('')
             sourcePath = os.path.join(sourceDir, oldName)
             newTargetPathInfo = self.organizationStrategy.pathInfoForImport(importParameters,
                                                                             sourcePath,
@@ -712,7 +746,7 @@ class MediaCollection(Observable, Observer):
                                              newTargetPathInfo)
                 if (removeProcessedFiles
                     and (len(os.listdir(sourcePath)) == 0)):
-                    # importParameters.logString('Removing empty directory "%s"' % sourcePath)
+#                     importParameters.logString('Removing empty directory "%s"' % sourcePath)
                     os.rmdir(sourcePath)
             else:  # import a media file
                 (dummy, extension) = os.path.splitext(sourcePath)
@@ -723,7 +757,7 @@ class MediaCollection(Observable, Observer):
                         if (importParameters.canImportOneMoreFile()):
                             duplicate = None
                             if (importParameters.getCheckForDuplicates()):
-                                duplicate = importParameters.getMediaMap().getDuplicate(sourcePath, fileSize)
+                                duplicate = importParameters.getMediaMap().getDuplicate(sourcePath)
                             if (duplicate == None):
                                 self.organizationStrategy.importMedia(importParameters, 
                                                                       sourcePath, 
@@ -883,20 +917,21 @@ class MediaCollection(Observable, Observer):
         """
         Logger.info('MediaCollection.cacheCollectionProperties()')
         self.cachedCollectionSize = 0
-        self.cachedMinimumSize = 0
-        self.cachedMaximumSize = 0
-        self.cachedMinimumResolution = 0
-        self.cachedMaximumResolution = 0
+        self.cachedMinimumSize = None
+        self.cachedMaximumSize = None
+        self.cachedMinimumResolution = None
+        self.cachedMaximumResolution = None
         self.cachedEarliestDate = None
         self.cachedLatestDate = None
         for entry in self:
             self.cachedCollectionSize = (self.cachedCollectionSize + 1)
-            fsize = entry.getFileSize()
-            if ((fsize < self.cachedMinimumSize)  # smaller one found
-                or (self.cachedMinimumSize == 0)):  # no image found so far
-                self.cachedMinimumSize = fsize
-            if (self.cachedMaximumSize < fsize):  # bigger one found
-                self.cachedMaximumSize = fsize
+# TODO: way to time-consuming (reads all images which have no width/height metadata)
+#             fsize = entry.getFileSize()
+#             if ((fsize < self.cachedMinimumSize)  # smaller one found
+#                 or (self.cachedMinimumSize == 0)):  # no image found so far
+#                 self.cachedMinimumSize = fsize
+#             if (self.cachedMaximumSize < fsize):  # bigger one found
+#                 self.cachedMaximumSize = fsize
 # TODO: way to time-consuming (reads all images which have no width/height metadata)
 #             resolution = entry.getResolution() 
 #             if ((resolution < self.cachedMinimumResolution)

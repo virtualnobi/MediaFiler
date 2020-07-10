@@ -25,7 +25,8 @@ from Model import GlobalConfigurationOptions
 from Model import Installer
 from Model.MediaCollection import MediaCollection
 from Model import Image  # @UnusedImport import even if "unused", otherwise it's never registered with Installer.ProductTrader
-from Model import Movie  # @UnusedImport import even if "unused", otherwise it's never registered with Installer.ProductTrader  
+from Model import Movie  # @UnusedImport import even if "unused", otherwise it's never registered with Installer.ProductTrader
+from Model.MediaMap import MediaMap  
 import UI  # to access UI.PackagePath
 from UI import GUIId
 from UI.Importing import ImportDialog, ImportParameterObject
@@ -245,6 +246,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         file_menu.AppendSeparator ();
         file_menu.Append(GUIId.ReloadDirectory, GUIId.FunctionNames[GUIId.ReloadDirectory])
         file_menu.Append(GUIId.ExportImages, GUIId.FunctionNames[GUIId.ExportImages])
+        file_menu.Append(GUIId.RemoveDuplicatesElsewhere, GUIId.FunctionNames[GUIId.RemoveDuplicatesElsewhere])
         file_menu.AppendSeparator ();
         file_menu.Append(wx.ID_EXIT, GUIId.FunctionNames[wx.ID_EXIT])
         # Media
@@ -331,6 +333,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.Bind(wx.EVT_MENU_RANGE, self.onLoadRecent, id=GUIId.LoadRecentDirectory, id2=(GUIId.LoadRecentDirectory + GUIId.MaxNumberRecentFiles - 1))
         self.Bind(wx.EVT_MENU, self.onReload, id=GUIId.ReloadDirectory)
         self.Bind(wx.EVT_MENU, self.onExport, id=GUIId.ExportImages)
+        self.Bind(wx.EVT_MENU, self.onRemoveDuplicatesElsewhere, id=GUIId.RemoveDuplicatesElsewhere)
         self.Bind(wx.EVT_MENU, self.onExit, id=wx.ID_EXIT)
         # - image menu
         self.Bind(wx.EVT_MENU, self.onFindDuplicates, id=GUIId.FindDuplicates)
@@ -430,6 +433,51 @@ class MediaFiler(wx.Frame, Observer, Observable):
                         break
                     count = (count + 1)
             wx.GetApp().stopProcessIndicator(_('%d media exported to "%s"') % (count, dialog.GetPath()))
+        dialog.Destroy()  # destroy after getting the user input
+
+
+    def onRemoveDuplicatesElsewhere(self, event):  # @UnusedVariable
+        """Ask for another directory and remove all images in there which are contained in this media collection
+        """
+        def listDirectoryRecursively(pathname):
+            result = []
+            if (os.path.isdir(pathname)):
+                for file in os.listdir(pathname):
+                    filename = os.path.join(pathname, file)
+                    if (os.path.isdir(filename)):
+                        result.extend(listDirectoryRecursively(filename))
+                    else:
+                        result.append(filename)
+            else:
+                result.append(pathname)
+            return(result)
+        
+        mediaMap = MediaMap.getMap(self.model)
+        if (mediaMap == None):
+            dlg = wx.MessageDialog(self, 
+                                   ('Create duplicate information first by executing the\n"%s" command.' % GUIId.FunctionNames[GUIId.FindDuplicates]),
+                                   _('Error'),
+                                   wx.OK | wx.ICON_ERROR) #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL
+            dlg.ShowModal()
+            dlg.Destroy()
+            return()
+        dialog = wx.DirDialog(self, _('Select directory to remove duplicates from:'), style = (wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST))
+        if (dialog.ShowModal() == wx.ID_OK):  # user selected directory
+            count = 0
+            if (os.path.isdir(dialog.GetPath())):
+                dirname = dialog.GetPath()
+                filenameList = listDirectoryRecursively(dirname)
+                progressIndicator = wx.GetApp().startProcessIndicator()
+                progressIndicator.beginPhase(len(filenameList), message=(_('Removing duplicates in %s') % dirname))
+                for filename in filenameList:
+                    progressIndicator.beginStep()
+                    pathname = os.path.join(dirname, filename)
+                    duplicate = mediaMap.getDuplicate(pathname)
+                    if (duplicate != None):
+                        MediaFiler.Logger.debug('Removing duplicate "%s"' % pathname)
+                        # os.remove(pathname)
+                        count = (count + 1)
+                wx.GetApp().stopProcessIndicator(_('%d media removed in "%s"') % (count, dirname))
         dialog.Destroy()  # destroy after getting the user input
 
 
@@ -547,27 +595,29 @@ class MediaFiler(wx.Frame, Observer, Observable):
            Ask for a directory to scan (recursively), and import all images contained.
            If event.GetId() == GUIId.TestImport, only show generated filenames, don't actually import anything.
         """
-        # variables depending on test mode
-        if (event.GetId() == GUIId.TestImport):  
-            testRun = True
-            statusText = _('Testing import from %s')
-            messageTemplate = _('%d media would have been imported from "%s"')
-        else:  
-            testRun = False
-            statusText = _('Importing from %s')
-            messageTemplate = _('%d media imported from "%s"')
         # prepare import parameters
         importParameters = ImportParameterObject(self.model)
-        importParameters.setTestRun(testRun)
+        if (event.GetId() == GUIId.TestImport):  
+            importParameters.setTestRun(True)
+            messageTemplate = _('%d media would have been imported from "%s"')
+        else:  
+            importParameters.setTestRun(False)
+            messageTemplate = _('%d media imported from "%s"')
+        # user dialog asking for more parameters
         dialog = ImportDialog(self, self.model, importParameters)
         if (dialog.ShowModal() == wx.ID_OK):
             with wx.GetApp() as processIndicator:
                 importParameters.setProcessIndicator(processIndicator)
-                if (not testRun):
-                    wx.GetApp().beginPhase(2)  # second step is to reload model; only if non-test import
-                wx.GetApp().beginStep(statusText % importParameters.getImportDirectory())
+                phases = 1  # minimum: test import
+                if (importParameters.getCheckForDuplicates()):  # additional phase for duplicate determination
+                    phases = (phases + 1)
+                if (not importParameters.getTestRun()):  # additional phase for reloading
+                    phases = (phases + 1)
+                processIndicator.beginPhase(phases) 
+                if (importParameters.getCheckForDuplicates()):
+                    importParameters.setMediaMap(MediaMap.getMap(self, importParameters.getProcessIndicator()))
                 try:
-                    log = self.model.importImages(importParameters, processIndicator)
+                    log = self.model.importImages(importParameters)
                 except WindowsError as exc: 
                     if (exc.winerror == 3):
                         dlg = wx.MessageDialog(self, _('No files to import!'), _('Empty Directory'), (wx.OK | wx.ICON_INFORMATION))
@@ -581,14 +631,13 @@ class MediaFiler(wx.Frame, Observer, Observable):
                         logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, log, _('Import Report'), style=wx.RESIZE_BORDER)
                     except:
                         logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
-                    if (not testRun):
-                        self.setModel(self.model.rootDirectory)
+                    if (not importParameters.getTestRun()):
+                        self.setModel(self.model.rootDirectory, processIndicator)
                     logDialog.Maximize(True)  # logDialog.SetSize(wx.Size(1000,600))  # TODO: make dialog resizable
                     logDialog.ShowModal()
                     logDialog.Destroy()
                     message = (messageTemplate % (dialog.getParameterObject().getNumberOfImportedFiles(), 
                                                   dialog.getParameterObject().getImportDirectory()))
-#             wx.GetApp().stopProcessIndicator(message)
             wx.GetApp().setInfoMessage(message)
         dialog.Destroy() 
 
@@ -834,44 +883,47 @@ class MediaFiler(wx.Frame, Observer, Observable):
 
 # Other API Functions
 # section: Internal State
-    def setModel(self, directory):
+    def setModel(self, directory, processIndicator=None):
         """Set the model from its root directory.
 
         Update status and load initial image.
         
         String directory
+        ProgressIndicator processIndicator
         """
         self.statusbar.SetStatusText(directory, GUIId.SB_Organization)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Loading app icon "%s"' % Installer.getLogoPath())
         self.SetIcon(wx.Icon(Installer.getLogoPath(), wx.BITMAP_TYPE_ICO))
-        wx.GetApp().beginPhase(2)
+        if (processIndicator == None):
+            processIndicator = wx.GetApp()
+        processIndicator.beginPhase(2)
         try:
-            self.model = MediaCollection(directory, wx.GetApp()) 
+            self.model = MediaCollection(directory, processIndicator) 
         except Exception as e:
             raise BaseException("Could not create MediaCollection model! \n%s" % e)
-        wx.GetApp().beginPhase(6, (_('Setting up window panes')))
+        processIndicator.beginPhase(6, (_('Setting up window panes')))
         self.model.addObserverForAspect(self, 'startFiltering')
         self.model.addObserverForAspect(self, 'stopFiltering')
         self.model.addObserverForAspect(self, 'size')
         self.updateMenuAccordingToModel(self.model)
-        wx.GetApp().beginStep()
+        processIndicator.beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up name pane')
         self.namePane.setModel(self.model)
-        wx.GetApp().beginStep()
+        processIndicator.beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up filter pane')
         self.filterPane.setModel(self.model)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Filter pane best size is %s' % self.filterPane.GetBestSize())
         self.paneManager.GetPane('filter').BestSize(self.filterPane.GetBestSize())
-        wx.GetApp().beginStep()
+        processIndicator.beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up classification pane')
         self.classificationPane.setModel(self.model)
-        wx.GetApp().beginStep()
+        processIndicator.beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up canvas pane')
         self.canvas.setModel(self.model)  # implicit beginStep()
-        wx.GetApp().beginStep()
+        processIndicator.beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up presentation pane')
         self.presentationPane.setModel(self.model)
-        wx.GetApp().beginStep()
+        processIndicator.beginStep()
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up tree pane')
         self.imageTree.setModel(self.model)
         self.statusbar.SetStatusText(self.model.getDescription(), GUIId.SB_Organization)
@@ -970,7 +1022,6 @@ class MediaFilerApp(ProgressSplashApp):
             logHandler = logging.FileHandler(fname, mode='w')
             logHandler.setFormatter(logFormatter)
             logging.getLogger().addHandler(logHandler)
-#             self.frame.setModel(unicode(Installer.getMediaPath()))         
             self.frame.setModel(Installer.getMediaPath())        
             self.frame.setLoggedModules()  # TODO: move App itself
             MediaFiler.Logger.debug('MediaFiler.__main__(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
@@ -1063,7 +1114,6 @@ class MediaFilerApp(ProgressSplashApp):
 
 
     def beginStep(self, message=''):
-        MediaFiler.Logger.debug('MediaFilerApp.beginStep("%s"): Progress bar is %s' % (message, self.getProgressBar()))
         self.setInfoMessage('%s (%d)' % (message, self.numberOfStepsToGo))
         self.numberOfStepsToGo = (self.numberOfStepsToGo - 1)
         self.getProgressBar().beginStep()
@@ -1079,7 +1129,6 @@ class MediaFilerApp(ProgressSplashApp):
         String message to be displayed as information
         """
         MediaFiler.Logger.debug('MediaFilerApp.stopProcessIndicator(): %s' % self.frame.getProgressBar())
-#         if ((not isinstance(message, basestring)) 
         if ((not isinstance(message, str)) 
             or (message == '')):
             message = _('Ready')

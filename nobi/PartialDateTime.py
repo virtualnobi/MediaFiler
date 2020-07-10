@@ -48,7 +48,7 @@ class PartialDateTime(object):
         - using a string (str or unicode object) of the form "YYYY-MM-DD"
         - using year, month, day as a triple of Numbers or None
         In the latter two cases, the precision can be reduced by shorter strings or passing None. Of course, 
-        shorter periods must be unpsecified if longer periods are unspecified (i.e., day must be None if 
+        shorter periods must be unspecified if longer periods are unspecified (i.e., day must be None if 
         month is None). 
         PartialDateTime('') is a completely unspecified timestamp, 
         and PartialDateTime(2000, None, None) is specified only for the year. 

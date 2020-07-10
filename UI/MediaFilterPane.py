@@ -258,7 +258,7 @@ class UnknownTagFilter(FilterConditionWithMode):
             Logger.debug('UnknownTagfilter.updateAspect(): Processing change of filter')
             requiredUnknownTags = observable.getRequiredUnknownTags()
             prohibitedUnknownTags = observable.getProhibitedUnknownTags()
-            unknownRequired = observable.getAnyUnknownTag()
+            unknownRequired = observable.getIsUnknownTagRequired()
             if (0 < len(requiredUnknownTags)):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to require unknown tags')
                 self.tagInput.SetValue(' '.join(requiredUnknownTags))
@@ -385,15 +385,17 @@ class MediaSizeFilter(FilterCondition):
         if (aspect == 'changed'):
             Logger.debug('MediaSizeFilter.updateAspect(): Processing change of filter')
             sizeVariation = (self.collectionModel.getMaximumSize() - self.collectionModel.getMinimumSize())
-            minimumSize = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeySizeMinimum)
-            maximumSize = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeySizeMaximum)
-            minimumPercent = ((minimumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
-            maximumPercent = ((maximumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
-            self.minimumSlider.SetValue(minimumPercent)
-            self.minimumSlider.SetMax(maximumPercent)
-            self.maximumSlider.SetValue(maximumPercent)
-            self.maximumSlider.SetMin(minimumPercent)
-            Logger.debug('MediaSizeFilter.updateAspect(): Set file size to %s - %s' % (minimumPercent, maximumPercent))
+            minimumSize = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum)
+            maximumSize = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum)
+            if ((minimumSize != None)
+                and (maximumSize != None)):
+                minimumPercent = ((minimumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
+                maximumPercent = ((maximumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
+                self.minimumSlider.SetValue(minimumPercent)
+                self.minimumSlider.SetMax(maximumPercent)
+                self.maximumSlider.SetValue(maximumPercent)
+                self.maximumSlider.SetMin(minimumPercent)
+                Logger.debug('MediaSizeFilter.updateAspect(): Set file size to %s - %s' % (minimumPercent, maximumPercent))
         else:
             Logger.error('MediaSizeFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
 

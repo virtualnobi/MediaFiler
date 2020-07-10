@@ -92,7 +92,8 @@ class MediaNamePane(wx.Panel, Observer):
         # elements
         self.elementInput = wx.TextCtrl (self, style=wx.TE_PROCESS_ENTER)
         self.elementInput.Bind(wx.EVT_TEXT_ENTER, self.onRename)
-        self.GetSizer().Add(self.elementInput, proportion=1, flag=(wx.EXPAND | wx.ALIGN_CENTER_VERTICAL))
+        self.GetSizer().Add(self.elementInput, proportion=1, flag=(  # wx.EXPAND |  EXPAND is forbidden with vertical alignment now...
+                                                                   wx.ALIGN_CENTER_VERTICAL))
         # Rename button
         self.renameButton = wx.Button (self, id=GUIId.RenameMedia, label=GUIId.FunctionNames[GUIId.RenameMedia])
         self.renameButton.Bind (wx.EVT_BUTTON, self.onRename, id=GUIId.RenameMedia)

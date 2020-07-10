@@ -412,13 +412,13 @@ class MediaOrganization(object):
         return(True)
 
 
-    def isFilteredBy(self, aFilter):
-        """Return whether self is being filtered.
-        
-        MediaFilter aFilter
-        Return Boolean
-        """
-        raise NotImplementedError
+#     def isFilteredBy(self, aFilter):
+#         """Return whether self is being filtered.
+#         
+#         MediaFilter aFilter
+#         Return Boolean
+#         """
+#         raise NotImplementedError
 
 
     def getPathInfo(self, filtering=False):
@@ -526,7 +526,10 @@ class MediaOrganization(object):
             self.getContext().renameTo(**pathInfo)
         Logger.debug('MediaOrganization.deleteDouble(): Removing "%s"', otherEntry)
         otherEntry.remove()
-        self.getContext().getDuplicates().remove(otherEntry)  # duplicate has been removed
+        try:
+            self.getContext().getDuplicates().remove(otherEntry)  # remove duplicate
+        except ValueError as e:  
+            pass  # don't care if otherEntry was not found in list
 
 
     def setValuesInNamePane(self, aMediaNamePane):
@@ -617,7 +620,7 @@ class MediaOrganization(object):
         # rename subentries
         renameList = self.getRenameList(newParent, pathInfo, filtering=filtering)
         for (entry, pathInfo) in renameList:
-            entry.renameTo(**pathInfo)  # removes self when the last subentry was renamed (if not further subentries exist)
+            entry.renameTo(**pathInfo)  # removes self when the last subentry was renamed (if no further subentries exist)
         return(newParent)
 
 

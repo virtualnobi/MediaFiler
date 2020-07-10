@@ -355,17 +355,24 @@ class ImportDialog(wx.Dialog):
         # inheritance
         super(ImportDialog, self).__init__(parent, id=-1, title=title, size=size, pos=pos, style=style)
         s = wx.GridBagSizer(9, 8)
+#        labelSizerFlags = wx.SizerFlags().Right().CenterVertical()  # CenterVertical does not exist
+#        inputSizerFlags = wx.SizerFlags().Left().CenterVertical()
         # row 1 - import directory
-        vBox = wx.BoxSizer()
+        hBox = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.importDirectoryField = wx.TextCtrl(self, size=(200,0))
         self.importDirectoryField.SetValue(self.parameters.getImportDirectory())
         self.Bind(wx.EVT_TEXT, self.onDirectoryChanged, self.importDirectoryField)
-        vBox.Add(self.importDirectoryField, flag=(wx.EXPAND|wx.ALIGN_CENTER_VERTICAL))
+        hBox.Add(self.importDirectoryField, 
+                 proportion=1,
+                 flag=(wx.EXPAND |  # EXPAND cannot be combined with VERTICAL
+                       wx.ALIGN_CENTER_VERTICAL))
         self.importDirectoryBrowseButton = wx.Button(self, GUIId.BrowseImportDirectory)
         self.importDirectoryBrowseButton.SetLabel(GUIId.FunctionNames[GUIId.BrowseImportDirectory])
         self.Bind(wx.EVT_BUTTON, self.onBrowse, self.importDirectoryBrowseButton)
-        vBox.Add(self.importDirectoryBrowseButton, flag=wx.ALIGN_CENTER_VERTICAL)
-        s.Add(vBox,
+        hBox.Add(self.importDirectoryBrowseButton, 
+                 proportion=0,
+                 flag=wx.ALIGN_CENTER_VERTICAL)
+        s.Add(hBox,
               (0, 0),
               (1, 2),
               (wx.ALIGN_CENTER_VERTICAL|wx.EXPAND))
@@ -378,7 +385,7 @@ class ImportDialog(wx.Dialog):
         s.Add(wx.StaticText(self, -1, self.FieldLabelDeleteOriginal),
               (2, 0),
               (1, 1),
-              (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL))
+              (wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL))  # labelSizerFlags)  #
         checkbox = wx.CheckBox(self)
         if (self.parameters.getTestRun()):
             checkbox.SetValue(False)
@@ -390,7 +397,7 @@ class ImportDialog(wx.Dialog):
         s.Add(checkbox, 
               (2, 1),
               (1, 1),
-              (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
+              (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))  # inputSizerFlags)  # 
         # row 4 - ignoreUnknownTypes
         s.Add(wx.StaticText(self, -1, self.FieldLabelIgnoreUnknowns),
               (3, 0),

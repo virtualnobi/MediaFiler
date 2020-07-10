@@ -69,11 +69,11 @@ class MediaMap(object):
         self.mediaCollection = aMediaCollection
         self.mediaMapping = {}
         if (aProgressIndicator):
-            aProgressIndicator.beginPhase(aMediaCollection.getCollectionSize())
+            aProgressIndicator.beginPhase(aMediaCollection.getCollectionSize())  # TODO: , _('Creating media map'))
         for entry in self.mediaCollection:
-            if (aProgressIndicator):
-                aProgressIndicator.beginStep()
             if (isinstance(entry, Single)):
+                if (aProgressIndicator):
+                    aProgressIndicator.beginStep()
                 self.addSingle(entry)
         Logger.debug('MediaMap(): %s collisions with %s items' % self.getCollisions())
         MediaMap.Instances[self.mediaCollection] = self
@@ -121,19 +121,19 @@ class MediaMap(object):
         Return list of Single (empty if no duplicates exist)
         """
         key = aSingle.getKey()
+        potentialDuplicates = self.mediaMapping[key]
         if (key in self.mediaMapping):
             return([duplicate 
-                    for duplicate in self.mediaMapping[key] 
+                    for duplicate in potentialDuplicates 
                     if ((duplicate != aSingle) and (aSingle.isIdenticalContent(duplicate)))])
         else:
             return([])
 
 
-    def getDuplicate(self, fileName, fileSize):
+    def getDuplicate(self, fileName):
         """Search for an Entry with identical media content as in the specified file.
         
         String fileName contains the absolute filename of the media file to check
-        Number fileSize contains the filesize of the media file to check
         Return Single with identical media content, or None if none exists 
         """
         key = Single.getKeyFromFile(fileName)
@@ -144,9 +144,14 @@ class MediaMap(object):
             if (subclass):
                 candidateRawImage = subclass.getRawImageFromPath(self.mediaCollection, fileName)
                 for entry in candidates: 
-                    if (candidateRawImage.GetData() == entry.getRawImage().GetData()):  # TODO: verify this checks data, not object identity
-                        Logger.debug('MediaMap.getDuplicate(): Duplicate is "%s"' % entry)
-                        return(entry)
+                    try:
+                        if (candidateRawImage.GetData() == entry.getRawImage().GetData()):
+                            Logger.debug('MediaMap.getDuplicate(): Duplicate is "%s"' % entry)
+                            return(entry)
+                    except Exception as e:
+                        Logger.warning('MediaMap.getDuplicate(): Failed to read "%s"' % fileName)
+                        print('MediaMap.getDuplicate(): Failed to read "%s", error follows:\n%s' % (fileName, e))
+                        return(None)
         return(None)
     
     

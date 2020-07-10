@@ -115,11 +115,6 @@ class Single(Entry):
         
         Return String
         """
-#         # just use filesize
-#         # use prefix of file content
-#         with open(path, 'rb') as f:
-#             key = f.read(MediaMap.KeyLength)
-#         key = unicode(key, 'ascii', 'replace')
         # use hash of longer prefix of file content
         with open(path, 'rb') as f:
             prefix = f.read(Single.InputLengthForKey)
@@ -143,6 +138,7 @@ class Single(Entry):
         self.rawImageWidth = 0
         self.rawImageHeight = 0
         self.bitmap = None
+        self.key = None
         self.duplicates = []
 
 
@@ -172,7 +168,9 @@ class Single(Entry):
         
         Return String
         """
-        return(Single.getKeyFromFile(self.getPath()))
+        if (self.key == None):
+            self.key = Single.getKeyFromFile(self.getPath())
+        return(self.key)
 
     
     def getDuplicates(self):
@@ -224,9 +222,18 @@ class Single(Entry):
                            newId=GUIId.SendMail)
         if (not self.model.getConfiguration(Single.ConfigurationOptionEmailClient)):
             menu.Enable(GUIId.SendMail, enable=False)
-        menu.insertAfterId(GUIId.SendMail,
-                           newText=GUIId.FunctionNames[GUIId.ShowDuplicates],
-                           newMenu=self.constructDuplicateMenu())
+        # this is a hack because submenus cannot be disabled (newMenu= and newId= cannot be used together, and newId= is needed to refer to the submenu)
+        # so either a submenu is added, or (if the submenu has no entries) a disabled text item is added
+        duplicateMenu = self.constructDuplicateMenu()
+        if (0 == duplicateMenu.GetMenuItemCount()):
+            menu.insertAfterId(GUIId.SendMail,
+                               newText=GUIId.FunctionNames[GUIId.ShowDuplicates],
+                               newId=GUIId.ShowDuplicates) 
+            menu.Enable(GUIId.ShowDuplicates, enable=False)
+        else:
+            menu.insertAfterId(GUIId.SendMail,
+                               newText=GUIId.FunctionNames[GUIId.ShowDuplicates],
+                               newMenu=duplicateMenu)
         # structure functions
         # group functions
         # delete functions
@@ -243,12 +250,13 @@ class Single(Entry):
         """
         message = None
         Logger.debug('Single.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
+        print('Single.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath())) 
         if (menuId == GUIId.StartExternalViewer):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):
             message = self.sendMail(parentWindow)
-        elif ((menuId <= GUIId.ShowDuplicates)
-              and ((GUIId.ShowDuplicates + GUIId.MaxNumberDuplicates) <= menuId)):
+        elif ((GUIId.ShowDuplicates <= menuId)
+              and (menuId < (GUIId.ShowDuplicates + GUIId.MaxNumberDuplicates))):  # don't allow equality, since it's used for overflow indicator, see .constructDuplicateMenu()
             duplicateIndex = (menuId - GUIId.ShowDuplicates)
             duplicate = self.duplicates[duplicateIndex]
             self.getModel().setSelectedEntry(duplicate)
@@ -431,8 +439,12 @@ class Single(Entry):
         result = wx.Menu()
         duplicateId = GUIId.ShowDuplicates
         for duplicate in self.getDuplicates():
-            result.Append(duplicateId, duplicate.getOrganizationIdentifier())
+            result.Append(duplicateId, item=duplicate.getIdentifier())
+            print('Associating "%s" with %d' % (duplicate.getIdentifier(), duplicateId))
             duplicateId = (duplicateId + 1)
+            if ((GUIId.ShowDuplicates + GUIId.MaxNumberDuplicates - 1) < duplicateId):
+                result.Append(duplicateId, _('(%d duplicates in total)' % len(self.getDuplicates())))
+                break
         return(result)
 
 

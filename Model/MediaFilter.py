@@ -49,11 +49,8 @@ class MediaFilter(Observable):
     ConditionKeyDuplicate = 'Duplicate'
     ConditionKeyDateFrom = 'fromDate'  # TODO: move to OrganizsationByDate
     ConditionKeyDateTo = 'toDate'    
-    SceneConditionKey = 'scene'  # TODO: move to OrganizationByName
-    SingleConditionKey = 'Singleton'
-    ConditionKeys = [ConditionKeyDuplicate,
-                     SingleConditionKey,
-                     SceneConditionKey,
+    ConditionKeys = [ConditionKeyUnknownRequired,
+                     ConditionKeyDuplicate,
                      ConditionKeyDateFrom,
                      ConditionKeyDateTo]
 
@@ -71,11 +68,11 @@ class MediaFilter(Observable):
         self.conditionMap = {key: None for key in MediaFilter.ConditionKeys}
         self.requiredElements = set()
         self.prohibitedElements = set()
-        self.unknownElementRequired = False
+#         self.unknownElementRequired = False
         self.requiredUnknownTags = set()
         self.prohibitedUnknownTags = set()
-        self.minimumResolution = 0  # self.model.getMinimumResolution()  # too costly
-        self.maximumResolution = 1  # self.model.getMaximumResolution()
+        self.minimumResolution = None  # self.model.getMinimumResolution()  # too costly
+        self.maximumResolution = None  # self.model.getMaximumResolution()
         self.requiredMediaTypes = set()
         self.prohibitedMediaTypes = set()
         # special conditions for OrganzationByName
@@ -83,22 +80,11 @@ class MediaFilter(Observable):
 
 
 # Setters
-    def setConditions(self, active=None, 
-                      required=None, prohibited=None, 
-                      requiredUnknownTags=None, prohibitedUnknownTags=None, unknownRequired=None, 
-                      minimum=None, maximum=None,
-                      requiredMediaTypes=None, prohibitedMediaTypes=None, 
-                      duplicate=None,
-                      fromDate=None, toDate=None,
-                      single=None, scene=None):
-        """Set conditions as specified. Not passing an argument does not change conditions.
+    def setConditions(self, active=None, **kwargs):
+        """Set conditions as specified. Not passing an argument does not change conditions. Passing None for an argument clears this filter condition.
 
         Setting conditions must be done in a single call/method as it will trigger filtering of media.
         
-        TODO: Organization-specific conditions shall be captured in **kwargs and passed on to the respective organization.
-    
-        fromDate and toDate can be cleared by passing False.
-
         Boolean         active
         Set of String   required
         Set of String   prohibited
@@ -106,18 +92,40 @@ class MediaFilter(Observable):
         Number          minimum
         Number          maximum
         Boolean         duplicate filters Single which are duplicates (and containing groups)
-        Boolean         single filters all groups (for organization by name)
-        fromDate
-        toDate
+        
+        OrganizationByName:
+        Boolean         single keeps only singletons (i.e., not in named group)
+        String          scene keeps only media in named groups with this scene number
+        
+        OrganizationByDate:
+        Date            fromDate filters media before this date        
+        Date            toDate filters media after this date
         
         Dictionary kwargs 
         """
-        changed = (((active != None) and (self.active != active)) 
+        required = (kwargs['required'] if ('required' in kwargs) else None)
+        prohibited = (kwargs['prohibited'] if ('prohibited' in kwargs) else None)
+        requiredUnknownTags = (kwargs['requiredUnknownTags'] if ('requiredUnknownTags' in kwargs) else None)
+        prohibitedUnknownTags = (kwargs['prohibitedUnknownTags'] if ('prohibitedUnknownTags' in kwargs) else None)
+        unknownRequired = (kwargs['unknownRequired'] if ('unknownRequired' in kwargs) else None)
+        minimum = (kwargs['minimum'] if ('minimum' in kwargs) else None)
+        maximum = (kwargs['maximum'] if ('maximum' in kwargs) else None)
+        requiredMediaTypes = (kwargs['requiredMediaTypes'] if ('requiredMediaTypes' in kwargs) else None)
+        prohibitedMediaTypes = (kwargs['prohibitedMediaTypes'] if ('prohibitedMediaTypes' in kwargs) else None)
+        duplicate = (kwargs['duplicate'] if ('duplicate' in kwargs) else None)
+
+        fromDate = (kwargs['fromDate'] if ('fromDate' in kwargs) else None)
+        toDate = (kwargs['toDate'] if ('toDate' in kwargs) else None)
+
+        single = (kwargs['single'] if ('single' in kwargs) else None)
+        scene = (kwargs['scene'] if ('scene' in kwargs) else None)
+
+        changed = (((active != None) and (self.active != active))  # TODO: to be removed
                    or ((required != None) and (self.requiredElements != required))
                    or ((prohibited != None) and (self.prohibitedElements != prohibited))
                    or ((requiredUnknownTags != None) and (self.requiredUnknownTags != requiredUnknownTags))
                    or ((prohibitedUnknownTags != None) and (self.prohibitedUnknownTags != prohibitedUnknownTags))
-                   or ((unknownRequired != None) and (self.unknownElementRequired != unknownRequired))
+                   or ((unknownRequired != None) and (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != unknownRequired))
                    or ((minimum != None) and (self.minimumResolution != minimum))
                    or ((maximum != None) and (self.maximumResolution != maximum))
                    or ((requiredMediaTypes != None) and (self.requiredMediaTypes != requiredMediaTypes))
@@ -125,34 +133,23 @@ class MediaFilter(Observable):
                    or ((duplicate != None) and (self.conditionMap[MediaFilter.ConditionKeyDuplicate] != duplicate))
                    or (self.setDateRange(DateFrom=fromDate, DateTo=toDate))
                    or ((single != None) and (self.singleCondition != single))
-                   or (self.setScene(scene=scene))
+                   or ((scene != None) and ('scene' in self.conditionMap) and (scene != self.conditionMap['scene']))
                    )
-        kwargs = {'required': required,
-                  'prohibited': prohibited,
-                  'requiredUnknownTags': requiredUnknownTags,
-                  'prohibitedUnknownTags': prohibitedUnknownTags,
-                  'unknownRequired': unknownRequired, 
-                  'minimum': minimum,
-                  'maximum': maximum,
-                  'requiredMediaTypes': requiredMediaTypes,
-                  'prohibitedMediaTypes': prohibitedMediaTypes, 
-                  'duplicate': duplicate,
-                  'fromDate': fromDate, 
-                  'toDate': toDate,
-                  'single': single, 
-                  'scene': scene
-                  }
-        filterChanged=False
-        if (self.active != active):  # filtered elements will change if activation of filter changes
-            filterChanged = True
-        testChanged = self.setConditionsAndCalculateChange(active, **kwargs)
+        testChanged = self.setConditionsAndCalculateChange(kwargs)
+        filterChanged = False
+        if ((active != None)
+            and (self.active != active)):  # activation of filter changes
+            if (active):  # filter is turned on
+                self.active = True
+                filterChanged = (testChanged  # filtered media change if filter conditions have changed...
+                                 or (not self.isEmpty()))  # ...or filter conditions existed up to now
+            else:  # filter is turned off
+                filterChanged = (not self.isEmpty())  # filtered media change if conditions existed up to now
+                self.active = False
+        else:  # activation has not changed
+            filterChanged = (self.active and testChanged)  # filtered media change if filter is active and conditions have changed
         if (testChanged != changed): 
-            print('MediaFilter.setConditions(): Test function (%s) differs in result (%s,\n %s)' % (testChanged, changed, kwargs))
-        if (changed and self.active):  # filtered elements will change if content changes for active filter
-            filterChanged = True
-        #TODO: should become obsolete if no deviations are reported by test above
-        if (active != None):
-            self.active = active
+            print('MediaFilter.setConditions(): Test function (%s) differs in result (%s,\n %s)' % (testChanged, filterChanged, kwargs))
         if (required != None):
             self.requiredElements = required
             self.prohibitedElements.difference_update(required)
@@ -163,8 +160,8 @@ class MediaFilter(Observable):
             self.requiredUnknownTags = requiredUnknownTags
         if (prohibitedUnknownTags != None):
             self.prohibitedUnknownTags = prohibitedUnknownTags
-        if (unknownRequired != None):
-            self.unknownElementRequired = unknownRequired
+#         if (unknownRequired != None):
+#             self.unknownElementRequired = unknownRequired
         if (minimum != None):
             self.minimumResolution = minimum
         if (maximum != None):
@@ -200,16 +197,16 @@ class MediaFilter(Observable):
                            prohibited=set(), 
                            requiredUnknownTags=set(),
                            prohibitedUnknownTags=set(),
-                           unknownRequired=False, 
-                           minimum=self.model.getMinimumResolution()(), 
-                           maximum=self.model.getMaximumResolution()(),
+                           unknownRequired=False,
+                           minimum=None,  # self.model.getMinimumResolution(), 
+                           maximum=None,  # self.model.getMaximumResolution(),
                            requiredMediaTypes=set(),
                            prohibitedMediaTypes=set(),
                            duplicate=None,  # TODO: use generic keys
-                           single=None,
                            fromDate=False,
                            toDate=False,
-                           scene=False)  # TODO: move to MediaOrganization
+                           scene=None,
+                           single=None)  # TODO: move to MediaOrganization
         Logger.debug('MediaFilter.clear() finished as %s' % self)
 
 
@@ -258,26 +255,6 @@ class MediaFilter(Observable):
         return(changed)
 
 
-    def setScene(self, **kwargs):
-        """
-        TODO: Move to OrganizationByName
-        
-        Return Boolean indicating the filter has changed
-        """
-        changed = False
-        if ((MediaFilter.SceneConditionKey in kwargs)
-            and (kwargs[MediaFilter.SceneConditionKey])):
-            if (self.conditionMap[MediaFilter.SceneConditionKey] != kwargs[MediaFilter.SceneConditionKey]):
-                changed = True
-            self.conditionMap[MediaFilter.SceneConditionKey] = kwargs[MediaFilter.SceneConditionKey]
-        else:
-            if (self.conditionMap[MediaFilter.SceneConditionKey] != None):
-                changed = True
-            self.conditionMap[MediaFilter.SceneConditionKey] = None
-        return(changed)
-
-
-
 # Getters
     def __repr__(self):
         """Return a string representing self.
@@ -288,15 +265,13 @@ class MediaFilter(Observable):
         result = (('active, ' if self.active else '')
                   + (('requires %s, ' % self.requiredElements) if 0 < len(self.requiredElements) else '')
                   + (('prohibits %s, ' % self.prohibitedElements) if 0 < len(self.prohibitedElements) else '')
-                  + ('requires unknown, ' if self.unknownElementRequired else '')
+                  + (('%s unknown, ' % ('requires' if self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] else 'prohibits')) 
+                     if (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None) else '')
                   + (('larger %s, ' % self.minimumResolution) if self.minimumResolution else '')
                   + (('smaller %s, ' % self.maximumResolution) if self.maximumResolution else '')
                   + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '')
                   + duplicateString + ', '
-                  + (('from %s, ' % self.conditionMap[MediaFilter.ConditionKeyDateFrom]) if self.conditionMap[MediaFilter.ConditionKeyDateFrom] else '')  # TODO: Move to MediaOrganization
-                  + (('to %s, ' % self.conditionMap[MediaFilter.ConditionKeyDateTo]) if self.conditionMap[MediaFilter.ConditionKeyDateTo] else '')
                   + ('single, ' if self.singleCondition else '')
-                  + (('scene=%s, ' % self.conditionMap[MediaFilter.SceneConditionKey]) if (MediaFilter.SceneConditionKey in self.conditionMap) else '')
                   )
         if (result != ''):
             result = result[:-2]
@@ -330,13 +305,6 @@ class MediaFilter(Observable):
             raise ValueError('MediaFilter.getFilterValueFor(): Unknown condition key %s' % key)
 
 
-    def getScene(self):
-        try: 
-            return(self.conditionMap[MediaFilter.SceneConditionKey])
-        except: 
-            return(None)
-
-
     def getRequiredUnknownTags(self):
         return(copy.copy(self.requiredUnknownTags))
 
@@ -345,8 +313,8 @@ class MediaFilter(Observable):
         return(copy.copy(self.prohibitedUnknownTags))
 
 
-    def getAnyUnknownTag(self):
-        return(self.unknownElementRequired)
+    def getIsUnknownTagRequired(self):
+        return(self.conditionMap[MediaFilter.ConditionKeyUnknownRequired])
 
 
     def getMediaTypes(self):
@@ -366,13 +334,6 @@ class MediaFilter(Observable):
         return(self.conditionMap[MediaFilter.ConditionKeyDuplicate])
 
 
-    def getDateRange(self):
-        """TODO: Move to MediaOrganization
-        """
-#         return(self.fromDate, self.toDate)
-        return(self.conditionMap[MediaFilter.ConditionKeyDateFrom], self.conditionMap[MediaFilter.ConditionKeyDateTo])
-
-
     def getSingleton(self):
         """TODO: Move to MediaOrganization
         """
@@ -389,21 +350,21 @@ class MediaFilter(Observable):
                 or (len(self.prohibitedElements) > 0)
                 or (len(self.requiredUnknownTags) > 0)
                 or (len (self.prohibitedUnknownTags) > 0)
-                or self.unknownElementRequired
-                or (self.minimumResolution > self.model.getMinimumResolution())
-                or (self.maximumResolution < self.model.getMaximumResolution())
+                or (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None)
+                or ((self.minimumResolution != None) and (self.minimumResolution > self.model.getMinimumResolution()))
+                or ((self.maximumResolution != None) and (self.maximumResolution < self.model.getMaximumResolution()))
                 or (self.singleCondition != None)
-                or (self.conditionMap[MediaFilter.ConditionKeyDateFrom])  # TODO: Move to MediaOrganization
-                or (self.conditionMap[MediaFilter.ConditionKeyDateTo])
                 or (0 < len(self.requiredMediaTypes))
                 or (0 < len(self.prohibitedMediaTypes))
-                or (self.conditionMap[MediaFilter.ConditionKeyDuplicate] != None)
-                or (self.conditionMap[MediaFilter.SceneConditionKey])):
+                ):
                 return(False)
+            for key in self.conditionMap:
+                if (self.conditionMap[key] != None):
+                    return(False)
         return(True)
 
 
-    def isFiltered(self, entry):
+    def isFiltering(self, entry):
         """Check whether entry must be filtered. 
         
         Filtering of Group entries is defined elsewhere to depend on filter state of its children.
@@ -411,57 +372,16 @@ class MediaFilter(Observable):
         Single entry
         Returns True if entry shall be hidden, or False otherwise
         """
-        if (not self.active):
+        if (not self.active):  # shortcut for inactive filter
             return(False)
-        # keep groups which have unfiltered subentries
-        if (entry.isGroup()): 
-            raise ValueError('MediaFilter.isFiltered(): Defined only for Singles, but passed a Group!')
-            return(len(entry.getSubEntries(filtering=True)) == 0)
-        # for unknown requirement
-        if (self.unknownElementRequired
-            and (0 == len(entry.getUnknownTags()))
-            and (not entry.getOrganizer().isUnknown())):
-            Logger.debug('MediaFilter.isFiltered(): No unknown element in "%s" of "%s"' % (entry.getUnknownTags(), entry))
-            return(True)
-        # known class elements
-        if (self.filteredByElements(entry)):
-            return(True)
-        # image resolution requirements
-        if ((0 < self.minimumResolution)  # minimum resolution required 
-            and (not entry.isGroup()) 
-            and (entry.getResolution() < self.minimumResolution)):
-            return(True)
-        if ((0 < self.maximumResolution)  # maximum resolution requirement
-            and (not entry.isGroup())
-            and (self.maximumResolution < entry.getResolution())): 
-            return(True)
-        # media type
-        if (0 < len(self.requiredMediaTypes)):
-            for cls in self.requiredMediaTypes:
-                if (isinstance(entry, cls)):
-                    break  # match!
-            else:  # no match in the loop
-                return(True)
-        # duplicates
-        if (self.conditionMap[MediaFilter.ConditionKeyDuplicate] != None):
-            if (self.conditionMap[MediaFilter.ConditionKeyDuplicate]):  # Entries without duplicates shall not appear
-                if (0 == len(entry.getDuplicates())):
-                    return(True)
-            else:  # Entries with duplicates shall not appear
-                if (0 != len(entry.getDuplicates())):
-                    return(True)
-        # organization-specific conditions
-        if (entry.getOrganizer().isFilteredBy(self)):
-            return(True)
-        return(False)
+        return(self.filteredByConditions(entry))  # checking conditions, obeying inheritance of MediaFilter
 
 
 
 # Internal
-    def setConditionsAndCalculateChange(self, active, **kwargs):
+    def setConditionsAndCalculateChange(self, kwargs):
         """Set conditions according to specified parameters, and return indicator whether conditions changed
         
-        Boolean active indicates whether filter shall be active
         Return Boolean indicating whether self's conditions changed
         """
         changed = False
@@ -482,13 +402,61 @@ class MediaFilter(Observable):
                     self.conditionMap[key].difference_update(self.conditionMap[MediaFilter.ConditionKeyMediaTypesProhibited])
                 elif (key == MediaFilter.ConditionKeyMediaTypesProhibited):
                     self.conditionMap[key].difference_update(self.conditionMap[MediaFilter.ConditionKeyMediaTypesRequired])
-        if ((active != None) 
-            and (self.active != active)):
-            self.active = active
-            changed = True                
         return(changed)
 
 
+    def filteredByConditions(self, entry):
+        """Check whether entry must be filtered. 
+        
+        Filter (= self) is verified to be active.
+        Filtering of Group entries is defined elsewhere to depend on filter state of its children.
+        
+        Single entry
+        Returns True if entry shall be hidden, or False otherwise
+        """
+        if (entry.isGroup()): 
+            raise ValueError('MediaFilter.isFiltered(): Defined only for Singles, but passed a Group!')
+        # for unknown requirement
+        if (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] == True):
+            if ((0 == len(entry.getUnknownTags()))
+                and (not entry.getOrganizer().isUnknown())):
+                Logger.debug('MediaFilter.isFiltered(): No unknown element in "%s" for "%s"' % (entry.getUnknownTags(), entry))
+                return(True)
+        elif (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] == False):
+            if ((0 < len(entry.getUnknownTags()))
+                or (entry.getOrganizer().isUnknown())):
+                Logger.debug('MediaFilter.isFiltered(): Unknown element in "%s" for "%s"' % (entry.getUnknownTags(), entry))
+                return(True)
+        # media type
+        if (0 < len(self.requiredMediaTypes)):
+            for cls in self.requiredMediaTypes:
+                if (isinstance(entry, cls)):
+                    break  # match!
+            else:  # no match in the loop
+                return(True)
+        # known class elements
+        if (self.filteredByElements(entry)):
+            return(True)
+        # image resolution requirements
+        if ((self.minimumResolution != None)  # minimum resolution required 
+            and (not entry.isGroup()) 
+            and (entry.getResolution() < self.minimumResolution)):
+            return(True)
+        if ((self.maximumResolution != None)  # maximum resolution requirement
+            and (not entry.isGroup())
+            and (self.maximumResolution < entry.getResolution())): 
+            return(True)
+        # duplicates
+        if (self.conditionMap[MediaFilter.ConditionKeyDuplicate] != None):
+            if (self.conditionMap[MediaFilter.ConditionKeyDuplicate]):  # Entries without duplicates shall not appear
+                if (0 == len(entry.getDuplicates())):
+                    return(True)
+            else:  # Entries with duplicates shall not appear
+                if (0 != len(entry.getDuplicates())):
+                    return(True)
+        return(False)
+
+    
     def filteredByElements(self, entry):
         """Check whether entry shall be filtered due to class element conditions.
 

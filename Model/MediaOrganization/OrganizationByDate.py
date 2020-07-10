@@ -5,7 +5,7 @@
 
 # Imports
 ## Standard
-import datetime
+import datetime 
 import re
 import os.path
 from io import StringIO
@@ -508,7 +508,7 @@ class OrganizationByDate(MediaOrganization):
                                                size=wx.Size(80,-1), 
                                                style=wx.TE_PROCESS_ENTER,
                                                validator=TextCtrlIsIntValidator(label=_('Year'), 
-                                                                                minimum=1900, 
+                                                                                minimum=1800, 
                                                                                 maximum=2099,
                                                                                 emptyAllowed=True))
         aMediaNamePane.yearInput.Bind(wx.EVT_TEXT_ENTER, aMediaNamePane.onRename)
@@ -612,22 +612,22 @@ class OrganizationByDate(MediaOrganization):
                 or (kwargs['day'] == self.getDay())))
 
 
-    def isFilteredBy(self, aFilter):
-        """Return whether self's context is filtered. 
-        
-        Return True if context shall be hidden, False otherwise
-        """
-        fromDate = aFilter.getFilterValueFor(MediaFilter.ConditionKeyDateFrom)
-        if ((fromDate)
-            and (self.getDateTaken() <= fromDate)):
-            Logger.debug('OrganizationByDate.isFilteredBy(): %s later than "%s"' % (fromDate, self.getContext().getPath()))
-            return(True)
-        toDate = aFilter.getFilterValueFor(MediaFilter.ConditionKeyDateTo)
-        if ((toDate)
-            and (self.getDateTaken() >= toDate)):
-            Logger.debug('OrganizationByDate.isFilteredBy(): %s earlier than "%s"' % (toDate, self.getContext().getPath()))
-            return(True)
-        return(False)
+#     def isFilteredBy(self, aFilter):
+#         """Return whether self's context is filtered. 
+#         
+#         Return True if context shall be hidden, False otherwise
+#         """
+#         fromDate = aFilter.getFilterValueFor(MediaFilter.ConditionKeyDateFrom)
+#         if ((fromDate)
+#             and (self.getDateTaken() <= fromDate)):
+#             Logger.debug('OrganizationByDate.isFilteredBy(): %s later than "%s"' % (fromDate, self.getContext().getPath()))
+#             return(True)
+#         toDate = aFilter.getFilterValueFor(MediaFilter.ConditionKeyDateTo)
+#         if ((toDate)
+#             and (self.getDateTaken() >= toDate)):
+#             Logger.debug('OrganizationByDate.isFilteredBy(): %s earlier than "%s"' % (toDate, self.getContext().getPath()))
+#             return(True)
+#         return(False)
 
 
     def getPathInfo(self, filtering=False):
@@ -952,7 +952,8 @@ class OrganizationByDate(MediaOrganization):
         stepWidthField = wx.SpinCtrl(dlg, min=1, max=20, initial=2, size=(50, 20))
         fldSizer.Add(stepWidthField)
 #        fldSizer.Add(padRect)
-        dlgSizer.AddSizer(fldSizer)
+#         dlgSizer.AddSizer(fldSizer)
+        dlgSizer.Add(fldSizer)  # wxPython4
         line = wx.StaticLine(dlg,
                              size=(20,-1), 
                              style=wx.LI_HORIZONTAL)
@@ -1069,6 +1070,91 @@ class OrganizationByDate(MediaOrganization):
 
 
 
+class FilterByDate(MediaFilter):
+    """A filter for media organized by date, i.e., including date.
+    """
+
+
+# Class Constants
+    ConditionKeyDateFrom = 'fromDate'
+    ConditionKeyDateTo = 'toDate'    
+
+
+# Lifecycle 
+    def __init__ (self, model):
+        """
+        """
+        # inheritance
+        super(FilterByDate, self).__init__(model)
+        # internal state
+        self.conditionMap[FilterByDate.ConditionKeyDateFrom] = None
+        self.conditionMap[FilterByDate.ConditionKeyDateTo] = None
+
+
+# Setters
+    def clear(self):
+        """override MediaFilter.clear()"""
+        super(FilterByDate, self).clear()
+        self.setConditions(fromDate=None,  # TODO: reduce to one call to setConditions(): define allFilterConditions() to return list of criteria, and iterate over them in MediaFilter.clear()
+                           toDate=None)
+        Logger.debug('FilterByDate.clear() finished as %s' % self)
+
+
+
+    def setConditionsAndCalculateChange(self, kwargs):
+        """override MediaFilter.setConditionsAndCalculateChange()"""
+        changed = super(FilterByDate, self).setConditionsAndCalculateChange(kwargs)
+        for key in [FilterByDate.ConditionKeyDateFrom, FilterByDate.ConditionKeyDateTo]:
+            if ((key in kwargs)
+                and (kwargs[key] != self.conditionMap[key])):
+                self.conditionMap[key] = kwargs[key]
+                changed = True
+        return(changed)
+
+
+# Getters
+    def getDateFrom(self):
+        return(self.conditionMap[FilterByDate.ConditionKeyDateFrom])
+
+
+    def getDateTo(self):
+        return(self.conditionMap[FilterByDate.ConditionKeyDateTo])
+
+
+    def getDateRange(self):
+        return(self.getDateFrom(), self.getDateTo())
+
+
+    def __repr__(self):
+        """override MediaFilter.__repr__()"""
+        result = super(FilterByDate, self).__repr__()  # ends with ')'
+        conditions = ''
+        if (self.getDateFrom()):
+            conditions = ('after %s' % self.getDateFrom())
+        if (self.getDateTo()):
+            if (0 < len(conditions)):
+                conditions = (conditions + ' ')
+            conditions = conditions + ('before %s' % self.getDateTo())
+        result = (result[:-1] + conditions + ')')
+        return(result)
+
+
+    def filteredByConditions(self, entry):
+        """override MediaFilter.filteredByConditions()"""
+        dateFrom = self.getDateFrom()
+        if (dateFrom
+            and (dateFrom < entry.getOrganizer().getDateTaken())):
+            Logger.debug('FilterByDate.isFiltered(): From date %s filters %s' % (dateFrom, entry))
+            return(True)
+        dateTo = self.getDateTo()
+        if (dateTo
+            and (entry.getOrganizer().getDateTaken() < dateTo)):
+            Logger.debug('FilterByDate.isFiltered(): To date filters %s' % entry)
+            return(True)
+        return(super(FilterByDate, self).filteredByConditions(entry))
+
+
+
 class DateFilter(FilterCondition):
     """Represents a filter for a media's date.
     """
@@ -1091,14 +1177,20 @@ class DateFilter(FilterCondition):
         """
         wx.BeginBusyCursor()
         source = event.GetEventObject()
-        (fromDate, toDate) = self.filterModel.getDateRange()  # need to pass back the unchanged one again
+        (fromDate, toDate) = self.filterModel.getDateRange()  # need to pass back if unchanged
         if (source == self.fromDatePicker):
             wxDate = self.fromDatePicker.GetValue()
-            fromDate = wx._wxdate2pydate(wxDate)
+            if (wxDate.IsValid()):
+                fromDate = datetime.date.fromisoformat(wxDate.FormatISODate())
+            else:
+                fromDate = None
             Logger.debug('DateFilter.onChange(): Changing from date to %s' % fromDate)
         elif (event.GetEventObject() == self.toDatePicker):
             wxDate = self.toDatePicker.GetValue()
-            toDate = wx_calendar._wxdate2pydate(wxDate)
+            if (wxDate.IsValid()):
+                toDate = datetime.date.fromisoformat(wxDate.FormatISODate())
+            else:
+                toDate = None
             Logger.debug('DateFilter.onChange(): Changing to date to %s' % toDate)
         self.filterModel.setConditions(fromDate=fromDate, toDate=toDate)
         wx.EndBusyCursor()
@@ -1109,16 +1201,14 @@ class DateFilter(FilterCondition):
             Logger.debug('DateFilter.updateAspect(): Processing change of filter')
             (fromDate, toDate) = self.filterModel.getDateRange()
             # date range - need to map partial dates to real ones
-            if (not fromDate):
-                wxDate = wx.DateTime()
-            else:
-                wxDate = wx_calendar._pydate2wxdate(fromDate)
+            wxDate = wx.DateTime()
+            if (fromDate):
+                wx.DateTime.ParseDate(wxDate, fromDate.isoformat())
             self.fromDatePicker.SetValue(wxDate)
             Logger.debug('DateFilter.updateAspect(): Setting from date %s' % wxDate)
-            if (not toDate):
-                wxDate = wx.DateTime()
-            else:
-                wxDate = wxDate = wx_calendar._pydate2wxdate(toDate)
+            wxDate = wx.DateTime()
+            if (toDate):
+                wx.DateTime.ParseDate(wxDate, toDate.isoformat())
             self.toDatePicker.SetValue(wxDate)
             Logger.debug('DateFilter.updateAspect(): Setting to date %s' % wxDate)
         else:

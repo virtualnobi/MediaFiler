@@ -128,22 +128,22 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         if (entry.filteredFlag):
             print('MediaTreeCtrl.addSubTree(): Ignoring filtered Entry "%s"' % entry.getPath())
             return(None)
-#         item = wx.TreeItemData(entry)
         # insert tree item
         if (entry.isGroup()):  # entry is a Group, add a collapsible node for entry
             if (parent == None):  # entry is root Group
                 node = self.AddRoot("All", 
                                     self.closedFolderIcon, 
                                     self.openFolderIcon, 
-#                                     data=item)  
                                     data=entry)  # Python 3  
             else:   
                 node = self.AppendItem(parent, 
                                        entry.getIdentifier(), 
                                        self.closedFolderIcon, 
                                        self.openFolderIcon, 
-#                                        data=item)
                                        data=entry)  # Python 3
+            if (node == None):  # should not happen, report
+                raise('MediaTreePane.addSubTree(): AppendItem() returned None for (%s, %s, %s, %s)' 
+                      % (parent, entry.getIdentifier(), self.closedFolderIcon, self.openFolderIcon, entry))
             for subentry in entry.getSubEntries():
                 if (not subentry.filteredFlag):
                     self.addSubTree(subentry, node)
@@ -151,18 +151,17 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             node = self.AppendItem(parent, 
                                    entry.getIdentifier(), 
                                    self.typeIconsIndices[entry.__class__], 
-#                                    data=item)
                                    data=entry)  # Python 3
-            if (not node):  # should not happen, report
+            if (node == None):  # should not happen, report
                 raise('MediaTreePane.addSubTree(): AppendItem() returned None for (%s, %s, %s, %s)' 
-#                       % (parent, entry.getFilename(), self.typeIconsIndices[entry.__class__], item))
-                      % (parent, entry.getFilename(), self.typeIconsIndices[entry.__class__], entry))  # Python 3
+                      % (parent, entry.getIdentifier(), self.typeIconsIndices[entry.__class__], entry))
         # register as observer for entry
         entry.addObserverForAspect(self, 'name')
         entry.addObserverForAspect(self, 'remove')
         entry.addObserverForAspect(self, 'children')
         # store wx.TreeItemID in entry for reverse lookup
         entry.setTreeItemID(node)
+        # TODO: check node and its children whether their tree item is ok - this quits without useful error message
         self.SortChildren(node)
         return(node)
 
@@ -253,6 +252,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         elif (aspect == 'remove'):  # Entry deleted
             observable.removeObserver(self)
             node = observable.getTreeItemID()
+            print('MediaTreeCtrl.updateAspect(): Removing entry for tree item %s' % node)
             self.Delete(node)
             Logger.debug('MediaTreeCtrl.update(): Removed %s' % observable)
         elif (aspect == 'children'):  # Group changes its children
@@ -404,10 +404,14 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             items = [treeItem]
         else:
             items = self.getDescendants(self.GetRootItem())
+        self.expansionStateStoredFor = []
         for itemID in items:
+            self.expansionStateStoredFor.append(itemID)
 #             entry = self.GetItemData(itemID).GetData()
             entry = self.GetItemData(itemID)  # wxPython 4
-            if (entry != self.model.getRootEntry()):
+            if (entry == None):
+                print('MediaTreeCtrl.storeExpansionState(): Found tree item without data - %s' % itemID)
+            elif (entry != self.model.getRootEntry()):
                 entry.isExpanded = (entry.isGroup()
                                     and self.IsExpanded(itemID))
 
@@ -424,7 +428,13 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         for itemID in items:
 #             entry = self.GetItemData(itemID).GetData()
             entry = self.GetItemData(itemID)  # wxPython 4
-            if (entry != self.model.getRootEntry()):
+            if (entry == None):
+                print('MediaTreeCtrl.restoreExpansionState(): Found tree item without data - %s' % itemID)
+                if (itemID in self.expansionStateStoredFor):
+                    print('  expansion state was stored for this item')
+                else: 
+                    print('  no expansion state stored for this item!')
+            elif (entry != self.model.getRootEntry()):
                 if (entry.isExpanded):
                     self.Expand(itemID)
                 else:

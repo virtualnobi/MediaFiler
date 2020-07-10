@@ -198,11 +198,10 @@ class Image(Single):
 ## Inheritance - Entry
 ## Inheritance - Single
     def isIdenticalContent(self, anEntry):
-        """Check whether self and anEntry have the same content.
+        """Override Single.isIdenticalContent()
         """
         if (super(Image, self).isIdenticalContent(anEntry)):
-#             identical = (self.getRawImage().GetData() == anEntry.getRawImage().GetData())
-            identical = (self.getRawImage() == anEntry.getRawImage())  # wxPython 4 TODO: Is this checking for bitwise equality?
+            identical = (self.getRawImage().GetData() == anEntry.getRawImage().GetData())
             return(identical)
         else:
             return(False)
