@@ -465,24 +465,6 @@ class OrganizationByName(MediaOrganization):
                 or (kwargs['scene'] == self.getScene())))
 
 
-#     def isFilteredBy(self, aFilter):
-#         """Return whether self's context is filtered. 
-#         
-#         Return True if context shall be hidden, False otherwise
-#         """
-#         return(False)  # TODO: remove invocation in MediaFilter.isFiltered()
-#         if ((aFilter.singleCondition != None)
-#             and (aFilter.singleCondition != self.isSingleton())):
-#             Logger.debug('OrganizationByName.isFilteredBy(): Single condition filters %s' % self.getContext())
-#             return(True)
-# #         if ((MediaFilter.SceneConditionKey in aFilter.conditionMap)
-# #             and aFilter.conditionMap[MediaFilter.SceneConditionKey]
-# #             and (self.getScene() != (OrganizationByName.FormatScene % aFilter.conditionMap[MediaFilter.SceneConditionKey]))):
-# #             Logger.debug('OrganizationByName.isFilteredBy(): Scene condition filters %s' % self.getContext())
-# #             return(True)
-#         return(False)
-
-
     def getPathInfo(self, filtering=False):
         """override MediaOrganization.getPathInfo(self)
         """
@@ -906,13 +888,15 @@ class FilterByName(MediaFilter):
 # Getters
     def __repr__(self):
         """override MediaFilter.__repr__()"""
-        result = super(FilterByName, self).__repr__()
-        if (FilterByName.SingleConditionKey in self.conditionMap):
-            result = result + ('single, ' 
-                               if self.conditionMap[FilterByName.SingleConditionKey] else '')
-        if (FilterByName.SceneConditionKey in self.conditionMap):
-            result = result + (('scene=%s, ' % self.conditionMap[FilterByName.SceneConditionKey]) 
-                               if (self.conditionMap[FilterByName.SceneConditionKey]) else '')
+        result = super(FilterByName, self).__repr__()  # ends with ')'
+        conditions = ''
+        if (self.getSingleton() != None):
+            conditions = ('singleton %s' % ('required' if self.getSingleton() else 'prohibited'))
+        if (self.getScene() != None):
+            if (0 < len(conditions)):
+                conditions = (conditions + ', ')
+            conditions = conditions + ('scene %s' % self.getScene())
+        result = (result[:-1] + conditions + ')')
         return(result)
 
 
@@ -926,13 +910,13 @@ class FilterByName(MediaFilter):
 
     def filteredByConditions(self, entry):
         """override MediaFilter.filteredByConditions()"""
-        singleCondition = self.conditionMap[FilterByName.SingleConditionKey]
-        if (singleCondition
+        singleCondition = self.getSingleton()
+        if ((singleCondition != None)
             and (singleCondition != entry.getOrganizer().isSingleton())):
             Logger.debug('FilterByName.filteredByConditions(): Single condition filters %s' % entry)
             return(True)
-        sceneCondition = self.conditionMap[FilterByName.SceneConditionKey]
-        if (sceneCondition
+        sceneCondition = self.getScene()
+        if ((sceneCondition != None)
             and ((entry.getOrganizer().isSingleton())
                  or (sceneCondition != entry.getOrganizer().getScene()))):
             Logger.debug('FilterByName.filteredByConditions(): Scene condition filters %s' % entry)

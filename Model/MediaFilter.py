@@ -75,8 +75,7 @@ class MediaFilter(Observable):
         self.maximumResolution = None  # self.model.getMaximumResolution()
         self.requiredMediaTypes = set()
         self.prohibitedMediaTypes = set()
-        # special conditions for OrganzationByName
-        self.singleCondition = None
+
 
 
 # Setters
@@ -132,24 +131,23 @@ class MediaFilter(Observable):
                    or ((prohibitedMediaTypes != None) and (self.prohibitedMediaTypes != prohibitedMediaTypes))
                    or ((duplicate != None) and (self.conditionMap[MediaFilter.ConditionKeyDuplicate] != duplicate))
                    or (self.setDateRange(DateFrom=fromDate, DateTo=toDate))
-                   or ((single != None) and (self.singleCondition != single))
                    or ((scene != None) and ('scene' in self.conditionMap) and (scene != self.conditionMap['scene']))
                    )
-        testChanged = self.setConditionsAndCalculateChange(kwargs)
+        conditionsChanged = self.setConditionsAndCalculateChange(kwargs)
         filterChanged = False
         if ((active != None)
             and (self.active != active)):  # activation of filter changes
             if (active):  # filter is turned on
                 self.active = True
-                filterChanged = (testChanged  # filtered media change if filter conditions have changed...
+                filterChanged = (conditionsChanged  # filtered media change if filter conditions have changed...
                                  or (not self.isEmpty()))  # ...or filter conditions existed up to now
             else:  # filter is turned off
                 filterChanged = (not self.isEmpty())  # filtered media change if conditions existed up to now
                 self.active = False
         else:  # activation has not changed
-            filterChanged = (self.active and testChanged)  # filtered media change if filter is active and conditions have changed
-        if (testChanged != changed): 
-            print('MediaFilter.setConditions(): Test function (%s) differs in result (%s,\n %s)' % (testChanged, filterChanged, kwargs))
+            filterChanged = (self.active and conditionsChanged)  # filtered media change if filter is active and conditions have changed
+        if (conditionsChanged != changed): 
+            print('MediaFilter.setConditions(): Test function (%s) differs in result (%s,\n %s)' % (conditionsChanged, filterChanged, kwargs))
         if (required != None):
             self.requiredElements = required
             self.prohibitedElements.difference_update(required)
@@ -174,12 +172,7 @@ class MediaFilter(Observable):
             self.requiredMediaTypes.difference_update(prohibitedMediaTypes)
         if (duplicate != None):
             self.conditionMap[MediaFilter.ConditionKeyDuplicate] = duplicate
-        if (self.model.organizedByDate):  # TODO: move to MediaOrganization
-            pass
-        else:
-            if (single != None):
-                self.singleCondition = single
-        if (changed): 
+        if (filterChanged or conditionsChanged): 
             Logger.debug('MediaFiler.setConditions(): Throwing "changed"')
             self.changedAspect('changed')
             if (filterChanged):  # can only change the filtered media if it has changed at all
@@ -271,7 +264,6 @@ class MediaFilter(Observable):
                   + (('smaller %s, ' % self.maximumResolution) if self.maximumResolution else '')
                   + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '')
                   + duplicateString + ', '
-                  + ('single, ' if self.singleCondition else '')
                   )
         if (result != ''):
             result = result[:-2]
@@ -334,12 +326,6 @@ class MediaFilter(Observable):
         return(self.conditionMap[MediaFilter.ConditionKeyDuplicate])
 
 
-    def getSingleton(self):
-        """TODO: Move to MediaOrganization
-        """
-        return(self.singleCondition)
-
-
     def isEmpty(self):
         """Check whether the filter will reduce the set of media.
         
@@ -353,7 +339,6 @@ class MediaFilter(Observable):
                 or (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None)
                 or ((self.minimumResolution != None) and (self.minimumResolution > self.model.getMinimumResolution()))
                 or ((self.maximumResolution != None) and (self.maximumResolution < self.model.getMaximumResolution()))
-                or (self.singleCondition != None)
                 or (0 < len(self.requiredMediaTypes))
                 or (0 < len(self.prohibitedMediaTypes))
                 ):

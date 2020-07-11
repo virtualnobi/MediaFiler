@@ -612,24 +612,6 @@ class OrganizationByDate(MediaOrganization):
                 or (kwargs['day'] == self.getDay())))
 
 
-#     def isFilteredBy(self, aFilter):
-#         """Return whether self's context is filtered. 
-#         
-#         Return True if context shall be hidden, False otherwise
-#         """
-#         fromDate = aFilter.getFilterValueFor(MediaFilter.ConditionKeyDateFrom)
-#         if ((fromDate)
-#             and (self.getDateTaken() <= fromDate)):
-#             Logger.debug('OrganizationByDate.isFilteredBy(): %s later than "%s"' % (fromDate, self.getContext().getPath()))
-#             return(True)
-#         toDate = aFilter.getFilterValueFor(MediaFilter.ConditionKeyDateTo)
-#         if ((toDate)
-#             and (self.getDateTaken() >= toDate)):
-#             Logger.debug('OrganizationByDate.isFilteredBy(): %s earlier than "%s"' % (toDate, self.getContext().getPath()))
-#             return(True)
-#         return(False)
-
-
     def getPathInfo(self, filtering=False):
         """override MediaOrganization.getPathInfo(self)
         """
@@ -1129,9 +1111,9 @@ class FilterByDate(MediaFilter):
         """override MediaFilter.__repr__()"""
         result = super(FilterByDate, self).__repr__()  # ends with ')'
         conditions = ''
-        if (self.getDateFrom()):
+        if (self.getDateFrom() != None):
             conditions = ('after %s' % self.getDateFrom())
-        if (self.getDateTo()):
+        if (self.getDateTo() != None):
             if (0 < len(conditions)):
                 conditions = (conditions + ' ')
             conditions = conditions + ('before %s' % self.getDateTo())
