@@ -1062,6 +1062,16 @@ class FilterByDate(MediaFilter):
     ConditionKeyDateTo = 'toDate'    
 
 
+# Class Methods
+    @classmethod
+    def getConditionKeys(cls):
+        """overwrite MediaFilter.getConditionKeys()"""
+        keys = super(FilterByDate, cls).getConditionKeys()
+        keys.extend([FilterByDate.ConditionKeyDateFrom,
+                     FilterByDate.ConditionKeyDateTo])
+        return(keys)
+
+
 # Lifecycle 
     def __init__ (self, model):
         """
@@ -1082,9 +1092,9 @@ class FilterByDate(MediaFilter):
         Logger.debug('FilterByDate.clear() finished as %s' % self)
 
 
-
     def setConditionsAndCalculateChange(self, kwargs):
         """override MediaFilter.setConditionsAndCalculateChange()"""
+        # TODO: redundant?
         changed = super(FilterByDate, self).setConditionsAndCalculateChange(kwargs)
         for key in [FilterByDate.ConditionKeyDateFrom, FilterByDate.ConditionKeyDateTo]:
             if ((key in kwargs)
@@ -1125,12 +1135,12 @@ class FilterByDate(MediaFilter):
         """override MediaFilter.filteredByConditions()"""
         dateFrom = self.getDateFrom()
         if (dateFrom
-            and (dateFrom < entry.getOrganizer().getDateTaken())):
+            and (entry.getOrganizer().getDateTaken()) < dateFrom):
             Logger.debug('FilterByDate.isFiltered(): From date %s filters %s' % (dateFrom, entry))
             return(True)
         dateTo = self.getDateTo()
         if (dateTo
-            and (entry.getOrganizer().getDateTaken() < dateTo)):
+            and (dateTo < entry.getOrganizer().getDateTaken())):
             Logger.debug('FilterByDate.isFiltered(): To date filters %s' % entry)
             return(True)
         return(super(FilterByDate, self).filteredByConditions(entry))

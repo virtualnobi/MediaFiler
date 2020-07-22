@@ -22,7 +22,6 @@ from nobi.logging import profiledOnLogger
 from Model import GlobalConfigurationOptions
 from Model import Installer
 from Model.MediaClassHandler import MediaClassHandler 
-from Model.MediaFilter import MediaFilter
 from Model.Entry import Entry
 from Model.Single import Single
 from Model.MediaMap import MediaMap
@@ -55,7 +54,7 @@ def N_(message): return message
 
 
 # Package Variables
-Logger = logging.getLogger(__name__)  # TODO: Turn into package variable
+Logger = logging.getLogger(__name__)
 
 
 
@@ -141,8 +140,6 @@ class MediaCollection(Observable, Observer):
             dlg.Destroy()
             return(False)
         return(True)
-
-
 
 
 

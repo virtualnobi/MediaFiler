@@ -27,7 +27,6 @@ from Model.MediaNameHandler import MediaNameHandler
 from Model.MediaFilter import MediaFilter
 from Model.MediaOrganization import MediaOrganization
 from Model.Group import Group
-#from Model.Single import Single
 from UI.MediaFilterPane import MediaFilterPane, FilterConditionWithMode
 import UI  # to access UI.PackagePath
 from UI import GUIId
@@ -849,8 +848,18 @@ class FilterByName(MediaFilter):
 
 
 # Class Constants
-    SceneConditionKey = 'scene'
-    SingleConditionKey = 'single'
+    ConditionKeyScene = 'scene'
+    ConditionKeySingle = 'single'
+
+
+# Class Methods
+    @classmethod
+    def getConditionKeys(cls):
+        """overwrite MediaFilter.getConditionKeys()"""
+        keys = super(FilterByName, cls).getConditionKeys()
+        keys.extend([FilterByName.ConditionKeyScene,
+                     FilterByName.ConditionKeySingle])
+        return(keys)
 
 
 # Lifecycle 
@@ -860,13 +869,14 @@ class FilterByName(MediaFilter):
         # inheritance
         super(FilterByName, self).__init__(model)
         # internal state
-        self.conditionMap[FilterByName.SingleConditionKey] = None
-        self.conditionMap[FilterByName.SceneConditionKey] = None
+        self.conditionMap[FilterByName.ConditionKeySingle] = None
+        self.conditionMap[FilterByName.ConditionKeyScene] = None
 
 
 # Setters
     def clear(self):
         """override MediaFilter.clear()"""
+        # redundant?
         super(FilterByName, self).clear()
         self.setConditions(scene=None,  # TODO: reduce to one call to setConditions(): define allFilterConditions() to return list of criteria, and iterate over them in MediaFilter.clear()
                            single=None)
@@ -876,8 +886,9 @@ class FilterByName(MediaFilter):
 
     def setConditionsAndCalculateChange(self, kwargs):
         """override MediaFilter.setConditionsAndCalculateChange()"""
+        #TODO: redundant?
         changed = super(FilterByName, self).setConditionsAndCalculateChange(kwargs)
-        for key in [FilterByName.SingleConditionKey, FilterByName.SceneConditionKey]:
+        for key in [FilterByName.ConditionKeySingle, FilterByName.ConditionKeyScene]:
             if ((key in kwargs)
                 and (kwargs[key] != self.conditionMap[key])):
                 self.conditionMap[key] = kwargs[key]
@@ -901,11 +912,11 @@ class FilterByName(MediaFilter):
 
 
     def getScene(self):
-        return(self.conditionMap[FilterByName.SceneConditionKey])
+        return(self.conditionMap[FilterByName.ConditionKeyScene])
 
 
     def getSingleton(self):
-        return(self.conditionMap[FilterByName.SingleConditionKey])
+        return(self.conditionMap[FilterByName.ConditionKeySingle])
 
 
     def filteredByConditions(self, entry):
@@ -943,7 +954,7 @@ class SingletonFilter(FilterConditionWithMode):  # TODO: replace by BooleanFilte
             newFilterValue = True
         elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
             newFilterValue = False
-        else:  # TODO: distringuish between (1) don't change settings (for filter set and clear) and (2) ignore this attribute in media
+        else:  # FilterModeIndexIgnore 
             newFilterValue = None
         Logger.debug('SingletonFilter.onChange(): Changing mode to %s' % newFilterValue)
         self.filterModel.setConditions(single=newFilterValue)
@@ -958,7 +969,7 @@ class SingletonFilter(FilterConditionWithMode):  # TODO: replace by BooleanFilte
                 self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexRequire)
             elif (newFilterValue == False):
                 self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexExclude)
-            else:
+            else:  # None
                 self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexIgnore)
             Logger.debug('SingletonFilter.updateAspect(): Setting to %s' % newFilterValue)
         else:
@@ -1015,7 +1026,7 @@ class SceneFilter(FilterConditionWithMode):
     def updateAspect(self, observable, aspect):
         if (aspect == 'changed'):
             Logger.debug('SceneFilter.updateAspect(): Processing change of filter')
-            filterValue = self.filterModel.getFilterValueFor(FilterByName.SceneConditionKey)
+            filterValue = self.filterModel.getFilterValueFor(FilterByName.ConditionKeyScene)
             if (filterValue):
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
                 self.sceneNumber.SetValue(int(filterValue))

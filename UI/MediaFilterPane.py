@@ -150,7 +150,7 @@ class BooleanFilter(FilterConditionWithMode):
         
         wx.Window  parent
         String     label is the condition label
-        String     conditionKey is the internal key of the condition, see MediaFilter.ConditionKeys
+        String     conditionKey is the internal key of the condition, see MediaFilter.getConditionKeys()
         """
         FilterConditionWithMode.__init__(self, parent, label)
         self.conditionKey = conditionKey
@@ -233,16 +233,18 @@ class UnknownTagFilter(FilterConditionWithMode):
         else:
             raise ValueError('UnknownTagFilter.onChange(): Unknown event source!')
         if (newMode == FilterConditionWithMode.FilterModeIndexIgnore):
-            self.filterModel.setConditions(requiredUnknownTags=set(),
-                                           prohibitedUnknownTags=set(),
-                                           unknownRequired=False)
+            self.filterModel.setConditions(unknownRequired=None)
         elif (newMode == FilterConditionWithMode.FilterModeIndexRequire):
-            self.filterModel.setConditions(requiredUnknownTags=newTags,
-                                           prohibitedUnknownTags=set(),
-                                           unknownRequired=(0 == len(newTags)))
+            if (0 == len(newTags)):
+                self.filterModel.setConditions(requiredUnknownTags=set(),
+                                               prohibitedUnknownTags=set(),
+                                               unknownRequired=True)
+            else:
+                self.filterModel.setConditions(requiredUnknownTags=newTags,
+                                               prohibitedUnknownTags=set(),
+                                               unknownRequired=False)
         elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
             if (0 == len(newTags)):
-                Logger.debug('UnknownTagFilter.onChange(): NYI: Prohibiting any unknown tag.')
                 self.filterModel.setConditions(requiredUnknownTags=set(),
                                                prohibitedUnknownTags=set(),
                                                unknownRequired=False)
@@ -267,10 +269,14 @@ class UnknownTagFilter(FilterConditionWithMode):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to exclude unknown tags')
                 self.tagInput.SetValue(' '.join(prohibitedUnknownTags))
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexExclude)
-            elif (unknownRequired):
+            elif (unknownRequired == True):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to unknown required')
                 self.tagInput.SetValue('')
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
+            elif (unknownRequired == False):
+                Logger.debug('UnknownTagfilter.updateAspect(): Setting to unknown prohibited')
+                self.tagInput.SetValue('')
+                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexExclude)
             else:
                 Logger.debug('UnknownTagfilter.updateAspect(): Neither unknown tags, nor unknown required, setting to ignore')
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
