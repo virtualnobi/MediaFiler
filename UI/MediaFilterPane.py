@@ -271,7 +271,7 @@ class UnknownTagFilter(FilterConditionWithMode):
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexExclude)
             elif (unknownRequired == True):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to unknown required')
-                self.tagInput.SetValue('')
+                # self.tagInput.SetValue('')
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
             elif (unknownRequired == False):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to unknown prohibited')
@@ -622,26 +622,26 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """
         wx.BeginBusyCursor()
         kwargs = {}  # parameter set to pass to MediaFilter.setConditions()
-        self.requiredElements = set()
-        self.prohibitedElements = set()
+        requiredTags = set()
+        prohibitedTags = set()
         # for all classes, set up value filters
         for className in self.imageModel.getClassHandler().getClassNames():
             modeName = self.filterModes[className].GetStringSelection()
             valueName = self.filterValues[className].GetStringSelection()
             if (modeName == self.FilterModeNameRequire):
                 if (valueName == self.FilterElementValuesAnyString):
-                    self.requiredElements.add(className)
+                    requiredTags.add(className)
                 else:
-                    self.requiredElements.add(valueName)
+                    requiredTags.add(valueName)
             elif (modeName == self.FilterModeNameExclude):
                 if (valueName == self.FilterElementValuesAnyString):
-                    self.prohibitedElements.add(className)
+                    prohibitedTags.add(className)
                 else:
-                    self.prohibitedElements.add(valueName)
+                    prohibitedTags.add(valueName)
             else:  # must be 'ignore'
                 pass
-        kwargs['required'] = self.requiredElements
-        kwargs['prohibited'] = self.prohibitedElements
+        kwargs['required'] = requiredTags
+        kwargs['prohibited'] = prohibitedTags
         self.filterModel.setConditions(**kwargs)
         wx.EndBusyCursor()
 
@@ -705,7 +705,11 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         """Redisplay criteria from self's filter. 
         """
         requiredElements = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyRequired)
+        if (requiredElements == None):
+            requiredElements = set()
         prohibitedElements = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyProhibited)
+        if (prohibitedElements == None):
+            prohibitedElements = set()
         # tags
         for className in self.imageModel.getClassHandler().getClassNames():
             # reset to no filtering

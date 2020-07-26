@@ -279,7 +279,7 @@ class OrganizationByName(MediaOrganization):
                 else:  # already found a name, stick to it
                     #log.write(', found it a second time\n')
                     if (newName != word):
-                        log.write('File "%s" contains names "%s" (chosen) and "%s" (ignored)\n' % (path, newName, word))
+                        log.write('\nFile "%s" contains names "%s" (chosen) and "%s" (ignored)\n' % (path, newName, word))
             else:
                 #log.write(', no name :-(\n')
                 pass    
@@ -287,14 +287,14 @@ class OrganizationByName(MediaOrganization):
         if (newName == None):  # no name found, randomly select unused one
             newName = self.nameHandler.getFreeName()
             if (newName == None):  # no more free names
-                log.write('No more free names.\n')
+                log.write('\nNo more free names.\n')
             else:
-                log.write('Choosing free name "%s" for file "%s"\n' % (newName, path))
+                log.write('\nChoosing free name "%s" for file "%s"\n' % (newName, path))
         elif (self.nameHandler.isNameFree(newName)):  # old name exists and is still free
-            log.write('Found free legal name "%s" in file "%s"\n' % (newName, path))
+            log.write('\nFound free legal name "%s" in file "%s"\n' % (newName, path))
             self.nameHandler.registerNameAsUsed(newName) 
         else: # old name exists but is occupied
-            log.write('Existing name "%s" used in file "%s"\n' % (newName, path))
+            log.write('\nExisting name "%s" used in file "%s"\n' % (newName, path))
         return(newName)
 
 
@@ -884,15 +884,15 @@ class FilterByName(MediaFilter):
 
 
 
-    def setConditionsAndCalculateChange(self, kwargs):
+    def setConditionsAndCalculateChange(self, **kwargs):
         """override MediaFilter.setConditionsAndCalculateChange()"""
-        #TODO: redundant?
-        changed = super(FilterByName, self).setConditionsAndCalculateChange(kwargs)
-        for key in [FilterByName.ConditionKeySingle, FilterByName.ConditionKeyScene]:
-            if ((key in kwargs)
-                and (kwargs[key] != self.conditionMap[key])):
-                self.conditionMap[key] = kwargs[key]
-                changed = True
+        changed = super(FilterByName, self).setConditionsAndCalculateChange(**kwargs)
+#         #TODO: redundant?
+#         for key in [FilterByName.ConditionKeySingle, FilterByName.ConditionKeyScene]:
+#             if ((key in kwargs)
+#                 and (kwargs[key] != self.conditionMap[key])):
+#                 self.conditionMap[key] = kwargs[key]
+#                 changed = True
         return(changed)
 
 

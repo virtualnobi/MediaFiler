@@ -1092,15 +1092,15 @@ class FilterByDate(MediaFilter):
         Logger.debug('FilterByDate.clear() finished as %s' % self)
 
 
-    def setConditionsAndCalculateChange(self, kwargs):
+    def setConditionsAndCalculateChange(self, **kwargs):
         """override MediaFilter.setConditionsAndCalculateChange()"""
-        # TODO: redundant?
-        changed = super(FilterByDate, self).setConditionsAndCalculateChange(kwargs)
-        for key in [FilterByDate.ConditionKeyDateFrom, FilterByDate.ConditionKeyDateTo]:
-            if ((key in kwargs)
-                and (kwargs[key] != self.conditionMap[key])):
-                self.conditionMap[key] = kwargs[key]
-                changed = True
+        changed = super(FilterByDate, self).setConditionsAndCalculateChange(**kwargs)
+#         # TODO: redundant?
+#         for key in [FilterByDate.ConditionKeyDateFrom, FilterByDate.ConditionKeyDateTo]:
+#             if ((key in kwargs)
+#                 and (kwargs[key] != self.conditionMap[key])):
+#                 self.conditionMap[key] = kwargs[key]
+#                 changed = True
         return(changed)
 
 
