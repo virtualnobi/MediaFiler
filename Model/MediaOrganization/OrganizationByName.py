@@ -427,7 +427,7 @@ class OrganizationByName(MediaOrganization):
         wx.GetApp().beginPhase(len(parentGroup.getSubEntries()), (_('Renaming scene %s to %s') % (oldScene, newScene)))
         for entry in parentGroup.getSubEntries(filtering=False):
             wx.GetApp().beginStep()
-            if (entry.organizer.getScene() == oldScene):
+            if (entry.getOrganizer().getScene() == oldScene):
                 pathInfo = entry.getOrganizer().getPathInfo()
                 pathInfo['scene'] = newScene
                 pathInfo['makeUnique'] = True
@@ -874,26 +874,26 @@ class FilterByName(MediaFilter):
 
 
 # Setters
-    def clear(self):
-        """override MediaFilter.clear()"""
-        # redundant?
-        super(FilterByName, self).clear()
-        self.setConditions(scene=None,  # TODO: reduce to one call to setConditions(): define allFilterConditions() to return list of criteria, and iterate over them in MediaFilter.clear()
-                           single=None)
-        Logger.debug('FilterByName.clear() finished as %s' % self)
+#     def clear(self):
+#         """override MediaFilter.clear()"""
+#         # redundant?
+#         super(FilterByName, self).clear()
+#         self.setConditions(scene=None,  # TODO: reduce to one call to setConditions(): define allFilterConditions() to return list of criteria, and iterate over them in MediaFilter.clear()
+#                            single=None)
+#         Logger.debug('FilterByName.clear() finished as %s' % self)
 
 
 
-    def setConditionsAndCalculateChange(self, **kwargs):
-        """override MediaFilter.setConditionsAndCalculateChange()"""
-        changed = super(FilterByName, self).setConditionsAndCalculateChange(**kwargs)
-#         #TODO: redundant?
-#         for key in [FilterByName.ConditionKeySingle, FilterByName.ConditionKeyScene]:
-#             if ((key in kwargs)
-#                 and (kwargs[key] != self.conditionMap[key])):
-#                 self.conditionMap[key] = kwargs[key]
-#                 changed = True
-        return(changed)
+#     def setConditionsAndCalculateChange(self, **kwargs):
+#         """override MediaFilter.setConditionsAndCalculateChange()"""
+#         changed = super(FilterByName, self).setConditionsAndCalculateChange(**kwargs)
+# #         #TODO: redundant?
+# #         for key in [FilterByName.ConditionKeySingle, FilterByName.ConditionKeyScene]:
+# #             if ((key in kwargs)
+# #                 and (kwargs[key] != self.conditionMap[key])):
+# #                 self.conditionMap[key] = kwargs[key]
+# #                 changed = True
+#         return(changed)
 
 
 # Getters
@@ -901,32 +901,32 @@ class FilterByName(MediaFilter):
         """override MediaFilter.__repr__()"""
         result = super(FilterByName, self).__repr__()  # ends with ')'
         conditions = ''
-        if (self.getSingleton() != None):
-            conditions = ('singleton %s' % ('required' if self.getSingleton() else 'prohibited'))
-        if (self.getScene() != None):
+        if (self.getFilterValueFor(FilterByName.ConditionKeySingle) != None):
+            conditions = ('singleton %s' % ('required' if self.getFilterValueFor(FilterByName.ConditionKeySingle) else 'prohibited'))
+        if (self.getFilterValueFor(FilterByName.ConditionKeyScene) != None):
             if (0 < len(conditions)):
                 conditions = (conditions + ', ')
-            conditions = conditions + ('scene %s' % self.getScene())
+            conditions = conditions + ('scene %s' % self.getFilterValueFor(FilterByName.ConditionKeyScene))
         result = (result[:-1] + conditions + ')')
         return(result)
 
 
-    def getScene(self):
-        return(self.conditionMap[FilterByName.ConditionKeyScene])
+#     def getScene(self):
+#         return(self.conditionMap[FilterByName.ConditionKeyScene])
 
 
-    def getSingleton(self):
-        return(self.conditionMap[FilterByName.ConditionKeySingle])
+#     def getSingleton(self):
+#         return(self.conditionMap[FilterByName.ConditionKeySingle])
 
 
     def filteredByConditions(self, entry):
         """override MediaFilter.filteredByConditions()"""
-        singleCondition = self.getSingleton()
+        singleCondition = self.getFilterValueFor(FilterByName.ConditionKeySingle)
         if ((singleCondition != None)
             and (singleCondition != entry.getOrganizer().isSingleton())):
             Logger.debug('FilterByName.filteredByConditions(): Single condition filters %s' % entry)
             return(True)
-        sceneCondition = self.getScene()
+        sceneCondition = self.getFilterValueFor(FilterByName.ConditionKeyScene)
         if ((sceneCondition != None)
             and ((entry.getOrganizer().isSingleton())
                  or (sceneCondition != entry.getOrganizer().getScene()))):
@@ -964,7 +964,7 @@ class SingletonFilter(FilterConditionWithMode):  # TODO: replace by BooleanFilte
     def updateAspect(self, observable, aspect):
         if (aspect == 'changed'):
             Logger.debug('SingletonFilter.updateAspect(): Processing change of filter')
-            newFilterValue = self.filterModel.getSingleton()
+            newFilterValue = self.filterModel.getFilterValueFor(FilterByName.ConditionKeySingle)
             if (newFilterValue == True):
                 self.modeChoice.SetSelection(MediaFilterPane.FilterModeIndexRequire)
             elif (newFilterValue == False):
@@ -979,8 +979,6 @@ class SingletonFilter(FilterConditionWithMode):  # TODO: replace by BooleanFilte
 
 class SceneFilter(FilterConditionWithMode):
     """Represents a filter for scene numbers.
-    
-    #TODO: change to allow "new"
     """
     def __init__(self, parent):
         FilterConditionWithMode.__init__(self, parent, _('Scene'))
@@ -1006,7 +1004,7 @@ class SceneFilter(FilterConditionWithMode):
             Logger.debug('SceneFilter.onChange(): Ignoring newScene filter 0')
         else:
             newMode = self.modeChoice.GetSelection()
-            oldScene = self.filterModel.getScene()
+            oldScene = self.filterModel.getFilterValueFor(FilterByName.ConditionKeyScene)
             if ((newMode == FilterConditionWithMode.FilterModeIndexIgnore)
                 and (newScene != oldScene)):
                 newMode = FilterConditionWithMode.FilterModeIndexRequire

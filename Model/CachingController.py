@@ -152,7 +152,7 @@ class CachingController(object):
                          cls.cacheState(),
                          ('bitmap' if bitmap else 'raw data'), 
                          cachePriority,
-                         entry.getPath())
+                         entry)
         if (cachePriority == -1):
             if (bitmap):
                 cachePriority = 0
@@ -161,18 +161,14 @@ class CachingController(object):
         if (len(cls.CacheList) < cachePriority):
             cls.Logger.error('CachingController.deallocateMemory(): No priority %s cache found while deallocating "%s"!',
                              cachePriority,
-                             entry.getPath())
-#         elif ():
-#             cls.Logger.error('CachingController.deallocateMemory(): Lower-priority cache used while deallocating priority %s for "%s"!',
-#                              cachePriority,
-#                              entry.getPath())             
+                             entry)
         elif (entry in cls.CacheList[cachePriority]):
             cls.MemoryUsed = (cls.MemoryUsed - cls.CacheList[cachePriority][entry])
             del cls.CacheList[cachePriority][entry]
         else:
             cls.Logger.error('CachingController.deallocateMemory(): Priority %s cache contains no entry for "%s"!',
                              cachePriority,
-                             entry.getPath())
+                             entry)
 
 
 

@@ -113,7 +113,7 @@ class MediaCanvas(wx.Panel, Observer):
             self.entry = entry
             self.entry.addObserverForAspect(self, 'children')
             displayedEntries = self.entry.getEntriesForDisplay()
-            self.sizeAndDisplayEntries(displayedEntries)
+            self.sizeAndDisplayEntries(displayedEntries, progressIndicator=wx.GetApp())
         Logger.debug('MediaCanvas.setEntry() finished')
 
 
@@ -157,7 +157,7 @@ class MediaCanvas(wx.Panel, Observer):
         if (self.entry != None):
             Logger.debug('MediaCanvasPane.onResize(): ...')
             displayedEntries = self.entry.getEntriesForDisplay()
-            self.sizeAndDisplayEntries(displayedEntries)
+            self.sizeAndDisplayEntries(displayedEntries, progressIndicator=wx.GetApp())
 
 
 # Inheritance - ObserverPattern
@@ -241,8 +241,10 @@ class MediaCanvas(wx.Panel, Observer):
         Logger.debug('MediaCanvasPane.calculateGrid(): Placing %d items of %dx%d in %dx%d grid on %dx%d pane' % (numberOfImages, self.imageWidth, self.imageHeight, self.cols, self.rows, self.width, self.height))
 
 
-    def sizeAndDisplayEntries(self, entries):
+    def sizeAndDisplayEntries(self, entries, progressIndicator=None):
         """Determine size and place of entries and add them to canvas. 
+
+        ProgressIndicator
 
         psutil.cpu_count() gives too many (= logical) cores
         
@@ -267,12 +269,12 @@ class MediaCanvas(wx.Panel, Observer):
             child.Destroy()
         self.ClearBackground()
         # 
-        progressIndicator = None  # TODO: accept progressIndicator from outside, to allow embedded progress...
         if (10 < len(entries)):
-#             progressIndicator = wx.GetApp().startProcessIndicator()
-            progressIndicator = wx.GetApp()
-            progressIndicator.beginPhase(len(entries), (_('Resizing images in "%s"') % self.entry.getIdentifier()))  
-            Logger.debug('MediaCanvas.sizeAndDisplayEntries(): Progress indicator is %s' % progressIndicator)
+            if (progressIndicator):
+                progressIndicator.beginPhase(len(entries), (_('Resizing images in "%s"') % self.entry.getIdentifier()))  
+                Logger.debug('MediaCanvasPane.sizeAndDisplayEntries(): Progress indicator is %s' % progressIndicator)
+        else:  # do not indicate progress for less than 10 entries
+            progressIndicator = None  
         column = 1  # count columns when placing images in grid
         (x, y) = (0, 0)  # position of image
         self.calculateGrid(len(entries))
@@ -299,8 +301,6 @@ class MediaCanvas(wx.Panel, Observer):
             else:  
                 x = (x + self.imageWidth + self.ImagePadding)
                 column = (column + 1)
-#         if (progressIndicator):
-#             wx.GetApp().stopProcessIndicator()
         self.Update()
         self.ignoreNameChanges = False
 

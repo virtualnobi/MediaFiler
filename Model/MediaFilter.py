@@ -2,10 +2,11 @@
 
 A observable which describes filter conditions for images.
 
-#TODO: It should be possible to display and set filters without having complete data on the media. 
+It should be possible to display and set filters without having complete data on the media. 
 I.e., the media size filter must be definable independent of knowledge of all media sizes. 
 This will allow to make the media set lazy-loading, and only if the size filter is actually 
 used, all media must be read. 
+Done for min/max media resolution.
 
 The following aspects of ImageFilter are observable:
 - changed: Filter has changed (including changes to an inactive filter). Listen to this for display of the filter.
@@ -43,7 +44,7 @@ class MediaFilter(Observable):
     ConditionKeyUnknownTagsRequired = 'requiredUnknownTags'
     ConditionKeyUnknownTagsProhibited = 'prohibitedUnknownTags'
     ConditionKeyDuplicate = 'duplicate'
-    ConditionKeyResolutionMinimum = 'minimum'  # TODO: turn into mapping parameters 
+    ConditionKeyResolutionMinimum = 'minimum'
     ConditionKeyResolutionMaximum = 'maximum'
     ConditionKeyMediaTypesRequired = 'requiredMediaTypes'
     ConditionKeyMediaTypesProhibited ='prohibitedMediaTypes' 
@@ -67,7 +68,9 @@ class MediaFilter(Observable):
                 MediaFilter.ConditionKeyUnknownRequired,
                 MediaFilter.ConditionKeyUnknownTagsRequired,
                 MediaFilter.ConditionKeyUnknownTagsProhibited,
-                MediaFilter.ConditionKeyDuplicate])
+                MediaFilter.ConditionKeyDuplicate,
+                MediaFilter.ConditionKeyResolutionMinimum,
+                MediaFilter.ConditionKeyResolutionMaximum])
 
 
 
@@ -83,8 +86,6 @@ class MediaFilter(Observable):
         self.conditionMap = {key: None for key in MediaFilter.getConditionKeys()}
         self.requiredUnknownTags = set()
         self.prohibitedUnknownTags = set()
-        self.minimumResolution = None  # self.model.getMinimumResolution()  # too costly
-        self.maximumResolution = None  # self.model.getMaximumResolution()
         self.requiredMediaTypes = set()
         self.prohibitedMediaTypes = set()
 
@@ -116,8 +117,8 @@ class MediaFilter(Observable):
         """
 #         requiredUnknownTags = (kwargs['requiredUnknownTags'] if ('requiredUnknownTags' in kwargs) else None)
 #         prohibitedUnknownTags = (kwargs['prohibitedUnknownTags'] if ('prohibitedUnknownTags' in kwargs) else None)
-        minimum = (kwargs['minimum'] if ('minimum' in kwargs) else None)
-        maximum = (kwargs['maximum'] if ('maximum' in kwargs) else None)
+#         minimum = (kwargs['minimum'] if ('minimum' in kwargs) else None)
+#         maximum = (kwargs['maximum'] if ('maximum' in kwargs) else None)
         requiredMediaTypes = (kwargs['requiredMediaTypes'] if ('requiredMediaTypes' in kwargs) else None)
         prohibitedMediaTypes = (kwargs['prohibitedMediaTypes'] if ('prohibitedMediaTypes' in kwargs) else None)
 #         duplicate = (kwargs['duplicate'] if ('duplicate' in kwargs) else None)
@@ -139,10 +140,10 @@ class MediaFilter(Observable):
 #             self.requiredUnknownTags = requiredUnknownTags
 #         if (prohibitedUnknownTags != None):
 #             self.prohibitedUnknownTags = prohibitedUnknownTags
-        if (minimum != None):
-            self.minimumResolution = minimum
-        if (maximum != None):
-            self.maximumResolution = maximum
+#         if (minimum != None):
+#             self.minimumResolution = minimum
+#         if (maximum != None):
+#             self.maximumResolution = maximum
         if (requiredMediaTypes != None):
             self.requiredMediaTypes = requiredMediaTypes
             self.prohibitedMediaTypes.difference_update(requiredMediaTypes)
@@ -169,9 +170,9 @@ class MediaFilter(Observable):
                   # 'prohibited': set(), 
 #                   'requiredUnknownTags': set(),  
 #                   'prohibitedUnknownTags': set(),
-                  'minimum': None,  # self.model.getMinimumResolution(),  # TODO: use generic keys
-                  'maximum': None,  # self.model.getMaximumResolution(),
-                  'requiredMediaTypes': set(),
+#                   'minimum': None,  # self.model.getMinimumResolution(),
+#                   'maximum': None,  # self.model.getMaximumResolution(),
+                  'requiredMediaTypes': set(),  # TODO: use generic keys
                   'prohibitedMediaTypes': set()}
         for key in self.__class__.getConditionKeys():
             kwargs[key] = None
@@ -192,16 +193,16 @@ class MediaFilter(Observable):
                 if (0 == len(conditionValue)):
                     conditionValue = None
                 elif (not isinstance(conditionValue, set)):
-                    print('MediaFilter.setFilterValue(): Correcting list to set for "%s"' % (conditionValue))
+                    print('MediaFilter.setFilterValue(): Correcting value type to set for "%s"' % (conditionValue))
                     conditionValue = set(conditionValue)
-        if (conditionKey in MediaFilter.getConditionKeys()):
+        if (conditionKey in self.__class__.getConditionKeys()):
             if (self.conditionMap[conditionKey] != conditionValue):
                 self.conditionMap[conditionKey] = conditionValue
                 self.changedAspect('changed')
                 if (self.active):
                     self.changedAspect('filterChanged')
         else:
-            raise ValueError('MediaFilter.setFilterValueFor(): Unknown condition key %s' % conditionKey)
+            raise ValueError('MediaFilter.setFilterValueFor(): Unknown condition key "%s"' % conditionKey)
 
 
 
@@ -209,9 +210,6 @@ class MediaFilter(Observable):
     def __repr__(self):
         """Return a string representing self.
         """
-        duplicateString = ('duplicates' if (self.getDuplicate() == True) else
-                           'no duplicates' if (self.getDuplicate() == False) else
-                           '')
         if (self.getFilterValueFor(MediaFilter.ConditionKeyRequired)):
             requiredTags = self.getFilterValueFor(MediaFilter.ConditionKeyRequired)
         else: 
@@ -224,19 +222,24 @@ class MediaFilter(Observable):
             prohibitedTags = set()
         if (self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited)):
             prohibitedTags.update(self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited))
+        minResolution = self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum)
+        maxResolution = self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum)
+        duplicateString = ('duplicates' if (self.getDuplicate() == True) else
+                           'no duplicates' if (self.getDuplicate() == False) else
+                           '')
         result = (('active, ' if self.active else '')
                   + (('requires %s, ' % requiredTags) if (0 < len(requiredTags)) else '')
                   + (('prohibits %s, ' % prohibitedTags) if (0 < len(prohibitedTags)) else '')
-#                   + (('%s unknown, ' % ('requires' if self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] else 'prohibits')) 
-#                      if (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None) else '')
-                  + (('larger %s, ' % self.minimumResolution) if self.minimumResolution else '')
-                  + (('smaller %s, ' % self.maximumResolution) if self.maximumResolution else '')
+                  + (('%s unknown, ' % ('requires' if self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] else 'prohibits')) 
+                     if (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None) else '')
+                  + (('larger %s%%, ' % minResolution) if minResolution else '')
+                  + (('smaller %s%%, ' % maxResolution) if maxResolution else '')
                   + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '')
                   + duplicateString + ', '
                   )
         if (result != ''):
             result = result[:-2]
-        result = ('MediaFilter(' + result + ')') 
+        result = (self.__class__.__name__ + '(' + result + ')') 
         return(result)
 
 
@@ -254,11 +257,11 @@ class MediaFilter(Observable):
         String key is one of the strings in MediaFilter.getConditionKeys() 
         Return object
         """
-        if (key == MediaFilter.ConditionKeyResolutionMinimum):
-            return(self.minimumResolution)
-        elif (key == MediaFilter.ConditionKeyResolutionMaximum):
-            return(self.maximumResolution)
-        elif (key in self.conditionMap):
+#         if (key == MediaFilter.ConditionKeyResolutionMinimum):
+#             return(self.minimumResolution)
+#         elif (key == MediaFilter.ConditionKeyResolutionMaximum):
+#             return(self.maximumResolution)
+        if (key in self.conditionMap):
             result = self.conditionMap[key]
             if ((key in MediaFilter.ConditionKeysForSets)
                 and (result == None)):
@@ -313,9 +316,9 @@ class MediaFilter(Observable):
                 # or (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None)
                 # or (self.conditionMap[MediaFilter.ConditionKeyUnknownTagsRequired] != None)
                 # or (self.conditionMap[MediaFilter.ConditionKeyUnknownTagsProhibited] != None)  # or...
-                ((self.minimumResolution != None) and (self.minimumResolution > self.model.getMinimumResolution()))
-                or ((self.maximumResolution != None) and (self.maximumResolution < self.model.getMaximumResolution()))
-                or (0 < len(self.requiredMediaTypes))
+                # ((self.minimumResolution != None) and (self.minimumResolution > self.model.getMinimumResolution()))
+                # or ((self.maximumResolution != None) and (self.maximumResolution < self.model.getMaximumResolution()))  # or..
+                (0 < len(self.requiredMediaTypes))
                 or (0 < len(self.prohibitedMediaTypes))
                 ):
                 return(False)
@@ -346,7 +349,7 @@ class MediaFilter(Observable):
         Return Boolean indicating whether self's conditions changed
         """
         changed = False
-        for key in MediaFilter.getConditionKeys():
+        for key in self.__class__.getConditionKeys():
             if ((key in kwargs)
                 and (kwargs[key] != self.conditionMap[key])):
                 self.setFilterValueFor(key, kwargs[key])
@@ -412,13 +415,13 @@ class MediaFilter(Observable):
         if (self.filteredByElements(entry)):
             return(True)
         # image resolution requirements
-        if ((self.minimumResolution != None)  # minimum resolution required 
+        if ((self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum) != None)  # minimum resolution required 
             and (not entry.isGroup()) 
-            and (entry.getResolution() < self.minimumResolution)):
+            and (entry.getResolution() < self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum))):
             return(True)
-        if ((self.maximumResolution != None)  # maximum resolution requirement
+        if ((self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum) != None)  # maximum resolution requirement
             and (not entry.isGroup())
-            and (self.maximumResolution < entry.getResolution())): 
+            and (self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum) < entry.getResolution())): 
             return(True)
         # duplicates
         if (self.getDuplicate() != None):

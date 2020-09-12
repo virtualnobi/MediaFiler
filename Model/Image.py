@@ -151,11 +151,15 @@ class Image(Single):
         elif (extension == 'tif'):
             imageType = wx.BITMAP_TYPE_TIF
         if (imageType):
-            rawImage = wx.Image(path, imageType)
-            if (rawImage == None):
-                Logger.warning('Image.getRawImageFromPath(): Failed to load "%s"!' % path)
-                rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Image.PreviewImageFilename),
-                                    wx.BITMAP_TYPE_JPEG)
+            try:
+                rawImage = wx.Image(path, imageType)
+            except Exception as exc:
+                Logger.warning('Image.getRawImageFromPath(): Failed to load media "%s" due to\n%s' % (path, exc))
+                try:
+                    rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Image.PreviewImageFilename),
+                                        wx.BITMAP_TYPE_JPEG)
+                except Exception as exc:
+                    Logger.error('Image.getRawImageFromPath(): Failed to load default image due to\n%s' % exc)
                 rotation = 'N'
             if (rotation != 'N'):
                 Logger.debug('Image.getRawImageFromPath(): Rotating %s' % rotation)
@@ -228,8 +232,6 @@ class Image(Single):
         If image needs to be loaded, make sure the rotation indicator is added to self's name in tree.
         """
         Logger.debug('Image.getRawImage(%s)' % self)
-        if (self.getOrganizer().getNumber() == 81):
-            pass
         if (self.rawImage):
             return(self.rawImage)
         result = super(Image, self).getRawImage()
@@ -256,16 +258,17 @@ class Image(Single):
         return({})
         
 
-    def getResolution(self):
-        """overwrite Single.getResolution()
-        """
-        result = None
-        md = self.getMetadata()
-        if ('Exif.Photo.PixelXDimension' in md): 
-            result = int(md['Exif.Photo.PixelXDimension']) * int(md['Exif.Photo.PixelYDimension'])
-        else:
-            result = Single.getResolution(self)
-        return result
+#     def getResolution(self):
+#         """overwrite Single.getResolution()
+#         """
+#         result = None
+#         md = self.getMetadata()
+#         if ('Exif.Photo.PixelXDimension' in md): 
+#             result = int(md['Exif.Photo.PixelXDimension']) * int(md['Exif.Photo.PixelYDimension'])
+#         else:
+# #             result = Single.getResolution(self)
+#             result = super(Image, self).getResolution()
+#         return result
 
 
 #     def getSizeString(self):

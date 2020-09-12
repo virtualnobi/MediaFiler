@@ -1084,24 +1084,24 @@ class FilterByDate(MediaFilter):
 
 
 # Setters
-    def clear(self):
-        """override MediaFilter.clear()"""
-        super(FilterByDate, self).clear()
-        self.setConditions(fromDate=None,  # TODO: reduce to one call to setConditions(): define allFilterConditions() to return list of criteria, and iterate over them in MediaFilter.clear()
-                           toDate=None)
-        Logger.debug('FilterByDate.clear() finished as %s' % self)
+#     def clear(self):
+#         """override MediaFilter.clear()"""
+#         super(FilterByDate, self).clear()
+#         self.setConditions(fromDate=None,  # TODO: reduce to one call to setConditions(): define allFilterConditions() to return list of criteria, and iterate over them in MediaFilter.clear()
+#                            toDate=None)
+#         Logger.debug('FilterByDate.clear() finished as %s' % self)
 
 
-    def setConditionsAndCalculateChange(self, **kwargs):
-        """override MediaFilter.setConditionsAndCalculateChange()"""
-        changed = super(FilterByDate, self).setConditionsAndCalculateChange(**kwargs)
-#         # TODO: redundant?
-#         for key in [FilterByDate.ConditionKeyDateFrom, FilterByDate.ConditionKeyDateTo]:
-#             if ((key in kwargs)
-#                 and (kwargs[key] != self.conditionMap[key])):
-#                 self.conditionMap[key] = kwargs[key]
-#                 changed = True
-        return(changed)
+#     def setConditionsAndCalculateChange(self, **kwargs):
+#         """override MediaFilter.setConditionsAndCalculateChange()"""
+#         changed = super(FilterByDate, self).setConditionsAndCalculateChange(**kwargs)
+# #         # TODO: redundant?
+# #         for key in [FilterByDate.ConditionKeyDateFrom, FilterByDate.ConditionKeyDateTo]:
+# #             if ((key in kwargs)
+# #                 and (kwargs[key] != self.conditionMap[key])):
+# #                 self.conditionMap[key] = kwargs[key]
+# #                 changed = True
+#         return(changed)
 
 
 # Getters

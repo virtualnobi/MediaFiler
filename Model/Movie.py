@@ -219,14 +219,17 @@ class Movie(Single):
                 rawImage = wx.Image(stream, type=wx.BITMAP_TYPE_JPEG)  # wxPython 4
             except Exception as e:
                 Logger.error('Movie.getRawImageFromPath(): Cannot retrieve frame from "%s" due to error:\n%s' % (path, e))
+                rawImage = None
         else:
             Logger.warning('Movie.getRawImageFromPath(): No ffmpeg specified with option "%s"' % Movie.ConfigurationOptionFfmpeg)
+            rawImage = None
         if (rawImage == None):
-            rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
-                                wx.BITMAP_TYPE_JPEG)
-            if (rawImage == None):
-                Logger.error('Movie.getRawImageFromPath(): Cannot load default movie image for "%s"' % path)
-                raise Exception
+            try:
+                rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), Movie.PreviewImageFilename),
+                                    wx.BITMAP_TYPE_JPEG)
+            except Exception as exc:
+                Logger.error('Movie.getRawImageFromPath(): Cannot load default movie image due to\n%s' % exc)
+                rawImage = None
         return(rawImage)
 
 

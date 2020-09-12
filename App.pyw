@@ -24,6 +24,7 @@ from nobi.wx.ProgressSplashApp import ProgressSplashApp
 from Model import GlobalConfigurationOptions
 from Model import Installer
 from Model.MediaCollection import MediaCollection
+from Model.Entry import Entry
 from Model import Image  # @UnusedImport import even if "unused", otherwise it's never registered with Installer.ProductTrader
 from Model import Movie  # @UnusedImport import even if "unused", otherwise it's never registered with Installer.ProductTrader
 from Model.MediaMap import MediaMap  
@@ -615,7 +616,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                     phases = (phases + 1)
                 processIndicator.beginPhase(phases) 
                 if (importParameters.getCheckForDuplicates()):
-                    importParameters.setMediaMap(MediaMap.getMap(self, importParameters.getProcessIndicator()))
+                    importParameters.setMediaMap(MediaMap.getMap(self.model, importParameters.getProcessIndicator()))
                 try:
                     log = self.model.importImages(importParameters)
                 except WindowsError as exc: 
@@ -761,32 +762,6 @@ class MediaFiler(wx.Frame, Observer, Observable):
         if (not self.model.organizedByDate):
             namesFile = Installer.getNamesFilePath()
             self.model.runConfiguredProgram(GlobalConfigurationOptions.TextEditor, namesFile, self)
-#             editorName = self.model.getConfiguration(GlobalConfigurationOptions.TextEditor)
-#             if (editorName):
-#                 editorName = editorName.replace(GlobalConfigurationOptions.Parameter, namesFile)
-#                 commandArgs = shlex.split(editorName)
-#                 MediaFiler.Logger.debug('MediaFiler.onEditNames(): Calling %s' % commandArgs)
-# #                retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
-#                 cp = subprocess.run(commandArgs, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)  # Python 3
-#                 retCode = cp.returncode
-#                 if (retCode != 0):
-#                     MediaFiler.Logger.warn('App.onEditNames(): Call failed with return code %s!' % retCode)
-#                     dlg = wx.MessageDialog(self, 
-#                                            (_('The external program failed with return code %s.') % retCode),
-#                                            _('Warning'),
-#                                            wx.OK | wx.ICON_WARNING
-#                                            )
-#                     dlg.ShowModal()
-#                     dlg.Destroy()
-#             else:
-#                 MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
-#                 dlg = wx.MessageDialog(self, 
-#                                        (_('Define a text editor using configuration option "%s".') % GlobalConfigurationOptions.TextEditor),
-#                                        _('Warning'),
-#                                        wx.OK | wx.ICON_WARNING
-#                                        )
-#                 dlg.ShowModal()
-#                 dlg.Destroy()
         else:
             MediaFiler.Logger.error('App.onEditNames(): MediaFiler.onEditNames(): Only supported when organized by name!')
     
@@ -1011,12 +986,12 @@ class MediaFilerApp(ProgressSplashApp):
         logHandler.setFormatter(logFormatter)
         logging.getLogger().addHandler(logHandler)
         logging.getLogger().setLevel(logging.DEBUG)
-        MediaFiler.Logger.debug('MediaFiler.__main__(): Temporarily logging to "%s"' % fname)
+        MediaFiler.Logger.debug('MediaFilerApp.OnInit(): Temporarily logging to "%s"' % fname)
         self.frame = MediaFiler(None, title=GUIId.AppTitle)
         self.SetTopWindow(self.frame)
         if (Installer.ensureInstallationOk(self.frame)):
             fname = (Installer.getLogFilePath() % 1)
-            MediaFiler.Logger.debug('MediaFiler.__main__(): Now permanently logging to "%s"' % fname)
+            MediaFiler.Logger.debug('MediaFilerApp.OnInit(): Now permanently logging to "%s"' % fname)
             logging.getLogger().removeHandler(logHandler)
             logHandler.close()
             logHandler = logging.FileHandler(fname, mode='w')
@@ -1024,11 +999,13 @@ class MediaFilerApp(ProgressSplashApp):
             logging.getLogger().addHandler(logHandler)
             self.frame.setModel(Installer.getMediaPath())        
             self.frame.setLoggedModules()  # TODO: move App itself
-            MediaFiler.Logger.debug('MediaFiler.__main__(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
+            MediaFiler.Logger.debug('MediaFilerApp.OnInit(): App started on %s for "%s"' % (time.strftime('%d.%m.%Y'), Installer.getMediaPath()))
             self.finish(_('Ready'))
             if (self.frame.model.getConfiguration(GlobalConfigurationOptions.MaximizeOnStart)):
-                MediaFiler.Logger.debug('MediaFiler.__main__(): Maximizing window')
+                MediaFiler.Logger.debug('MediaFilerApp.OnInit(): Maximizing window')
                 self.frame.Maximize(True)
+            Entry.CurrentViewportSize = self.frame.GetSize()
+            MediaFiler.Logger.debug('MediaFilerApp.OnInit(): Max viewport size is %s' % Entry.CurrentViewportSize)
             self.duringOnInit = False
         else:
             self.Exit()

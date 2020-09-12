@@ -322,6 +322,16 @@ class Single(Entry):
         except:  # loading failed or file is corrupted
             self.rawImage = wx.Image(os.path.join(Installer.getLibraryPath(), self.__class__.PreviewImageFilename),
                                      wx.BITMAP_TYPE_JPEG)
+        if (Entry.CurrentViewportSize.x > 0):
+            maxWidth = min(Entry.CurrentViewportSize.x, self.rawImageWidth)
+            maxHeight = min(Entry.CurrentViewportSize.y, self.rawImageHeight)
+            if ((self.rawImageWidth > maxWidth)
+                or (self.rawImageHeight > maxHeight)):
+                (newWidth, newHeight) = self.getSizeFittedTo(maxWidth, maxHeight)
+                self.rawImage.Rescale(newWidth, newHeight)
+#                 self.rawImageHeight = self.rawImage.GetHeight()
+#                 self.rawImageWidth = self.rawImage.GetWidth()
+                print('Single.getRawImage(): Rescaled to %sx%s for "%s"' % (newWidth, newHeight, self))
         CachingController.allocateMemory(self, 
                                          self.getRawDataMemoryUsage(), 
                                          cachePriority=Entry.CachingLevelRawData)
@@ -348,7 +358,7 @@ class Single(Entry):
         Return Number
         """
         if (self.rawImage != None):
-            return(self.getRawImage().GetWidth() * self.getRawImage().GetHeight() * 3)  # taken from wx.Image.setData() documentation
+            return(self.rawImage.GetWidth() * self.rawImage.GetHeight() * 3)  # taken from wx.Image.setData() documentation
         else:
             return(0)
 

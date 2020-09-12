@@ -357,66 +357,85 @@ class MediaCollection(Observable, Observer):
             return(self.selectedEntry)
 
 
-    def getMinimumSize(self):
-        """Return the smallest image size in bytes.
-        """
-        if (self.cachedMinimumSize == None):
-            for entry in self:  # get size of some entry
-                self.cachedMinimumSize = entry.getFileSize()
-                self.cachedMaximumSize = self.cachedMinimumSize
-                break
-            for entry in self:
-                fsize = entry.getFileSize()
-                if (fsize < self.cachedMinimumSize):  # smaller one found
-                    self.cachedMinimumSize = fsize
-                if (self.cachedMaximumSize < fsize):  # bigger one found
-                    self.cachedMaximumSize = fsize
-        return(self.cachedMinimumSize)
+#     def getMinimumSize(self):
+#         """Return the smallest image size in bytes.
+#         """
+#         if (self.cachedMinimumSize == None):
+#             for entry in self:  # get size of some entry
+#                 self.cachedMinimumSize = entry.getFileSize()
+#                 self.cachedMaximumSize = self.cachedMinimumSize
+#                 break
+#             for entry in self:
+#                 fsize = entry.getFileSize()
+#                 if (fsize < self.cachedMinimumSize):  # smaller one found
+#                     self.cachedMinimumSize = fsize
+#                 if (self.cachedMaximumSize < fsize):  # bigger one found
+#                     self.cachedMaximumSize = fsize
+#         return(self.cachedMinimumSize)
 
 
-    def getMaximumSize(self):
-        """Return the biggest image size in bytes.
-        """
-        if (self.cachedMaximumSize == None):
-            for entry in self:  # get size of some entry
-                self.cachedMinimumSize = entry.getFileSize()
-                self.cachedMaximumSize = self.cachedMinimumSize
-                break
-            for entry in self:
-                fsize = entry.getFileSize()
-                if (fsize < self.cachedMinimumSize):  # smaller one found
-                    self.cachedMinimumSize = fsize
-                elif (self.cachedMaximumSize < fsize):  # bigger one found
-                    self.cachedMaximumSize = fsize
-        return (self.cachedMaximumSize)
+#     def getMaximumSize(self):
+#         """Return the biggest image size in bytes.
+#         """
+#         if (self.cachedMaximumSize == None):
+#             for entry in self:  # get size of some entry
+#                 self.cachedMinimumSize = entry.getFileSize()
+#                 self.cachedMaximumSize = self.cachedMinimumSize
+#                 break
+#             for entry in self:
+#                 fsize = entry.getFileSize()
+#                 if (fsize < self.cachedMinimumSize):  # smaller one found
+#                     self.cachedMinimumSize = fsize
+#                 elif (self.cachedMaximumSize < fsize):  # bigger one found
+#                     self.cachedMaximumSize = fsize
+#         return (self.cachedMaximumSize)
 
 
-    def getMinimumResolution(self):
+    def getMinimumResolution(self, progressIndicator=None):
         """Return the smallest image resolution.
+
+        If minimum resolution is not cached, assume maximum resolution is unknown as well. 
+        Calculate both in this case. 
+        
+        ProgressIndicator progressIndicator displays progress to the user
+        Return Number
         """
         if (self.cachedMinimumResolution == None):
-            for entry in self:  # get resolution of some entry
-                self.cachedMinimumResolution = entry.getResolution()
-                self.cachedMaximumResolution = self.cachedMinimumResolution
-                break
-            for entry in self:
-                resolution = entry.getResolution()
-                if (resolution < self.cachedMinimumResolution):  # smaller one found
-                    self.cachedMinimumResolution = resolution
-                elif (self.cachedMaximumResolution < resolution):  # larger one found
-                    self.cachedMaximumResolution = resolution
+            self.getMaximumResolution(progressIndicator)
+#             for entry in self:  # get resolution of some entry
+#                 self.cachedMinimumResolution = entry.getResolution()
+#                 self.cachedMaximumResolution = self.cachedMinimumResolution
+#                 break
+#             for entry in self:
+#                 resolution = entry.getResolution()
+#                 if (resolution < self.cachedMinimumResolution):  # smaller one found
+#                     self.cachedMinimumResolution = resolution
+#                 elif (self.cachedMaximumResolution < resolution):  # larger one found
+#                     self.cachedMaximumResolution = resolution
         return(self.cachedMinimumResolution)
 
 
-    def getMaximumResolution(self):
+    def getMaximumResolution(self, progressIndicator=None):
         """Return the biggest image resolution.
+        
+        ProgressIndicator progressIndicator displays progress to the user
+        Return Number 
         """
         if (self.cachedMaximumResolution == None):
             for entry in self:  # get resolution of some entry
                 self.cachedMinimumResolution = entry.getResolution()
                 self.cachedMaximumResolution = self.cachedMinimumResolution
                 break
+            counter = 0
+            print('MediaCollection.getMaximumResolution(): Finding max resolution')
+            if (progressIndicator):
+                progressIndicator.beginPhase(self.getCollectionSize(), _('Calculating media resolutions'))
             for entry in self:
+                if (progressIndicator):
+                    progressIndicator.beginStep()
+                counter = (counter + 1)
+                if ((counter % 100) == 0):
+                    print('  Reading resolution of %sth entry "%s"' % (counter, entry))
                 resolution = entry.getResolution()
                 if (resolution < self.cachedMinimumResolution):  # smaller one found
                     self.cachedMinimumResolution = resolution
@@ -670,7 +689,7 @@ class MediaCollection(Observable, Observer):
             importParameters.logString(_('Import directory "%s" is empty' % importParameters.getImportDirectory()))
             return(importParameters.getLog())
         if (importParameters.getCheckForDuplicates()):
-#             importParameters.setMediaMap(MediaMap.getMap(self, importParameters.getProcessIndicator()))
+            importParameters.setMediaMap(MediaMap.getMap(self, importParameters.getProcessIndicator()))
             if (importParameters.getMediaMap() == None):
                 importParameters.setCheckForDuplicates(False)
                 importParameters.logString('No media map created; will not check for duplicates.')
@@ -937,7 +956,7 @@ class MediaCollection(Observable, Observer):
 #             if (self.cachedMaximumResolution < resolution):
 #                 self.cachedMaximumResolution = resolution
             if (self.organizedByDate):
-                entryDate = entry.organizer.dateTaken
+                entryDate = entry.getOrganizer().dateTaken
                 if (entryDate):
                     if ((not self.cachedEarliestDate)
                         or (entryDate.getEarliestDateTime() < self.cachedEarliestDate)):

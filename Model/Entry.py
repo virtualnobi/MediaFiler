@@ -54,6 +54,8 @@ class Entry(Observable):
     CachingLevelThumbnailBitmap = 0
     CachingLevelFullsizeBitmap = 1
     CachingLevelRawData = 2
+    # For currently running process, what is the maximum image (width x height) to be cached as raw data 
+    CurrentViewportSize = wx.Size(0, 0)
 
 
 
@@ -109,8 +111,8 @@ class Entry(Observable):
 
 
     @classmethod
-    def getMetadataFromPath(cls, path):
-        """Return an empty metadata dictionary. 
+    def getMetadataFromPath(cls, path):  # @UnusedVariable
+        """Return an empty metadata dictionary for media at path.
         """
         return({})
 

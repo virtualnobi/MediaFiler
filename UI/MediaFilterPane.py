@@ -369,39 +369,41 @@ class MediaSizeFilter(FilterCondition):
     def onChange(self, event):
         wx.BeginBusyCursor()
         source = event.GetEventObject()
-        sizeVariation = (self.collectionModel.getMaximumSize() - self.collectionModel.getMinimumSize())
-        Logger.debug('MediaSizeFilter.onChange(): File size changed to %s' % source.GetValue())
+#        variation = (self.collectionModel.getMaximumResolution() - self.collectionModel.getMinimumResolution())
+        Logger.debug('MediaSizeFilter.onChange(): Media resolution changed to %s' % source.GetValue())
         if (source == self.minimumSlider):
             self.minimumPercent = source.GetValue()
             self.maximumSlider.SetMin(source.GetValue())
-            minimumSize = (self.collectionModel.getMinimumSize() + (self.minimumPercent / 100.0 * sizeVariation))
-            Logger.debug('MediaSizeFilter.onChange(): File size minimum set to %s from %s%%' % (minimumSize, self.minimumPercent))
-            self.filterModel.setConditions(minimum=minimumSize)
+#             minimumResolution = (self.collectionModel.getMinimumResolution() + (self.minimumPercent / 100.0 * variation))
+#             Logger.debug('MediaSizeFilter.onChange(): Minimum resolution set to %s from %s%%' % (minimumResolution, self.minimumPercent))
+#             self.filterModel.setConditions(minimum=minimumResolution)
+            Logger.debug('MediaSizeFilter.onChange(): Minimum resolution set to %s%%' % self.minimumPercent)
+            self.filterModel.setConditions(minimum=self.minimumPercent)
         else:
             self.maximumPercent = source.GetValue()
             self.minimumSlider.SetMax(self.maximumPercent)
-            maximumSize = (self.collectionModel.getMinimumSize() + (self.maximumPercent / 100.0 * sizeVariation))
-            Logger.debug('MediaSizeFilter.onChange(): File size maximum set to %s from %s%%' % (maximumSize, self.maximumPercent))
-            self.filterModel.setConditions(maximum=maximumSize)
+#             maximumResolution = (self.collectionModel.getMinimumResolution() + (self.maximumPercent / 100.0 * variation))
+#             Logger.debug('MediaSizeFilter.onChange(): Maximum resolution set to %s from %s%%' % (maximumResolution, self.maximumPercent))
+#             self.filterModel.setConditions(maximum=maximumResolution)
+            Logger.debug('MediaSizeFilter.onChange(): Maximum resolution set to %s%%' % self.maximumPercent)
+            self.filterModel.setConditions(maximum=self.maximumPercent)
         # self.minimumSlider.GetParent().GetSizer().Layout()  # TODO: Does not relayout. How to do? 
         wx.EndBusyCursor()
 
 
     def updateAspect(self, observable, aspect):
-        if (aspect == 'changed'):
-            Logger.debug('MediaSizeFilter.updateAspect(): Processing change of filter')
-            sizeVariation = (self.collectionModel.getMaximumSize() - self.collectionModel.getMinimumSize())
-            minimumSize = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum)
-            maximumSize = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum)
-            if ((minimumSize != None)
-                and (maximumSize != None)):
-                minimumPercent = ((minimumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
-                maximumPercent = ((maximumSize - self.collectionModel.getMinimumSize()) / sizeVariation * 100)
-                self.minimumSlider.SetValue(minimumPercent)
-                self.minimumSlider.SetMax(maximumPercent)
-                self.maximumSlider.SetValue(maximumPercent)
-                self.maximumSlider.SetMin(minimumPercent)
-                Logger.debug('MediaSizeFilter.updateAspect(): Set file size to %s - %s' % (minimumPercent, maximumPercent))
+        if ((aspect == 'changed')
+            and (observable == self.filterModel)):
+            if (self.filterModel.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum) != None):
+                self.minimumPercent = self.filterModel.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum)
+                self.minimumSlider.SetValue(self.minimumPercent)
+                self.maximumSlider.SetMin(self.minimumPercent)
+                Logger.debug('MediaSizeFilter.updateAspect(): Set minimum percent to %s' % self.minimumPercent)
+            if (self.filterModel.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum) != None):
+                self.maximumPercent = self.filterModel.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum)
+                self.maximumSlider.SetValue(self.maximumPercent)
+                self.minimumSlider.SetMax(self.maximumPercent)
+                Logger.debug('MediaSizeFilter.updateAspect(): Set maximum percent to %s' % self.maximumPercent)
         else:
             Logger.error('MediaSizeFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
 

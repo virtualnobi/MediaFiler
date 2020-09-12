@@ -161,7 +161,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         entry.addObserverForAspect(self, 'children')
         # store wx.TreeItemID in entry for reverse lookup
         entry.setTreeItemID(node)
-        # TODO: check node and its children whether their tree item is ok - this quits without useful error message
+        self.verifySubtreeOk(entry) # check subtree whether their TreeItemIds are ok - to find error source
         self.SortChildren(node)
         return(node)
 
@@ -395,6 +395,16 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
 
 
 # Internal
+    def verifySubtreeOk(self, entry):
+        """Check entry and (transitive) children whether their TreeItemId are IsOk(), and report if not so.
+        """
+        if (not entry.getTreeItemID().IsOk()):
+            print('MediaTreePane.verifySubtreeOk(): Failed "%s"' % entry)
+        if (entry.isGroup()):
+            for subEntry in entry.getSubEntries(filtering=False):
+                self.verifySubtreeOk(subEntry)
+
+
     def storeExpansionState(self, treeItem=None):
         """Store the expansion state of all Groups, to restore after filtering.
 

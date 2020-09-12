@@ -69,7 +69,7 @@ class MediaMap(object):
         self.mediaCollection = aMediaCollection
         self.mediaMapping = {}
         if (aProgressIndicator):
-            aProgressIndicator.beginPhase(aMediaCollection.getCollectionSize())  # TODO: , _('Creating media map'))
+            aProgressIndicator.beginPhase(aMediaCollection.getCollectionSize())  # TODO: add translatable message
         for entry in self.mediaCollection:
             if (isinstance(entry, Single)):
                 if (aProgressIndicator):
