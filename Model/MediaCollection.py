@@ -357,40 +357,6 @@ class MediaCollection(Observable, Observer):
             return(self.selectedEntry)
 
 
-#     def getMinimumSize(self):
-#         """Return the smallest image size in bytes.
-#         """
-#         if (self.cachedMinimumSize == None):
-#             for entry in self:  # get size of some entry
-#                 self.cachedMinimumSize = entry.getFileSize()
-#                 self.cachedMaximumSize = self.cachedMinimumSize
-#                 break
-#             for entry in self:
-#                 fsize = entry.getFileSize()
-#                 if (fsize < self.cachedMinimumSize):  # smaller one found
-#                     self.cachedMinimumSize = fsize
-#                 if (self.cachedMaximumSize < fsize):  # bigger one found
-#                     self.cachedMaximumSize = fsize
-#         return(self.cachedMinimumSize)
-
-
-#     def getMaximumSize(self):
-#         """Return the biggest image size in bytes.
-#         """
-#         if (self.cachedMaximumSize == None):
-#             for entry in self:  # get size of some entry
-#                 self.cachedMinimumSize = entry.getFileSize()
-#                 self.cachedMaximumSize = self.cachedMinimumSize
-#                 break
-#             for entry in self:
-#                 fsize = entry.getFileSize()
-#                 if (fsize < self.cachedMinimumSize):  # smaller one found
-#                     self.cachedMinimumSize = fsize
-#                 elif (self.cachedMaximumSize < fsize):  # bigger one found
-#                     self.cachedMaximumSize = fsize
-#         return (self.cachedMaximumSize)
-
-
     def getMinimumResolution(self, progressIndicator=None):
         """Return the smallest image resolution.
 
@@ -402,16 +368,6 @@ class MediaCollection(Observable, Observer):
         """
         if (self.cachedMinimumResolution == None):
             self.getMaximumResolution(progressIndicator)
-#             for entry in self:  # get resolution of some entry
-#                 self.cachedMinimumResolution = entry.getResolution()
-#                 self.cachedMaximumResolution = self.cachedMinimumResolution
-#                 break
-#             for entry in self:
-#                 resolution = entry.getResolution()
-#                 if (resolution < self.cachedMinimumResolution):  # smaller one found
-#                     self.cachedMinimumResolution = resolution
-#                 elif (self.cachedMaximumResolution < resolution):  # larger one found
-#                     self.cachedMaximumResolution = resolution
         return(self.cachedMinimumResolution)
 
 
@@ -500,7 +456,6 @@ class MediaCollection(Observable, Observer):
         if (self.configuration.has_section(GUIId.AppTitle)
             and self.configuration.has_option(GUIId.AppTitle, option)):
             return(self.configuration.get(GUIId.AppTitle, option))
-#             return(unicode(self.configuration.get(GUIId.AppTitle, option)))
         else: 
             return(None)
 
@@ -619,9 +574,6 @@ class MediaCollection(Observable, Observer):
                 duplicates = mmap.getDuplicates(entry)
                 entry.setDuplicates(duplicates)
                 if (0 < len(duplicates)):
-#                     print('MediaCollection.findDuplicates(): %s duplicates of %s found:' % (len(duplicates), entry.getPath())) 
-#                     for dupEntry in duplicates:
-#                         print('\t%s' % dupEntry.getPath())
                     Logger.debug('MediaCollection.findDuplicates(): %s duplicates found for "%s"' % (len(duplicates), entry.getPath()))
         return(mmap.getCollisions())
 
@@ -746,7 +698,6 @@ class MediaCollection(Observable, Observer):
             importParameters.getProcessIndicator().beginPhase(len(allFiles), (statusText % importParameters.getImportDirectory()))
         for oldName in allFiles:
             importParameters.getProcessIndicator().beginStep()
-#            importParameters.logString('')
             sourcePath = os.path.join(sourceDir, oldName)
             newTargetPathInfo = self.organizationStrategy.pathInfoForImport(importParameters,
                                                                             sourcePath,
@@ -835,16 +786,15 @@ class MediaCollection(Observable, Observer):
 
     def deriveTags(self, parameters, oldPath, baseLength, illegalTags):
         """Create a set containing all tags of oldPath, including ones required by tag definition.
-         
+        
         Importing.ImportParameterObject parameters
         String oldPath is the absolute path of the file (needed to include into illegalElements)
         Integer baseLength is the length of the prefix of oldPath which shall not be considered.
         Dictionary illegalTags associates unknown tag Strings with path names of files where they occur
-        Return Set of String
+        Return Set of String containing known tags
         """
-        # reduce to relevant part of pathname
-        fixedPath = self.fixPathWhileImporting(parameters, oldPath[baseLength:])  # TODO: do once at beginning of import
-        # find possible tags
+        # reduce to relevant part of pathname 
+        fixedPath = self.fixPathWhileImporting(parameters, oldPath[baseLength:])
         elements = set()
         words = self.getWordsInPathName(fixedPath)
         for word in words: 
@@ -942,20 +892,13 @@ class MediaCollection(Observable, Observer):
         for entry in self:
             self.cachedCollectionSize = (self.cachedCollectionSize + 1)
 # TODO: way to time-consuming (reads all images which have no width/height metadata)
-#             fsize = entry.getFileSize()
-#             if ((fsize < self.cachedMinimumSize)  # smaller one found
-#                 or (self.cachedMinimumSize == 0)):  # no image found so far
-#                 self.cachedMinimumSize = fsize
-#             if (self.cachedMaximumSize < fsize):  # bigger one found
-#                 self.cachedMaximumSize = fsize
-# TODO: way to time-consuming (reads all images which have no width/height metadata)
 #             resolution = entry.getResolution() 
 #             if ((resolution < self.cachedMinimumResolution)
 #                 or (self.cachedMinimumResolution == 0)):
 #                 self.cachedMinimumResolution = resolution
 #             if (self.cachedMaximumResolution < resolution):
 #                 self.cachedMaximumResolution = resolution
-            if (self.organizedByDate):
+            if (self.organizedByDate):  # TODO: move to MediaOrganization
                 entryDate = entry.getOrganizer().dateTaken
                 if (entryDate):
                     if ((not self.cachedEarliestDate)

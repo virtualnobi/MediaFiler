@@ -910,12 +910,9 @@ class OrganizationByDate(MediaOrganization):
     def onReorderByTime(self, parentWindow):
         """
         """
-#         padRect = wx.Size(12, 12)
         dlg = wx.Dialog(parentWindow, wx.ID_ANY, _('Reorder by Time Taken'))
         dlgSizer = wx.BoxSizer(orient=wx.VERTICAL)
-#         dlgSizer.Add(padRect)
-#         fldSizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-#         fldSizer.Add(padRect)
+        # selection of how to handle media without time taken
         rb = wx.RadioBox(dlg,
                          label=_('Media without capture time placed'), 
                          choices=[OrganizationByDate.ReorderLabelTop,
@@ -924,18 +921,14 @@ class OrganizationByDate(MediaOrganization):
                          majorDimension=1, 
                          style=(wx.RA_SPECIFY_COLS))
         rb.SetSelection(OrganizationByDate.ReorderSelectFollow)
-#         fldSizer.Add(padRect)
-#         dlgSizer.Add(fldSizer, border=5)
         dlgSizer.Add(rb, border=5)
+        # renumbering step width
         fldSizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-#        fldSizer.Add(padRect)
         fldSizer.Add(wx.StaticText(dlg, label=_('Step Width for Renumbering:')))
-#        fldSizer.Add(padRect)
-        stepWidthField = wx.SpinCtrl(dlg, min=1, max=20, initial=2, size=(50, 20))
+        stepWidthField = wx.SpinCtrl(dlg, min=1, max=20, initial=1, size=(50, 20))
         fldSizer.Add(stepWidthField)
-#        fldSizer.Add(padRect)
-#         dlgSizer.AddSizer(fldSizer)
-        dlgSizer.Add(fldSizer)  # wxPython4
+        dlgSizer.Add(fldSizer)
+        # final buttons
         line = wx.StaticLine(dlg,
                              size=(20,-1), 
                              style=wx.LI_HORIZONTAL)
@@ -949,6 +942,7 @@ class OrganizationByDate(MediaOrganization):
         btnSizer.Realize()
         dlgSizer.Add(btnSizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         dlg.SetSizerAndFit(dlgSizer)
+        # show dialog
         if (dlg.ShowModal() == wx.ID_OK):
             self.reorderByTime(rb.GetSelection(), stepWidthField.GetValue())
         dlg.Destroy()

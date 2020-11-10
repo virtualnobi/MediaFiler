@@ -388,22 +388,24 @@ class MediaFilter(Observable):
         requiredUnknownTags = self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsRequired)
         prohibitedUnknownTags = self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited)
         unknownTags = entry.getUnknownTags()
-        if (0 < len(requiredUnknownTags)):
-            if (not requiredUnknownTags.issubset(unknownTags)): 
-                return(True)
-        elif (0 < len(prohibitedUnknownTags)):
-            if (not prohibitedUnknownTags.isdisjoint(unknownTags)):
-                return(True)
-        elif (requiredUnknown == True):
-            if ((0 == len(unknownTags))
-                and (not entry.getOrganizer().isUnknown())):
-#                Logger.debug('MediaFilter.isFiltered(): Filtered "%s" - no unknown element in "%s"' % (entry, entry.getUnknownTags()))
-                return(True)
+        if (requiredUnknown == True): 
+            if (0 == len(requiredUnknownTags)):  # ensure existence of unknown tags
+                if (0 == len(unknownTags)):
+                    Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - no unknown tag' % (entry))
+                    return(True)
+            else:  # requiredUnknownTags given, check their existence
+                if (not requiredUnknownTags.issubset(unknownTags)): 
+                    Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - unknown tags "%s" missing' % (entry, unknownTags))
+                    return(True)
         elif (requiredUnknown == False):
-            if ((0 < len(unknownTags))
-                or (entry.getOrganizer().isUnknown())):
-#                Logger.debug('MediaFilter.isFiltered(): Filtered "%s" - unknown element in "%s"' % (entry, entry.getUnknownTags()))
-                return(True)
+            if (0 == len(prohibitedUnknownTags)):  # ensure no unknown tags exist
+                if (0 < len(unknownTags)):
+                    Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - unknown tags exist' % (entry))
+                    return(True)
+            else:  # requiredUnknownTags given, check their absence
+                if (prohibitedUnknownTags.issubset(unknownTags)): 
+                    Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - unknown tags "%s" exist' % (entry, unknownTags))
+                    return(True)
         # media type
         if (0 < len(self.requiredMediaTypes)):
             for cls in self.requiredMediaTypes:

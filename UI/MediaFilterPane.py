@@ -227,31 +227,38 @@ class UnknownTagFilter(FilterConditionWithMode):
         if ('' in newTags):
             newTags.remove('')
         if (source == self.tagInput):
-            Logger.debug('UnknownTagFilter.onChange(): Processing change of tag to "%s"' % textValue)
-        elif (source == self.modeChoice):
-            Logger.debug('UnknownTagFilter.onChange(): Processing change of mode to "%s"' % newMode)
-        else:
-            raise ValueError('UnknownTagFilter.onChange(): Unknown event source!')
-        if (newMode == FilterConditionWithMode.FilterModeIndexIgnore):
-            self.filterModel.setConditions(unknownRequired=None)
-        elif (newMode == FilterConditionWithMode.FilterModeIndexRequire):
-            if (0 == len(newTags)):
-                self.filterModel.setConditions(requiredUnknownTags=set(),
-                                               prohibitedUnknownTags=set(),
-                                               unknownRequired=True)
-            else:
+            Logger.debug('UnknownTagFilter.onChange(): Processing change of tags to "%s"' % newTags)
+            if (newMode == FilterConditionWithMode.FilterModeIndexIgnore):
+                if (0 == len(newTags)): 
+                    self.filterModel.setConditions(requiredUnknownTags=set(), 
+                                                   prohibitedUnknownTags=set(), 
+                                                   unknownRequired=None)
+                else:  # newTags contains tags, turn on filtering
+                    self.filterModel.setConditions(requiredUnknownTags=newTags,
+                                                   prohibitedUnknownTags=set(),
+                                                   unknownRequired=True)
+            elif (newMode == FilterConditionWithMode.FilterModeIndexRequire):
                 self.filterModel.setConditions(requiredUnknownTags=newTags,
                                                prohibitedUnknownTags=set(),
-                                               unknownRequired=False)
-        elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
-            if (0 == len(newTags)):
-                self.filterModel.setConditions(requiredUnknownTags=set(),
-                                               prohibitedUnknownTags=set(),
-                                               unknownRequired=False)
-            else:
+                                               unknownRequired=True)
+            elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
                 self.filterModel.setConditions(requiredUnknownTags=set(),
                                                prohibitedUnknownTags=newTags,
                                                unknownRequired=False)
+        elif (source == self.modeChoice):
+            Logger.debug('UnknownTagFilter.onChange(): Processing change of mode to "%s"' % newMode)
+            if (newMode == FilterConditionWithMode.FilterModeIndexIgnore):
+                self.filterModel.setConditions(unknownRequired=None)
+            elif (newMode == FilterConditionWithMode.FilterModeIndexRequire):
+                self.filterModel.setConditions(requiredUnknownTags=newTags,
+                                               prohibitedUnknownTags=set(),
+                                               unknownRequired=True)
+            elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
+                self.filterModel.setConditions(requiredUnknownTags=set(),
+                                               prohibitedUnknownTags=newTags,
+                                               unknownRequired=False)
+        else:
+            raise ValueError('UnknownTagFilter.onChange(): Unknown event source!')
         wx.EndBusyCursor()
 
 
@@ -261,25 +268,24 @@ class UnknownTagFilter(FilterConditionWithMode):
             requiredUnknownTags = observable.getRequiredUnknownTags()
             prohibitedUnknownTags = observable.getProhibitedUnknownTags()
             unknownRequired = observable.getIsUnknownTagRequired()
-            if (0 < len(requiredUnknownTags)):
-                Logger.debug('UnknownTagfilter.updateAspect(): Setting to require unknown tags')
-                self.tagInput.SetValue(' '.join(requiredUnknownTags))
-                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
-            elif (0 < len(prohibitedUnknownTags)):
-                Logger.debug('UnknownTagfilter.updateAspect(): Setting to exclude unknown tags')
-                self.tagInput.SetValue(' '.join(prohibitedUnknownTags))
-                self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexExclude)
-            elif (unknownRequired == True):
+            # TODO: unknownRequired must have highest prio, specification of tags has second priority
+            if (unknownRequired == True):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to unknown required')
-                # self.tagInput.SetValue('')
+                self.tagInput.SetValue(' '.join(requiredUnknownTags))
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
             elif (unknownRequired == False):
                 Logger.debug('UnknownTagfilter.updateAspect(): Setting to unknown prohibited')
-                self.tagInput.SetValue('')
+                self.tagInput.SetValue(' '.join(prohibitedUnknownTags))
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexExclude)
             else:
                 Logger.debug('UnknownTagfilter.updateAspect(): Neither unknown tags, nor unknown required, setting to ignore')
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
+                if (0 < len(requiredUnknownTags)):
+                    Logger.debug('UnknownTagfilter.updateAspect(): Setting to require unknown tags')
+                    self.tagInput.SetValue(' '.join(requiredUnknownTags))
+                elif (0 < len(prohibitedUnknownTags)):
+                    Logger.debug('UnknownTagfilter.updateAspect(): Setting to exclude unknown tags')
+                    self.tagInput.SetValue(' '.join(prohibitedUnknownTags))
         else:
             Logger.error('UnknownTagFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
 
