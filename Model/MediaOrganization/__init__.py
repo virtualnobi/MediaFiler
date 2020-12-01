@@ -104,7 +104,7 @@ class MediaOrganization(object):
     def constructPath(cls, **pathInfo):  # TODO: turn elements key into a set, not a string
         """Construct a pathname, given the parameters from pathInfo.
         
-        If a parameter is not contained in pathInfo, it is derived from self's settings.
+        If a parameter is not contained in pathInfo, it is derived from self's settings. # TODO: There's no self, as it's a class method!
         If a parameter is contained in pathInfo, but None, it will not be used to construct a path (e.g., scene).
         If a parameter is contained in pathInfo, other than None, it will be used instead of self's setting.
 
@@ -134,19 +134,15 @@ class MediaOrganization(object):
             while (0 < len(glob.glob(result + cls.IdentifierSeparator + (cls.FormatNumber % number) + '*'))):
                 number = (number + 1)
         if (number):
-#             if (isinstance(number, str)
-#                 or isinstance(number, unicode)):
             if (isinstance(number, str)):
-                print('MediaOrganization.constructPath(): Deprecated use of non-numeric number!')
+                Logger.warning('MediaOrganization.constructPath(): Deprecated use of non-numeric number!')
                 number = int(number)
             result = (result + cls.IdentifierSeparator + (cls.FormatNumber % number))
         if (('elements' in pathInfo)
             and pathInfo['elements']):
             tagSpec = pathInfo['elements']
-#             if (isinstance(tagSpec, str)
-#                 or isinstance(tagSpec, unicode)):
             if (isinstance(tagSpec, str)):
-                print('Organization.constructPath(): Deprecated usage of string parameter for elements!')
+                Logger.warning('Organization.constructPath(): Deprecated usage of string parameter for elements!')
                 tagSpec = cls.ImageFilerModel.getClassHandler().stringToElements(tagSpec)
             if (('classesToRemove' in pathInfo)
                 and pathInfo['classesToRemove']):
@@ -571,6 +567,9 @@ class MediaOrganization(object):
         """
         if (self.getContext().isGroup()):
             raise ValueError('MediaOrganization.renameSingle(): Called on a Group!')
+        currentPathInfo = self.getPathInfo(filtering)
+        for key in pathInfo:
+            currentPathInfo[key] = pathInfo[key]
         # change elements as required
         if (elements 
             or removeIllegalElements):
@@ -579,19 +578,18 @@ class MediaOrganization(object):
             else:
                 newElements = self.getContext().getTags()
             if (removeIllegalElements):
-#                 newElements = filter(self.__class__.ImageFilerModel.getClassHandler().isLegalElement, newElements)
-                newElements = set(filter(self.__class__.ImageFilerModel.getClassHandler().isLegalElement, newElements))  # Python 3
-            pathInfo['elements'] = newElements
+                newElements = set(filter(self.__class__.ImageFilerModel.getClassHandler().isLegalElement, newElements))
+            currentPathInfo['elements'] = newElements
         # rename 
         oldParent = self.getContext().getParentGroup()
-        Logger.debug('MediaOrganization.renameSingle(): Path info is %s' % pathInfo)
-        newName = self.constructPath(**pathInfo)
+        Logger.debug('MediaOrganization.renameSingle(): Path info is %s' % currentPathInfo)
+        newName = self.constructPath(**currentPathInfo)
         Logger.debug('MediaOrganization.renameSingle(): New name is %s' % newName)
         self.getContext().renameToFilename(newName)
         # check whether old group still has subentries
         if (len(oldParent.getSubEntries(filtering=False)) == 0):
             oldParent.remove()
-        self.__class__.registerMoveToLocation(pathInfo)
+        self.__class__.registerMoveToLocation(currentPathInfo)
         return(self.getContext())
 
 

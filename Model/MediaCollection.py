@@ -578,6 +578,28 @@ class MediaCollection(Observable, Observer):
         return(mmap.getCollisions())
 
 
+    def replaceTagBy(self, oldTag, newTag, aProgressIndicator=None):
+        """In all media, replace a tag by another.
+        
+        String oldTag
+        String newTag
+        ProgressIndicator aProgressIndicator
+        Returns String describing how many tags have been replaced
+        """
+        tagsReplaced = 0
+        if (aProgressIndicator):
+            aProgressIndicator.beginPhase(self.getCollectionSize(), _('Replacing tag "%s" by "%s"' % (oldTag, newTag)))
+        for entry in self:
+            if (aProgressIndicator):
+                aProgressIndicator.beginStep()
+            tags = entry.getTags()
+            if (oldTag in tags):
+                newTags = tags.difference(set([oldTag])).union(set([newTag]))
+                Logger.debug('Entry.replaceTagBy: New tags "%s" for "%s"' % (newTags, entry))
+                entry.renameTo(elements=newTags)
+        return(_('%s occurrences replaced') % tagsReplaced)
+
+
 
 ## Filtering
     def getFilter (self):

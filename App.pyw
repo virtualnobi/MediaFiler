@@ -722,9 +722,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 result = dlg.ShowModal()
                 sizer.Remove(messageText)
             else: 
-                wx.GetApp().startProcessIndicator()
-                self.model.replaceTagBy(originalField.GetValue(), replacementField.GetValue())
-                wx.GetApp().stopProcessIndicator()
+                with wx.GetApp() as progressIndicator:
+                    message = self.model.replaceTagBy(originalField.GetValue(), replacementField.GetValue(), progressIndicator)
+                if (message): 
+                    self.statusbar.SetStatusText(message, GUIId.SB_Info)
+                    self.statusbar.Show()
+                result = None
         dlg.Destroy()
 
     
