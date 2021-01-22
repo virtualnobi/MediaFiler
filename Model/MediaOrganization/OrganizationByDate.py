@@ -682,7 +682,7 @@ class OrganizationByDate(MediaOrganization):
                 menu.insertAfterId(GUIId.SelectMoveTo, 
                                   newText=GUIId.FunctionNames[GUIId.ReorderByTime],
                                   newId=GUIId.ReorderByTime)
-        if (not self.getContext().isGroup()):
+        else:
             menu.insertAfterId(GUIId.SelectMoveTo, 
                                newText=GUIId.FunctionNames[GUIId.AssignNumber],
                                newMenu=self.deriveRenumberSubMenu())
@@ -697,6 +697,7 @@ class OrganizationByDate(MediaOrganization):
         elif (menuId == GUIId.UndoReorder):
             return(self.onUndoReorder(parentWindow))
         else:
+            self.undoList = None
             return(super(OrganizationByDate, self).runContextMenuItem(menuId, parentWindow))
 
 
@@ -773,34 +774,44 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Other API Funcions
-    def renameGroup(self, filtering=False, elements=set(), classesToRemove=None, removeIllegalElements=False,
-                    year=None, month=None, day=None):
+    def renameGroup(self, processIndicator=None, filtering=False, **newPathInfo):
         """Rename self's context according to the specified changes.
         
+        processIndicator
+        Boolean filtering
+        dict newPathInfo
+            elements
+            :
+            organization-specific parameters
         Return the Entry to be selected after the renaming
         """
-        model = self.__class__.ImageFilerModel
+        newYear = (newPathInfo['year'] if ('year' in newPathInfo) else None)
+        newMonth = (newPathInfo['month'] if ('month' in newPathInfo) else None)
+        newDay = (newPathInfo['day'] if ('day' in newPathInfo) else None)
         # ensure group exists
-        if ((year == self.getYear())  # TODO: replace by match()?!
-            and (month == self.getMonth())
-            and (day == self.getDay())):
+        if ((newYear == self.getYear())  # TODO: replace by match()?!
+            and (newMonth == self.getMonth())
+            and (newDay == self.getDay())):
             newParent = self.getContext()
         else:
-            newParent = model.getEntry(group=True, year=year, month=month, day=day)
+            model = self.__class__.ImageFilerModel
+            newParent = model.getEntry(group=True, year=newYear, month=newMonth, day=newDay)
             if (not newParent):
                 newParent = Group.createAndPersist(model, 
-#                                                    self.__class__.constructPath(self.__class__, year=year, month=month, day=day))
-                                                   self.__class__.constructPath(year=year, month=month, day=day))
+                                                   self.__class__.constructPath(year=newYear, month=newMonth, day=newDay))
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=filtering):
             pathInfo = subEntry.getOrganizer().getPathInfo()
-            pathInfo['elements'].update(elements)
-            pathInfo['classesToRemove'] = classesToRemove
-            pathInfo['removeIllegalElements'] = removeIllegalElements
+            if ('elements' in newPathInfo):
+                pathInfo['elements'].update(newPathInfo['elements'])
+            if ('classesToRemove' in newPathInfo):
+                pathInfo['classesToRemove'] = newPathInfo['classesToRemove']
+            if ('removeIllegalElements' in newPathInfo): 
+                pathInfo['removeIllegalElements'] = newPathInfo['removeIllegalElements']
             if (newParent != self.getContext()):
-                pathInfo['year'] = year
-                pathInfo['month'] = month
-                pathInfo['day'] = day
+                pathInfo['year'] = newYear
+                pathInfo['month'] = newMonth
+                pathInfo['day'] = newDay
                 pathInfo['makeUnique'] = True
             subEntry.renameTo(**pathInfo)
         # check whether old group still has subentries

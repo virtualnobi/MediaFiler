@@ -196,7 +196,7 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         
         Let all options be active, and adapt depending options according to user's change. 
         """
-        wx.GetApp().startProcessIndicator(_('Renaming...'))
+#         wx.GetApp().startProcessIndicator(_('Renaming...'))
         change = ''
         groupBox = event.GetEventObject()
         for className in self.selectionBoxes: 
@@ -264,8 +264,9 @@ class MediaClassificationPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
         pathInfo['elements'] = elements
         if (removedClass):
             pathInfo['classesToRemove'] = [removedClass]
-        self.entry.renameTo(**pathInfo)
-        wx.GetApp().stopProcessIndicator()
+        with wx.GetApp() as processIndicator:
+            self.entry.renameTo(processIndicator=processIndicator, **pathInfo)
+#         wx.GetApp().stopProcessIndicator()
 
 
 

@@ -249,7 +249,7 @@ class Entry(Observable):
 
 # Getters
     def __repr__(self):
-        return('<%s from %s>' % (self.__class__.__name__, self.getPath()))
+        return('from %s' % self.getPath())
 
 
     def getModel(self):
@@ -512,7 +512,7 @@ class Entry(Observable):
 
 # Other API methods
     # @profiledOnLogger(Logger, sort='cumulative')
-    def renameTo(self, **pathInfo):
+    def renameTo(self, processIndicator=None, **pathInfo):
         """Rename self's file, replacing the components as specified. 
        
         If a parameter is None or not given in pathInfo, leave it unchanged. 

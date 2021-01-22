@@ -125,14 +125,14 @@ class Group(Entry, Observer):
 
 
 
-    def renameTo(self, **kwargs):
+    def renameTo(self, processIndicator=None, **kwargs):
         """Rename a Group of Entrys. See Entry.renameTo()
         
         Will create new group if organizing name parts (such as name, scene, day, month, year) are changed. 
         Then renames subentries according to tag changes, possibly moving to new group.
         If remaining group (self) is empty after the move, it will be removed. 
         """
-        return(self.getOrganizer().renameGroup(filtering=True, **kwargs))
+        return(self.getOrganizer().renameGroup(processIndicator=processIndicator, filtering=True, **kwargs))
 
 
 # Getters

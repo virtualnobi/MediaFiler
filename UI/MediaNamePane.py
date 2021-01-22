@@ -217,7 +217,7 @@ class MediaNamePane(wx.Panel, Observer):
         Boolean removeUnknownTags indicates whether unknown tags shall be cleared from entry
         """
         if (self.Validate()):
-            wx.GetApp().startProcessIndicator(_('Renaming...'))
+#             wx.GetApp().startProcessIndicator(_('Renaming...'))
             pathInfo = self.entry.getOrganizer().getPathInfo()
             pathInfo.update(self.entry.getOrganizer().getValuesFromNamePane(self))
             if (removeUnknownTags == False):
@@ -226,7 +226,8 @@ class MediaNamePane(wx.Panel, Observer):
                 pathInfo['elements'] = tagSet
             pathInfo['removeIllegalElements'] = removeUnknownTags
             try:
-                resultingSelection = self.entry.renameTo(**pathInfo)
+                with wx.GetApp() as processIndicator:
+                    resultingSelection = self.entry.renameTo(processIndicator=processIndicator, **pathInfo)
             except WindowsError as e:
                 dlg = wx.MessageDialog(self,
                                        ('Cannot rename media!\n%s' % e),
@@ -237,5 +238,5 @@ class MediaNamePane(wx.Panel, Observer):
             else:
                 self.model.setSelectedEntry(resultingSelection) 
                 self.rememberElements()
-            wx.GetApp().stopProcessIndicator()
+#             wx.GetApp().stopProcessIndicator()
 

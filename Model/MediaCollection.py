@@ -305,7 +305,7 @@ class MediaCollection(Observable, Observer):
         """Return the root element. This is a Group containing all other Entries.
         """
         if (self.root == None):
-            print('ImageFilerModel.getRootEntry(): No root defined')
+            raise AssertionError('MediaCollection.getRootEntry(): Root node is None')
         return(self.root)
 
 
@@ -621,22 +621,22 @@ class MediaCollection(Observable, Observer):
         Logger.debug('MediaCollection.filterEntries() started')
         self.changedAspect('startFiltering')
         progressIndicator.beginPhase(self.getCollectionSize(), 'Filtering media')
-        if (self.getFilter().isEmpty()): 
+        if (self.getFilter().isFiltering()): 
+            self.filteredEntries = 0 
+            entryFilter = self.getFilter()
+            for entry in self: 
+                if (entry.isGroup()):  # Group is filtered after all its children are
+                    entry.setFilter(len(entry.getSubEntries(filtering=True)) == 0)
+                else:
+                    progressIndicator.beginStep()
+                    entry.setFilter(entryFilter.filtersEntry(entry))
+                    if (entry.isFiltered()):
+                        self.filteredEntries = (self.filteredEntries + 1)
+        else:  # filter not active or empty
             for entry in self:
                 progressIndicator.beginStep()
                 entry.setFilter(False)
             self.filteredEntries = self.getCollectionSize()
-        else:  # filters exist
-            self.filteredEntries = 0 
-            entryFilter = self.getFilter()
-            for entry in self: 
-                if (entry.isGroup()):  # Group is filtered when all its children are
-                    entry.setFilter(len(entry.getSubEntries(filtering=True)) == 0)
-                else:
-                    progressIndicator.beginStep()
-                    entry.setFilter(entryFilter.isFiltering(entry))
-                    if (entry.isFiltered()):
-                        self.filteredEntries = (self.filteredEntries + 1)
         # if selected entry is filtered, search for unfiltered parent
         if (self.getSelectedEntry().isFiltered()):
             entry = self.getSelectedEntry().getParentGroup()
@@ -735,7 +735,6 @@ class MediaCollection(Observable, Observer):
                                              newTargetPathInfo)
                 if (removeProcessedFiles
                     and (len(os.listdir(sourcePath)) == 0)):
-#                     importParameters.logString('Removing empty directory "%s"' % sourcePath)
                     os.rmdir(sourcePath)
             else:  # import a media file
                 (dummy, extension) = os.path.splitext(sourcePath)
@@ -757,38 +756,32 @@ class MediaCollection(Observable, Observer):
                                                                       importParameters.getIllegalElements())
                                 importParameters.setNumberOfImportedFiles(importParameters.getNumberOfImportedFiles() + 1)
                                 if (removeProcessedFiles):
-                                    # importParameters.logString('Removing imported file "%s"' % sourcePath)
                                     try:
                                         os.remove(sourcePath)
                                     except Exception as e:
-                                        importParameters.logString('Can''t remove "%s":\n%s' % (sourcePath, e))
+                                        importParameters.logString('Error: Can''t remove "%s":\n%s' % (sourcePath, e))
                             else:
                                 importParameters.logString('Duplicate of "%s"\n  found in "%s"' % (sourcePath, duplicate))
                                 if (removeProcessedFiles):
-                                    # importParameters.logString('Removing duplicate media "%s"' % sourcePath)
                                     try:
                                         os.remove(sourcePath)
                                     except Exception as e:
-                                        importParameters.logString('Can''t remove "%s":\n%s' % (sourcePath, e))
+                                        importParameters.logString('Error: Can''t remove "%s":\n%s' % (sourcePath, e))
                         else:
                             importParameters.logString('Maximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
                             raise StopIteration
                     else:
-                        # importParameters.logString('Ignoring small %sb file "%s"' % (fileSize, sourcePath))
                         if (removeProcessedFiles):
-                            # importParameters.logString('Removing ignored small file "%s"' % sourcePath)
                             try:
                                 os.remove(sourcePath)
                             except Exception as e: 
-                                importParameters.logString('Can''t remove (small) file "%s"\n%s' % (sourcePath, e))
+                                importParameters.logString('Error: Can''t remove (small) file "%s"\n%s' % (sourcePath, e))
                 else:
-                    # importParameters.logString('Ignoring unhandled file "%s"' % sourcePath)
                     if (removeProcessedFiles):
-                        # importParameters.logString('Removing unhandled file "%s"' % sourcePath)
                         try:
                             os.remove(sourcePath)
                         except Exception as e:
-                            importParameters.logString('Can''t remove (unhandled) file "%s"\n%s' % (sourcePath, e))
+                            importParameters.logString('Error: Can''t remove (unhandled) file "%s"\n%s' % (sourcePath, e))
 
 
     def fixPathWhileImporting(self, parameters, oldPath):

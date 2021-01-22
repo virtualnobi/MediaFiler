@@ -529,7 +529,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         # toggling menu item is done by CheckMenuItem
         wx.GetApp().startProcessIndicator()
-        self.model.getFilter().setConditions(active=(not self.model.getFilter().active))
+        self.model.getFilter().setConditions(active=(not self.model.getFilter().isActive()))
         wx.GetApp().stopProcessIndicator()
 
 
@@ -736,27 +736,6 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         classFile = Installer.getClassFilePath()
         self.model.runConfiguredProgram(GlobalConfigurationOptions.TextEditor, classFile, self)
-#         editorName = self.model.getConfiguration(GlobalConfigurationOptions.TextEditor)
-#         if (editorName):
-#             editorName = editorName.replace(GlobalConfigurationOptions.Parameter, classFile)
-#             commandArgs = shlex.split(editorName)  # editorName.split() does not respect quotes
-#             logging.debug('App.onEditClasses(): Calling %s' % commandArgs)
-# #             retCode = subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
-#             cp = subprocess.run(commandArgs, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)  # Python 3
-#             retCode = cp.returncode
-#             if (retCode != 0):
-#                 MediaFiler.Logger.warn('MediaFiler.onEditClasses(): Call failed with return code %s!' % retCode)
-#                 dlg = wx.MessageDialog(self, 
-#                                        (_('The external program failed with return code %s.') % retCode),
-#                                        _('Warning'),
-#                                        wx.OK | wx.ICON_WARNING
-#                                        )
-#                 dlg.ShowModal()
-#                 dlg.Destroy()
-#             self.onReload(event)
-#         else:
-#             MediaFiler.Logger.warn(_('No editor defined with "%s" configuration option!') % GlobalConfigurationOptions.TextEditor)
-#             # TODO: error message, but on which window?
 
 
     def onEditNames(self, event):  # @UnusedVariable
@@ -1040,6 +1019,13 @@ class MediaFilerApp(ProgressSplashApp):
             return(self.frame.getProgressBar())
 
 
+#     def getInfoMessage(self):
+#         """Return the last String set with setInfoMessage()
+#         """
+#         return(self.frame.statusbar.GetStatusText(GUIId.SB_Info))
+
+
+
 # Other API 
     def freezeWidgets(self):
         """Freeze widgets and show busy cursor. 
@@ -1090,10 +1076,13 @@ class MediaFilerApp(ProgressSplashApp):
         MediaFiler.Logger.debug('MediaFilerApp.beginPhase(%s, "%s")' % (numberOfSteps, message))
         self.numberOfStepsToGo = numberOfSteps
         self.setInfoMessage(message)
+        self.phaseInfoMessage = message
         self.getProgressBar().beginPhase(numberOfSteps)
 
 
-    def beginStep(self, message=''):
+    def beginStep(self, message=None):
+        if (not message):
+            message = self.phaseInfoMessage
         self.setInfoMessage('%s (%d)' % (message, self.numberOfStepsToGo))
         self.numberOfStepsToGo = (self.numberOfStepsToGo - 1)
         self.getProgressBar().beginStep()

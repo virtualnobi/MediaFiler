@@ -368,7 +368,6 @@ class OrganizationByName(MediaOrganization):
         path String relative pathname of file, with leading model root directory and trailing extension removed
         
         TODO: make independent from OS-dependent separator characters (/ vs. \)
-        TODO: allow capitalized names (while letter groups should be normalized to lower-case) 
         
         Returns a String 
         """
@@ -376,7 +375,7 @@ class OrganizationByName(MediaOrganization):
         self.scene = ''
         # first try: 'letter/name/scene-' is a Single inside a Group
         match = re.search(r"""([a-z])                  # single-letter directory = \1
-                              \\((\1[a-z]+)[0-9]?)  # directory with name = \3 and optional digit, all captured in \2
+                              \\((\1[a-z]+)[0-9]?)     # directory with name = \3 and optional digit, all captured in \2
                               \\((\d\d)|new)           # two-digit number or "new" = \4
                               ([^\\]*)$                # non-directories until EOL = \6
                            """, 
@@ -424,14 +423,17 @@ class OrganizationByName(MediaOrganization):
         logging.debug('OrganizationByName.relabelToScene(): Moving entries from scene %s to scene %s (from "%s")' 
                       % (oldScene, newScene, self.context.getPath()))
         parentGroup = self.getContext().getParentGroup()
-        wx.GetApp().beginPhase(len(parentGroup.getSubEntries()), (_('Renaming scene %s to %s') % (oldScene, newScene)))
+        processIndicator = wx.GetApp()  # TODO: move out to UI packages
+        if (processIndicator):
+            processIndicator.beginPhase(len(parentGroup.getSubEntries()), (_('Renaming scene %s to %s') % (oldScene, newScene)))
         for entry in parentGroup.getSubEntries(filtering=False):
-            wx.GetApp().beginStep()
+            if (processIndicator):
+                processIndicator.beginStep()
             if (entry.getOrganizer().getScene() == oldScene):
                 pathInfo = entry.getOrganizer().getPathInfo()
                 pathInfo['scene'] = newScene
                 pathInfo['makeUnique'] = True
-                entry.renameTo(**pathInfo)
+                entry.renameTo(processIndicator=processIndicator, **pathInfo)
 
 
 
@@ -445,12 +447,11 @@ class OrganizationByName(MediaOrganization):
             return(True)
         match = re.match(r'([^\d]+)\d*', self.getName())  # isolate name in name+number identifiers
         if (match == None):
-            return(True)
+            return(True)  # no name?
         else:
-            if (self.nameHandler.isNameLegal(match.group(1))):  # legal name
-                return(False)
-            else:
+            if (not self.nameHandler.isNameLegal(match.group(1))):  # illegal name
                 return(True)
+        return(False)
 
     
     def matches(self, **kwargs):
@@ -572,7 +573,7 @@ class OrganizationByName(MediaOrganization):
                             del pathInfo['scene']
                         if ('number' in pathInfo):
                             del pathInfo['number']
-                resultingSelection = self.getContext().renameTo(**pathInfo)
+                resultingSelection = self.getContext().renameTo(processIndicator=wx.GetApp(), **pathInfo)  # TODO: move out to UI packages
                 if (resultingSelection):
                     self.getModel().setSelectedEntry(resultingSelection)
                 else:
@@ -592,7 +593,7 @@ class OrganizationByName(MediaOrganization):
             pathInfo = self.getPathInfo()
             pathInfo['scene'] = newScene
             pathInfo['makeUnique'] = True 
-            self.getContext().renameTo(**pathInfo)
+            self.getContext().renameTo(processIndicator=wx.GetApp(), **pathInfo)  # TODO: move out to UI packages
         else:
             super(OrganizationByName, self).runContextMenuItem(menuId, parentWindow)
         return(message)
@@ -729,6 +730,9 @@ class OrganizationByName(MediaOrganization):
             if ('name' in pathInfo):
                 newPathInfo['name'] = pathInfo['name']
             newPathInfo['scene'] = sceneMap[newPathInfo['scene']] 
+            if (MediaClassHandler.ElementNew == newPathInfo['scene']):  # avoid clashing numbers on "new" scene, which is not mapped
+                del newPathInfo['number']
+                newPathInfo['makeUnique'] = True
             if ('classesToRemove' in pathInfo):
                 newPathInfo['classesToRemove'] = pathInfo['classesToRemove'] 
             if ('removeIllegalElements' in pathInfo):

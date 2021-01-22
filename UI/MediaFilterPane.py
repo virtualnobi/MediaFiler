@@ -11,7 +11,6 @@ import logging
 import re
 ## contributed
 import wx.lib.scrolledpanel
-# import wx.lib.masked
 ## nobi
 from nobi.ObserverPattern import Observer
 ## project
@@ -46,14 +45,6 @@ def N_(message): return message
 
 # Package Variables
 Logger = logging.getLogger(__name__)
-# # filtering modes
-# TagFilterModeNameIgnore = _('ignore')
-# TagFilterModeNameRequire = _('require')
-# TagFilterModeNameExclude = _('exclude')
-# TagFilterModeNames = [TagFilterModeNameIgnore, TagFilterModeNameRequire, TagFilterModeNameExclude]
-# TagFilterModeIndexIgnore = TagFilterModeNames.index(TagFilterModeNameIgnore)
-# TagFilterModeIndexRequire = TagFilterModeNames.index(TagFilterModeNameRequire)
-# TagFilterModeIndexExclude = TagFilterModeNames.index(TagFilterModeNameExclude)
 
 
 
@@ -420,7 +411,6 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     """A scrollable, observable Pane which visualizes the filter.
     """
 # Constants
-#    SceneConditionKey = N_('Scene')
     # unknown elements
     UnknownElementsIndex = N_('unknown')  # string to access unknown filter in dictionary
     # special element to match any element of a class
@@ -620,8 +610,8 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
 
 
     def onActivate(self, event):
-        with wx.GetApp() as processIndicator:  # @UnusedVariable
-            self.filterModel.setConditions(active=event.GetEventObject().GetValue())
+        with wx.GetApp() as progressIndicator:  # @UnusedVariable
+            self.filterModel.setConditions(active=event.GetEventObject().GetValue())  # TODO: acccept progressIndicator
             self.setActivateButtonText()
 
 
@@ -712,6 +702,8 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
     def importAndDisplayFilter(self):
         """Redisplay criteria from self's filter. 
         """
+        # TODO: import non-tag filters list media types, media size, etc.
+        # TODO: do not reset tag selection when mode changes
         requiredElements = self.getFilterModel().getFilterValueFor(MediaFilter.ConditionKeyRequired)
         if (requiredElements == None):
             requiredElements = set()
@@ -740,6 +732,6 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                         self.filterModes[className].SetSelection(self.FilterModeIndexExclude)
                         self.filterValues[className].SetStringSelection(element)
         # button activation
-        self.clearButton.Enable(enable=(not self.filterModel.isEmpty()))
+        self.clearButton.Enable(enable=self.filterModel.isFiltering())
 
 

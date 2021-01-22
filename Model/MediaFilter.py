@@ -115,47 +115,35 @@ class MediaFilter(Observable):
         
         Dictionary kwargs 
         """
-#         requiredUnknownTags = (kwargs['requiredUnknownTags'] if ('requiredUnknownTags' in kwargs) else None)
-#         prohibitedUnknownTags = (kwargs['prohibitedUnknownTags'] if ('prohibitedUnknownTags' in kwargs) else None)
-#         minimum = (kwargs['minimum'] if ('minimum' in kwargs) else None)
-#         maximum = (kwargs['maximum'] if ('maximum' in kwargs) else None)
-        requiredMediaTypes = (kwargs['requiredMediaTypes'] if ('requiredMediaTypes' in kwargs) else None)
-        prohibitedMediaTypes = (kwargs['prohibitedMediaTypes'] if ('prohibitedMediaTypes' in kwargs) else None)
-#         duplicate = (kwargs['duplicate'] if ('duplicate' in kwargs) else None)
-
+        wasEmpty = self.isEmpty()
+        wasFiltering = self.isFiltering()
         conditionsChanged = self.setConditionsAndCalculateChange(**kwargs)
+        # TODO: move media type handling into setConditionsAndCalculateChange()
+        requiredMediaTypes = (kwargs['requiredMediaTypes'] if ('requiredMediaTypes' in kwargs) else None)
+        if (requiredMediaTypes != None):
+            self.requiredMediaTypes = requiredMediaTypes
+            self.prohibitedMediaTypes.difference_update(requiredMediaTypes)
+        prohibitedMediaTypes = (kwargs['prohibitedMediaTypes'] if ('prohibitedMediaTypes' in kwargs) else None)
+        if (prohibitedMediaTypes != None):
+            self.prohibitedMediaTypes = prohibitedMediaTypes
+            self.requiredMediaTypes.difference_update(prohibitedMediaTypes)
+            
         filterChanged = False
         if ((active != None)
             and (self.active != active)):  # activation of filter changes
             if (active):  # filter is turned on
+                filterChanged = (conditionsChanged
+                                 or (not wasEmpty))
                 self.active = True
-                filterChanged = (conditionsChanged  # filtered media change if filter conditions have changed...
-                                 or (not self.isEmpty()))  # ...or filter conditions existed up to now
             else:  # filter is turned off
-                filterChanged = (not self.isEmpty())  # filtered media change if conditions existed up to now
+                filterChanged = wasFiltering 
                 self.active = False
         else:  # activation has not changed
-            filterChanged = (self.active and conditionsChanged)  # filtered media change if filter is active and conditions have changed
-#         if (requiredUnknownTags != None):
-#             self.requiredUnknownTags = requiredUnknownTags
-#         if (prohibitedUnknownTags != None):
-#             self.prohibitedUnknownTags = prohibitedUnknownTags
-#         if (minimum != None):
-#             self.minimumResolution = minimum
-#         if (maximum != None):
-#             self.maximumResolution = maximum
-        if (requiredMediaTypes != None):
-            self.requiredMediaTypes = requiredMediaTypes
-            self.prohibitedMediaTypes.difference_update(requiredMediaTypes)
-        if (prohibitedMediaTypes != None):
-            self.prohibitedMediaTypes = prohibitedMediaTypes
-            self.requiredMediaTypes.difference_update(prohibitedMediaTypes)
-#         if (duplicate != None):
-#             self.conditionMap[MediaFilter.ConditionKeyDuplicate] = duplicate
+            filterChanged = (self.active and conditionsChanged)
         if (filterChanged or conditionsChanged): 
             Logger.debug('MediaFiler.setConditions(): Throwing "changed"')
             self.changedAspect('changed')
-            if (filterChanged):  # can only change the filtered media if it has changed at all
+            if (filterChanged): 
                 Logger.debug('MediaFiler.setConditions(): Throwing "filterChanged"')
                 self.changedAspect('filterChanged')
         Logger.debug('MediaFilter.setConditions() finished as %s' % self)
@@ -249,6 +237,20 @@ class MediaFilter(Observable):
         return(self.active)
 
 
+    def isFiltering(self):
+        """Check whether the filter will reduce the set of media.
+        
+        Return True if no filter conditions are defined, False otherwise.
+        """
+        if (self.active):
+            if ((0 < len(self.requiredMediaTypes))
+                or (0 < len(self.prohibitedMediaTypes))
+                ):
+                return True
+            return (not self.isEmpty())
+        return True
+
+
     def getFilterValueFor(self, key):
         """Return filter value for a filter condition
         
@@ -257,10 +259,6 @@ class MediaFilter(Observable):
         String key is one of the strings in MediaFilter.getConditionKeys() 
         Return object
         """
-#         if (key == MediaFilter.ConditionKeyResolutionMinimum):
-#             return(self.minimumResolution)
-#         elif (key == MediaFilter.ConditionKeyResolutionMaximum):
-#             return(self.maximumResolution)
         if (key in self.conditionMap):
             result = self.conditionMap[key]
             if ((key in MediaFilter.ConditionKeysForSets)
@@ -271,24 +269,22 @@ class MediaFilter(Observable):
             raise ValueError('MediaFilter.getFilterValueFor(): Unknown condition key %s' % key)
 
 
-    def getRequiredUnknownTags(self):
-#         return(copy.copy(self.requiredUnknownTags))
+    def getRequiredUnknownTags(self):  # TODO: replace by getFilterValueFor()
         return(copy.copy(self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsRequired)))
 
 
-    def getProhibitedUnknownTags(self):
+    def getProhibitedUnknownTags(self):  # TODO: replace by getFilterValueFor()
         """"
         Return None or set of String (with at least one element)
         """
-#         return(copy.copy(self.prohibitedUnknownTags))
         return(copy.copy(self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited)))
 
 
-    def getIsUnknownTagRequired(self):
+    def getIsUnknownTagRequired(self):  # TODO: replace by getFilterValueFor()
         return(self.getFilterValueFor(MediaFilter.ConditionKeyUnknownRequired))
 
 
-    def getMediaTypes(self):
+    def getMediaTypes(self):  # TODO: replace by getFilterValueFor()
         """
         Returns (required, prohibited) where
             set required
@@ -298,37 +294,14 @@ class MediaFilter(Observable):
                copy.copy(self.prohibitedMediaTypes))
 
 
-    def getDuplicate(self):
+    def getDuplicate(self):  # TODO: replace by getFilterValueFor()
         """
         Return Boolean (or None) indicating whether duplicates are required
         """
         return(self.getFilterValueFor(MediaFilter.ConditionKeyDuplicate))
 
 
-    def isEmpty(self):
-        """Check whether the filter will reduce the set of media.
-        
-        Return True if no filter conditions are defined, False otherwise.
-        """
-        if (self.active):
-            if (# (len(self.requiredUnknownTags) > 0)
-                # or (len (self.prohibitedUnknownTags) > 0)
-                # or (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None)
-                # or (self.conditionMap[MediaFilter.ConditionKeyUnknownTagsRequired] != None)
-                # or (self.conditionMap[MediaFilter.ConditionKeyUnknownTagsProhibited] != None)  # or...
-                # ((self.minimumResolution != None) and (self.minimumResolution > self.model.getMinimumResolution()))
-                # or ((self.maximumResolution != None) and (self.maximumResolution < self.model.getMaximumResolution()))  # or..
-                (0 < len(self.requiredMediaTypes))
-                or (0 < len(self.prohibitedMediaTypes))
-                ):
-                return(False)
-            for key in self.conditionMap:
-                if (self.conditionMap[key] != None):
-                    return(False)
-        return True
-
-
-    def isFiltering(self, entry):
+    def filtersEntry(self, entry):
         """Check whether entry must be filtered. 
         
         Filtering of Group entries is defined elsewhere to depend on filter state of its children.
@@ -343,6 +316,15 @@ class MediaFilter(Observable):
 
 
 # Internal
+    def isEmpty(self):
+        """Check whether self contains filter conditions (independent of active state). 
+        """
+        for key in self.conditionMap:
+            if (self.conditionMap[key] != None):
+                return False
+        return True
+
+
     def setConditionsAndCalculateChange(self, **kwargs):
         """Set conditions according to specified parameters, and return indicator whether conditions changed
         
@@ -388,17 +370,21 @@ class MediaFilter(Observable):
         requiredUnknownTags = self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsRequired)
         prohibitedUnknownTags = self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited)
         unknownTags = entry.getUnknownTags()
+        unknownOrganization = entry.getOrganizer().isUnknown()
         if (requiredUnknown == True): 
-            if (0 == len(requiredUnknownTags)):  # ensure existence of unknown tags
-                if (0 == len(unknownTags)):
-                    Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - no unknown tag' % (entry))
-                    return(True)
-            else:  # requiredUnknownTags given, check their existence
-                if (not requiredUnknownTags.issubset(unknownTags)): 
-                    Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - unknown tags "%s" missing' % (entry, unknownTags))
-                    return(True)
+            if (not unknownOrganization):  # organization fully specified, needs to have unknown tag
+                if (0 == len(requiredUnknownTags)):  # ensure existence of some unknown tags
+                    if (0 == len(unknownTags)):
+                        Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - no unknown tag' % (entry))
+                        return(True)
+                else:  # requiredUnknownTags given, check their existence
+                    if (not requiredUnknownTags.issubset(unknownTags)): 
+                        Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - unknown tags "%s" missing' % (entry, unknownTags))
+                        return(True)
         elif (requiredUnknown == False):
-            if (0 == len(prohibitedUnknownTags)):  # ensure no unknown tags exist
+            if (unknownOrganization):  # organization incomplete, must be filtered
+                return(True)
+            elif (0 == len(prohibitedUnknownTags)):  # ensure no unknown tags exist
                 if (0 < len(unknownTags)):
                     Logger.debug('MediaFilter.filteredByConditions(): Filtered "%s" - unknown tags exist' % (entry))
                     return(True)

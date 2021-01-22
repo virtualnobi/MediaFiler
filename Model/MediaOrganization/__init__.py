@@ -214,7 +214,9 @@ class MediaOrganization(object):
         
     @classmethod
     def importMedia(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):
-        """Import image at sourcePath, i.e. move to new location in model's directory.
+        """Import image at sourcePath, i.e. move to new location in model's directory.        
+
+        TODO: when importing a folder with a given name, ensure a single with this name is converted to a group first
         
         Importing.ImportParameterObject importParameters
         String sourcePath is the pathname of the image
@@ -358,6 +360,10 @@ class MediaOrganization(object):
 
 # Setters
 # Getters
+    def __repr__(self):
+        return('for %s' % self.getContext().getPath())
+
+    
     def getContext(self):
         """Return the Entry which is organized by self.
         """
@@ -570,6 +576,9 @@ class MediaOrganization(object):
         currentPathInfo = self.getPathInfo(filtering)
         for key in pathInfo:
             currentPathInfo[key] = pathInfo[key]
+#         # special case when renaming Groups with "new" scenes: Ensure media imported into Group gets unused numbers
+#         if (pathInfo['scene'] == MediaClassHandler.ElementNew):  # TODO: move to OrganizationByName
+#             currentPathInfo['makeUnique'] = True
         # change elements as required
         if (elements 
             or removeIllegalElements):
@@ -599,12 +608,13 @@ class MediaOrganization(object):
         return(True)
 
 
-    def renameGroup(self, filtering=False, **pathInfo):
+    def renameGroup(self, processIndicator=None, filtering=False, **pathInfo):
         """Rename self's media context, which is a group, according to the parameters.
         
         If filtering, only rename the subentries not filtered. 
         If no subentries remain in the group after renaming, remove the group.
         
+        processIndicator 
         Boolean filtering determines whether filtered subentries are renamed as well
         dict pathInfo
         Return the Entry to select after renaming 
@@ -617,8 +627,12 @@ class MediaOrganization(object):
         newParent = self.findGroupFor(**pathInfo)
         # rename subentries
         renameList = self.getRenameList(newParent, pathInfo, filtering=filtering)
+        if (processIndicator):
+            processIndicator.beginPhase(len(renameList))
         for (entry, pathInfo) in renameList:
-            entry.renameTo(**pathInfo)  # removes self when the last subentry was renamed (if no further subentries exist)
+            if (processIndicator):
+                processIndicator.beginStep()
+            entry.renameTo(processIndicator=processIndicator, **pathInfo)  # removes self when the last subentry was renamed (if no further subentries exist)
         return(newParent)
 
 
