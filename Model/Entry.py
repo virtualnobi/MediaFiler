@@ -249,7 +249,7 @@ class Entry(Observable):
 
 # Getters
     def __repr__(self):
-        return('from %s' % self.getPath())
+        return('%s from %s' % (self.__class__, self.getPath()))
 
 
     def getModel(self):
@@ -578,6 +578,7 @@ class Entry(Observable):
         # structure functions
         menu.AppendSeparator()
         moveToMenu = self.getOrganizer().__class__.constructMoveToMenu()
+        moveToMenu.currentEntry = self
         menu.Append(GUIId.SelectMoveTo, 
                     GUIId.FunctionNames[GUIId.SelectMoveTo],
                     moveToMenu)
@@ -590,6 +591,7 @@ class Entry(Observable):
         menu.Append(GUIId.DeleteImage, (GUIId.FunctionNames[GUIId.DeleteImage] % self.getIdentifier())) 
         # organization functions
         self.organizer.extendContextMenu(menu)
+        Logger.debug('Entry.getContextMenu(): Returning menu %s for %s' % (menu, menu.currentEntry))
         return(menu)
 
 

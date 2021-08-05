@@ -18,6 +18,7 @@ from nobi.ObserverPattern import Observer
 import UI
 from UI import GUIId
 from Model.Single import ImageBitmap
+from ast import Num
 
 
 
@@ -82,6 +83,9 @@ class MediaCanvas(wx.Panel, Observer):
         self.ClearBackground()
 #         (self.width, self.height) = self.GetSizeTuple()
         (self.width, self.height) = self.GetSize()  # Python 3
+        self.lastResizeEntry = None
+        self.lastResizeSize = self.GetSize()
+
 
 
 # Getters
@@ -142,7 +146,13 @@ class MediaCanvas(wx.Panel, Observer):
         
         Route to current Entry.
         """
-        print('User selected context menu item %s' % event.Id)
+        try:
+            event.EventObject.currentEntry
+        except: 
+            Logger.warning('MediaCanvasPane.onContextMenuSelection(): Attempting repair of currentEntry attribute')
+            event.EventObject.currentEntry = event.EventObject.Parent.currentEntry
+#        Logger.debug('MediaCanvasPane.onContextMenuSelection(): Received %s for %s' % (event, event.EventObject.currentEntry))
+        Logger.debug('MediaCanvasPane.onContextMenuSelection(): Received %s' % event)
         wx.GetApp().startProcessIndicator()
         message = event.EventObject.currentEntry.runContextMenuItem(event.Id, self)
         wx.GetApp().stopProcessIndicator(message)
@@ -154,10 +164,20 @@ class MediaCanvas(wx.Panel, Observer):
 
 
     def onResize(self, event):
+        Logger.debug('MediaCanvasPane.onResize(): ...')
+        (self.width, self.height) = self.GetSize()
         if (self.entry != None):
-            Logger.debug('MediaCanvasPane.onResize(): ...')
-            displayedEntries = self.entry.getEntriesForDisplay()
-            self.sizeAndDisplayEntries(displayedEntries, progressIndicator=wx.GetApp())
+            if ((self.lastResizeEntry != self.entry) 
+                or (self.lastResizeWidth != self.width)
+                or (self.lastResizeHeight != self.height)):
+                Logger.debug('MediaCanvasPane.onResize(): Recalculation needed')
+                self.lastResizeEntry = self.entry
+                self.lastResizeWidth = self.width
+                self.lastResizeHeight = self.height
+                displayedEntries = self.entry.getEntriesForDisplay()
+                self.sizeAndDisplayEntries(displayedEntries, progressIndicator=wx.GetApp())
+            else:
+                print('MediaCanvasPane.onResize(): Ignored because unchanged')
 
 
 # Inheritance - ObserverPattern
@@ -205,36 +225,57 @@ class MediaCanvas(wx.Panel, Observer):
     def calculateGrid (self, numberOfImages):
         """Calculate number of rows and columns for given numberOfImages.
         """
-        # determine aspect ratio of canvas
-#         (self.width, self.height) = self.GetSizeTuple()
+        if (numberOfImages == 0): # no images, no display
+            Logger.warn('MediaCanvasPane.calculateGrid(): No images to display')
+            return
+        # determine aspect of canvas
         (self.width, self.height) = self.GetSize()  # Python 3
         if ((0 == self.width)
             or (0 == self.height)):
             Logger.error('MediaCanvasPane.calculateGrid(): Pane width or height are zero!')
-            raise ValueError
-        ratio = (float(self.width) / float(self.height))
-        # calculate number of columns
-        if (numberOfImages == 0): # special case - no images, no display
-            #self.displayMessage ("No images selected")
-            return
-        cols = float(numberOfImages) # explore layouts from nx1 grid down to 1xn grid
-        while (cols > 0):
-            rows = math.ceil(numberOfImages / cols) # how many rows are needed for this many columns
-            #print "Checking %dx%d grid for %d entries and ratio %f" % (cols, rows, numberOfImages, ratio)
-            if ((cols / rows) >= 1):  # layout wider than tall
-                if (ratio >= (cols / rows)):  # first time that window aspect bigger than layout aspect
-                    break  # use current number of columns
-            else: # layout taller than wide
-                if (ratio >= (cols / rows)): 
-                    cols = (cols + 1)  # use previous number of columns in last iteration
-                    break
-            cols = (cols - 1)
-        # calculate rows from columns
-        if (cols == 0): # while-loop terminated on cols condition
-            cols = 1.0 # ensure at least one column
-        self.rows = int(math.ceil(numberOfImages / cols)) # ensure floating-point arithmetic: cols is float
-        # depending on number of rows, number of cols may be reduced
-        self.cols = int(math.ceil(numberOfImages / float (self.rows))) # ensure floating-point arithmetic
+            raise ValueError('Pane width (%s) or height(%s) are zero!' % (self.width, self.height))
+        canvasAspect = (float(self.width) / float(self.height))
+        print('For %s entries and window aspect %f...' % (numberOfImages, canvasAspect))
+        if (numberOfImages == 1):  # one image, 1x1 grid
+            self.rows = 1
+            self.cols = 1
+        else:
+            if (numberOfImages == 2):
+                if (self.height <= self.width):
+                    # print('height < width, picking 2 cols')
+                    cols = 2
+                else:
+                    # print('width < height, picking 1 cols')
+                    cols = 1
+            else:
+                # calculate number of columns
+                cols = float(numberOfImages)  # explore layouts from nx1 grid down to 1xn grid
+                while (cols > 1):
+                    rows = math.ceil(numberOfImages / cols) # how many rows are needed for this many columns
+                    # print("Checking %d cols, %d rows with layout aspect %f" % (cols, rows, (cols / rows)))
+                    if (rows <= cols):  # layout wider than tall
+                        # print('more rows than cols')
+                        if (canvasAspect >= (cols / rows)):  # first time that window aspect bigger than layout aspect
+                            # print('found %s cols' % cols)
+                            break  # use current number of columns
+                    else: # layout taller than wide
+                        # print('more cols than rows')
+                        if (canvasAspect >= (cols / rows)):
+                            # print('found %s cols, but adding 1' % cols) 
+                            cols = (cols + 1)  # use previous number of columns in last iteration
+                            break
+                    cols = (cols - 1)
+                # print('calculated %f cols' % cols)
+                # if (cols == 0): # while-loop terminated on cols condition
+                #     print('correcting cols from 0 to 1')
+                #     cols = 1.0 # ensure at least one column
+            # calculate rows from columns
+            self.rows = int(math.ceil(numberOfImages / cols)) # ensure floating-point arithmetic: cols is float
+            # depending on number of rows, number of cols may be reduced
+            savedCols = int(cols)
+            self.cols = int(math.ceil(numberOfImages / float (self.rows))) # ensure floating-point arithmetic
+            if (savedCols != cols):
+                print('MediaCanvasPane.calculateGrid(): Cols corrected from %f to %f' % (cols, self.cols))
         # calculate image size
         self.imageWidth = int((self.width - ((self.cols + 1) * self.ImagePadding)) / self.cols)
         self.imageHeight = int((self.height - ((self.rows + 1) * self.ImagePadding)) / self.rows)
@@ -272,7 +313,7 @@ class MediaCanvas(wx.Panel, Observer):
         if (10 < len(entries)):
             if (progressIndicator):
                 progressIndicator.beginPhase(len(entries), (_('Resizing images in "%s"') % self.entry.getIdentifier()))  
-                Logger.debug('MediaCanvasPane.sizeAndDisplayEntries(): Progress indicator is %s' % progressIndicator)
+                Logger.debug('MediaCanvasPane.sizeAndDisplayEntries(): Using progress indicator %s' % progressIndicator)
         else:  # do not indicate progress for less than 10 entries
             progressIndicator = None  
         column = 1  # count columns when placing images in grid
@@ -329,6 +370,7 @@ class MediaCanvas(wx.Panel, Observer):
             if (target == self.lastRightDownImage):
                 Logger.debug('MediaCanvasPane.handleImageClick(): Context menu on %s' % target.getPath())
                 menu = target.getContextMenu()  # create context menu for selected Entry
+                Logger.debug('MediaCanvasPane.handleImageClick(): Menu''s entry is %s' % menu.currentEntry)
                 self.PopupMenu(menu)  # let user select item, and execute its function
                 menu.Destroy()  # clear context menu
                 self.lastRightDownImage = None

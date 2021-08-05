@@ -364,8 +364,9 @@ class ImportDialog(wx.Dialog):
         self.Bind(wx.EVT_TEXT, self.onDirectoryChanged, self.importDirectoryField)
         hBox.Add(self.importDirectoryField, 
                  proportion=1,
-                 flag=(wx.EXPAND |  # EXPAND cannot be combined with VERTICAL
-                       wx.ALIGN_CENTER_VERTICAL))
+                 flag=(wx.EXPAND  # EXPAND cannot be combined with VERTICAL
+                       # | wx.ALIGN_CENTER_VERTICAL)
+                       ))
         self.importDirectoryBrowseButton = wx.Button(self, GUIId.BrowseImportDirectory)
         self.importDirectoryBrowseButton.SetLabel(GUIId.FunctionNames[GUIId.BrowseImportDirectory])
         self.Bind(wx.EVT_BUTTON, self.onBrowse, self.importDirectoryBrowseButton)
@@ -611,6 +612,15 @@ class ImportDialog(wx.Dialog):
         """In addition to superclass, store parameter settings if user hits OK.
         """
         result = super(ImportDialog, self).ShowModal()
+        if (result == wx.ID_OK):
+            self.parameters.storeSettings()
+        return(result)
+
+
+    def Show(self):
+        """In addition to superclass, store parameter settings if user hits OK.
+        """
+        result = super(ImportDialog, self).Show()
         if (result == wx.ID_OK):
             self.parameters.storeSettings()
         return(result)

@@ -34,7 +34,11 @@ Logger = logging.getLogger(__name__)
 
 # Class
 class MediaFilter(Observable):
-
+    """
+    
+    Model.MediaCollection specifies the collection (to derive filters)
+    String (optional) specifies the name of the filter to load
+    """
 
 
 # Constants
@@ -54,6 +58,8 @@ class MediaFilter(Observable):
                             ConditionKeyUnknownTagsProhibited,
                             ConditionKeyMediaTypesRequired,
                             ConditionKeyMediaTypesProhibited]
+    
+    Filenames = ['one', 'two']
 
 
 # Class Methods
@@ -75,7 +81,7 @@ class MediaFilter(Observable):
 
 
 # Lifecycle 
-    def __init__ (self, model):
+    def __init__ (self, model, *args):
         """
         """
         # inheritance
@@ -88,6 +94,17 @@ class MediaFilter(Observable):
         self.prohibitedUnknownTags = set()
         self.requiredMediaTypes = set()
         self.prohibitedMediaTypes = set()
+        # 
+        if (0 < len(args)):  # args[0] contains filename to load filter from
+            Logger.debug('MediaFiler.__init__(): Loading file "%s"' % args[0])
+
+
+    def saveFile(self):
+        """Store a representation of self.
+        
+        If self has no name yet, ask the user for a name. 
+        """
+        pass
 
 
 
@@ -229,6 +246,12 @@ class MediaFilter(Observable):
             result = result[:-2]
         result = (self.__class__.__name__ + '(' + result + ')') 
         return(result)
+
+
+    def getCollectionModel(self):
+        """Return the MediaCollection for which self is a MediaFilter.
+        """
+        return(self.model)
 
 
     def isActive(self):

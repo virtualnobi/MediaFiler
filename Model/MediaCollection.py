@@ -187,7 +187,7 @@ class MediaCollection(Observable, Observer):
         else:
             self.organizedByDate = True
             self.organizationStrategy = OrganizationByDate
-            filterClass = FilterByDate  # MediaFilter
+            filterClass = FilterByDate  
         self.organizationStrategy.setModel(self)
         processIndicator.beginStep(_('Reading tag definitions'))
         self.classHandler = MediaClassHandler(Installer.getClassFilePath())
@@ -470,6 +470,26 @@ class MediaCollection(Observable, Observer):
                                      _('media'),
                                      ((' (%s filtered)' % self.getFilteredEntriesCount()) if (self.getFilter().isActive()) else ''), 
                                      self.organizationStrategy.getDescription()))
+        return(result)
+
+
+    def getTagOccurrences(self):
+        """Count occurrences of tags and return a mapping of tags to numbers. 
+        
+        Return dict mapping String to Number
+        """
+        counting = dict()
+        for entry in self: 
+            for tag in entry.getTags():
+                if (tag in counting):
+                    counting[tag] = (counting[tag] + 1)
+                else:  # tag not yet seen
+                    counting[tag] = 1
+        tags = list(counting)
+        tags.sort()
+        result = dict()
+        for tag in tags:
+            result[tag] = counting[tag]
         return(result)
 
 

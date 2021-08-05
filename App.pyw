@@ -292,6 +292,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
 # TODO:        tools_menu.Append (GUIId.GenerateThumbnails, GUIId.FunctionNames[GUIId.GenerateThumbnails])
 #        tools_menu.AppendSeparator()
         self.toolsMenu.Append(GUIId.RenameTag, GUIId.FunctionNames[GUIId.RenameTag])
+        self.toolsMenu.Append(GUIId.CountTags, GUIId.FunctionNames[GUIId.CountTags])
         self.toolsMenu.Append(GUIId.EditClasses, GUIId.FunctionNames[GUIId.EditClasses])
         menuItem = wx.MenuItem(self.toolsMenu, GUIId.EditNames, GUIId.FunctionNames[GUIId.EditNames])
         self.menuItemsByName.append(menuItem)
@@ -355,6 +356,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.Bind (wx.EVT_MENU, self.onRemoveNew, id=GUIId.RemoveNew)
         # - tools menu
         self.Bind(wx.EVT_MENU, self.onRenameTag, id=GUIId.RenameTag)
+        self.Bind(wx.EVT_MENU, self.onCountTags, id=GUIId.CountTags)
         self.Bind(wx.EVT_MENU, self.onEditClasses, id=GUIId.EditClasses)
         self.Bind(wx.EVT_MENU, self.onEditNames, id=GUIId.EditNames)
         self.Bind(wx.EVT_MENU, self.onLoggingChanged, id=GUIId.ManageLogging, id2=(GUIId.ManageLogging + GUIId.MaxNumberLogging))
@@ -634,9 +636,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
                         logDialog = wx.lib.dialogs.ScrolledMessageDialog(self, _('Import log too large to display.\n\nImport has succeeded.'), _('Import Report'), style=wx.RESIZE_BORDER)
                     if (not importParameters.getTestRun()):
                         self.setModel(self.model.rootDirectory, processIndicator)
-                    logDialog.Maximize(True)  # logDialog.SetSize(wx.Size(1000,600))  # TODO: make dialog resizable
-                    logDialog.ShowModal()
-                    logDialog.Destroy()
+#                    logDialog.Maximize(True) 
+                    logDialog.SetMinSize(wx.Size(1000,600))  # TODO: make dialog draggable, it lacks title bar
+                    logDialog.EnableCloseButton()
+                    logDialog.EnableMaximizeButton()
+                    logDialog.Show()
+#                    logDialog.Destroy()
                     message = (messageTemplate % (dialog.getParameterObject().getNumberOfImportedFiles(), 
                                                   dialog.getParameterObject().getImportDirectory()))
             wx.GetApp().setInfoMessage(message)
@@ -730,7 +735,29 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 result = None
         dlg.Destroy()
 
-    
+
+    def onCountTags(self, event):
+        """Count tag occurrences and show in Dialog
+        """
+        collectionSize = self.model.getCollectionSize()
+        tagOccurrences = self.model.getTagOccurrences()
+        msg = ''
+        classNames = self.model.getClassHandler().getClassNames()
+        for className in classNames:
+            classOccurrence = 0
+            classMsg = ''
+            for tag in self.model.getClassHandler().getElementsOfClassByName(className):
+                if (tag in tagOccurrences):
+                    classOccurrence = (classOccurrence + tagOccurrences[tag])
+                    classMsg = (classMsg + '%-20s %d\n' % (tag, tagOccurrences[tag]))
+                else:
+                    classMsg = (classMsg + ('%-20s unused\n' % tag))
+            msg = (msg + ('%-20s %d %1.2f\n' % (className, classOccurrence, (classOccurrence / collectionSize))) + classMsg + '--\n')
+        dlg = wx.lib.dialogs.ScrolledMessageDialog(self, msg, _('Tag Occurrences'))
+        dlg.ShowModal()
+        dlg.Destroy()
+
+
     def onEditClasses (self, event):
         """Start external editor on class file.
         """

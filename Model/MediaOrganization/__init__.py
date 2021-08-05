@@ -440,6 +440,7 @@ class MediaOrganization(object):
         """
         The AssignNumber function will be added in subclasses, as it's not applicable to singletons organized by name.
         """
+        raise BaseException('MediaOrganization.extendContextMenu(): Deprecated')
         pass
 
 

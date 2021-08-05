@@ -133,8 +133,11 @@ StopSlideshow = generateWxIdForLabel(_('Stop Slideshow'))
 ResumeSlideshow = generateWxIdForLabel(_('Resume Slideshow'))
 QuickSlideshow = generateWxIdForLabel(_('Present Quickly'))
 SlowSlideshow = generateWxIdForLabel(_('Present Slowly'))
+# MediaFilterPane
+SaveFilter = generateWxIdForLabel(_('Save Filter'))
+LoadFilter = generateWxIdForLabel(_('Load Filter'))
 
-## Perspectives
+## Perspectives 
 #-FirstPerspective = wx.ID_HIGHEST + PerspectiveFirstStart  # load first perspective, subsequent codes used by other perspectives
 LoadPerspective = wx.NewId()  # load first perspective
 for i in range(MaxNumberPerspectives - 1):  # reserve additional menu idemts for more perspectives
@@ -152,6 +155,7 @@ GenerateThumbnails = generateWxIdForLabel(_('Generate Thumbnail Directory'))
 RenameTag = generateWxIdForLabel(_('Rename Tag'))
 EditClasses = generateWxIdForLabel(_('Edit Tag Classes'))
 EditNames = generateWxIdForLabel(_('Edit Names'))
+CountTags = generateWxIdForLabel(_('Count Tag Occurrences'))
 HarvestURLs = generateWxIdForLabel(_('Harvest from URL...'))
 ManageLogging = generateWxIdForLabel(_('Manage Logging...'))
 for i in range(MaxNumberLogging - 1):

@@ -192,7 +192,6 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         if (self.ignoreSelectionChanges): 
             pass
         else:
-#             entry = self.GetItemData(event.GetItem()).GetData()
             entry = self.GetItemData(event.GetItem())  # wxPython 4
             Logger.debug('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry)
             self.ignoreSelectionChanges = True
@@ -205,7 +204,6 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
     def onContextMenuRequest (self, event):
         """User pressed context menu button in the tree.
         """
-#         entry = self.GetItemData(event.GetItem()).GetData()
         entry = self.GetItemData(event.GetItem())  # wxPython 4
         menu = entry.getContextMenu()  # create context menu for current Entry
         self.PopupMenu(menu)  # let user select item
@@ -217,9 +215,14 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         
         Route to selected Entry.
         """
-        Logger.debug('MediaTreePane.onContextMenuSelection(): User selected item %s' % event.Id)
         wx.GetApp().startProcessIndicator()
-        message = event.EventObject.currentEntry.runContextMenuItem(event.Id, self)
+        try:
+            entry = event.EventObject.currentEntry
+        except:
+            Logger.debug('MediaTreePane.onContextMenuSelection(): No currentEntry for event, routing to parent event')
+            entry = event.EventObject.Parent.currentEntry
+        Logger.debug('MediaTreePane.onContextMenuSelection(): User selected event id %s on entry %s' % (event.Id, entry))
+        message = entry.runContextMenuItem(event.Id, self)
         wx.GetApp().stopProcessIndicator(message)
 
 
@@ -245,8 +248,11 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         self.Freeze()
         if (aspect == 'name'):  # name of an Entry changed
             node = observable.getTreeItemID()
+            self.logVisibility('MediaTreePane.updateAspect(): before reordering', node)
             self.SetItemText(node, observable.getIdentifier())
-            self.SortChildren(self.GetItemParent(node))
+            self.logVisibility('MediaTreePane.updateAspect(): after change of text', node)
+            # self.SortChildren(self.GetItemParent(node))
+            self.logVisibility('MediaTreePane.updateAspect(): after sort', node)
             self.EnsureVisible(node)
             Logger.debug('MediaTreeCtrl.updateAspect(): Changed name of %s' % observable)
         elif (aspect == 'remove'):  # Entry deleted
@@ -315,27 +321,22 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         if (isinstance(self, MediaTreeCtrl)):
             item = args[0]
             if (self.GetItemData(item)):
-#                 entry = self.GetItemData(item).GetData()
+                self.logVisibility('MediaTreePane.EnsureVisible() - inside', args[0])
                 entry = self.GetItemData(item)  # wxPython 4
-                Logger.debug('MediaTreeCtrl.EnsureVisible(%s)' % entry)
-                Logger.debug('MediaTreeCtrl.EnsureVisible(): IsVisible()=%s' % self.IsVisible(item))
-                boundingRect = self.GetBoundingRect(item)
-                Logger.debug('MediaTreeCtrl.EnsureVisible(): GetBoundingRect()=%s' % boundingRect)
-                Logger.debug('MediaTreeCtrl.EnsureVisible(): GetClientSize()=%s' % self.GetClientSize())
-                Logger.debug('MediaTreeCtrl.EnsureVisible(): GetClientRect()=%s' % self.GetClientRect())
-                Logger.debug('MediaTreeCtrl.EnsureVisible(): GetSize()=%s' % self.GetSize())
-                if ((boundingRect == None)
-                    or (boundingRect[0] < 0) 
-                    or (boundingRect[1] < 0)):  # (not self.IsVisible(args[0])):
+                # boundingRect = self.GetBoundingRect(item)
+                # if ((boundingRect == None)
+                    # or (boundingRect[0] < 0) 
+                    # or (boundingRect[1] < 0)):  # (not self.IsVisible(args[0])):
+                if (not self.IsVisible(args[0])):
 #                     previousEntry = self.GetPrevVisible(item)
 #                     if (previousEntry.IsOk()):
 #                         Logger.debug('MediaTreeCtrl.EnsureVisible: invisible, scrolling to previous %s' % previousEntry)
 #                         wx.TreeCtrl.EnsureVisible(previousEntry)
 #                     else:
-                    Logger.debug('MediaTreeCtrl.EnsureVisible: invisible, scrolling to %s' % entry)
+                    Logger.debug('MediaTreeCtrl.EnsureVisible(): invisible, scrolling to %s' % entry)
                     wx.TreeCtrl.EnsureVisible(self, *args, **kwargs)
                     wx.TreeCtrl.ScrollTo(self, item)
-                    Logger.debug('MediaTreeCtrl.EnsureVisible(): GetBoundingRect() is now %s' % self.GetBoundingRect(item))                    
+                    self.logVisibility('MediaTreeCtrl.EnsureVisible() - made visible', args[0])                    
                 else:
                     Logger.debug('MediaTreeCtrl.EnsureVisible(): %s already visible' % entry)
             else:
@@ -343,6 +344,29 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         else:
             Logger.debug('MediaTreeCtrl.EnsureVisible(): self is a dead object')
 
+
+    def logVisibility(self, intro, item):
+        """
+        String intro to print as identifying information
+        TreeItem item whose visibility shall be logged 
+        """
+        entry = self.GetItemData(item)
+        Logger.debug('\n%s - visibility of %s' % (intro, entry))
+        Logger.debug('TreeCtrl.IsVisible(item)=%s' % self.IsVisible(item))
+        if (self.IsVisible(item)):
+            Logger.debug('TreeCtrl.GetPrevVisible(item)=%s' % self.GetPrevVisible(item))
+        else:
+            Logger.debug('Cannot determine GetPrevVisible() because IsVisible() is False')
+        boundingRect = self.GetBoundingRect(item)
+        Logger.debug('TreeCtrl.GetBoundingRect(item)=(x, y, w, h)=%s' % boundingRect)
+        Logger.debug('TreeCtrl.GetClientSize()=%s' % self.GetClientSize())
+        Logger.debug('TreeCtrl.GetClientRect()=%s' % self.GetClientRect())
+        Logger.debug('TreeCtrl.GetSize()=%s' % self.GetSize())
+        if ((boundingRect == None)
+            or (boundingRect[0] < 0) 
+            or (boundingRect[1] < 0)):  
+            Logger.debug('Bounding Rectangle illegal')
+        
 
     def getDescendants (self, treeItemID):
         """Return the set of all descendants (direct children and, recursively, their descendants) of treeItemID.

@@ -943,7 +943,8 @@ class OrganizationByDate(MediaOrganization):
         line = wx.StaticLine(dlg,
                              size=(20,-1), 
                              style=wx.LI_HORIZONTAL)
-        dlgSizer.Add(line, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP, 5)
+#         dlgSizer.Add(line, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP, 5)
+        dlgSizer.Add(line, 0, wx.GROW|wx.RIGHT|wx.TOP, 5)
         btnSizer = wx.StdDialogButtonSizer()        
         btn = wx.Button(dlg, wx.ID_OK)
         btn.SetDefault()
@@ -951,7 +952,8 @@ class OrganizationByDate(MediaOrganization):
         btn = wx.Button(dlg, wx.ID_CANCEL)
         btnSizer.AddButton(btn)
         btnSizer.Realize()
-        dlgSizer.Add(btnSizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+#         dlgSizer.Add(btnSizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        dlgSizer.Add(btnSizer, 0, wx.ALL, 5)
         dlg.SetSizerAndFit(dlgSizer)
         # show dialog
         if (dlg.ShowModal() == wx.ID_OK):

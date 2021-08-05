@@ -113,7 +113,8 @@ class OrganizationByName(MediaOrganization):
         entry = cls.ImageFilerModel.getEntry(name=kwargs['name'])
         if ((entry
              and (entry.isGroup()))  # a group already exists, ensure scene parameter is defined 
-            or ('scene' in kwargs)
+            or (('scene' in kwargs)
+                 and kwargs['scene'])
             or ('makeUnique' in kwargs)):  # no entry exists, but a group path is required
             if (('scene' in kwargs)
                 and (kwargs['scene'] != None)
@@ -220,6 +221,7 @@ class OrganizationByName(MediaOrganization):
         if (group == None):
             group = Group(cls.ImageFilerModel, path)  # TODO: recursion unlimited when "random name" 
             groupPathPattern = os.path.join(cls.ImageFilerModel.getRootDirectory(), '[a-z]')
+            print('OrganizationByName.getGroupFromPath(): Searching for path "%s"' % groupPathPattern)
             match = re.match(groupPathPattern, path)
             if (match):
                 parent = cls.ImageFilerModel.getRootEntry()
@@ -523,6 +525,7 @@ class OrganizationByName(MediaOrganization):
                                newText=GUIId.FunctionNames[GUIId.AssignNumber], 
                                newMenu=self.deriveRenumberSubMenu())
             sceneMenu = Menu()
+            sceneMenu.currentEntry = self.getContext()
             sceneId = GUIId.SelectScene
             for scene in self.getContext().getParentGroup().getOrganizer().getScenes():
                 if (sceneId <= (GUIId.SelectScene + GUIId.MaxNumberScenes)):  # respect max number of scenes in menu
@@ -569,10 +572,8 @@ class OrganizationByName(MediaOrganization):
                 else:  # name unused
                     if (not (self.isSingleton() 
                              or self.getContext().isGroup())):  # Single extracted out of a named Group
-                        if ('scene' in pathInfo):
-                            del pathInfo['scene']
-                        if ('number' in pathInfo):
-                            del pathInfo['number']
+                        pathInfo['scene'] = None
+                        pathInfo['number'] = None
                 resultingSelection = self.getContext().renameTo(processIndicator=wx.GetApp(), **pathInfo)  # TODO: move out to UI packages
                 if (resultingSelection):
                     self.getModel().setSelectedEntry(resultingSelection)
