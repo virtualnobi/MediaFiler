@@ -10,8 +10,6 @@
 # from __future__ import print_function
 import time
 ## Contributed
-import wx
-# from wx.adv import SplashScreen
 import wx.adv
 ## nobi
 from nobi.wx.PhasedProgressBar import PhasedProgressBar 
@@ -45,6 +43,7 @@ class ProgressSplashApp(wx.App):
         String splashFilename names a BMP bitmap to show as splash image.
         Return True
         """
+        print('Creating ProgressSplashApp...')
         if (splashFilename):
             splashBitmap = wx.Bitmap(splashFilename, wx.BITMAP_TYPE_BMP)
             width, height = splashBitmap.GetSize()
@@ -72,6 +71,7 @@ class ProgressSplashApp(wx.App):
                 wx.SafeYield()
         self.currentPercentage = 0.0
         self.remainingStops = [0.0, 100.0]
+        print('... created ProgressSplashApp')
         return(True)
 
 

@@ -77,27 +77,34 @@ class Image(Single):
     def getMetadataFromPath(cls, path):
         """Return metadata from the given file, if it exists.
 
+        Supports JPG/EXIF.
+
         Credits:
         https://github.com/LeoHsiao1/pyexiv2#usage
         
         Return dict (empty if no metadata available)
         """
+        result = {}
+        # TODO: verify it's JPG
         try:
             Logger.debug('Image.getMetadataFromPath(): Reading metadata from "%s"' % path)
             image = pyexiv2.Image(path)
+            # image = pyexiv2.Image(path, encoding='ISO-8859-1')  # encoding parameter does not exist
             result = image.read_exif()  # {'Exif.Image.DateTime': '2019:06:23 19:45:17', 'Exif.Image.Artist': 'TEST', ...}
+            # image.close()  # recommended to prevent memory leak, but does not exist
             Logger.debug('Image.getMetadataFromPath(): Metadata is %s' % result)
-        except:
-            Logger.debug('Image.getMetadataFromPath(): No metadata found')
-            result = {}
+        except Exception as e:
+            Logger.warn('Image.getMetadataFromPath(): Exception while reading metadata:\n%s' % e)
         return(result)
 
 
     @classmethod
     def getRotationFromMetadata(cls, metadata):
         """Return rotation applied to original (file) image.
+        
+        Supports JPG/EXIF.
                 
-        Must be a class method to be useful during import.
+        Is a class method to be useful during import.
         
         dict metadata contains JPG/EXIF metadata
         Returns 'N' = normal, no rotation
@@ -125,7 +132,7 @@ class Image(Single):
     def getRawImageFromPath(cls, aMediaCollection, path):
         """Return a raw image to represent the media content of the given file.
                 
-        Must be a class method to be useful during import.
+        Is a class method to be useful during import.
         
         Credits for JPG/EXIF rotation: 
         https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
@@ -135,7 +142,7 @@ class Image(Single):
         Return wx.Image or None
         """
         (_, extension) = os.path.splitext(path)
-        extension = extension[1:].lower()
+        extension = extension[1:].lower()  # normalize by removing leading dot and converting to lowercase
         imageType = None
         rawImage = None
         rotation = 'N'  # N: normal, L: left, R: right, M: mirror

@@ -18,7 +18,6 @@ from nobi.ObserverPattern import Observer
 import UI
 from UI import GUIId
 from Model.Single import ImageBitmap
-from ast import Num
 
 
 
@@ -177,7 +176,7 @@ class MediaCanvas(wx.Panel, Observer):
                 displayedEntries = self.entry.getEntriesForDisplay()
                 self.sizeAndDisplayEntries(displayedEntries, progressIndicator=wx.GetApp())
             else:
-                print('MediaCanvasPane.onResize(): Ignored because unchanged')
+                print('MediaCanvasPane.onResize(): Ignored because size and selection unchanged')
 
 
 # Inheritance - ObserverPattern
@@ -235,7 +234,7 @@ class MediaCanvas(wx.Panel, Observer):
             Logger.error('MediaCanvasPane.calculateGrid(): Pane width or height are zero!')
             raise ValueError('Pane width (%s) or height(%s) are zero!' % (self.width, self.height))
         canvasAspect = (float(self.width) / float(self.height))
-        print('For %s entries and window aspect %f...' % (numberOfImages, canvasAspect))
+        # print('For %s entries and window aspect %f...' % (numberOfImages, canvasAspect))
         if (numberOfImages == 1):  # one image, 1x1 grid
             self.rows = 1
             self.cols = 1

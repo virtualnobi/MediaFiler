@@ -154,9 +154,7 @@ class Movie(Single):
             try:
                 args = [ffmpeg, u'-i', path]
                 Logger.debug('Movie.getDurationFromPath(): Calling "%s"' % args)
-#                 proc = subprocess.Popen(args, stderr=subprocess.PIPE)
-#                 (_, result) = proc.communicate()
-                output = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout  # Python 3
+                output = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
                 m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', output)
                 if (m == None):
                     Logger.warning('Movie.getDurationFromPath(): Cannot determine duration for "%s"!' % path)
@@ -172,7 +170,7 @@ class Movie(Single):
             except Exception as e:
                 Logger.warning('Movie.getDurationFromPath(): Cannot determine duration due to error:\n%s' % e)
         else:
-            Logger.warning('Movie.getDurationFromPath(): No ffmpeg specified with option "%s"' % Movie.ConfigurationOptionFfmpeg)
+            Logger.warning('Movie.getDurationFromPath(): No ffmpeg specified with setting "%s"' % Movie.ConfigurationOptionFfmpeg)
         return(self.duration)
 
 

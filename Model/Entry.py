@@ -114,7 +114,8 @@ class Entry(Observable):
     def getMetadataFromPath(cls, path):  # @UnusedVariable
         """Return an empty metadata dictionary for media at path.
         """
-        return({})
+        # return({})
+        raise NotImplementedError()
 
 
 
@@ -132,7 +133,7 @@ class Entry(Observable):
         self.filteredFlag = False  # initially, no entry is filtered
         self.treeItemID = None  # not inserted into MediaTreePane yet
         self.bitmap = None
-        self.metadata = None  # for lazy loading
+        # self.metadata = None  # for lazy loading
         self.initFromPath(path)
         Logger.debug('Entry(): Created %s' % self)
 
@@ -349,22 +350,16 @@ class Entry(Observable):
         
         Return String 
         """
-#         result = ''
-#         elementStart = self.getFilename().find('.')
-#         if (0 <= elementStart):
-#             result = self.getFilename()[:elementStart]
-#         else:
-#             result = self.getFilename()
-#         return(result)
         return(self.getFilename())
 
 
     def getMetadata(self):
         """Lazily load metadata for self from file. 
         """
-        if (not self.metadata):
-            self.metadata = self.__class__.getMetadataFromPath(self.getPath())
-        return(self.metadata)
+        # if (not self.metadata):
+        #     self.metadata = self.__class__.getMetadataFromPath(self.getPath())
+        # return(self.metadata)
+        raise NotImplementedError()
 
 
     def getResolution(self):

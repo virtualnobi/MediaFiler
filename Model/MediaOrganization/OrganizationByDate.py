@@ -17,7 +17,7 @@ from collections import OrderedDict
 # import exifread
 # import wx
 import wx.adv
-import wx.lib.calendar as wx_calendar
+#import wx.lib.calendar as wx_calendar
 ## nobi
 from nobi.PartialDateTime import PartialDateTime
 from nobi.SortedCollection import SortedCollection
@@ -300,13 +300,7 @@ class OrganizationByDate(MediaOrganization):
                       'Software': 'Paint Shop Photo Album'}
         if ((os.path.isfile(path)) 
             and (path[-4:].lower() == '.jpg')): 
-#             with open(path, "rb") as f:
-#                 try:
-#                     exifTags = exifread.process_file(f)
-#                 except:
-#                     Logger.debug('OrganizationByDate.deriveDateFromFile(): Cannot read EXIF data from "%s"!' % path)
-#                     return(None, None, None)
-            exifTags = Image.getMetadataFromPath(path)  # Python 3
+            exifTags = Image.getMetadataFromPath(path)
             for (tag, value) in exclusions.items():
                 if ((tag in exifTags)
                     and (0 <= exifTags[tag].find(value))):
@@ -560,7 +554,8 @@ class OrganizationByDate(MediaOrganization):
         MediaOrganization.__init__(self, anEntry, aPath)
         # internal state
         self.timeTaken = None  # for Singles: capture time
-        self.undoList = None  # for Groups: undo last reordering
+        self.reorderedGroup = None  # for Groups: last re-ordered group
+        self.undoReorderList = None  # for Groups: undo last reordering
 
 
 
@@ -630,17 +625,13 @@ class OrganizationByDate(MediaOrganization):
         
         Works for single images with EXIF info only.
         
+        TODO: Move to Single, and subclasses Image and Movie.
+        
         Return datetime.time or None
         """
         if (not self.timeTaken):
             if (self.getContext().getExtension() == 'jpg'): 
-#                 with open(self.getContext().getPath(), "rb") as f:
-#                     try:
-#                         exifTags = exifread.process_file(f)
-#                     except:
-#                         Logger.warning('OrganizationByDate.getTimeTaken(): cannot read EXIF data from "%s"!' % self.context.getPath())
-#                         return(None)
-                exifTags = self.getContext().getMetadata()  # Python 3
+                exifTags = self.getContext().getMetadata()
                 if (('Model' in exifTags)
                     and (exifTags['Model'] == 'MS Scanner')):
                     Logger.debug('OrganizationByDate.getTimeTaken(): Ignoring EXIF data because Model=MS Scanner')
@@ -653,13 +644,29 @@ class OrganizationByDate(MediaOrganization):
                     if ('DateTime' in key):
                         Logger.debug('OrganizationByDate.getTimeTaken(): Relevant EXIF tag "%s" in "%s"' % (key, self.context.getPath()))
                         value = str(exifTags[key])
-                        try:
-                            timestamp = datetime.datetime.strptime(value, '%Y:%m:%d %H:%M:%S')
-                        except ValueError:
-                            Logger.warning('OrganizationByDate.getTimeTaken(): EXIF tag "%s" contains illegal date %s' % (key, value))
-                        else:
+                        match = re.match('(\d\d\d\d):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)', value)
+                        timestamp = None
+                        if (match):
+                            (year, month, day, hour, minute, second) = match.groups()
+                            if (not (None in (year, month, day, hour, minute, second))):
+                                year = int(year)
+                                month = int(month)
+                                day = int(day)
+                                hour = int(hour)
+                                minute = int(minute)
+                                second = int(second)
+                                timestamp = datetime.datetime(year, month, day, hour, minute, second)
+                            else:
+                                Logger.warning('OrganizationByDate.getTimeTaken(): Invalid time "%s" in EXIF tag "%s" of file "%s"' % (value, key, self.getContext().getPath()))
+                        if (timestamp == None):
+                            try:
+                                timestamp = datetime.datetime.strptime(value, '%Y:%m:%d %H:%M:%S')
+                                timestamp = datetime.datetime.fromisoformat(value)
+                            except ValueError as e:
+                                Logger.warning('OrganizationByDate.getTimeTaken(): EXIF tag "%s" contains illegal date %s (Exception follows)\n%s' % (key, value, e))
+                        if (timestamp):
                             self.timeTaken = timestamp.time()
-                            Logger.debug('OrganizationByDate.getTimeTaken(): Recognized time %s in EXIF data of file "%s"\n' % (self.timeTaken, self.context.getPath())) 
+                            Logger.debug('OrganizationByDate.getTimeTaken(): Recognized time %s in EXIF data of file "%s"' % (self.timeTaken, self.context.getPath())) 
                             return(self.timeTaken)
                 Logger.info('OrganizationByDate.getTimeTaken(): No time found for "%s"' % self.context.getPath())
             else:
@@ -673,8 +680,9 @@ class OrganizationByDate(MediaOrganization):
         MediaFiler.Entry.Menu menu 
         Return nobi.wx.Menu (which is a wx.Menu)
         """
-        if (self.context.isGroup()):
-            if (self.undoList):
+        if (self.getContext().isGroup()):
+            if ((self.reorderedGroup == self.getContext()) 
+                and (self.undoReorderList)):
                 menu.insertAfterId(GUIId.SelectMoveTo,
                                    newText=GUIId.FunctionNames[GUIId.UndoReorder],
                                    newId=GUIId.UndoReorder)
@@ -697,7 +705,7 @@ class OrganizationByDate(MediaOrganization):
         elif (menuId == GUIId.UndoReorder):
             return(self.onUndoReorder(parentWindow))
         else:
-            self.undoList = None
+            self.undoReorderList = None
             return(super(OrganizationByDate, self).runContextMenuItem(menuId, parentWindow))
 
 
@@ -784,7 +792,10 @@ class OrganizationByDate(MediaOrganization):
             :
             organization-specific parameters
         Return the Entry to be selected after the renaming
+        
+        TODO: fold into superclass renameGroup()
         """
+        print('OrganizationByDate.renameGroup(): deprecated!')
         newYear = (newPathInfo['year'] if ('year' in newPathInfo) else None)
         newMonth = (newPathInfo['month'] if ('month' in newPathInfo) else None)
         newDay = (newPathInfo['day'] if ('day' in newPathInfo) else None)
@@ -799,6 +810,9 @@ class OrganizationByDate(MediaOrganization):
             if (not newParent):
                 newParent = Group.createAndPersist(model, 
                                                    self.__class__.constructPath(year=newYear, month=newMonth, day=newDay))
+        otherNewParent = self.findGroupFor(newPathInfo)
+        if (newParent != otherNewParent):
+            print('OrganizationByDate.renameGroup(): Different new parents found!')
         # move subentries to new group
         for subEntry in self.getContext().getSubEntries(filtering=filtering):
             pathInfo = subEntry.getOrganizer().getPathInfo()
@@ -840,8 +854,7 @@ class OrganizationByDate(MediaOrganization):
             if ('removeIllegalElements' in pathInfo):
                 newPathInfo['removeIllegalElements'] = pathInfo['removeIllegalElements'] 
             if ('elements' in pathInfo):
-                newTags = self.getModel().getClassHandler().combineTagsWithPriority(subEntry.getTags(),
-                                                                                    pathInfo['elements'])
+                newTags = self.getModel().getClassHandler().combineTagsWithPriority(subEntry.getTags(), pathInfo['elements'])
                 newPathInfo['elements'] = newTags 
             pair = (subEntry.getOrganizer(), newPathInfo)
             result.append(pair)
@@ -970,11 +983,11 @@ class OrganizationByDate(MediaOrganization):
                                _('Undo Reordering?'),
                                (wx.YES_NO | wx.ICON_INFORMATION))
         if (dlg.ShowModal() == wx.ID_YES):
-            if (self.getContext().model.renameList(self.undoList)):
+            if (self.getContext().model.renameList(self.undoReorderList)):
                 result = _('Reordering undone')
             else:
                 result = _('Undoing reordering failed!')
-            self.undoList = None            
+            self.undoReorderList = None            
         dlg.Destroy()
         return(result)
 
@@ -984,74 +997,77 @@ class OrganizationByDate(MediaOrganization):
     def reorderByTime(self, handleUntimedPolicy, stepWidth):
         """Reorder subentries of self's context by time taken, earlierst first.
         
-        When renumbering, leave stepWidth numbers free.
+        Increment numbers by stepWidth.
         
         Media without a time taken (i.e., videos and images without EXIF info) are sorted according to handleUntimedPolicy:
-        0: they appear at top, in current relative order
-        1: they move with their predecessor
-        2: they appear at bottom, in current relative order
-        
-        Media without a time taken are moved to the following microseconds, depending on handleUntimedPolicy.
-        If these are used by other media, the resulting sort order may be incorrect. 
-        0: The first microseconds of the day 
-        1: As many microsecond(s) after the last time taken as there are media without time taken
-        2: The first microseconds of the last second of the day 
+        ReorderSelectTop: 0: they appear at top (first microseconds of day), in current relative order
+        ReorderSelectFollow: 1: they move with their predecessor
+        ReorderSelectBottom: 2: they appear at bottom (last microseconds of day), in current relative order
         
         Number handleUntimedPolicy
         Number stepWidth
         """
         if (stepWidth < 1):
-            raise ValueError('stepWidth must be greater 0')
-        sortedEntries = SortedCollection(key=itemgetter(1))
+            raise ValueError('OrganizationByDate.reorderByTime(): stepWidth must be greater than 0')
+        if (not (handleUntimedPolicy in [OrganizationByDate.ReorderSelectTop,
+                                    OrganizationByDate.ReorderSelectFollow, 
+                                    OrganizationByDate.ReorderSelectBottom])):
+            raise ValueError('OrganizationByDate.reorderByTime(): Illegal policy %d to handle media without timestamp!' % handleUntimedPolicy)
+        Logger.debug('OrganizationByDate.reorderByTime(): Reordering subentries of %s' % self.getContext())
+        resorted = SortedCollection(key=itemgetter(1))
         nextTimeForUntimedMedia = datetime.time(hour=0, minute=0, second=0, microsecond=1)
-        untimedMediaAtBottom = []
-        for entry in [e for e in self.context.getSubEntries(False) if (not e.isGroup())]:
-            sortTime = entry.organizer.getTimeTaken()
-            if (sortTime):
+        untimedMediaAtBottom = [] # 
+        for subEntry in [e for e in self.getContext().getSubEntries(False) if (not e.isGroup())]:
+            sortTime = subEntry.organizer.getTimeTaken()
+            if (sortTime):  # entry has a timestamp
+                Logger.debug('OrganizationByDate.reorderByTime(): Found %s for "%s"' % (sortTime, subEntry.getPath()))
+                resorted.insert((subEntry, sortTime))
                 if (handleUntimedPolicy == OrganizationByDate.ReorderSelectFollow):
                     nextTimeForUntimedMedia = datetime.time(hour=sortTime.hour,
                                                             minute=sortTime.minute,
                                                             second=sortTime.second,
                                                             microsecond=1)
-            else:
+                    if (nextTimeForUntimedMedia <= sortTime):
+                        Logger.error('Expected %s <= %s, but that''s false' % (sortTime, nextTimeForUntimedMedia))
+            else:  # entry has no timestamp
                 if (handleUntimedPolicy == OrganizationByDate.ReorderSelectTop):
-                    sortTime = nextTimeForUntimedMedia
+                    Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (nextTimeForUntimedMedia, subEntry.getPath()))
+                    resorted.insert((subEntry, nextTimeForUntimedMedia))
                     nextTimeForUntimedMedia = datetime.time(hour=nextTimeForUntimedMedia.hour,
                                                             minute=nextTimeForUntimedMedia.minute,
                                                             second=nextTimeForUntimedMedia.second,
                                                             microsecond=(nextTimeForUntimedMedia.microsecond + 1))
-                    Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (sortTime, entry.getPath()))
                 elif (handleUntimedPolicy == OrganizationByDate.ReorderSelectFollow):                    
-                    sortTime = nextTimeForUntimedMedia
+                    Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (nextTimeForUntimedMedia, subEntry.getPath()))
+                    resorted.insert((subEntry, nextTimeForUntimedMedia))
                     nextTimeForUntimedMedia = datetime.time(hour=nextTimeForUntimedMedia.hour,
                                                             minute=nextTimeForUntimedMedia.minute,
                                                             second=nextTimeForUntimedMedia.second,
                                                             microsecond=(nextTimeForUntimedMedia.microsecond + 1))
-                    Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (sortTime, entry.getPath()))
-                elif (handleUntimedPolicy == OrganizationByDate.ReorderSelectBottom):
-                    untimedMediaAtBottom.append(entry)
-                else:
-                    raise ValueError('Illegal policy %d to handle media without timestamp!' % handleUntimedPolicy)
-            if (sortTime):
-                sortedEntries.insert((entry, sortTime))
-        for entry in untimedMediaAtBottom:
+                else:  # (handleUntimedPolicy == OrganizationByDate.ReorderSelectBottom):
+                    Logger.debug('OrganizationByDate.reorderByTime(): Moving "%s" to end' % subEntry.getPath())
+                    untimedMediaAtBottom.append(subEntry)
+        for subEntry in untimedMediaAtBottom:
             sortTime = datetime.time(23, 
                                      59,  
                                      59, 
-                                     (100000 - len(untimedMediaAtBottom) + untimedMediaAtBottom.index(entry)))
-            sortedEntries.insert((entry, sortTime))
+                                     (100000 - len(untimedMediaAtBottom) + untimedMediaAtBottom.index(subEntry)))
+            Logger.debug('OrganizationByDate.reorderByTime(): Using %s for "%s"' % (sortTime, subEntry.getPath()))
+            resorted.insert((subEntry, sortTime))
+        Logger.debug('OrganizationByDate.reorderByTime(): sorted %s subentries' % len(resorted))
         newIndex = 1
         doList = []
-        self.undoList = []
-        for (entry, time) in sortedEntries:
-            pathInfo = entry.getOrganizer().getPathInfo()
+        self.undoReorderList = []
+        for (subEntry, time) in resorted:
+            pathInfo = subEntry.getOrganizer().getPathInfo()
             pathInfo['number'] = newIndex
-            newPath = entry.getOrganizer().__class__.constructPath(**pathInfo)
+            newPath = subEntry.getOrganizer().__class__.constructPath(**pathInfo)
             newIndex = (newIndex + stepWidth)
-            if (entry.getPath() != newPath):
-                Logger.debug('OrganizationByDate.reorderByTime(): At %s, reordering\n   %s\n  >%s' % (time, entry.getPath(), newPath))
-                doList.append((entry, entry.getPath(), newPath))
-                self.undoList.append((entry, newPath, entry.getPath()))
+            if (subEntry.getPath() != newPath):
+                Logger.debug('OrganizationByDate.reorderByTime(): At %s, reordering\n   %s to\n  %s' % (time, subEntry.getPath(), newPath))
+                doList.append((subEntry, subEntry.getPath(), newPath))
+                self.undoReorderList.append((subEntry, newPath, subEntry.getPath()))
+        Logger.debug('OrganizationByDate.reorderByTime(): sorted %s subentries, now renaming' % len(resorted))
         if (self.context.model.renameList(doList)):
             return(_('%s media reordered') % len(doList))
         else:

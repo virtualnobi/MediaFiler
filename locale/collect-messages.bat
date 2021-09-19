@@ -3,6 +3,6 @@ REM echo off
 cd %~p0
 del /F MediaFiler.pot.old
 ren MediaFiler.pot MediaFiler.pot.old
-"c:\Program Files\Python\2.7\Tools\i18n\pygettext.py" -k N_ -o MediaFiler.pot ..\*.pyw ..\*.py ..\UI\*.py ..\Model\*.py ..\Model\MediaOrganization\*.py
-poedit
+"C:\Program Files\Python\3.8\Tools\i18n\pygettext.py" -k N_ -o MediaFiler.pot ..\*.pyw ..\*.py ..\UI\*.py ..\Model\*.py ..\Model\MediaOrganization\*.py
+C:\OpenSourcePrograms\Poedit\Poedit.exe
 pause

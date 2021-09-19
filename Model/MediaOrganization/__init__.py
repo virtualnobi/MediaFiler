@@ -577,9 +577,6 @@ class MediaOrganization(object):
         currentPathInfo = self.getPathInfo(filtering)
         for key in pathInfo:
             currentPathInfo[key] = pathInfo[key]
-#         # special case when renaming Groups with "new" scenes: Ensure media imported into Group gets unused numbers
-#         if (pathInfo['scene'] == MediaClassHandler.ElementNew):  # TODO: move to OrganizationByName
-#             currentPathInfo['makeUnique'] = True
         # change elements as required
         if (elements 
             or removeIllegalElements):
@@ -587,6 +584,9 @@ class MediaOrganization(object):
                 newElements = elements
             else:
                 newElements = self.getContext().getTags()
+            newElements2 = self.getModel().getClassHandler().combineTagsWithPriority(self.getContext().getTags(), elements)
+            if (newElements != newElements2):
+                print('MediaOrganization.renameSingle(): Different resulting tag sets (old: %s, new: %s)' % (newElements, newElements2))
             if (removeIllegalElements):
                 newElements = set(filter(self.__class__.ImageFilerModel.getClassHandler().isLegalElement, newElements))
             currentPathInfo['elements'] = newElements

@@ -56,6 +56,8 @@ def N_(message): return message
 
 
 
+print('Compiling MediaFiler...')
+
 class MediaFiler(wx.Frame, Observer, Observable):   
     """A Python 2.7 GUI application which lets you organize media (images and videos). 
     """
@@ -623,7 +625,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                     log = self.model.importImages(importParameters)
                 except WindowsError as exc: 
                     if (exc.winerror == 3):
-                        dlg = wx.MessageDialog(self, _('No files to import!'), _('Empty Directory'), (wx.OK | wx.ICON_INFORMATION))
+                        dlg = wx.MessageDialog(self, _('No files to import'), _('Empty Directory'), (wx.OK | wx.ICON_INFORMATION))
                         dlg.ShowModal()
                         dlg.Destroy()
                         message = _('No files to import')
@@ -977,6 +979,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
             self.progressbar.SetSize((rect.width-4, rect.height-4))
 
 
+print('Compiled MediaFiler, compiling MediaFilerApp...')
 
 class MediaFilerApp(ProgressSplashApp):
     """
@@ -986,6 +989,7 @@ class MediaFilerApp(ProgressSplashApp):
     def OnInit(self):
         """
         """
+        print('Creating MediaFilerApp...')
         self.duringOnInit = True
         fname = Installer.getSplashPath()
         ProgressSplashApp.OnInit(self, fname)
@@ -1018,6 +1022,7 @@ class MediaFilerApp(ProgressSplashApp):
             self.duringOnInit = False
         else:
             self.Exit()
+        print('...MediaFilerApp created')
         return(True)
 
 
@@ -1169,7 +1174,9 @@ class MediaFilerApp(ProgressSplashApp):
 
 
 # section: Executable script
+print('Compiled MediaFilerApp, starting __main__')
 if __name__ == "__main__":
     app = MediaFilerApp(False)
+    print('Created MediaFilerApp')
     app.MainLoop()
 

@@ -153,13 +153,15 @@ class MediaClassHandler(object):
         Set of String priorityTagSet
         Return Set of String
         """
+        Logger.debug('MediaClassHandler.combineTagsWithPriority(%s, %s):' % (tagSet, priorityTagSet))
         result = set(tagSet)
-        singleSelectionClasses = filter(lambda c: (not self.isMultipleClass(c)), self.getClasses())
         for priorityTag in priorityTagSet:
             priorityClass = self.getClassOfTag(priorityTag)
-            if (priorityClass in singleSelectionClasses):
+            if (not self.isMultipleClass(priorityClass)):
+                Logger.debug('MediaClassHandler.combineTagsWithPriority(): Removing tags of class %s', priorityClass)
                 result.difference_update(set(self.getElementsOfClass(priorityClass)))
             result.add(priorityTag)
+        Logger.debug('MediaClassHandler.combineTagsWithPriority(): yields %s' % result)
         return(result)
 
 
