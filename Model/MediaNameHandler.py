@@ -90,9 +90,8 @@ class MediaNameHandler(object):
     def isNameFree(self, name):
         """Return True if name is legal and unused.
         """
-        return(self.isNameLegal(name)
-               and ((name in self.freeNames)
-                    or (self.trimNumberFromName(name) in self.freeNames)))
+        return (self.isNameLegal(name)
+                and (name in self.freeNames))
 
 
     def getFreeName(self):

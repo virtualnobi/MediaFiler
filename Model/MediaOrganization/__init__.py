@@ -436,6 +436,12 @@ class MediaOrganization(object):
         return(result)
 
 
+    def requiresUniqueNumbering(self):
+        """By default, all Single media require a number to ensure uniqueness.
+        """
+        return(True)
+
+
     def extendContextMenu(self, menu):
         """
         The AssignNumber function will be added in subclasses, as it's not applicable to singletons organized by name.
@@ -601,12 +607,6 @@ class MediaOrganization(object):
             oldParent.remove()
         self.__class__.registerMoveToLocation(currentPathInfo)
         return(self.getContext())
-
-
-    def requiresUniqueNumbering(self):
-        """By default, all Single media requires a number to ensure uniqueness.
-        """
-        return(True)
 
 
     def renameGroup(self, processIndicator=None, filtering=False, **pathInfo):

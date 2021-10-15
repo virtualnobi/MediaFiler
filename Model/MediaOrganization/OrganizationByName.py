@@ -265,26 +265,20 @@ class OrganizationByName(MediaOrganization):
         Return String containing the legal name, or None if no names are free anymore. 
         """
         if (path.find(self.ImageFilerModel.getRootDirectory()) != 0):
-            print('OrganizationByName.deriveName(): Outside of root directory: "%s"' % path)
+            Logger.debug('OrganizationByName.deriveName(): Outside of root directory: "%s"' % path)
         else:
             path = path[len(self.ImageFilerModel.getRootDirectory()):]
-        newName = None # safe start state
+        newName = None
         # search for legal name in path
         words = self.ImageFilerModel.getWordsInPathName(path)
         for word in words: 
             word = word.lower()
-            #log.write(' checking "%s" for name-ness' % word)
             if (self.nameHandler.isNameLegal(word)):  # name given
                 if (newName == None):  # first name found
-                    #log.write(', accepting it as first name\n')
                     newName = word
                 else:  # already found a name, stick to it
-                    #log.write(', found it a second time\n')
                     if (newName != word):
                         log.write('\nFile "%s" contains names "%s" (chosen) and "%s" (ignored)\n' % (path, newName, word))
-            else:
-                #log.write(', no name :-(\n')
-                pass    
         # if none found, pick random one
         if (newName == None):  # no name found, randomly select unused one
             newName = self.nameHandler.getFreeName()
@@ -292,11 +286,14 @@ class OrganizationByName(MediaOrganization):
                 log.write('\nNo more free names.\n')
             else:
                 log.write('\nChoosing free name "%s" for file "%s"\n' % (newName, path))
-        elif (self.nameHandler.isNameFree(newName)):  # old name exists and is still free
+        elif (self.nameHandler.isNameFree(newName)):  # name exists and is still free
             log.write('\nFound free legal name "%s" in file "%s"\n' % (newName, path))
-            self.nameHandler.registerNameAsUsed(newName) 
-        else: # old name exists but is occupied
-            log.write('\nExisting name "%s" used in file "%s"\n' % (newName, path))
+            self.nameHandler.registerNameAsUsed(newName)  # TODO: When importing an empty directory with a legal name, this registers the name, although there are no media with this name
+        else: # name exists but is occupied
+            if (self.getModel().getEntry(name=newName)):  # name is used (also considering number if it exists)
+                log.write('\nExisting name "%s" used in file "%s"\n' % (newName, path))
+            else:  # name not used with this number
+                log.write('\nExisting name "%s" is used, but not with this number\n' % newName)
         return(newName)
 
 
@@ -666,6 +663,12 @@ class OrganizationByName(MediaOrganization):
         return(OrganizationByName.FormatScene % (-result))
 
 
+    def requiresUniqueNumbering(self):
+        """As an exception, singletons do not require a number for uniqueness.
+        """
+        return(not self.isSingleton())
+
+
 # Other API Funcions
     def findGroupFor(self, **pathInfo):
         """overwrite MediaOrganization.findGroupFor()
@@ -690,12 +693,37 @@ class OrganizationByName(MediaOrganization):
         return(result)
 
 
-
-
-    def requiresUniqueNumbering(self):
-        """As an exception, singletons do not require a number for uniqueness.
+    def renameSingle(self, filtering=False, elements=None, removeIllegalElements=False, **pathInfo):
+        """After renaming a singleton, register the old name as free and the new name as used. 
+        
+        overrides MediaOrganization.renameSingle
         """
-        return(not self.isSingleton())
+        oldName = self.getName()
+        result = super(OrganizationByName, self).renameSingle(filtering=filtering, elements=elements, removeIllegalElements=removeIllegalElements, **pathInfo)
+        if (self.isSingleton()
+            and (oldName != self.getName())):
+            print('OganizationByName.renameSingle(): Registering "%s" as free' % oldName)
+            self.nameHandler.registerNameAsFree(oldName)
+            print('OganizationByName.renameSingle(): Registering "%s" as used' % self.getName())
+            self.nameHandler.registerNameAsUsed(self.getName())
+        return result
+
+
+    def renameGroup(self, processIndicator=None, filtering=False, **pathInfo):
+        """After renaming a named group, register the old name as free and the new name as used. 
+        
+        overrides MediaOrganization.renameGroup
+        """
+        oldName = self.getName()
+        result = super(OrganizationByName, self).renameGroup(processIndicator=processIndicator, filtering=filtering, **pathInfo)
+        if (self.getContext().isGroup()
+            and (1 < len(self.getName()))  # named groups have names with more than one letter
+            and (oldName != self.getName())):
+            print('OganizationByName.renameSingle(): Registering "%s" as free' % oldName)
+            self.nameHandler.registerNameAsFree(oldName)
+            print('OganizationByName.renameSingle(): Registering "%s" as used' % self.getName())
+            self.nameHandler.registerNameAsUsed(self.getName())
+        return result
 
 
     def getRenameList(self, newParent, pathInfo, filtering=True):
@@ -822,7 +850,7 @@ class OrganizationByName(MediaOrganization):
         
         Returns String containing new name, or None if user cancelled. 
         """
-        dialog = wx.TextEntryDialog(parentWindow, 'Enter New Scene', 'Relabel Scene', '')
+        dialog = wx.TextEntryDialog(parentWindow, _('Enter New Scene'), _('Relabel Scene'), '')
         ok = True
         newSceneString = None
         while (ok 
@@ -844,7 +872,7 @@ class OrganizationByName(MediaOrganization):
                         dialog2 = wx.MessageDialog(parentWindow, 
                                                    (_('Scene "%s" already exists; move media to this scene anyway?') % newSceneString),
                                                    _('Confirmation'),
-                                                   wx.YES_NO | wx.ICON_INFORMATION)
+                                                   wx.YES_NO | wx.ICON_WARNING)
                         confirmed = (dialog2.ShowModal() == wx.ID_YES)
                         dialog2.Destroy()
                         if (not confirmed):

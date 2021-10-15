@@ -339,9 +339,6 @@ class MediaCollection(Observable, Observer):
                 and entry.getOrganizer().matches(**kwargs)):
                 return (entry)
             if (entry.isGroup()):
-                # TODO: possible performance improvement
-                #and ((name == None) or (name == entry.getName()))
-                #and ((year == None) or (year == entry.getYear()))
                 searching.extend(entry.getSubEntries(filtering))  # queue subentries of Group for searching                    
         return(None)
 

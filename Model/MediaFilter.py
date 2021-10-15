@@ -185,13 +185,14 @@ class MediaFilter(Observable):
         Logger.debug('MediaFilter.clear() finished as %s' % self)
 
 
-    def setFilterValueFor(self, conditionKey, conditionValue):
+    def setFilterValueFor(self, conditionKey, conditionValue, raiseChangedEvent=True):
         """Set the filter for the given condition to the given value.
         
         Translate the conditions represented by sets (of tags, or types) into None if empty set is passed
         
         String conditionKey must be in MediaFilter.getConditionKeys()
         Object conditionValue
+        Boolean raiseChangedEvent indicates that 'changed' and 'filterChanged' events shall be raised if appropriate (internal use only)
         """
         if (conditionKey in MediaFilter.ConditionKeysForSets):
             if (conditionValue):
@@ -203,9 +204,10 @@ class MediaFilter(Observable):
         if (conditionKey in self.__class__.getConditionKeys()):
             if (self.conditionMap[conditionKey] != conditionValue):
                 self.conditionMap[conditionKey] = conditionValue
-                self.changedAspect('changed')
-                if (self.active):
-                    self.changedAspect('filterChanged')
+                if (raiseChangedEvent):
+                    self.changedAspect('changed')
+                    if (self.active):
+                        self.changedAspect('filterChanged')
         else:
             raise ValueError('MediaFilter.setFilterValueFor(): Unknown condition key "%s"' % conditionKey)
 
@@ -357,7 +359,7 @@ class MediaFilter(Observable):
         for key in self.__class__.getConditionKeys():
             if ((key in kwargs)
                 and (kwargs[key] != self.conditionMap[key])):
-                self.setFilterValueFor(key, kwargs[key])
+                self.setFilterValueFor(key, kwargs[key], raiseChangedEvent=False)
                 changed = True
                 if (key in MediaFilter.ConditionKeysForSets):  # ensure values in a set-based condition are removed from complementary set-based condition
                     if (key == MediaFilter.ConditionKeyRequired):
@@ -373,7 +375,8 @@ class MediaFilter(Observable):
                     elif (key == MediaFilter.ConditionKeyMediaTypesProhibited):
                         complementaryKey = MediaFilter.ConditionKeyMediaTypesRequired
                     self.setFilterValueFor(complementaryKey, 
-                                           self.getFilterValueFor(complementaryKey).difference(self.getFilterValueFor(key)))
+                                           self.getFilterValueFor(complementaryKey).difference(self.getFilterValueFor(key)),
+                                           raiseChangedEvent=False)
         return changed 
 
 

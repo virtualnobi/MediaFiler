@@ -722,6 +722,11 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                 pass
         kwargs['required'] = requiredTags
         kwargs['prohibited'] = prohibitedTags
+        # This is a bad replacement for the above, as it prevents those categories to be removed from the filter - I think
+        # if (0 < len(requiredTags)):
+        #     kwargs['required'] = requiredTags
+        # if (0 < len(prohibitedTags)): 
+        #     kwargs['prohibited'] = prohibitedTags
         self.filterModel.setConditions(**kwargs)
         wx.EndBusyCursor()
 
