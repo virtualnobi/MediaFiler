@@ -157,9 +157,10 @@ class MediaClassHandler(object):
         result = set(tagSet)
         for priorityTag in priorityTagSet:
             priorityClass = self.getClassOfTag(priorityTag)
-            if (not self.isMultipleClass(priorityClass)):
-                Logger.debug('MediaClassHandler.combineTagsWithPriority(): Removing tags of class %s', priorityClass)
-                result.difference_update(set(self.getElementsOfClass(priorityClass)))
+            if (priorityClass and  # existing class = known tag
+                (not self.isMultipleClass(priorityClass))):
+                    Logger.debug('MediaClassHandler.combineTagsWithPriority(): Removing tags of class %s', priorityClass)
+                    result.difference_update(set(self.getElementsOfClass(priorityClass)))
             result.add(priorityTag)
         Logger.debug('MediaClassHandler.combineTagsWithPriority(): yields %s' % result)
         return(result)

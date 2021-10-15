@@ -71,6 +71,7 @@ class ImportParameterObject(object):
         self.log = StringIO()
         self.illegalElements = {}
         self.testRun = True
+        self.numberOfFilesToImport = 0
         self.numberOfImportedFiles = 0
         self.mediaMap = None
         self.processIndicator = None
@@ -179,6 +180,10 @@ class ImportParameterObject(object):
         self.keepUnknownTags = value
 
 
+    def setNumberOfFilesToImport(self, count):
+        self.numberOfFilesToImport = count
+
+
     def setNumberOfImportedFiles(self, count):
         self.numberOfImportedFiles = count
 
@@ -253,6 +258,10 @@ class ImportParameterObject(object):
 
     def getLog(self):
         return(self.log.getvalue())
+
+
+    def getNumberOfFilesToImport(self):
+        return self.numberOfFilesToImport
 
 
     def getNumberOfImportedFiles(self):

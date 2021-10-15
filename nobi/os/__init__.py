@@ -80,6 +80,22 @@ def makeUnique(path):
 #         return(path % '')
 
 
+def numberOfFiles(path, recursive=True):
+    """Return the number of files in a directory. By default, recurse into all subdirectories.
+    """
+    if (os.path.exists(path)):
+        result = 0
+        for entry in os.scandir(path):
+            if (entry.is_dir()):
+                if (recursive):
+                    result = (result + numberOfFiles(entry.path))
+            else:
+                result = (result + 1)
+        return result
+    else: 
+        raise 
+
+
 
 # Executable Script
 if __name__ == "__main__":

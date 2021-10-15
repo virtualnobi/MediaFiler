@@ -810,7 +810,7 @@ class OrganizationByDate(MediaOrganization):
             if (not newParent):
                 newParent = Group.createAndPersist(model, 
                                                    self.__class__.constructPath(year=newYear, month=newMonth, day=newDay))
-        otherNewParent = self.findGroupFor(newPathInfo)
+        otherNewParent = self.findGroupFor(**newPathInfo)
         if (newParent != otherNewParent):
             print('OrganizationByDate.renameGroup(): Different new parents found!')
         # move subentries to new group

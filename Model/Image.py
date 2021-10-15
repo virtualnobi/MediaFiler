@@ -94,7 +94,7 @@ class Image(Single):
             # image.close()  # recommended to prevent memory leak, but does not exist
             Logger.debug('Image.getMetadataFromPath(): Metadata is %s' % result)
         except Exception as e:
-            Logger.warn('Image.getMetadataFromPath(): Exception while reading metadata:\n%s' % e)
+            Logger.error('Image.getMetadataFromPath(): Exception while reading metadata:\n%s' % e)
         return(result)
 
 

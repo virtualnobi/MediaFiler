@@ -557,6 +557,8 @@ class OrganizationByName(MediaOrganization):
                 newName = self.askNewName(parentWindow)
             elif (menuId == GUIId.RandomName):
                 newName = self.nameHandler.getFreeName()
+                if (not newName):
+                    message = _('No more free names!')
             if (newName):
                 pathInfo = self.getPathInfo()
                 pathInfo['name'] = newName
@@ -579,8 +581,6 @@ class OrganizationByName(MediaOrganization):
                     self.getModel().setSelectedEntry(resultingSelection)
                 else:
                     self.getModel().setSelectedEntry(self.getContext())  # deprecate
-            else:
-                message = 'No more free names!'
         elif (menuId == GUIId.ConvertToGroup):
             message = self.convertToGroup()
         elif (menuId == GUIId.RelabelScene):
@@ -836,10 +836,19 @@ class OrganizationByName(MediaOrganization):
                     except: 
                         newScene = -1
                     if ((newScene < 0) or (99 < newScene)):
-                        dialog.SetValue(_('"%s" is not a legal scene') % newSceneString)
+                        dialog.SetValue(_('Scene "%s" is not legal; must be between 0 and 99') % newSceneString)
                         newSceneString = None
                     else:
                         newSceneString = (OrganizationByName.FormatScene % newScene)
+                    if (newSceneString in self.getContext().getParentGroup().getOrganizer().getScenes()):
+                        dialog2 = wx.MessageDialog(parentWindow, 
+                                                   (_('Scene "%s" already exists; move media to this scene anyway?') % newSceneString),
+                                                   _('Confirmation'),
+                                                   wx.YES_NO | wx.ICON_INFORMATION)
+                        confirmed = (dialog2.ShowModal() == wx.ID_YES)
+                        dialog2.Destroy()
+                        if (not confirmed):
+                            newSceneString = None
             else:
                 newSceneString = None
         dialog.Destroy()

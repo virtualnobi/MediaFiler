@@ -15,6 +15,7 @@ import subprocess
 # Contributed 
 import wx
 # nobi
+from nobi.os import numberOfFiles
 from nobi.ObserverPattern import Observable, Observer
 from nobi.SecureConfigParser import SecureConfigParser
 from nobi.logging import profiledOnLogger
@@ -34,6 +35,7 @@ from UI import GUIId
 
 # Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
 import UI  # to access UI.PackagePath
+from UI.Importing import ImportParameterObject
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)
@@ -689,8 +691,11 @@ class MediaCollection(Observable, Observer):
                 importParameters.logString('No media map created; will not check for duplicates.')
             else:
                 importParameters.logString('Media map exists; will check for duplicates.')
-        importParameters.logString('Importing by %s from "%s" into "%s"\n' 
-                                   % (('date' if (self.organizationStrategy == OrganizationByDate) else 'name'),
+        #TODO: determine number of files recursively, print here, and use for progress bar
+        importParameters.setNumberOfFilesToImport(numberOfFiles(importParameters.getImportDirectory()))
+        importParameters.logString('Importing %s files by %s from "%s" into "%s"\n' 
+                                   % (importParameters.getNumberOfFilesToImport(),
+                                      ('date' if (self.organizationStrategy == OrganizationByDate) else 'name'),
                                       importParameters.getImportDirectory(), 
                                       self.rootDirectory))
         try:
@@ -737,7 +742,7 @@ class MediaCollection(Observable, Observer):
                 statusText = _('Testing import from %s')
             else:  
                 statusText = _('Importing from %s')
-            importParameters.getProcessIndicator().beginPhase(len(allFiles), (statusText % importParameters.getImportDirectory()))
+            importParameters.getProcessIndicator().beginPhase(importParameters.getNumberOfFilesToImport(), (statusText % importParameters.getImportDirectory()))
         for oldName in allFiles:
             importParameters.getProcessIndicator().beginStep()
             sourcePath = os.path.join(sourceDir, oldName)
@@ -755,7 +760,10 @@ class MediaCollection(Observable, Observer):
                                              newTargetPathInfo)
                 if (removeProcessedFiles
                     and (len(os.listdir(sourcePath)) == 0)):
-                    os.rmdir(sourcePath)
+                    try: 
+                        os.rmdir(sourcePath)
+                    except Exception as e:
+                        Logger.error('MediaCollection.importImagesRecursively(): Cannot remove "%s"' % sourcePath)
             else:  # import a media file
                 (dummy, extension) = os.path.splitext(sourcePath)
                 if (Entry.isLegalExtension(extension[1:]) 

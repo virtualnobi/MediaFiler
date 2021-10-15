@@ -256,6 +256,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.imageMenu = wx.Menu()
         mb.Append(self.imageMenu, self.MenuTitleImage)
         self.imageMenu.Append(GUIId.FindDuplicates, GUIId.FunctionNames[GUIId.FindDuplicates])
+        self.imageMenu.Append(GUIId.RemoveAllDuplicates, GUIId.FunctionNames[GUIId.RemoveAllDuplicates])
         self.imageMenu.AppendSeparator()
         self.imageMenu.Append(GUIId.DeleteImage, GUIId.FunctionNames[GUIId.DeleteImage])
         self.imageMenu.Append(GUIId.StartExternalViewer, GUIId.FunctionNames[GUIId.StartExternalViewer])
@@ -341,6 +342,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.Bind(wx.EVT_MENU, self.onExit, id=wx.ID_EXIT)
         # - image menu
         self.Bind(wx.EVT_MENU, self.onFindDuplicates, id=GUIId.FindDuplicates)
+        self.Bind(wx.EVT_MENU, self.onRemoveAllDuplicates, id=GUIId.RemoveAllDuplicates)
         self.Bind(wx.EVT_MENU_RANGE, self.onDelegateToEntry, id=GUIId.EntryFunctionFirst, id2=GUIId.EntryFunctionLast)
         # - view menu
         self.Bind(wx.EVT_MENU, self.onToggleFilterPane, id=GUIId.ToggleFilterPane)
@@ -441,6 +443,46 @@ class MediaFiler(wx.Frame, Observer, Observable):
         dialog.Destroy()  # destroy after getting the user input
 
 
+    def onExit(self, event):  # @UnusedVariable
+        """Close window and terminate.
+        """
+        #print("MediaFiler.App onExit(")
+        wx.GetApp().setInfoMessage(_('Closing...'))
+        self.imageTree.ignoreSelectionChanges = True
+        self.imageTree.destroy()
+        self.paneManager.UnInit()
+        del self.paneManager
+        self.Destroy()
+
+
+# - Image menu events
+    def onFindDuplicates(self, event):
+        """Search for duplicates, merge file names, and remove one. 
+        """
+        wx.GetApp().startProcessIndicator()
+        (collisions, participants) = self.model.findDuplicates(wx.GetApp())
+        wx.GetApp().stopProcessIndicator()
+        return(_('%s media involved in %s collisions') % (collisions, participants))
+
+
+    def onRemoveAllDuplicates(self, event):
+        """Remove duplicates in entire collection.
+        """
+        mediaMap = MediaMap.getMap(self.model)
+        if (mediaMap == None):
+            dlg = wx.MessageDialog(self, 
+                                   (_('Create duplicate information first by executing the\n"%s" command.') % GUIId.FunctionNames[GUIId.FindDuplicates]),
+                                   _('Error'),
+                                   wx.OK | wx.ICON_ERROR) #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL
+            dlg.ShowModal()
+            dlg.Destroy()
+            return(_('No duplicates removed'))
+        #TODO: next two lines are identical in Group.deleteDoubles() - how to merge? 
+        wx.GetApp().setInfoMessage_('Removing duplicates...') 
+        deleted = self.getModel().getRootEntry().deleteDoubles(wx.GetApp().getProgressBar())
+        return(GUIId.MessageDuplicatesDeleted % deleted)
+
+        
     def onRemoveDuplicatesElsewhere(self, event):  # @UnusedVariable
         """Ask for another directory and remove all images in there which are contained in this media collection
         """
@@ -484,28 +526,6 @@ class MediaFiler(wx.Frame, Observer, Observable):
                         count = (count + 1)
                 wx.GetApp().stopProcessIndicator(_('%d media removed in "%s"') % (count, dirname))
         dialog.Destroy()  # destroy after getting the user input
-
-
-    def onExit(self, event):  # @UnusedVariable
-        """Close window and terminate.
-        """
-        #print("MediaFiler.App onExit(")
-        wx.GetApp().setInfoMessage(_('Closing...'))
-        self.imageTree.ignoreSelectionChanges = True
-        self.imageTree.destroy()
-        self.paneManager.UnInit()
-        del self.paneManager
-        self.Destroy()
-
-
-# - Image menu events
-    def onFindDuplicates(self, event):
-        """Search for duplicates, merge file names, and remove one. 
-        """
-        wx.GetApp().startProcessIndicator()
-        (collisions, participants) = self.model.findDuplicates(wx.GetApp())
-        wx.GetApp().stopProcessIndicator()
-        return(_('%s media involved in %s collisions') % (collisions, participants))
 
 
     def onDelegateToEntry(self, event):
@@ -765,6 +785,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         classFile = Installer.getClassFilePath()
         self.model.runConfiguredProgram(GlobalConfigurationOptions.TextEditor, classFile, self)
+        #TODO: reload names to make changes effective
 
 
     def onEditNames(self, event):  # @UnusedVariable
@@ -773,6 +794,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         if (not self.model.organizedByDate):
             namesFile = Installer.getNamesFilePath()
             self.model.runConfiguredProgram(GlobalConfigurationOptions.TextEditor, namesFile, self)
+            #TODO: reload names to make changes effective
         else:
             MediaFiler.Logger.error('App.onEditNames(): MediaFiler.onEditNames(): Only supported when organized by name!')
     

@@ -400,7 +400,7 @@ class Group(Entry, Observer):
                     if (entry2.isGroup()):
                         pass  # entry1 is not a Group, so can't be a double
                     elif (entry1 == entry2):
-                        break  # avoid checking pairs twice
+                        break  # stop here to avoid checking pairs twice
                     elif (entry1.isIdenticalContent(entry2)):
                         #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
                         if ((entry1.getParentGroup() == entry2.getParentGroup()) 
