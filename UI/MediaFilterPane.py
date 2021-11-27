@@ -185,6 +185,7 @@ class TagFilter(FilterConditionWithMode):
         FilterConditionWithMode.__init__(self, parent, tagClass)
         self.valueChoice = wx.Choice(parent, -1, choices=tagList)
         self.valueChoice.SetSelection(MediaFilterPane.FilterElementValuesAnyIndex)
+        self.valueChoice.Bind(wx.EVT_CHOICE, self.onChange, self.valueChoice)
 
 
     def getConditionControls(self):
@@ -197,16 +198,26 @@ class TagFilter(FilterConditionWithMode):
             newString = self.valueChoice.GetString(self.valueChoice.GetSelection())
             Logger.debug('TagFilter.onChange(): Changing filter "%s" to "%s" "%s"' % (self.getLabel(), self.FilterModeNames[newMode], newString))
             # clear all tags of this class from required and prohibited sets, effectively ignoring this class
-            filtr = self.getFilterModel()  # filter is reserved
+            filtr = self.getFilterModel()  # filter is reserved keyword
             for condition in [MediaFilter.ConditionKeyRequired, MediaFilter.ConditionKeyProhibited]:
                 for tag in self.collectionModel.getClassHandler().getElementsOfClassByName(self.getLabel()):
                     if (tag in filtr.getFilterValueFor(condition)):
                         filtr.setFilterValueFor(condition, (filtr.getFilterValueFor(condition) - set(tag)))
+            # when selecting a tag, set mode to "required" automatically
+            if ((newMode == self.FilterModeIndexIgnore)
+                and (newString != MediaFilterPane.FilterElementValuesAnyString)):
+                Logger.debug('TagFilter.onChange(): Automatically requiring tag "%s"' % newString)
+                newMode = self.FilterModeIndexRequire
+                self.modeChoice.SetSelection(newMode)
             # now require or prohibit selected tag
             if (newMode == FilterConditionWithMode.FilterModeIndexRequire):
                 self.filterModel.setFilterValueFor(MediaFilter.ConditionKeyRequired, newString)
             elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
                 self.filterModel.setFilterValueFor(MediaFilter.ConditionKeyProhibited, newString)
+            if (event.GetEventObject() == self.valueChoice): # TODO: 
+                Logger.debug('MediaFilterPane.onChange(): Saw a change of value')
+            else:  # source == self.modeChoice
+                Logger.debug('MediaFilterPane.onChange(): Saw a change of mode')
                 
 
     
@@ -227,12 +238,14 @@ class TagFilter(FilterConditionWithMode):
                     self.valueChoice.SetStringSelection(tag)
                     found = True
                     break
-            if (not found):
+            if (found):
+                Logger.debug('TagFilter.updateAspect(): Setting "%s" to "%s"' % (self.getLabel(), tag))
+            else:
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
                 self.valueChoice.SetStringSelection(self.getLabel())                
-            Logger.debug('TagFilter.updateAspect(): Setting "%s" to "%s"' % (self.getLabel(), tag))
+                Logger.debug('TagFilter.updateAspect(): Setting "%s" to "%s"' % (self.getLabel(), MediaFilterPane.FilterElementValuesAnyString))
         else:
-            Logger.error('TagFilter.updateAspect(): Unknown aspect "%s" of object "%s" on "%s"' % (aspect, observable, self.getLabel()))
+            Logger.error('TagFilter.updateAspect(): Unknown aspect "%s" of object "%s" changed for tag class "%s"' % (aspect, observable, self.getLabel()))
 
 
 

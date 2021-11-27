@@ -96,7 +96,7 @@ ConvertToGroup = generateWxIdForLabel(_('Convert to Group'))  # convert a Single
 ConvertToSingle = generateWxIdForLabel(_('Convert to Single'))  # convert a Single into a Group
 
 RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
-RemoveIllegalElements = generateWxIdForLabel(_('Remove Illegal Tags'))
+RemoveIllegalElements = generateWxIdForLabel(_('Remove Unknown Tags'))
 
 AssignNumber = generateWxIdForLabel(_('Move to Number...'))
 for i in range(MaxNumberNumbers - 1):  # reserve additional menu items for media numbers

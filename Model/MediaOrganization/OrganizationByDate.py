@@ -145,14 +145,6 @@ class OrganizationByDate(MediaOrganization):
 
 
     @classmethod
-    def pathInfoForImport(self, importParameters, sourcePath, level, oldName, pathInfo):
-        """Return a pathInfo mapping extended according to directory name oldName.
-        """
-        result = super(OrganizationByDate, self).pathInfoForImport(importParameters, sourcePath, level, oldName, pathInfo)
-        return(result)
-
-        
-    @classmethod
     def constructPathFromImport(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):  # @UnusedVariable
         """
         """

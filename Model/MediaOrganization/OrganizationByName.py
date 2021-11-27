@@ -77,15 +77,31 @@ class OrganizationByName(MediaOrganization):
 
 # Class Methods
     @classmethod
-    def setModel(self, model):
+    def setModel(self, aMediaCollection):
         """Also load the legal names. 
         
-        MediaCollection model
+        aMediaCollection specifies the model
         """
         # inheritance
-        super(self, self).setModel(model)
+        super(self, self).setModel(aMediaCollection)
         # internal state
-        self.nameHandler = MediaNameHandler(Installer.getNamesFilePath())
+        self.setNameHandler()
+
+
+    @classmethod
+    def setNameHandler(self):
+        """Set the class singleton name handler. 
+        
+        Even if a name handler was defined, there are no dependencies and it can be simply discarded.
+        Registering names of all Entrys does not hurt, as there are none when the class is initialized via setModel()
+        """ 
+        path = Installer.getNamesFilePath()
+        Logger.debug('OrganizationByName.setNameHandler(): Loading name handler from "%s"' % path)
+        self.nameHandler = MediaNameHandler(path)
+        Logger.debug('OrganizationByName.setNameHandler(): Registering names...')
+        for entry in self.getModel(): 
+            self.nameHandler.registerNameAsUsed(entry.getOrganizer().getName())
+        Logger.debug('OrganizationByName.setNameHandler(): Names registered')
 
 
     @classmethod
@@ -133,26 +149,32 @@ class OrganizationByName(MediaOrganization):
 
     @classmethod
     def pathInfoForImport(self, importParameters, sourcePath, level, oldName, pathInfo):
-        """Return a pathInfo mapping extended according to directory name oldName.
+        """Override MediaOrganization.pathInfoForImport()
+        
+        Return None if no more names exist.
         """
-#         if ((0 < level)
-#             and os.path.isdir(sourcePath)):
-#             raise ValueError, ('Cannot import embedded folder "%s"' % sourcePath)
         result = super(OrganizationByName, self).pathInfoForImport(importParameters, sourcePath, level, oldName, pathInfo)
         if (not 'name' in result):
             if ('rootDir' in pathInfo):
                 baseLength = len(pathInfo['rootDir'])
             else: 
-                print('OrganizationByName.pathInfoForImport(): Missing parameter "rootDir"!')
+                Logger.error('OrganizationByName.pathInfoForImport(): Missing parameter "rootDir"!')
                 baseLength = 0
             newName = self.deriveName(importParameters.log, sourcePath[baseLength:])
-            result['name'] = newName
+            if (newName == None):  # indicates no more free names
+                result = None
+                Logger.debug('OrganizationByName.pathInfoForImport(): No free name found')
+            else:
+                result['name'] = newName
+                Logger.debug('OrganizationByName.pathInfoForImport(): Determined new name "%s"' % newName)
+        else:
+            Logger.debug('OrganizationByName.pathInfoForImport(): Found name "%s"' % result['name'])
         return(result)
 
         
     @classmethod
     def constructPathFromImport(cls, importParameters, sourcePath, level, baseLength, targetDir, targetPathInfo, illegalElements):  
-        """Import image at sourcePath.
+        """
         """
         pathInfo = copy.copy(targetPathInfo)
         if ('elements' in pathInfo):

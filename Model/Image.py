@@ -51,6 +51,7 @@ class Image(Single):
     LegalExtensions = ['jpg', 'png', 'gif', 'tif', 'jpeg']
     ConfigurationOptionViewer = 'viewer-image'
     PreviewImageFilename = 'Image.jpg'
+    MetaDataKeysDescription = ('Exif.Image.ImageDescription', 'Exif.Photo.UserComment')
 
 
 
@@ -89,8 +90,7 @@ class Image(Single):
         try:
             Logger.debug('Image.getMetadataFromPath(): Reading metadata from "%s"' % path)
             image = pyexiv2.Image(path)
-            # image = pyexiv2.Image(path, encoding='ISO-8859-1')  # encoding parameter does not exist
-            result = image.read_exif()  # {'Exif.Image.DateTime': '2019:06:23 19:45:17', 'Exif.Image.Artist': 'TEST', ...}
+            result = image.read_exif(encoding='ISO-8859-1')  # {'Exif.Image.DateTime': '2019:06:23 19:45:17', 'Exif.Image.Artist': 'TEST', ...}
             # image.close()  # recommended to prevent memory leak, but does not exist
             Logger.debug('Image.getMetadataFromPath(): Metadata is %s' % result)
         except Exception as e:
@@ -264,27 +264,6 @@ class Image(Single):
             return(self.metadataExif)
         return({})
         
-
-#     def getResolution(self):
-#         """overwrite Single.getResolution()
-#         """
-#         result = None
-#         md = self.getMetadata()
-#         if ('Exif.Photo.PixelXDimension' in md): 
-#             result = int(md['Exif.Photo.PixelXDimension']) * int(md['Exif.Photo.PixelYDimension'])
-#         else:
-# #             result = Single.getResolution(self)
-#             result = super(Image, self).getResolution()
-#         return result
-
-
-#     def getSizeString(self):
-#         """Return a String describing the size of self.
-#         
-#         Return a String
-#         """
-#         return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
-
 
 
 # Internal - to change without notice

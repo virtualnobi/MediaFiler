@@ -165,7 +165,14 @@ class MediaOrganization(object):
 
     @classmethod
     def pathInfoForImport(cls, importParameters, sourcePath, level, oldName, pathInfo):  # @UnusedVariable
-        """Return a pathInfo mapping extended according to directory name oldName.
+        """Collect information about media from source path.
+        
+        Importing.ImportParameters importParameters
+        str sourcePath indicates the media's current file path
+        int level
+        str oldName
+        dict pathInfo contains whatever information is already known (must contain "root" key)
+        Returns dict or None 
         """
         result = copy.copy(pathInfo)
         return(result)

@@ -402,7 +402,7 @@ class Group(Entry, Observer):
                     elif (entry1 == entry2):
                         break  # stop here to avoid checking pairs twice
                     elif (entry1.isIdenticalContent(entry2)):
-                        #print('Identical entries: "%s" and "%s"' % (entry1.getPath(), entry2.getPath()))
+                        Logger.debug('Group.deleteDoubles(): Identical entries: "%s" and "%s"' % (entry1, entry2))
                         if ((entry1.getParentGroup() == entry2.getParentGroup()) 
                             and (entry1.getOrganizer().getNumber() > entry2.getOrganizer().getNumber())):   
                             entry2.getOrganizer().deleteDouble(entry1)  # keep the entry with lower number

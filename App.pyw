@@ -1,3 +1,5 @@
+# coding: iso-8859-15
+
 '''(c) by nobisoft 2016-
 '''
 
@@ -37,6 +39,9 @@ from UI.MediaTreePane import MediaTreeCtrl
 from UI.MediaCanvasPane import MediaCanvas
 from UI.MediaNamePane import MediaNamePane
 from UI.MediaClassificationPane import MediaClassificationPane
+from pickle import NONE
+from Model.MediaOrganization import MediaOrganization
+from Model.MediaOrganization.OrganizationByName import OrganizationByName
 
 
 
@@ -631,6 +636,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         # user dialog asking for more parameters
         dialog = ImportDialog(self, self.model, importParameters)
         if (dialog.ShowModal() == wx.ID_OK):
+            wx.GetApp().startProcessIndicator()
             with wx.GetApp() as processIndicator:
                 importParameters.setProcessIndicator(processIndicator)
                 phases = 1  # minimum: test import
@@ -666,6 +672,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
 #                    logDialog.Destroy()
                     message = (messageTemplate % (dialog.getParameterObject().getNumberOfImportedFiles(), 
                                                   dialog.getParameterObject().getImportDirectory()))
+            wx.GetApp().stopProcessIndicator()
             wx.GetApp().setInfoMessage(message)
         dialog.Destroy() 
 
@@ -712,7 +719,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
                   (1, 1),
                   (wx.EXPAND|wx.ALL|wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL))
         replacementField = wx.TextCtrl(dlg)
-        replacementField.SetValue(u'Lbeln')
+        replacementField.SetValue(u'L�beln')
         sizer.Add(replacementField, 
                   (2, 2), 
                   (1, 1),
@@ -733,8 +740,8 @@ class MediaFiler(wx.Frame, Observer, Observable):
         while (result == wx.ID_OK):
             if (originalField.GetValue() == ''):
                 message = _('Original tag may not be empty')
-            elif (replacementField.GetValue() == ''):
-                message = _('Replacement tag may not be empty')
+            # elif (replacementField.GetValue() == ''):
+            #     message = _('Replacement tag may not be empty')
             elif (originalField.GetValue() == replacementField.GetValue()):
                 message = _('Original and replacement may not be identical')
             else:
@@ -742,7 +749,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
             if (message):
                 messageText = wx.StaticText(dlg, -1, message)
                 sizer.Add(messageText,
-                          (2, 0),
+                          (3, 0),
                           (1, 2),
                           (wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL))
                 dlg.Fit()
@@ -750,7 +757,11 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 sizer.Remove(messageText)
             else: 
                 with wx.GetApp() as progressIndicator:
-                    message = self.model.replaceTagBy(originalField.GetValue(), replacementField.GetValue(), progressIndicator)
+                    if (replacementField.GetValue() == ''):
+                        newTag = None
+                    else: 
+                        newTag = replacementField.GetValue()
+                    message = self.model.replaceTagBy(originalField.GetValue(), newTag, progressIndicator)
                 if (message): 
                     self.statusbar.SetStatusText(message, GUIId.SB_Info)
                     self.statusbar.Show()
@@ -785,7 +796,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         classFile = Installer.getClassFilePath()
         self.model.runConfiguredProgram(GlobalConfigurationOptions.TextEditor, classFile, self)
-        #TODO: reload names to make changes effective
+        #TODO: reload classes to make changes effective
 
 
     def onEditNames(self, event):  # @UnusedVariable
@@ -794,7 +805,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         if (not self.model.organizedByDate):
             namesFile = Installer.getNamesFilePath()
             self.model.runConfiguredProgram(GlobalConfigurationOptions.TextEditor, namesFile, self)
-            #TODO: reload names to make changes effective
+            OrganizationByName.setNameHandler(self)
         else:
             MediaFiler.Logger.error('App.onEditNames(): MediaFiler.onEditNames(): Only supported when organized by name!')
     

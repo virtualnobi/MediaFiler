@@ -374,6 +374,8 @@ class Single(Entry):
         
         If neither width nor height are given, return the image's original size.
 
+        Number width
+        Number height
         Returns tuple of int (Number, Number)
         """
         if ((width == None)

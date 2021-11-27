@@ -35,7 +35,6 @@ from UI import GUIId
 
 # Internationalization  # requires "PackagePath = UI/__path__[0]" in _init_.py
 import UI  # to access UI.PackagePath
-from UI.Importing import ImportParameterObject
 try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)
@@ -156,6 +155,7 @@ class MediaCollection(Observable, Observer):
         # inheritance
         Observable.__init__(self, ['startFiltering', 'stopFiltering', 'selection', 'size'])
         # internal state
+        self.root = None
         if (rootDir):
             self.setRootDirectory(rootDir, processIndicator)
         self.iteratorState = []
@@ -304,7 +304,10 @@ class MediaCollection(Observable, Observer):
 
 
     def getRootEntry(self):
-        """Return the root element. This is a Group containing all other Entries.
+        """Return the root element.
+        
+        Raises AssertionError if the root entry is None
+        Return Group containing all other Entries
         """
         if (self.root == None):
             raise AssertionError('MediaCollection.getRootEntry(): Root node is None')
@@ -598,10 +601,10 @@ class MediaCollection(Observable, Observer):
 
 
     def replaceTagBy(self, oldTag, newTag, aProgressIndicator=None):
-        """In all media, replace a tag by another.
+        """In all media, replace a tag by another or remove a tag.
         
         String oldTag
-        String newTag
+        StringOrNone newTag or None if oldTag is to be removed 
         ProgressIndicator aProgressIndicator
         Returns String describing how many tags have been replaced
         """
@@ -613,9 +616,12 @@ class MediaCollection(Observable, Observer):
                 aProgressIndicator.beginStep()
             tags = entry.getTags()
             if (oldTag in tags):
-                newTags = tags.difference(set([oldTag])).union(set([newTag]))
-                Logger.debug('Entry.replaceTagBy: New tags "%s" for "%s"' % (newTags, entry))
+                newTags = tags.difference(set([oldTag]))
+                if (newTag):
+                    newTags = newTags.union(set([newTag]))
+                Logger.debug('Entry.replaceTagBy(): New tags "%s" for "%s"' % (newTags, entry))
                 entry.renameTo(elements=newTags)
+                tagsReplaced = (tagsReplaced + 1)
         return(_('%s occurrences replaced') % tagsReplaced)
 
 
@@ -688,13 +694,17 @@ class MediaCollection(Observable, Observer):
                 importParameters.logString('No media map created; will not check for duplicates.')
             else:
                 importParameters.logString('Media map exists; will check for duplicates.')
-        #TODO: determine number of files recursively, print here, and use for progress bar
         importParameters.setNumberOfFilesToImport(numberOfFiles(importParameters.getImportDirectory()))
         importParameters.logString('Importing %s files by %s from "%s" into "%s"\n' 
                                    % (importParameters.getNumberOfFilesToImport(),
                                       ('date' if (self.organizationStrategy == OrganizationByDate) else 'name'),
                                       importParameters.getImportDirectory(), 
                                       self.rootDirectory))
+        if (importParameters.getTestRun()):
+            statusText = _('Testing import from %s')
+        else:  
+            statusText = _('Importing from %s')
+        importParameters.getProcessIndicator().beginPhase(importParameters.getNumberOfFilesToImport(), (statusText % importParameters.getImportDirectory()))
         try:
             self.importImagesRecursively(importParameters,
                                          importParameters.getImportDirectory(), 
@@ -707,6 +717,7 @@ class MediaCollection(Observable, Observer):
         except Exception as e:
             raise
             importParameters.logString('Import was interrupted due to this error:\n%s' % e)
+        # importParameters.getProcessIndicator().finish()
         if (importParameters.getReportIllegalElements()):
             for key in importParameters.getIllegalElements():  
                 count = len(importParameters.getIllegalElements()[key])
@@ -734,12 +745,6 @@ class MediaCollection(Observable, Observer):
                                 and (importParameters.getDeleteOriginals()))
         allFiles = os.listdir(sourceDir)
         allFiles.sort()  # ensure that existing numbers are respected in new numbering
-        if (level == 0):
-            if (importParameters.getTestRun()):
-                statusText = _('Testing import from %s')
-            else:  
-                statusText = _('Importing from %s')
-            importParameters.getProcessIndicator().beginPhase(importParameters.getNumberOfFilesToImport(), (statusText % importParameters.getImportDirectory()))
         for oldName in allFiles:
             importParameters.getProcessIndicator().beginStep()
             sourcePath = os.path.join(sourceDir, oldName)
@@ -748,65 +753,68 @@ class MediaCollection(Observable, Observer):
                                                                             level,
                                                                             oldName,
                                                                             targetPathInfo)
-            if (os.path.isdir(sourcePath)):  # import a directory
-                self.importImagesRecursively(importParameters,
-                                             sourcePath, 
-                                             (level + 1), 
-                                             baseLength, 
-                                             targetDir,   # newPath, 
-                                             newTargetPathInfo)
-                if (removeProcessedFiles
-                    and (len(os.listdir(sourcePath)) == 0)):
-                    try: 
-                        os.rmdir(sourcePath)
-                    except Exception as e:
-                        Logger.error('MediaCollection.importImagesRecursively(): Cannot remove "%s"' % sourcePath)
-            else:  # import a media file
-                (dummy, extension) = os.path.splitext(sourcePath)
-                if (Entry.isLegalExtension(extension[1:]) 
-                    or (not importParameters.getIgnoreUnhandledTypes())):
-                    fileSize = os.stat(sourcePath).st_size
-                    if (importParameters.getMinimumFileSize() < fileSize):
-                        if (importParameters.canImportOneMoreFile()):
-                            duplicate = None
-                            if (importParameters.getCheckForDuplicates()):
-                                duplicate = importParameters.getMediaMap().getDuplicate(sourcePath)
-                            if (duplicate == None):
-                                self.organizationStrategy.importMedia(importParameters, 
-                                                                      sourcePath, 
-                                                                      level, 
-                                                                      baseLength, 
-                                                                      targetDir,
-                                                                      newTargetPathInfo,
-                                                                      importParameters.getIllegalElements())
-                                importParameters.setNumberOfImportedFiles(importParameters.getNumberOfImportedFiles() + 1)
-                                if (removeProcessedFiles):
-                                    try:
-                                        os.remove(sourcePath)
-                                    except Exception as e:
-                                        importParameters.logString('Error: Can''t remove "%s":\n%s' % (sourcePath, e))
+            if (newTargetPathInfo == None):
+                raise StopIteration()  # no free names, get out of recursion
+            else:
+                if (os.path.isdir(sourcePath)):  # import a directory
+                    self.importImagesRecursively(importParameters,
+                                                 sourcePath, 
+                                                 (level + 1), 
+                                                 baseLength, 
+                                                 targetDir,   # newPath, 
+                                                 newTargetPathInfo)
+                    if (removeProcessedFiles
+                        and (len(os.listdir(sourcePath)) == 0)):
+                        try: 
+                            os.rmdir(sourcePath)
+                        except Exception as e:
+                            Logger.error('MediaCollection.importImagesRecursively(): Cannot remove "%s"' % sourcePath)
+                else:  # import a media file
+                    (dummy, extension) = os.path.splitext(sourcePath)
+                    if (Entry.isLegalExtension(extension[1:]) 
+                        or (not importParameters.getIgnoreUnhandledTypes())):
+                        fileSize = os.stat(sourcePath).st_size
+                        if (importParameters.getMinimumFileSize() < fileSize):
+                            if (importParameters.canImportOneMoreFile()):
+                                duplicate = None
+                                if (importParameters.getCheckForDuplicates()):
+                                    duplicate = importParameters.getMediaMap().getDuplicate(sourcePath)
+                                if (duplicate == None):
+                                    self.organizationStrategy.importMedia(importParameters, 
+                                                                          sourcePath, 
+                                                                          level, 
+                                                                          baseLength, 
+                                                                          targetDir,
+                                                                          newTargetPathInfo,
+                                                                          importParameters.getIllegalElements())
+                                    importParameters.setNumberOfImportedFiles(importParameters.getNumberOfImportedFiles() + 1)
+                                    if (removeProcessedFiles):
+                                        try:
+                                            os.remove(sourcePath)
+                                        except Exception as e:
+                                            importParameters.logString('Error: Can''t remove "%s":\n%s' % (sourcePath, e))
+                                else:
+                                    importParameters.logString('Duplicate of "%s"\n  found in "%s"' % (sourcePath, duplicate))
+                                    if (removeProcessedFiles):
+                                        try:
+                                            os.remove(sourcePath)
+                                        except Exception as e:
+                                            importParameters.logString('Error: Can''t remove "%s":\n%s' % (sourcePath, e))
                             else:
-                                importParameters.logString('Duplicate of "%s"\n  found in "%s"' % (sourcePath, duplicate))
-                                if (removeProcessedFiles):
-                                    try:
-                                        os.remove(sourcePath)
-                                    except Exception as e:
-                                        importParameters.logString('Error: Can''t remove "%s":\n%s' % (sourcePath, e))
+                                importParameters.logString('Maximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
+                                raise StopIteration
                         else:
-                            importParameters.logString('Maximum number of %s files for import reached!' % importParameters.getMaxFilesToImport())
-                            raise StopIteration
+                            if (removeProcessedFiles):
+                                try:
+                                    os.remove(sourcePath)
+                                except Exception as e: 
+                                    importParameters.logString('Error: Can''t remove (small) file "%s"\n%s' % (sourcePath, e))
                     else:
                         if (removeProcessedFiles):
                             try:
                                 os.remove(sourcePath)
-                            except Exception as e: 
-                                importParameters.logString('Error: Can''t remove (small) file "%s"\n%s' % (sourcePath, e))
-                else:
-                    if (removeProcessedFiles):
-                        try:
-                            os.remove(sourcePath)
-                        except Exception as e:
-                            importParameters.logString('Error: Can''t remove (unhandled) file "%s"\n%s' % (sourcePath, e))
+                            except Exception as e:
+                                importParameters.logString('Error: Can''t remove (unhandled) file "%s"\n%s' % (sourcePath, e))
 
 
     def fixPathWhileImporting(self, parameters, oldPath):
@@ -894,7 +902,12 @@ class MediaCollection(Observable, Observer):
         while (len(self.iteratorState) > 0):  # while there are positions on the stack
             (entry, index, childrenVisited) = self.iteratorState.pop(0)
             if (entry == None): # index is pointing into root collection
-                entryList = self.root.getSubEntries(False)
+                try: 
+                    root = self.getRootEntry()
+                except AssertionError:  # no entries at all
+                    raise StopIteration 
+                else: 
+                    entryList = root.getSubEntries(False)
             else:  # index is pointing into entry's subEntries
                 entryList = entry.getSubEntries(False) # get all subentries, unfiltered
             if (index >= len(entryList)):  # at end of entryList

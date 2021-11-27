@@ -14,6 +14,8 @@ import gettext
 import wx
 ## nobi
 from nobi.ObserverPattern import Observer
+from nobi.Memoize import memoize
+from nobi.logging import profiledOnLogger
 ## project
 import UI
 from UI import GUIId
@@ -104,6 +106,7 @@ class MediaCanvas(wx.Panel, Observer):
         self.setEntry(self.model.getSelectedEntry())
 
 
+    @profiledOnLogger(Logger)
     def setEntry(self, entry, forceUpdate=False):
         """Set the entry to display.
         
@@ -221,64 +224,74 @@ class MediaCanvas(wx.Panel, Observer):
         self.ClearBackground()
 
 
-    def calculateGrid (self, numberOfImages):
+    def calculateGrid(self, numberOfImages):
         """Calculate number of rows and columns for given numberOfImages.
+        
+        int numberOfImages
         """
         if (numberOfImages == 0): # no images, no display
             Logger.warn('MediaCanvasPane.calculateGrid(): No images to display')
-            return
-        # determine aspect of canvas
-        (self.width, self.height) = self.GetSize()  # Python 3
-        if ((0 == self.width)
-            or (0 == self.height)):
-            Logger.error('MediaCanvasPane.calculateGrid(): Pane width or height are zero!')
-            raise ValueError('Pane width (%s) or height(%s) are zero!' % (self.width, self.height))
-        canvasAspect = (float(self.width) / float(self.height))
-        # print('For %s entries and window aspect %f...' % (numberOfImages, canvasAspect))
-        if (numberOfImages == 1):  # one image, 1x1 grid
-            self.rows = 1
             self.cols = 1
+            self.rows = 1
+        elif (numberOfImages == 1):  # one image, 1x1 grid
+            Logger.debug('MediaCanvasPane.calculateGrid(): 1 image, choosing 1x1 grid')
+            self.cols = 1
+            self.rows = 1
         else:
-            if (numberOfImages == 2):
-                if (self.height <= self.width):
-                    # print('height < width, picking 2 cols')
-                    cols = 2
-                else:
-                    # print('width < height, picking 1 cols')
-                    cols = 1
-            else:
-                # calculate number of columns
-                cols = float(numberOfImages)  # explore layouts from nx1 grid down to 1xn grid
-                while (cols > 1):
-                    rows = math.ceil(numberOfImages / cols) # how many rows are needed for this many columns
-                    # print("Checking %d cols, %d rows with layout aspect %f" % (cols, rows, (cols / rows)))
-                    if (rows <= cols):  # layout wider than tall
-                        # print('more rows than cols')
-                        if (canvasAspect >= (cols / rows)):  # first time that window aspect bigger than layout aspect
-                            # print('found %s cols' % cols)
-                            break  # use current number of columns
-                    else: # layout taller than wide
-                        # print('more cols than rows')
-                        if (canvasAspect >= (cols / rows)):
-                            # print('found %s cols, but adding 1' % cols) 
-                            cols = (cols + 1)  # use previous number of columns in last iteration
-                            break
-                    cols = (cols - 1)
-                # print('calculated %f cols' % cols)
-                # if (cols == 0): # while-loop terminated on cols condition
-                #     print('correcting cols from 0 to 1')
-                #     cols = 1.0 # ensure at least one column
-            # calculate rows from columns
-            self.rows = int(math.ceil(numberOfImages / cols)) # ensure floating-point arithmetic: cols is float
-            # depending on number of rows, number of cols may be reduced
-            savedCols = int(cols)
-            self.cols = int(math.ceil(numberOfImages / float (self.rows))) # ensure floating-point arithmetic
-            if (savedCols != cols):
-                print('MediaCanvasPane.calculateGrid(): Cols corrected from %f to %f' % (cols, self.cols))
+            (self.width, self.height) = self.GetSize()  # Python 3
+            if ((0 == self.width)
+                or (0 == self.height)):
+                Logger.error('MediaCanvasPane.calculateGrid(): Pane width or height are zero!')
+                raise ValueError('Pane width (%s) or height(%s) are zero!' % (self.width, self.height))
+            (self.rows, self.cols) = self.calculateGridForSize(numberOfImages, self.width, self.height)  # state-independent part of calculation is memoized for performance
         # calculate image size
         self.imageWidth = int((self.width - ((self.cols + 1) * self.ImagePadding)) / self.cols)
         self.imageHeight = int((self.height - ((self.rows + 1) * self.ImagePadding)) / self.rows)
         Logger.debug('MediaCanvasPane.calculateGrid(): Placing %d items of %dx%d in %dx%d grid on %dx%d pane' % (numberOfImages, self.imageWidth, self.imageHeight, self.cols, self.rows, self.width, self.height))
+
+
+    @memoize(20)
+    def calculateGridForSize(self, numberOfImages, width, height):
+        """Calculate number of rows and columns for given numberOfImages, canvas width and canvas height.
+        
+        This function does not depend on self's internal state and thus can be memoized.
+        
+        int numberOfImages which is larger than 1
+        int width
+        int height
+        Return (int rows, int cols)
+        """
+        canvasAspect = (float(width) / float(height))
+        Logger.debug('MediaCanvasPane.calculateGridForSize(): For %s entries, canvas size (%dx%d), and canvas aspect %f (w/h)...' % (numberOfImages, width, height, canvasAspect))
+        cols = float(numberOfImages)  # explore layouts from nx1 grid down to 1xn grid
+        aspectDistance = 1  # distance between image and canvas aspects, to find smaller distance when choosing between nxm and (n-1)x(m+1) grids
+        # previousDistance = 1
+        while (cols > 1):  # at least one column required
+            rows = math.ceil(numberOfImages / cols) # how many rows are needed for this many columns
+            # previousDistance = aspectDistance
+            aspectDistance = abs(canvasAspect - (cols / rows))
+            Logger.debug('MediaCanvasPane.calculateGridForSize(): ...trying %dx%d grid with image aspect %f and aspect distance %f' % (cols, rows, (cols / rows), aspectDistance))
+            if ((cols / rows) <= canvasAspect):
+                Logger.debug('MediaCanvasPane.calculateGridForSize(): ...image aspect smaller than canvas aspect, found')
+                break
+            cols = (cols - 1)
+        # this math is here again to determine correction 
+        rows = math.ceil(numberOfImages / cols)
+        previousDistance = aspectDistance
+        aspectDistance = abs(canvasAspect - (cols / rows))
+        Logger.debug('MediaCanvasPane.calculateGridForSize(): Chose %dx%d grid with image aspect %f and aspect distance %f' % (cols, rows, (cols / rows), aspectDistance))
+        if (previousDistance < aspectDistance):
+            Logger.debug('MediaCanvasPane.calculateGridForSize(): Select one column more because aspect distance has increased')
+            cols = (cols + 1)
+        # calculate rows from columns
+        rows = int(math.ceil(numberOfImages / cols)) # ensure floating-point arithmetic: cols is float
+        # depending on number of rows, number of cols may be reduced
+        savedCols = int(cols)
+        cols = int(math.ceil(numberOfImages / float(rows))) # ensure floating-point arithmetic
+        if (savedCols != cols):
+            print('MediaCanvasPane.calculateGridForSize(): Columns corrected to %f' % cols)
+        return(rows, cols)
+
 
 
     def sizeAndDisplayEntries(self, entries, progressIndicator=None):
@@ -321,8 +334,7 @@ class MediaCanvas(wx.Panel, Observer):
         for entry in entries:
             if (progressIndicator):
                 progressIndicator.beginStep()
-            entry.addObserverForAspect(self, 'name')
-            # place image on canvas
+            entry.addObserverForAspect(self, 'name')  # to reorder images when a name changes
             Logger.debug('MediaCanvasPane.sizeAndDisplayEntries(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
             bitmap = ImageBitmap(self, 
                                  -1, 

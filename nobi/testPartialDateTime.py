@@ -12,7 +12,7 @@ import unittest
 import datetime
 ## Contributed
 ## nobi
-from PartialDateTime import PartialDateTime
+from nobi.PartialDateTime import PartialDateTime
 ## Project
 
 
