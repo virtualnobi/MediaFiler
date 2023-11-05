@@ -297,7 +297,7 @@ class Movie(Single):
         Return Number
         """
         if (self.duration != None):
-            return(self.duration)
+            return self.duration
         md = self.getMetadata()
         self.duration = (md['seconds'] if 'seconds' in md else -1)
 #         ffmpeg = self.model.getConfiguration(Movie.ConfigurationOptionFfmpeg)
@@ -326,7 +326,7 @@ class Movie(Single):
 #                 logging.warning('Movie.getDuration(): Cannot determine duration due to error:\n%s' % e)
 #         else:
 #             logging.warning('Movie.getDuration(): No ffmpeg specified with %s' % Movie.ConfigurationOptionFfmpeg)
-        return(self.duration)
+        return self.duration 
 
 
 

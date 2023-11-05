@@ -20,16 +20,20 @@ The following aspects of ImageFilter are observable:
 # standard
 import logging
 import copy
+import os.path
+import glob
+import json
 # contributed 
 # nobi
 from nobi.ObserverPattern import Observable
 # project 
+from Model.Installer import getFilterPath
 
 
 
 # Package Variables
 Logger = logging.getLogger(__name__)
-
+ConditionOperatorAnd = 'AND'  # explicit definition to avoid circular module references
 
 
 # Class
@@ -42,24 +46,28 @@ class MediaFilter(Observable):
 
 
 # Constants
-    ConditionKeyRequired = 'required'  
-    ConditionKeyProhibited = 'prohibited'
-    ConditionKeyUnknownRequired = 'unknownRequired'
-    ConditionKeyUnknownTagsRequired = 'requiredUnknownTags'
-    ConditionKeyUnknownTagsProhibited = 'prohibitedUnknownTags'
-    ConditionKeyDuplicate = 'duplicate'
-    ConditionKeyResolutionMinimum = 'minimum'
-    ConditionKeyResolutionMaximum = 'maximum'
-    ConditionKeyMediaTypesRequired = 'requiredMediaTypes'
-    ConditionKeyMediaTypesProhibited ='prohibitedMediaTypes' 
-    ConditionKeysForSets = [ConditionKeyRequired,  # translate None<->set() in Set/GetFilterValueFor()
+    # The ConditionKey* strings are used to represent filter conditions, 
+    # both internally as keys of a dict and externally as strings in a filter file.
+    # Each string represents one type of condition.
+    # Should not contain whitespace to ensure proper loading from file.
+    # Subclasses of MediaFilter may add more keys for more condition types (on name, date, etc.).
+    ConditionKeyRequired = 'tagsRequired'  # 'required'  
+    ConditionKeyProhibited = 'tagsProhibited'  # 'prohibited'
+    ConditionKeyUnknownRequired = 'anyUnknownTagRequired'  # 'unknownRequired'
+    ConditionKeyUnknownTagsRequired = 'unknownRequired'  # 'requiredUnknownTags'
+    ConditionKeyUnknownTagsProhibited = 'unknownProhibited'  # 'prohibitedUnknownTags'
+    ConditionKeyDuplicate = 'duplicates'  # 'duplicate'
+    ConditionKeyResolutionMinimum = 'largerThan'  # 'minimum'
+    ConditionKeyResolutionMaximum = 'smallerThan'  # 'maximum'
+    ConditionKeyMediaTypesRequired = 'typeRequired'  # 'requiredMediaTypes'
+    ConditionKeyMediaTypesProhibited = 'typeProhibited'  # 'prohibitedMediaTypes' 
+    ConditionKeysForSets = [ConditionKeyRequired,  # translate None<->set() in set/getFilterValueFor()
                             ConditionKeyProhibited,
                             ConditionKeyUnknownTagsRequired,
                             ConditionKeyUnknownTagsProhibited,
                             ConditionKeyMediaTypesRequired,
                             ConditionKeyMediaTypesProhibited]
-    
-    Filenames = ['one', 'two']
+
 
 
 # Class Methods
@@ -76,7 +84,26 @@ class MediaFilter(Observable):
                 MediaFilter.ConditionKeyUnknownTagsProhibited,
                 MediaFilter.ConditionKeyDuplicate,
                 MediaFilter.ConditionKeyResolutionMinimum,
-                MediaFilter.ConditionKeyResolutionMaximum])
+                MediaFilter.ConditionKeyResolutionMaximum,
+                MediaFilter.ConditionKeyMediaTypesRequired,
+                MediaFilter.ConditionKeyMediaTypesProhibited])
+
+
+    @classmethod
+    def getUsedFilterNames(self):
+        """Return the filter names used on disk.
+        
+        Return a Set of Strings
+        """
+        globName = os.path.join(getFilterPath(), '*')
+        try: 
+            pathNames = glob.glob(globName)
+        except Exception as exc:
+            Logger.warn('MediaFilter.getUsedFilterNames(): Error reading filter directory "%s" (error follows)\n%s' % (globName, exc))
+            pathNames = []
+        filterNames = [os.path.basename(pn) for pn in pathNames]
+        Logger.debug('MediaFilter.getUsedFilterNames(): Returning %s' % filterNames)
+        return(set(filterNames))
 
 
 
@@ -94,6 +121,8 @@ class MediaFilter(Observable):
         self.prohibitedUnknownTags = set()
         self.requiredMediaTypes = set()
         self.prohibitedMediaTypes = set()
+        self.filterName = ''
+        self.filterIsSaved = False
         # 
         if (0 < len(args)):  # args[0] contains filename to load filter from
             Logger.debug('MediaFiler.__init__(): Loading file "%s"' % args[0])
@@ -102,13 +131,80 @@ class MediaFilter(Observable):
     def saveFile(self):
         """Store a representation of self.
         
-        If self has no name yet, ask the user for a name. 
+        Do not optimize the saved filter definition for brevity - loadFromFile() 
+        depends on the complete list of condition types to reset unspecified filters.  
+        
+        Return True if successful, False otherwise
         """
-        pass
+        if (not self.filterName):
+            raise ValueError('No name defined for media filter!')
+        Logger.debug('MediaFilter.saveFile(): Saving as "%s"', self.filterName)
+        fileName = os.path.join(getFilterPath(), self.filterName)
+        try:
+            with open(fileName, "w") as aStream:
+                aStream.write('%s\n' % ConditionOperatorAnd)
+                for conditionType in self.conditionMap:
+                    if (conditionType in MediaFilter.ConditionKeysForSets):  # JSON encoder does not support sets
+                        toSerialize = list(self.conditionMap[conditionType])
+                    else:
+                        toSerialize = self.conditionMap[conditionType]
+                    Logger.debug('MediaFilter.saveFile(): Saving value "%s" for condition "%s"' % (toSerialize, conditionType))
+                    aStream.write(' %s %s\n' % (conditionType, json.dumps(toSerialize)))
+        except Exception as e: 
+            Logger.warn('MediaFilter.saveFile(): Failed to save filter "%s", error follows\n%s' % (self.filterName, e))
+            return(False)
+        self.filterIsSaved = True
+        return(True)
+
+
+    def loadFromFile(self, filename):
+        """Load a filter definition from the specified absolute filename.
+        
+        str filename
+        """
+        Logger.debug('MediaFilter.loadFromFile(): Loading filter from "%s"' % filename)
+        loadedConditionMap = {}  # no conditions recognized so far; to replace self's conditionMap in case of success
+        complexConditionEmbedding = []  # no complex conditions (and, or, not) so far
+        try:
+            with open(filename, "r") as f:
+                line = f.readline().rstrip()
+                while (line != ''):
+                    Logger.debug('MediaFilter.loadFromFile(): Processing "%s"' % line)
+                    whitespaces = (len(line) - len(line.lstrip()))
+                    if (whitespaces < len(complexConditionEmbedding)):  # close one latest complex condition
+                        Logger.warn('MediaFilter.loadFromFile(): closing complex conditions not yet implemented!')
+                    elif (whitespaces == len(complexConditionEmbedding)):  # continue with current complex condition
+                        (key, space, rest) = line.lstrip().partition(' ')  # @UnusedVariable
+                        if (key == ConditionOperatorAnd):  # TODOO: add other complex condition types
+                            if (len(complexConditionEmbedding) == 0):
+                                complexConditionEmbedding.append(ConditionOperatorAnd)
+                            else:
+                                raise RuntimeError('Incorrect MediaFilter file format: Only one occurence of AND currently supported!')
+                        elif (key in self.getConditionKeys()):
+                            if (key in MediaFilter.ConditionKeysForSets):
+                                loadedObject = set(json.loads(rest))
+                            else:
+                                loadedObject = json.loads(rest)
+                            loadedConditionMap[key] = loadedObject
+                    else:  # indicating additional embedding without prior condition marker
+                        raise RuntimeError('Incorrect MediaFilter file format: Added embedding to level %s without condition keyword!' % whitespaces)
+                    line = f.readline().rstrip()
+        except Exception as exc: 
+            Logger.warn('MediaFilter.loadFromFile(): Cannot load filter from file "%s" (error follows)\n%s' % (filename, exc))
+            raise RuntimeError('MediaFilter cannot be loaded from file "%s"' % filename)
+        (head, tail) = os.path.split(filename)  # @UnusedVariable
+        self.setFilterName(tail)
+        self.filterIsSaved = True
+        self.setConditions(**loadedConditionMap)
+        Logger.debug('MediaFilter.loadFromFile(): Closed file')
 
 
 
 # Setters
+    def setFilterName(self, fileName):
+        self.filterName = fileName
+
+
     def setConditions(self, active=None, **kwargs):
         """Set conditions as specified. Not passing an argument does not change conditions. Passing None for an argument clears this filter condition.
 
@@ -132,19 +228,11 @@ class MediaFilter(Observable):
         
         Dictionary kwargs 
         """
+        Logger.debug('MediaFilter.setConditions(): Starting with %s' % kwargs)
         wasEmpty = self.isEmpty()
         wasFiltering = self.isFiltering()
         conditionsChanged = self.setConditionsAndCalculateChange(**kwargs)
-        # TODO: move media type handling into setConditionsAndCalculateChange()
-        requiredMediaTypes = (kwargs['requiredMediaTypes'] if ('requiredMediaTypes' in kwargs) else None)
-        if (requiredMediaTypes != None):
-            self.requiredMediaTypes = requiredMediaTypes
-            self.prohibitedMediaTypes.difference_update(requiredMediaTypes)
-        prohibitedMediaTypes = (kwargs['prohibitedMediaTypes'] if ('prohibitedMediaTypes' in kwargs) else None)
-        if (prohibitedMediaTypes != None):
-            self.prohibitedMediaTypes = prohibitedMediaTypes
-            self.requiredMediaTypes.difference_update(prohibitedMediaTypes)
-            
+        Logger.debug('MediaFilter.setConditions(): Set to %s' % self)
         filterChanged = False
         if ((active != None)
             and (self.active != active)):  # activation of filter changes
@@ -159,11 +247,12 @@ class MediaFilter(Observable):
             filterChanged = (self.active and conditionsChanged)
         if (filterChanged or conditionsChanged): 
             Logger.debug('MediaFiler.setConditions(): Throwing "changed"')
+            self.filterIsSaved = False
             self.changedAspect('changed')
             if (filterChanged): 
                 Logger.debug('MediaFiler.setConditions(): Throwing "filterChanged"')
                 self.changedAspect('filterChanged')
-        Logger.debug('MediaFilter.setConditions() finished as %s' % self)
+        Logger.debug('MediaFilter.setConditions(): Finishing as %s' % self)
 
 
     def clear(self):
@@ -171,18 +260,19 @@ class MediaFilter(Observable):
         
         Needs to use setConditions() to calculate whether filter has changed, and whether filtering results will change. 
         """
-        kwargs = {# 'required': set(),  
-                  # 'prohibited': set(), 
-#                   'requiredUnknownTags': set(),  
-#                   'prohibitedUnknownTags': set(),
-#                   'minimum': None,  # self.model.getMinimumResolution(),
-#                   'maximum': None,  # self.model.getMaximumResolution(),
-                  'requiredMediaTypes': set(),  # TODO: use generic keys
-                  'prohibitedMediaTypes': set()}
+        kwargs = {}
         for key in self.__class__.getConditionKeys():
             kwargs[key] = None
         self.setConditions(**kwargs)
         Logger.debug('MediaFilter.clear() finished as %s' % self)
+
+
+    def removeConditionFor(self, conditionKey):
+        """Remove the condition for the given key.
+        
+        String conditionKey must be in MediaFilter.getConditionKeys()
+        """
+        pass
 
 
     def setFilterValueFor(self, conditionKey, conditionValue, raiseChangedEvent=True):
@@ -217,32 +307,37 @@ class MediaFilter(Observable):
     def __repr__(self):
         """Return a string representing self.
         """
-        if (self.getFilterValueFor(MediaFilter.ConditionKeyRequired)):
-            requiredTags = self.getFilterValueFor(MediaFilter.ConditionKeyRequired)
-        else: 
-            requiredTags = set()
-        if (self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsRequired)):
-            requiredTags.update(self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsRequired))
-        if (self.getFilterValueFor(MediaFilter.ConditionKeyProhibited)):
-            prohibitedTags = self.getFilterValueFor(MediaFilter.ConditionKeyProhibited)
-        else: 
-            prohibitedTags = set()
-        if (self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited)):
-            prohibitedTags.update(self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited))
-        minResolution = self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum)
-        maxResolution = self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum)
-        duplicateString = ('duplicates' if (self.getDuplicate() == True) else
-                           'no duplicates' if (self.getDuplicate() == False) else
-                           '')
+        conditionString = ''
+        for (key, value) in self.conditionMap.items(): 
+            if (value):
+                conditionString = (conditionString + ('%s %s, ' % (key, value)))
+        # if (self.getFilterValueFor(MediaFilter.ConditionKeyRequired)):
+        #     requiredTags = self.getFilterValueFor(MediaFilter.ConditionKeyRequired)
+        # else: 
+        #     requiredTags = set()
+        # if (self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsRequired)):
+        #     requiredTags.update(self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsRequired))
+        # if (self.getFilterValueFor(MediaFilter.ConditionKeyProhibited)):
+        #     prohibitedTags = self.getFilterValueFor(MediaFilter.ConditionKeyProhibited)
+        # else: 
+        #     prohibitedTags = set()
+        # if (self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited)):
+        #     prohibitedTags.update(self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited))
+        # minResolution = self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum)
+        # maxResolution = self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum)
+        # duplicateString = ('duplicates' if (self.getDuplicate() == True) else
+        #                    'no duplicates' if (self.getDuplicate() == False) else
+        #                    '')
         result = (('active, ' if self.active else '')
-                  + (('requires %s, ' % requiredTags) if (0 < len(requiredTags)) else '')
-                  + (('prohibits %s, ' % prohibitedTags) if (0 < len(prohibitedTags)) else '')
-                  + (('%s unknown, ' % ('requires' if self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] else 'prohibits')) 
-                     if (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None) else '')
-                  + (('larger %s%%, ' % minResolution) if minResolution else '')
-                  + (('smaller %s%%, ' % maxResolution) if maxResolution else '')
-                  + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '')
-                  + duplicateString + ', '
+                  # + (('requires %s, ' % requiredTags) if (0 < len(requiredTags)) else '')
+                  # + (('prohibits %s, ' % prohibitedTags) if (0 < len(prohibitedTags)) else '')
+                  # + (('%s unknown, ' % ('requires' if self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] else 'prohibits')) 
+                  #    if (self.conditionMap[MediaFilter.ConditionKeyUnknownRequired] != None) else '')
+                  # + (('larger %s%%, ' % minResolution) if minResolution else '')
+                  # + (('smaller %s%%, ' % maxResolution) if maxResolution else '')
+                  # + (('isa %s, ' % self.requiredMediaTypes) if (0 < len(self.requiredMediaTypes)) else '')
+                  # + duplicateString + ', '
+                  + conditionString
                   )
         if (result != ''):
             result = result[:-2]
@@ -250,10 +345,18 @@ class MediaFilter(Observable):
         return(result)
 
 
+    def isSaved(self):
+        return self.filterIsSaved
+
+
     def getCollectionModel(self):
         """Return the MediaCollection for which self is a MediaFilter.
         """
         return(self.model)
+
+
+    def getFilterName(self):
+        return self.filterName
 
 
     def isActive(self):
@@ -266,6 +369,8 @@ class MediaFilter(Observable):
         """Check whether the filter will reduce the set of media.
         
         Return True if no filter conditions are defined, False otherwise.
+        
+        # TODO: reverse boolean interpretation
         """
         if (self.active):
             if ((0 < len(self.requiredMediaTypes))
@@ -289,7 +394,7 @@ class MediaFilter(Observable):
             if ((key in MediaFilter.ConditionKeysForSets)
                 and (result == None)):
                 result = set()
-            return result
+            return copy.copy(result)
         else:
             raise ValueError('MediaFilter.getFilterValueFor(): Unknown condition key %s' % key)
 
@@ -356,7 +461,10 @@ class MediaFilter(Observable):
         Return Boolean indicating whether self's conditions changed
         """
         changed = False
-        for key in self.__class__.getConditionKeys():
+        for key in kwargs:
+#        for key in self.__class__.getConditionKeys():
+            if (not key in self.__class__.getConditionKeys()):
+                raise ValueError('MadiaFilter.setConditionsAndCalculateChnge(): Unknown key "%s"' % key)
             if ((key in kwargs)
                 and (kwargs[key] != self.conditionMap[key])):
                 self.setFilterValueFor(key, kwargs[key], raiseChangedEvent=False)
@@ -375,7 +483,7 @@ class MediaFilter(Observable):
                     elif (key == MediaFilter.ConditionKeyMediaTypesProhibited):
                         complementaryKey = MediaFilter.ConditionKeyMediaTypesRequired
                     self.setFilterValueFor(complementaryKey, 
-                                           self.getFilterValueFor(complementaryKey).difference(self.getFilterValueFor(key)),
+                                           self.getFilterValueFor(complementaryKey).difference(self.getFilterValueFor(key)),  # crashes
                                            raiseChangedEvent=False)
         return changed 
 
@@ -390,8 +498,8 @@ class MediaFilter(Observable):
         Returns True if entry shall be hidden, or False otherwise
         """
         if (entry.isGroup()): 
-            raise ValueError('MediaFilter.isFiltered(): Defined only for Singles, but passed a Group!')
-        # for unknown requirements
+            raise ValueError('MediaFilter.filteredByConditions(): Defined only for Singles, but passed a Group!')
+        # unknown requirements
         requiredUnknown = self.getFilterValueFor(MediaFilter.ConditionKeyUnknownRequired)
         requiredUnknownTags = self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsRequired)
         prohibitedUnknownTags = self.getFilterValueFor(MediaFilter.ConditionKeyUnknownTagsProhibited)
@@ -430,13 +538,17 @@ class MediaFilter(Observable):
             return(True)
         # image resolution requirements
         if ((self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum) != None)  # minimum resolution required 
-            and (not entry.isGroup()) 
-            and (entry.getResolution() < self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum))):
-            return(True)
+            and (not entry.isGroup())):
+            resolutionRange = (self.getCollectionModel().getMaximumResolution() - self.getCollectionModel().getMinimumResolution())
+            limit = (self.getCollectionModel().getMinimumResolution() + (self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMinimum) / 100 * resolutionRange))  
+            if (entry.getResolution() < limit):
+                return(True)
         if ((self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum) != None)  # maximum resolution requirement
-            and (not entry.isGroup())
-            and (self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum) < entry.getResolution())): 
-            return(True)
+            and (not entry.isGroup())):
+            resolutionRange = (self.getCollectionModel().getMaximumResolution() - self.getCollectionModel().getMinimumResolution())
+            limit = (self.getCollectionModel().getMinimumResolution() + (self.getFilterValueFor(MediaFilter.ConditionKeyResolutionMaximum) / 100 * resolutionRange))  
+            if (limit < entry.getResolution()):
+                return(True)
         # duplicates
         if (self.getDuplicate() != None):
             if (self.getDuplicate()):  # Entries without duplicates shall not appear

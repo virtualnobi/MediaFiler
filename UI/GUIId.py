@@ -23,9 +23,9 @@ try:
     Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['en'])
 except BaseException as e:  # likely an IOError because no translation file found
     try:
-        language = os.environ['LANGUAGE']
+        language = os.environ['LANG']
     except:
-        print('%s: No LANGUAGE environment variable found!' % (__file__))
+        print('%s: No LANG environment variable found!' % (__file__))
     else:
         print('%s: No translation found at %s; using originals instead of %s. Complete error:' % (__file__, LocalesPath, language))
         print(e)
@@ -44,7 +44,7 @@ TextGroupSizeString = _('%d media')
 
 # Sizes and Ranges
 MaxNumberRecentFiles = 10  # maximum number of stored recent root directories
-MaxNumberScenes = 99  # maximum number of change scene functions
+MaxNumberScenes = 100  # maximum number of change scene functions (+1 for "new")
 MaxNumberNumbers = 999 # max number of change number functions
 MaxNumberPerspectives = 10  # maximum number of stored perspectives
 MaxNumberMoveToLocations = 10  # max number of remembered last move-to locations
@@ -63,16 +63,15 @@ SB_Organization = 2  # organization of images: by date or by name
 # Identifiers and texts to register event handlers
 FunctionNames = {}  # mapping event identifiers to texts
 def generateWxIdForLabel(label):
-    idx = wx.NewId()
+    idx = wx.NewIdRef()
     FunctionNames[idx] = label
     return(idx)
 
 
 
 ## File
-LoadRecentDirectory = wx.NewId()  # load first recent root directory
-for i in range(MaxNumberRecentFiles - 1):  # reserve additional menu items for more recent directories
-    wx.NewId()
+LoadRecentDirectory = wx.NewIdRef()  # load first recent root directory
+LoadRecentDirectoryIDs = [wx.NewIdRef() for i in range(MaxNumberRecentFiles)]
 ChangeRootDirectory = generateWxIdForLabel(_('Change Media Directory'))
 ReloadDirectory = generateWxIdForLabel(_('Reload Media'))
 ExportImages = generateWxIdForLabel(_('Export (Filtered) Media'))
@@ -82,11 +81,10 @@ FunctionNames[wx.ID_EXIT] = _('Exit')
 FindDuplicates = generateWxIdForLabel(_('Determine Duplicates'))
 RemoveAllDuplicates = generateWxIdForLabel(_('Remove all Duplicates'))
 ShowDuplicates = generateWxIdForLabel(_('Show Duplicates'))
-for i in range(MaxNumberDuplicates - 1):  # reserve additional menu items for more duplicates
-    wx.NewId()
+ShowDuplicatesIDs = [wx.NewIdRef() for i in range(MaxNumberDuplicates)]  # reserve additional menu items for more duplicates
 RemoveDuplicatesElsewhere = generateWxIdForLabel(_('Remove Duplicates from another folder'))
 
-EntryFunctionFirst = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
+EntryFunctionFirst = wx.NewIdRef()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
 DeleteImage = generateWxIdForLabel(_('Delete Media "%s"'))
 DeleteDoubles = generateWxIdForLabel(_('Delete Doubles'))
 
@@ -99,8 +97,7 @@ RemoveNew = generateWxIdForLabel(_('Remove Import Indicator'))
 RemoveIllegalElements = generateWxIdForLabel(_('Remove Unknown Tags'))
 
 AssignNumber = generateWxIdForLabel(_('Move to Number...'))
-for i in range(MaxNumberNumbers - 1):  # reserve additional menu items for media numbers
-    wx.NewId()
+AssignNumberIDs = [wx.NewIdRef() for i in range(MaxNumberNumbers - 1)]  # reserve additional menu items for media numbers
 ReorderByTime = generateWxIdForLabel(_('Reorder by Time Taken'))
 UndoReorder = generateWxIdForLabel(_('Undo Reordering'))
 
@@ -109,16 +106,16 @@ FilterSimilar = generateWxIdForLabel(_('Filter Similar'))
 
 StartExternalViewer = generateWxIdForLabel(_('View in External Program'))
 SendMail = generateWxIdForLabel(_('Send As Email'))
+
 # Functions specific to OrganizationByName
 SelectScene = generateWxIdForLabel(_('Move to scene...'))  # TODO: merge with SelectMoveTo
-for i in range(MaxNumberScenes - 1):  # reserve additional menu items for more scene numbers
-    wx.NewId()
+SelectSceneIDs = [wx.NewIdRef() for i in range(MaxNumberScenes)]  # reserve additional menu items for more scene numbers  
 RelabelScene = generateWxIdForLabel(_('Rename scene to...'))
+
 # Functions Specific to OrganizationByDate
 SelectMoveTo = generateWxIdForLabel(_('Move to...'))
-for i in range(MaxNumberMoveToLocations - 1):
-    wx.NewId()
-EntryFunctionLast = wx.NewId()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
+SelectMoveToIDs = [wx.NewIdRef() for i in range(MaxNumberMoveToLocations)]  # reserve additional menu items for more move to locations  
+EntryFunctionLast = wx.NewIdRef()  # allow forwarding of range of menu events to MediaFiler.Entry in MediaCanvas and MediaTreeCtrl
 
 ## View
 ToggleFilterPane = generateWxIdForLabel(_('Toggle Filter Pane'))
@@ -139,12 +136,10 @@ SaveFilter = generateWxIdForLabel(_('Save Filter'))
 LoadFilter = generateWxIdForLabel(_('Load Filter'))
 
 ## Perspectives 
-#-FirstPerspective = wx.ID_HIGHEST + PerspectiveFirstStart  # load first perspective, subsequent codes used by other perspectives
 LoadPerspective = wx.NewId()  # load first perspective
-for i in range(MaxNumberPerspectives - 1):  # reserve additional menu idemts for more perspectives
-    wx.NewId()
-CreatePerspective = wx.NewId ()  # create perspective
-DeletePerspective = wx.NewId ()  # delete perspective
+LoadPerspectiveIDs = [wx.NewIdRef() for i in range(MaxNumberPerspectives)]  # reserve additional menu idemts for more perspectives
+CreatePerspective = wx.NewIdRef()  # create perspective
+DeletePerspective = wx.NewIdRef()  # delete perspective
 
 ## Import
 TestImport = generateWxIdForLabel(_('Test Import'))
@@ -159,8 +154,8 @@ EditNames = generateWxIdForLabel(_('Edit Names'))
 CountTags = generateWxIdForLabel(_('Count Tag Occurrences'))
 HarvestURLs = generateWxIdForLabel(_('Harvest from URL...'))
 ManageLogging = generateWxIdForLabel(_('Manage Logging...'))
-for i in range(MaxNumberLogging - 1):
-    wx.NewId()
+ManageLoggingIDs = [wx.NewIdRef() for i in range(MaxNumberLogging)]  # reserve additional menu idents for logging all modules
+
 
 ## Importing
 BrowseImportDirectory = generateWxIdForLabel(_('Browse'))

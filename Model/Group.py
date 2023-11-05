@@ -63,7 +63,11 @@ class Group(Entry, Observer):
         Logger.debug('Group.createAndPersist(): Found parent "%s"' % parent.getPath())
         newGroup.setParentGroup(parent)
         Logger.debug('Group.createAndPersist(): Creating directory "%s"' % path)
-        os.mkdir(path)
+        try: 
+            os.mkdir(path)
+        except BaseException as e: 
+            Logger.error('Group.createAndPersist(): Cannot create directory "%s" (error follows)\n%s' % (path, e))
+            raise e
         return(newGroup)
 
 
@@ -114,13 +118,12 @@ class Group(Entry, Observer):
             self.changedAspect('children')
     
     
-    def remove(self):  # TODO: remove subentries individually for correct MediaCollection size
+    def remove(self):
         """
         """
         parent = self.getParentGroup()  # parent is unlinked in superclass implementation
         super(Group, self).remove()
-        # check if parent still has subentries
-        if (0 == len(parent.getSubEntries())):
+        if (0 == len(parent.getSubEntries())):  # remove parent if there are no more subentries
             parent.remove()
 
 
@@ -246,6 +249,8 @@ class Group(Entry, Observer):
         """Return the next entry following entry.
         
         Return MediaFiler.Entry or None
+        
+        TODO: Broken when filtering, because returns filtered entry
         """
         if (entry):
             index = self.subEntriesSorted.index(entry)
@@ -374,7 +379,7 @@ class Group(Entry, Observer):
         """
         """
         if (aspect == 'name'):
-            self.subEntriesSorted = SortedCollection(self.subEntriesSorted, key=Entry.getPath)
+            self.subEntriesSorted = SortedCollection(iterable=self.subEntriesSorted, key=Entry.getPath)
 
 
 

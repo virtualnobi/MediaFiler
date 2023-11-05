@@ -9,11 +9,11 @@ import copy
 import re
 import os.path
 import glob
-#import StringIO
 import logging
 import gettext
 from collections import OrderedDict
 import functools
+from operator import indexOf
 ## Contributed 
 #import wx
 import wx.lib.masked
@@ -27,7 +27,7 @@ from Model.MediaNameHandler import MediaNameHandler
 from Model.MediaFilter import MediaFilter
 from Model.MediaOrganization import MediaOrganization
 from Model.Group import Group
-from UI.MediaFilterPane import MediaFilterPane, FilterConditionWithMode
+from UI.MediaFilterPane import MediaFilterPane, FilterConditionWithMode, FilterCondition
 import UI  # to access UI.PackagePath
 from UI import GUIId
 
@@ -39,7 +39,7 @@ try:
     Translation = gettext.translation('MediaFiler', LocalesPath)
 except BaseException as e:  # likely an IOError because no translation file found
     try:
-        language = os.environ['LANGUAGE']
+        language = os.environ['LANG']
     except:
         print('%s: No LANGUAGE environment variable found!' % (__file__))
     else:
@@ -63,9 +63,9 @@ class OrganizationByName(MediaOrganization):
     """A strategy to organize media by name.
     
     - There is a list of legal names.
-    - Media is identified by name, scene, number, and elements. 
+    - Media is identified by name, scene, number, and tags. 
     - Media are stored in folders per name, which are stored in folders per 1st letter of name. No further folder levels.
-    - Elements are allowed on media file names only.
+    - Tags are allowed on media file names only.
     """
 
 
@@ -160,7 +160,7 @@ class OrganizationByName(MediaOrganization):
             else: 
                 Logger.error('OrganizationByName.pathInfoForImport(): Missing parameter "rootDir"!')
                 baseLength = 0
-            newName = self.deriveName(importParameters.log, sourcePath[baseLength:])
+            newName = self.deriveName(importParameters, sourcePath[baseLength:])
             if (newName == None):  # indicates no more free names
                 result = None
                 Logger.debug('OrganizationByName.pathInfoForImport(): No free name found')
@@ -279,10 +279,10 @@ class OrganizationByName(MediaOrganization):
 
 
     @classmethod
-    def deriveName(self, log, path):
+    def deriveName(self, importParameters, path):
         """Derive the name under which the file at path shall be imported.
          
-        StringIO log collects all messages.
+        ImportParameterObject importParameters provides log and test-run flag
         String path contains the name of the file/directory to create a new name for.
         Return String containing the legal name, or None if no names are free anymore. 
         """
@@ -300,22 +300,25 @@ class OrganizationByName(MediaOrganization):
                     newName = word
                 else:  # already found a name, stick to it
                     if (newName != word):
-                        log.write('\nFile "%s" contains names "%s" (chosen) and "%s" (ignored)\n' % (path, newName, word))
+                        importParameters.logString('\nFile "%s" contains names "%s" (chosen) and "%s" (ignored)\n' % (path, newName, word))
         # if none found, pick random one
         if (newName == None):  # no name found, randomly select unused one
             newName = self.nameHandler.getFreeName()
             if (newName == None):  # no more free names
-                log.write('\nNo more free names.\n')
+                importParameters.logString('\nNo more free names.\n')
             else:
-                log.write('\nChoosing free name "%s" for file "%s"\n' % (newName, path))
+                importParameters.logString('\nChoosing free name "%s" for file "%s"\n' % (newName, path))
+                if (importParameters.getTestRun()):  # if only a test run, keep this as free name
+                    self.nameHandler.registerNameAsFree(newName)
         elif (self.nameHandler.isNameFree(newName)):  # name exists and is still free
-            log.write('\nFound free legal name "%s" in file "%s"\n' % (newName, path))
-            self.nameHandler.registerNameAsUsed(newName)  # TODO: When importing an empty directory with a legal name, this registers the name, although there are no media with this name
+            importParameters.logString('\nFound free legal name "%s" in file "%s"\n' % (newName, path))
+            if (not importParameters.getTestRun()): 
+                self.nameHandler.registerNameAsUsed(newName)  # TODO: When importing an empty directory with a legal name, this registers the name, although there are no media with this name
         else: # name exists but is occupied
             if (self.getModel().getEntry(name=newName)):  # name is used (also considering number if it exists)
-                log.write('\nExisting name "%s" used in file "%s"\n' % (newName, path))
+                importParameters.logString('\nExisting name "%s" used in file "%s"\n' % (newName, path))
             else:  # name not used with this number
-                log.write('\nExisting name "%s" is used, but not with this number\n' % newName)
+                importParameters.logString('\nExisting name "%s" is used, but not with this number\n' % newName)
         return(newName)
 
 
@@ -360,9 +363,34 @@ class OrganizationByName(MediaOrganization):
         super(OrganizationByName, cls).initFilterPane(aMediaFilterPane)
         aMediaFilterPane.addCondition(SingletonFilter(aMediaFilterPane))
         aMediaFilterPane.addCondition(SceneFilter(aMediaFilterPane))
+        aMediaFilterPane.addCondition(GroupSizeFilter(aMediaFilterPane))
         aMediaFilterPane.addSeparator()
 
     
+    @classmethod
+    def conditionsFromFilter(cls, aNewMediaFilterPane, aMediaFilter):
+        """overwrite MediaOrganization.conditionsFromFilter
+        """
+        result = []  # super(OrganizationByName, cls).conditionsFromFilter(aNewMediaFilterPane, aMediaFilter)
+        if (aMediaFilter.getFilterValueFor(FilterByName.ConditionKeySingle) != None):
+            text = wx.StaticText(aNewMediaFilterPane, -1, '')
+            if (aMediaFilter.getFilterValueFor(FilterByName.ConditionKeySingle)):
+                text.SetLabel(_('Singleton required'))
+            else:
+                text.SetLabel(_('Singleton prohibited'))
+            result.append(text)
+        if (aMediaFilter.getFilterValueFor(FilterByName.ConditionKeyScene) != None):
+            text = wx.StaticText(aNewMediaFilterPane, -1, (_('Scene %s') % aMediaFilter.getFilterValueFor(FilterByName.ConditionKeyScene)))
+            result.append(text)
+        if (aMediaFilter.getFilterValueFor(FilterByName.ConditionKeyGroupSizeLarger) != None):
+            text = wx.StaticText(aNewMediaFilterPane, -1, (_('Group with more than %s entries') % aMediaFilter.getFilterValueFor(FilterByName.ConditionKeyGroupSizeLarger)))
+            result.append(text)
+        if (aMediaFilter.getFilterValueFor(FilterByName.ConditionKeyGroupSizeSmaller) != None):
+            text = wx.StaticText(aNewMediaFilterPane, -1, (_('Group with less than %s entries') % aMediaFilter.getFilterValueFor(FilterByName.ConditionKeyGroupSizeSmaller)))
+            result.append(text)
+        return result
+
+
 
 # Lifecycle
     def __init__(self, anEntry, aPath):
@@ -377,7 +405,7 @@ class OrganizationByName(MediaOrganization):
             self.__class__.nameHandler.registerNameAsUsed(self.getName())
         except: 
             if (not self.context.isGroup()):
-                logging.warning('OrganizationByName(): "%s" is not a legal name in "%s"' % (self.getName(), anEntry.getPath()))
+                Logger.warning('OrganizationByName(): "%s" is not a legal name in "%s"' % (self.getName(), anEntry.getPath()))
         return(None)
 
 
@@ -386,7 +414,7 @@ class OrganizationByName(MediaOrganization):
     def setIdentifiersFromPath(self, path):
         """Isolate name and scene (if any) from path, and return remaining part of path.
 
-        path String relative pathname of file, with leading model root directory and trailing extension removed
+        path String relative pathname of file, without leading root directory and trailing extension
         
         TODO: make independent from OS-dependent separator characters (/ vs. \)
         
@@ -409,7 +437,7 @@ class OrganizationByName(MediaOrganization):
             rest = match.group(6)
         else:  # second try: 'letter/name' is a singleton Single
             match = re.search(r"""([a-z])                  # single-letter directory = \1 
-                                  \\((\1[a-z]+)[0-9]?)  # directory with name = \3 and optional digit, all captured in \2
+                                  \\((\1[a-z]+)[0-9]?)     # directory with name = \3 and optional digit, all captured in \2
                                   ([^\\]*)$                # non-directories until EOL = \4
                                """, 
                               path, 
@@ -430,8 +458,10 @@ class OrganizationByName(MediaOrganization):
                     self.name = ''
                     rest = ''
                 else:  # no match, or illegal name
-                    Logger.info('OrganizationByName.setIdentifiersFromPath(): Cannot extract identifiers from "%s"' % path)
+                    Logger.warning('OrganizationByName.setIdentifiersFromPath(): Cannot extract identifiers from "%s" (unknown name?)' % path)
                     rest = path  # neither image nor group, nothing consumed
+        Logger.debug('OrganizationByName.setIdentifiersFromPath(): Resulted in name="%s", scene="%s", rest="%s"' 
+                     % (self.name, self.scene, rest))
         return(rest)
 
 
@@ -441,7 +471,7 @@ class OrganizationByName(MediaOrganization):
         String newScene contains the number of the new scene 
         """
         oldScene = self.getScene()
-        logging.debug('OrganizationByName.relabelToScene(): Moving entries from scene %s to scene %s (from "%s")' 
+        Logger.debug('OrganizationByName.relabelToScene(): Moving entries from scene %s to scene %s (from "%s")' 
                       % (oldScene, newScene, self.context.getPath()))
         parentGroup = self.getContext().getParentGroup()
         processIndicator = wx.GetApp()  # TODO: move out to UI packages
@@ -505,6 +535,8 @@ class OrganizationByName(MediaOrganization):
     def getNumbersInGroup(self):
         """Return the (ascending) list of Numbers in self's group.
         
+        TODO: merge with MediaOrganization.getNumberedEntriesMap()
+        
         TODO: Remove this when OrganizationByName uses embedded Groups for the scene, and let the Group
         list the numbers. 
         """
@@ -545,14 +577,13 @@ class OrganizationByName(MediaOrganization):
                                newMenu=self.deriveRenumberSubMenu())
             sceneMenu = Menu()
             sceneMenu.currentEntry = self.getContext()
-            sceneId = GUIId.SelectScene
-            for scene in self.getContext().getParentGroup().getOrganizer().getScenes():
-                if (sceneId <= (GUIId.SelectScene + GUIId.MaxNumberScenes)):  # respect max number of scenes in menu
-                    sceneMenu.Append(sceneId, scene)
-                    if (scene == self.getScene()):
-                        sceneMenu.Enable(sceneId, False)
-                    sceneId = (sceneId + 1)
-            if (sceneId > GUIId.SelectScene):  # scenes exist
+            sceneList = self.getContext().getParentGroup().getOrganizer().getScenes()
+            if (0 < len(sceneList)):
+                for sceneStr in sceneList:
+                    sceneNum = (0 if sceneStr == MediaClassHandler.ElementNew else int(sceneStr))
+                    sceneMenu.Append(GUIId.SelectSceneIDs[sceneNum], sceneStr)
+                    if (sceneStr == self.getScene()):
+                        sceneMenu.Enable(GUIId.SelectSceneIDs[sceneNum], False)
                 menu.insertAfterId(GUIId.SelectMoveTo, 
                                    newText=GUIId.FunctionNames[GUIId.RelabelScene], 
                                    newId=GUIId.RelabelScene)
@@ -579,12 +610,18 @@ class OrganizationByName(MediaOrganization):
                 if (not newName):
                     message = _('No more free names!')
             if (newName):
+                oldName = self.getName()
                 pathInfo = self.getPathInfo()
                 pathInfo['name'] = newName
                 entry = self.getModel().getEntry(name=newName)
                 if (entry):  # name exists
                     if (not entry.isGroup()):
-                        entry.getOrganizer().convertToGroup()
+                        try:
+                            entry.getOrganizer().convertToGroup()
+                        except BaseException as e:
+                            message = ('Cannot convert "%s" to Group' % entry.getOrganizer().getName())
+                            Logger.error('OrganizatonByName.runContextMenuEntry(): %s (error follows)\n%s' % (message, e))
+                            return(message)
                     if (self.getContext().isGroup()):
                         pass  # scenes in group will be mapped to newly created scenes
                     else:  # either a Singleton or a Single extracted out of named Group
@@ -599,17 +636,23 @@ class OrganizationByName(MediaOrganization):
                 if (resultingSelection):
                     self.getModel().setSelectedEntry(resultingSelection)
                 else:
+                    Logger.warn('OrganizationByName.runContextMenuItem(): Renaming did not return a new selection!')
                     self.getModel().setSelectedEntry(self.getContext())  # deprecate
+                if (oldName != newName):
+                    self.nameHandler.registerNameAsFree(oldName)
+                    self.nameHandler.registerNameAsUsed(newName)
         elif (menuId == GUIId.ConvertToGroup):
             message = self.convertToGroup()
         elif (menuId == GUIId.RelabelScene):
             newScene = self.askNewScene(parentWindow)
             if (newScene):
                 self.relabelToScene(newScene)
-        elif ((GUIId.SelectScene <= menuId)
-              and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
-            newScene = self.getContext().getParentGroup().getOrganizer().getScenes()[menuId - GUIId.SelectScene]
-            logging.debug('OrganizationByName.runContextMenu(): Changing scene of "%s" to %s' % (self.getPath(), newScene))
+        # elif ((GUIId.SelectScene <= menuId)
+        #       and (menuId <= (GUIId.SelectScene + GUIId.MaxNumberScenes))):
+        #     newScene = self.getContext().getParentGroup().getOrganizer().getScenes()[menuId - GUIId.SelectScene]
+        elif (menuId in GUIId.SelectSceneIDs):
+            newScene = indexOf(GUIId.SelectSceneIDs, menuId)
+            Logger.debug('OrganizationByName.runContextMenu(): Changing scene of "%s" to %s' % (self.getPath(), newScene))
             pathInfo = self.getPathInfo()
             pathInfo['scene'] = newScene
             pathInfo['makeUnique'] = True 
@@ -905,6 +948,17 @@ class OrganizationByName(MediaOrganization):
         return(newSceneString)
 
 
+    def getNumberedEntriesMap(self):
+        """overwrite MediaOrganization.getNumberedEntriesMap(), 
+        to return only numbers from self's group
+        """
+        result = {}
+        for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
+            if (self.getScene() == entry.getOrganizer().getScene()):
+                result[entry.getOrganizer().getNumber()] = entry
+        return(result)
+
+
 
 class FilterByName(MediaFilter):
     """A filter for media organized by name, i.e., including scene and singleton.
@@ -914,6 +968,9 @@ class FilterByName(MediaFilter):
 # Class Constants
     ConditionKeyScene = 'scene'
     ConditionKeySingle = 'single'
+    ConditionKeyGroupSizeLarger = 'groupSizeLarger'
+    ConditionKeyGroupSizeSmaller = 'groupSizeSmaller'    
+    
 
 
 # Class Methods
@@ -922,7 +979,9 @@ class FilterByName(MediaFilter):
         """overwrite MediaFilter.getConditionKeys()"""
         keys = super(FilterByName, cls).getConditionKeys()
         keys.extend([FilterByName.ConditionKeyScene,
-                     FilterByName.ConditionKeySingle])
+                     FilterByName.ConditionKeySingle,
+                     FilterByName.ConditionKeyGroupSizeLarger,
+                     FilterByName.ConditionKeyGroupSizeSmaller])
         return(keys)
 
 
@@ -935,52 +994,27 @@ class FilterByName(MediaFilter):
         # internal state
         self.conditionMap[FilterByName.ConditionKeySingle] = None
         self.conditionMap[FilterByName.ConditionKeyScene] = None
+        self.conditionMap[FilterByName.ConditionKeyGroupSizeLarger] = None
+        self.conditionMap[FilterByName.ConditionKeyGroupSizeSmaller] = None
+
 
 
 # Setters
-#     def clear(self):
-#         """override MediaFilter.clear()"""
-#         # redundant?
-#         super(FilterByName, self).clear()
-#         self.setConditions(scene=None,  # TODO: reduce to one call to setConditions(): define allFilterConditions() to return list of criteria, and iterate over them in MediaFilter.clear()
-#                            single=None)
-#         Logger.debug('FilterByName.clear() finished as %s' % self)
-
-
-
-#     def setConditionsAndCalculateChange(self, **kwargs):
-#         """override MediaFilter.setConditionsAndCalculateChange()"""
-#         changed = super(FilterByName, self).setConditionsAndCalculateChange(**kwargs)
-# #         #TODO: redundant?
-# #         for key in [FilterByName.ConditionKeySingle, FilterByName.ConditionKeyScene]:
-# #             if ((key in kwargs)
-# #                 and (kwargs[key] != self.conditionMap[key])):
-# #                 self.conditionMap[key] = kwargs[key]
-# #                 changed = True
-#         return(changed)
-
-
 # Getters
     def __repr__(self):
         """override MediaFilter.__repr__()"""
         result = super(FilterByName, self).__repr__()  # ends with ')'
         conditions = ''
         if (self.getFilterValueFor(FilterByName.ConditionKeySingle) != None):
-            conditions = ('singleton %s' % ('required' if self.getFilterValueFor(FilterByName.ConditionKeySingle) else 'prohibited'))
+            conditions = ('singleton %s, ' % ('required' if self.getFilterValueFor(FilterByName.ConditionKeySingle) else 'prohibited'))
         if (self.getFilterValueFor(FilterByName.ConditionKeyScene) != None):
-            if (0 < len(conditions)):
-                conditions = (conditions + ', ')
-            conditions = conditions + ('scene %s' % self.getFilterValueFor(FilterByName.ConditionKeyScene))
+            conditions = conditions + ('scene %s, ' % self.getFilterValueFor(FilterByName.ConditionKeyScene))
+        if (self.getFilterValueFor(FilterByName.ConditionKeyGroupSizeLarger) != None):
+            conditions = conditions + ('group size > %s, ' % self.getFilterValueFor(FilterByName.ConditionKeyGroupSizeLarger))
+        if (self.getFilterValueFor(FilterByName.ConditionKeyGroupSizeSmaller) != None):
+            conditions = conditions + ('group size < %s, ' % self.getFilterValueFor(FilterByName.ConditionKeyGroupSizeSmaller))
         result = (result[:-1] + conditions + ')')
         return(result)
-
-
-#     def getScene(self):
-#         return(self.conditionMap[FilterByName.ConditionKeyScene])
-
-
-#     def getSingleton(self):
-#         return(self.conditionMap[FilterByName.ConditionKeySingle])
 
 
     def filteredByConditions(self, entry):
@@ -989,14 +1023,45 @@ class FilterByName(MediaFilter):
         if ((singleCondition != None)
             and (singleCondition != entry.getOrganizer().isSingleton())):
             Logger.debug('FilterByName.filteredByConditions(): Single condition filters %s' % entry)
-            return(True)
+            return True 
         sceneCondition = self.getFilterValueFor(FilterByName.ConditionKeyScene)
         if ((sceneCondition != None)
             and ((entry.getOrganizer().isSingleton())
                  or (sceneCondition != entry.getOrganizer().getScene()))):
             Logger.debug('FilterByName.filteredByConditions(): Scene condition filters %s' % entry)
-            return(True)
-        return(super(FilterByName, self).filteredByConditions(entry))
+            return True
+        groupSizeCondition = self.getFilterValueFor(FilterByName.ConditionKeyGroupSizeLarger)
+        if (groupSizeCondition != None):
+            if (entry.getOrganizer().isSingleton()):
+                return True
+            parent = entry.getParentGroup()
+            if (len(parent.getSubEntries(filtering=False)) < groupSizeCondition):
+                return True
+        groupSizeCondition = self.getFilterValueFor(FilterByName.ConditionKeyGroupSizeSmaller)
+        if (groupSizeCondition != None):
+            if (entry.getOrganizer().isSingleton()):
+                return True
+            parent = entry.getParentGroup()
+            if (len(parent.getSubEntries(filtering=False)) > groupSizeCondition):
+                return True
+        return super(FilterByName, self).filteredByConditions(entry)
+
+
+
+# Internal
+    # def setConditionsAndCalculateChange(self, **kwargs):
+    #     """Overwrite MediaFilter.setConditionsAndCalculateChange()"""
+    #     changed = super(FilterByName, self).setConditionsAndCalculateChange(**kwargs)
+    #     if ((FilterByName.ConditionKeyGroupSizeLarger in kwargs)
+    #         and (kwargs[FilterByName.ConditionKeyGroupSizeLarger] != self.getFilterValueFor(FilterByName.ConditionKeyGroupSizeLarger))):
+    #             self.setFilterValueFor(FilterByName.ConditionKeyGroupSizeLarger, kwargs[FilterByName.ConditionKeyGroupSizeLarger], raiseChangedEvent=False)
+    #             changed = True
+    #     if ((FilterByName.ConditionKeyGroupSizeSmaller in kwargs)  
+    #           and (kwargs[FilterByName.ConditionKeyGroupSizeSmaller] != self.getFilterValueFor(FilterByName.ConditionKeyGroupSizeSmaller))):
+    #             self.setFilterValueFor(FilterByName.ConditionKeyGroupSizeSmaller, kwargs[FilterByName.ConditionKeyGroupSizeSmaller], raiseChangedEvent=False)
+    #             changed = True
+    #     return changed
+
 
 
 
@@ -1093,9 +1158,74 @@ class SceneFilter(FilterConditionWithMode):
                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexRequire)
                 self.sceneNumber.SetValue(int(filterValue))
                 Logger.debug('SceneFilter.updateAspect(): Setting to %s' % filterValue)
-#             else: 
-#                 self.modeChoice.SetSelection(FilterConditionWithMode.FilterModeIndexIgnore)
-#                 Logger.debug('SceneFilter.updateAspect(): Clearing filter')
         else:
             Logger.error('SceneFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
+
+
+
+class GroupSizeFilter(FilterCondition):
+    """Represents a filter on the size of groups.
+    """
+    FilterRelationIgnore = 'ignore'
+    FilterRelationLarger = 'larger'
+    FilterRelationSmaller = 'smaller'
+    FilterRelations = [FilterRelationIgnore, FilterRelationLarger, FilterRelationSmaller]
+    FilterRelationIndexIgnore = FilterRelations.index(FilterRelationIgnore)
+    FilterRelationIndexLarger = FilterRelations.index(FilterRelationLarger)
+    FilterRelationIndexSmaller = FilterRelations.index(FilterRelationSmaller)
+
+
+    def __init__(self, parent):
+        FilterCondition.__init__(self, parent, _('Group Size'))
+        self.relationChoice = wx.Choice(parent, wx.ID_ANY, choices=GroupSizeFilter.FilterRelations)
+        self.relationChoice.SetSelection(0)
+        self.relationChoice.Bind(wx.EVT_CHOICE, self.onChange, self.relationChoice)
+        self.size = wx.lib.masked.NumCtrl(parent, wx.ID_ANY, integerWidth=3, fractionWidth=0, min=1, max=999)
+        self.size.Bind(wx.lib.masked.EVT_NUM, self.onChange, self.size)
+
+
+    def getConditionControls(self):
+        return([self.relationChoice, self.size])
+
+
+    def onChange(self, event):  # @UnusedVariable
+        wx.BeginBusyCursor()
+        newRelation = self.relationChoice.GetSelection()
+        newSize = self.size.GetValue()
+        newSizeInt = int(newSize)
+        if (newSizeInt == 0):
+            newRelation = GroupSizeFilter.FilterRelationIgnore
+            Logger.debug('GroupSizeFilter.onChange(): Ignoring illegal new group size "%s"' % newSize)
+        if (newRelation == GroupSizeFilter.FilterRelationIndexIgnore):
+            self.filterModel.setConditions(groupSizeLarger=None, groupSizeSmaller=None)
+            Logger.debug('GroupSizeFilter.onChange(): Clearing group size filter')
+        elif (newRelation == GroupSizeFilter.FilterRelationIndexLarger):
+            self.filterModel.setConditions(groupSizeLarger=newSizeInt, groupSizeSmaller=None)
+            Logger.warn('GroupSizeFilter.onChange(): Requiring groups larger than %s' % newSizeInt)
+        else:  # relation == smaller
+            self.filterModel.setConditions(groupSizeLarger=None, groupSizeSmaller=newSizeInt)
+            Logger.debug('GroupSizeFilter.onChange(): Requiring groups smaller than %s' % newSizeInt)
+        wx.EndBusyCursor()
+
+
+    def updateAspect(self, observable, aspect):
+        if (aspect == 'changed'):
+            Logger.debug('GroupSizeFilter.updateAspect(): Processing change of filter')
+            filterValue = self.filterModel.getFilterValueFor(FilterByName.ConditionKeyGroupSizeLarger)
+            if (filterValue):
+                self.relationChoice.SetSelection(1)
+                self.size.SetValue(int(filterValue))
+                Logger.debug('GroupSizeFilter.updateAspect(): Requiring groups larger than %s' % filterValue)
+            else: 
+                filterValue = self.filterModel.getFilterValueFor(FilterByName.ConditionKeyGroupSizeSmaller)
+                if (filterValue):
+                    self.relationChoice.SetSelection(2)
+                    self.size.SetValue(int(filterValue))
+                    Logger.debug('GroupSizeFilter.updateAspect(): Requiring groups smaller than %s' % filterValue)
+                else:
+                    self.relationChoice.SetSelection(0)
+                    Logger.debug('GroupSizeFilter.updateAspect(): Clearing filter')
+        else:
+            Logger.error('GroupSizeFilter.updateAspect(): Unknown aspect "%s" of object "%s"' % (aspect, observable))
+
 

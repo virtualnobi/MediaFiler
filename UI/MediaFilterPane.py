@@ -275,33 +275,33 @@ class UnknownTagFilter(FilterConditionWithMode):
             Logger.debug('UnknownTagFilter.onChange(): Processing change of tags to "%s"' % newTags)
             if (newMode == FilterConditionWithMode.FilterModeIndexIgnore):
                 if (0 == len(newTags)): 
-                    self.filterModel.setConditions(requiredUnknownTags=set(), 
-                                                   prohibitedUnknownTags=set(), 
-                                                   unknownRequired=None)
+                    self.filterModel.setConditions(unknownRequired=set(), 
+                                                   unknownProhibited=set(), 
+                                                   anyUnknownTagRequired=None)
                 else:  # newTags contains tags, turn on filtering
-                    self.filterModel.setConditions(requiredUnknownTags=newTags,
-                                                   prohibitedUnknownTags=set(),
-                                                   unknownRequired=True)
+                    self.filterModel.setConditions(unknownRequired=newTags,
+                                                   unknownProhibited=set(),
+                                                   anyUnknownTagRequired=True)
             elif (newMode == FilterConditionWithMode.FilterModeIndexRequire):
-                self.filterModel.setConditions(requiredUnknownTags=newTags,
-                                               prohibitedUnknownTags=set(),
-                                               unknownRequired=True)
+                self.filterModel.setConditions(unknownRequired=newTags,
+                                               unknownProhibited=set(),
+                                               anyUnknownTagRequired=True)
             elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
-                self.filterModel.setConditions(requiredUnknownTags=set(),
-                                               prohibitedUnknownTags=newTags,
-                                               unknownRequired=False)
+                self.filterModel.setConditions(unknownRequired=set(),
+                                               unknownProhibited=newTags,
+                                               anyUnknownTagRequired=False)
         elif (source == self.modeChoice):
             Logger.debug('UnknownTagFilter.onChange(): Processing change of mode to "%s"' % newMode)
             if (newMode == FilterConditionWithMode.FilterModeIndexIgnore):
-                self.filterModel.setConditions(unknownRequired=None)
+                self.filterModel.setConditions(anyUnknownTagRequired=None)
             elif (newMode == FilterConditionWithMode.FilterModeIndexRequire):
-                self.filterModel.setConditions(requiredUnknownTags=newTags,
-                                               prohibitedUnknownTags=set(),
-                                               unknownRequired=True)
+                self.filterModel.setConditions(unknownRequired=newTags,
+                                               unknownProhibited=set(),
+                                               anyUnknownTagRequired=True)
             elif (newMode == FilterConditionWithMode.FilterModeIndexExclude):
-                self.filterModel.setConditions(requiredUnknownTags=set(),
-                                               prohibitedUnknownTags=newTags,
-                                               unknownRequired=False)
+                self.filterModel.setConditions(unknownRequired=set(),
+                                               unknownProhibited=newTags,
+                                               anyUnknownTagRequired=False)
         else:
             raise ValueError('UnknownTagFilter.onChange(): Unknown event source!')
         wx.EndBusyCursor()
@@ -341,7 +341,8 @@ class MediaTypeFilter(FilterCondition):
     """
     def __init__(self, parent):
         FilterCondition.__init__(self, parent, _('Media Type'))
-        self.mediaTypes = sorted(Single.__subclasses__(), key=lambda c:c.__name__)  # @UndefinedVariable
+        self.mediaTypes = [Single]
+        self.mediaTypes.extend(sorted(Single.__subclasses__(), key=lambda c:c.getMediaTypeName()))  # @UndefinedVariable
         mediaTypeNames = [cls.getMediaTypeName() for cls in self.mediaTypes]
         self.typeChoice = wx.CheckListBox(parent, -1, wx.DefaultPosition, wx.DefaultSize, mediaTypeNames)
         self.typeChoice.Bind(wx.EVT_CHECKLISTBOX, self.onChange, self.typeChoice)
@@ -353,19 +354,24 @@ class MediaTypeFilter(FilterCondition):
 
     def onChange(self, event):
         wx.BeginBusyCursor()
-        source = event.GetEventObject()
-        changedIndex = event.GetSelection()
-        changedMediaType = self.mediaTypes[changedIndex]
-        (required, prohibited) = self.filterModel.getMediaTypes()  # @UnusedVariable
-        if (source.IsChecked(changedIndex)):
-            required.add(changedMediaType)
-        else:
-            if (changedMediaType in required):
-                required.remove(changedMediaType)
-            else:
-                logging.error('MediaTypeFilter.onChange(): media type %s not in filter!' % changedMediaType.__name__)
-        self.filterModel.setConditions(requiredMediaTypes=required)
-        source.SetSelection(changedIndex)  # put focus on (un)checked type
+        required = set()
+        for idx in self.typeChoice.GetCheckedItems():
+            required.add(self.mediaTypes[idx])
+        # source = event.GetEventObject()
+        # changedIndex = event.GetSelection()
+        # changedMediaType = self.mediaTypes[changedIndex]
+        # (required, prohibited) = self.filterModel.getMediaTypes()  # @UnusedVariable
+        # if (source.IsChecked(changedIndex)):
+        #     required.add(changedMediaType)
+        # else:
+        #     if (changedMediaType in required):
+        #         required.remove(changedMediaType)
+        #     else:
+        #         logging.error('MediaTypeFilter.onChange(): media type %s not in filter!' % changedMediaType.__name__)
+        self.filterModel.setConditions(typeRequired=required)
+        # source = event.GetEventObject()
+        # changedIndex = event.GetSelection()
+        # source.SetSelection(changedIndex)  # put focus on (un)checked type
         wx.EndBusyCursor()
 
 
@@ -429,7 +435,7 @@ class MediaSizeFilter(FilterCondition):
 #             Logger.debug('MediaSizeFilter.onChange(): Minimum resolution set to %s from %s%%' % (minimumResolution, self.minimumPercent))
 #             self.filterModel.setConditions(minimum=minimumResolution)
             Logger.debug('MediaSizeFilter.onChange(): Minimum resolution set to %s%%' % self.minimumPercent)
-            self.filterModel.setConditions(minimum=self.minimumPercent)
+            self.filterModel.setConditions(largerThan=self.minimumPercent)
         else:
             self.maximumPercent = source.GetValue()
             self.minimumSlider.SetMax(self.maximumPercent)
@@ -437,7 +443,7 @@ class MediaSizeFilter(FilterCondition):
 #             Logger.debug('MediaSizeFilter.onChange(): Maximum resolution set to %s from %s%%' % (maximumResolution, self.maximumPercent))
 #             self.filterModel.setConditions(maximum=maximumResolution)
             Logger.debug('MediaSizeFilter.onChange(): Maximum resolution set to %s%%' % self.maximumPercent)
-            self.filterModel.setConditions(maximum=self.maximumPercent)
+            self.filterModel.setConditions(smallerThan=self.maximumPercent)
         # self.minimumSlider.GetParent().GetSizer().Layout()  # TODO: Does not relayout. How to do? 
         wx.EndBusyCursor()
 
@@ -564,8 +570,8 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
             self.addTextFilter(self.gridSizer, self.usedGridRows, aClass[MediaClassHandler.KeyName], aClass[MediaClassHandler.KeyName], valueChoice)
             # advance row count
             self.usedGridRows = (self.usedGridRows + 1)
-            self.addCondition(TagFilter(self, aClass[MediaClassHandler.KeyName], choices))
-            self.usedGridRows = (self.usedGridRows + 1)
+            # self.addCondition(TagFilter(self, aClass[MediaClassHandler.KeyName], choices))
+            # self.usedGridRows = (self.usedGridRows + 1)
         self.addSeparator()
         # add other filters
         self.sizeFilterRow = self.addCondition(MediaSizeFilter(self))
@@ -733,13 +739,8 @@ class MediaFilterPane(wx.lib.scrolledpanel.ScrolledPanel, Observer):
                     prohibitedTags.add(valueName)
             else:  # must be 'ignore'
                 pass
-        kwargs['required'] = requiredTags
-        kwargs['prohibited'] = prohibitedTags
-        # This is a bad replacement for the above, as it prevents those categories to be removed from the filter - I think
-        # if (0 < len(requiredTags)):
-        #     kwargs['required'] = requiredTags
-        # if (0 < len(prohibitedTags)): 
-        #     kwargs['prohibited'] = prohibitedTags
+        kwargs[MediaFilter.ConditionKeyRequired] = requiredTags
+        kwargs[MediaFilter.ConditionKeyProhibited] = prohibitedTags
         self.filterModel.setConditions(**kwargs)
         wx.EndBusyCursor()
 

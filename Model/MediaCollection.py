@@ -99,7 +99,6 @@ class MediaCollection(Observable, Observer):
         
         The option string must be valid configuration option. 
         
-        
         String option specifies which configuration option to use
         String fileName specifies the file name to insert instead of the placeholder
         wx.Window parentWindow to display an error dialog if required
@@ -222,7 +221,7 @@ class MediaCollection(Observable, Observer):
                 if (entry.isGroup() 
                     and (100 < len(entry.getSubEntries()))):
                     entry = entry.getSubEntries()[0]
-                    Logger.info('MediaColleection.setRootDirectory(): Reselected "%s" because initial group contained more than 100 entries.' % entry)
+                    Logger.info('MediaCollection.setRootDirectory(): Reselected "%s" because initial group contained more than 100 entries.' % entry)
                 self.setSelectedEntry(entry)
             else:
                 Logger.info('MediaCollection.setRootDirectory(): last viewed media "%s" does not exist.' % path)
@@ -240,7 +239,7 @@ class MediaCollection(Observable, Observer):
         Logger.debug('MediaCollection.setSelectedEntry(%s)' % entry)
         previousSelection = self.selectedEntry
         self.selectedEntry = entry
-        if (self.selectedEntry):  # store selected entry for next program run
+        if (self.selectedEntry):  # store selected entry for next program run  TODO: move this into exit routine to save time
             path = entry.getPath()
             path = path[len(Installer.getMediaPath()) + 1:]  # remove "/" as well
             self.setConfiguration(GlobalConfigurationOptions.LastMedia, path)
@@ -385,7 +384,7 @@ class MediaCollection(Observable, Observer):
                 self.cachedMaximumResolution = self.cachedMinimumResolution
                 break
             counter = 0
-            print('MediaCollection.getMaximumResolution(): Finding max resolution')
+            Logger.debug('MediaCollection.getMaximumResolution(): Finding max resolution')
             if (progressIndicator):
                 progressIndicator.beginPhase(self.getCollectionSize(), _('Calculating media resolutions'))
             for entry in self:
@@ -393,7 +392,7 @@ class MediaCollection(Observable, Observer):
                     progressIndicator.beginStep()
                 counter = (counter + 1)
                 if ((counter % 100) == 0):
-                    print('  Reading resolution of %sth entry "%s"' % (counter, entry))
+                    Logger.debug(' Reading resolution of %sth entry "%s"' % (counter, entry))
                 resolution = entry.getResolution()
                 if (resolution < self.cachedMinimumResolution):  # smaller one found
                     self.cachedMinimumResolution = resolution
@@ -524,7 +523,7 @@ class MediaCollection(Observable, Observer):
                     if ('True' == self.getConfiguration(GlobalConfigurationOptions.ShowParentAfterRemove)):
                         self.setSelectedEntry(observable.getParentGroup())
                     else:
-                        self.setSelectedEntry(observable.getPreviousEntry(filtering=True))
+                        self.setSelectedEntry(observable.getNextEntry(filtering=True))
                     break
                 entry = entry.getParentGroup()
             self.changedAspect('size')
@@ -532,34 +531,31 @@ class MediaCollection(Observable, Observer):
 
 
 # Other API Functions
-    def renameList(self, renameList, progressBar=None):
-        """Rename many media files at once.
+    def renameEntryList(self, renameList, progressBar=None):
+        """Rename many Single media files at once.
         
-        The parameter is a list of triples which contain
+        The parameter is a list of pairs which contain
         - the Single to rename (to access rename and update functions)
-        - the current pathname of the Single (to verify no other changes have been done)
+        # - the current pathname of the Single (to verify no other changes have been done)
         - the new pathname of the Single
         
-        List of (Single, String, String) renameList 
+        List of (Single, String) renameList 
         PhasedProgressBar progressBar
         Return Boolean indicating success 
         """
         if (progressBar): 
             progressBar.beginPhase(len(renameList) + 1)
         conflicts = []
-        for (entry, oldPath, newPath) in renameList:
+        for (entry, newPath) in renameList:
             if (progressBar):
                 progressBar.beginStep()
-            if ((entry.getPath() != oldPath) 
-                or (not os.path.exists(oldPath))):
-                Logger.warning('MediaCollection.renameList(): Entry "%s" was expected to be named "%s"!' % (entry.getPath(), oldPath))
-                return(False)
-            if (oldPath == newPath):
-                Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % oldPath)
+            if (entry.getPath() == newPath):
+                Logger.warning('MediaCollection.renameList(): Identical rename "%s" ignored!' % newPath)
             elif os.path.exists(newPath):
                 tmpElements = set((MediaCollection.ReorderTemporaryTag, )).union(entry.getTags())
                 pathInfo = entry.getOrganizer().getPathInfo()
                 pathInfo['elements'] = tmpElements
+                pathInfo['makeUnique'] = True
                 tmpPath = entry.getOrganizer().__class__.constructPath(**pathInfo)
                 if (not entry.renameToFilename(tmpPath)):
                     return(False)
@@ -567,11 +563,11 @@ class MediaCollection(Observable, Observer):
             else:
                 if (not entry.renameToFilename(newPath)):
                     return(False)
-        if (progressBar):
-            progressBar.beginStep()
         for (entry, newPath) in conflicts:
             if (not entry.renameToFilename(newPath)):
                 return(False)
+        if (progressBar):
+            progressBar.beginStep()
         return(True)
 
 
@@ -610,7 +606,7 @@ class MediaCollection(Observable, Observer):
         """
         tagsReplaced = 0
         if (aProgressIndicator):
-            aProgressIndicator.beginPhase(self.getCollectionSize(), _('Replacing tag "%s" by "%s"' % (oldTag, newTag)))
+            aProgressIndicator.beginPhase(self.getCollectionSize(), (_('Replacing tag "%s" by "%s"') % (oldTag, newTag)))
         for entry in self:
             if (aProgressIndicator):
                 aProgressIndicator.beginStep()
@@ -627,7 +623,7 @@ class MediaCollection(Observable, Observer):
 
 
 ## Filtering
-    def getFilter (self):
+    def getFilter(self):
         """Return the current MediaFilter.
         """
         return(self.filter)
@@ -685,7 +681,7 @@ class MediaCollection(Observable, Observer):
         Return a String containing the log.
         """
         if (0 == len(os.listdir(importParameters.getImportDirectory()))):  # shortcut to be quick
-            importParameters.logString(_('Import directory "%s" is empty' % importParameters.getImportDirectory()))
+            importParameters.logString((_('Import directory "%s" is empty') % importParameters.getImportDirectory()))
             return(importParameters.getLog())
         if (importParameters.getCheckForDuplicates()):
             importParameters.setMediaMap(MediaMap.getMap(self, importParameters.getProcessIndicator()))
@@ -761,7 +757,7 @@ class MediaCollection(Observable, Observer):
                                                  sourcePath, 
                                                  (level + 1), 
                                                  baseLength, 
-                                                 targetDir,   # newPath, 
+                                                 targetDir, 
                                                  newTargetPathInfo)
                     if (removeProcessedFiles
                         and (len(os.listdir(sourcePath)) == 0)):

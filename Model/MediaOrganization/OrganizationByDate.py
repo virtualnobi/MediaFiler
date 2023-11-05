@@ -537,7 +537,18 @@ class OrganizationByDate(MediaOrganization):
         aMediaFilterPane.addCondition(DateFilter(aMediaFilterPane))
         aMediaFilterPane.addSeparator()
 
-    
+
+    @classmethod
+    def conditionsFromFilter(cls, aNewMediaFilterPane, aMediaFilter):
+        """Return a list of controls representing organization-specific filters.
+        
+        Return List of wx.StaticText controls
+        """
+        result = super(OrganizationByDate, cls).conditionsFromFilter(aNewMediaFilterPane, aMediaFilter)
+        return result
+
+
+
 # Lifecycle
     def __init__(self, anEntry, aPath):
         """
@@ -693,9 +704,16 @@ class OrganizationByDate(MediaOrganization):
         """Run functions to handle the menu items added in extendContextMenu()
         """
         if (menuId == GUIId.ReorderByTime):
-            return(self.onReorderByTime(parentWindow))
+            with wx.GetApp() as progressIndicator:
+                wx.BeginBusyCursor()
+                result = self.onReorderByTime(parentWindow, progressIndicator)
+                wx.EndBusyCursor()
+            return result
         elif (menuId == GUIId.UndoReorder):
-            return(self.onUndoReorder(parentWindow))
+            wx.BeginBusyCursor()
+            result = self.onUndoReorder(parentWindow)
+            wx.EndBusyCursor()
+            return result
         else:
             self.undoReorderList = None
             return(super(OrganizationByDate, self).runContextMenuItem(menuId, parentWindow))
@@ -923,8 +941,16 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Event Handlers
-    def onReorderByTime(self, parentWindow):
-        """
+    def onReorderByTime(self, parentWindow, aProgressIndicator=None):
+        """Reorder media in self (which should be a Group) by time taken. 
+        
+        First ask user 
+        - how to reorder media without a timestamp
+        - numeric width of renumbering steps
+        
+        wx.Window parentWindow
+        ProgressIndicator aProgressIndicator
+        Return String containing status message to display
         """
         dlg = wx.Dialog(parentWindow, wx.ID_ANY, _('Reorder by Time Taken'))
         dlgSizer = wx.BoxSizer(orient=wx.VERTICAL)
@@ -948,7 +974,6 @@ class OrganizationByDate(MediaOrganization):
         line = wx.StaticLine(dlg,
                              size=(20,-1), 
                              style=wx.LI_HORIZONTAL)
-#         dlgSizer.Add(line, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP, 5)
         dlgSizer.Add(line, 0, wx.GROW|wx.RIGHT|wx.TOP, 5)
         btnSizer = wx.StdDialogButtonSizer()        
         btn = wx.Button(dlg, wx.ID_OK)
@@ -957,13 +982,13 @@ class OrganizationByDate(MediaOrganization):
         btn = wx.Button(dlg, wx.ID_CANCEL)
         btnSizer.AddButton(btn)
         btnSizer.Realize()
-#         dlgSizer.Add(btnSizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         dlgSizer.Add(btnSizer, 0, wx.ALL, 5)
         dlg.SetSizerAndFit(dlgSizer)
         # show dialog
         if (dlg.ShowModal() == wx.ID_OK):
-            self.reorderByTime(rb.GetSelection(), stepWidthField.GetValue())
+            result = self.reorderByTime(rb.GetSelection(), stepWidthField.GetValue(), aProgressIndicator)
         dlg.Destroy()
+        return result
 
 
     def onUndoReorder(self, parentWindow):
@@ -975,7 +1000,7 @@ class OrganizationByDate(MediaOrganization):
                                _('Undo Reordering?'),
                                (wx.YES_NO | wx.ICON_INFORMATION))
         if (dlg.ShowModal() == wx.ID_YES):
-            if (self.getContext().model.renameList(self.undoReorderList)):
+            if (self.getContext().model.renameEntryList(self.undoReorderList)):
                 result = _('Reordering undone')
             else:
                 result = _('Undoing reordering failed!')
@@ -986,7 +1011,7 @@ class OrganizationByDate(MediaOrganization):
 
 
 # Internal - to change without notice
-    def reorderByTime(self, handleUntimedPolicy, stepWidth):
+    def reorderByTime(self, handleUntimedPolicy, stepWidth, aProgressIndicator=None):
         """Reorder subentries of self's context by time taken, earlierst first.
         
         Increment numbers by stepWidth.
@@ -998,6 +1023,7 @@ class OrganizationByDate(MediaOrganization):
         
         Number handleUntimedPolicy
         Number stepWidth
+        ProgressIndicator aProgressIndicator
         """
         if (stepWidth < 1):
             raise ValueError('OrganizationByDate.reorderByTime(): stepWidth must be greater than 0')
@@ -1057,10 +1083,10 @@ class OrganizationByDate(MediaOrganization):
             newIndex = (newIndex + stepWidth)
             if (subEntry.getPath() != newPath):
                 Logger.debug('OrganizationByDate.reorderByTime(): At %s, reordering\n   %s to\n  %s' % (time, subEntry.getPath(), newPath))
-                doList.append((subEntry, subEntry.getPath(), newPath))
-                self.undoReorderList.append((subEntry, newPath, subEntry.getPath()))
+                doList.append((subEntry, newPath))
+                self.undoReorderList.append((subEntry, subEntry.getPath()))
         Logger.debug('OrganizationByDate.reorderByTime(): sorted %s subentries, now renaming' % len(resorted))
-        if (self.context.model.renameList(doList)):
+        if (self.context.model.renameEntryList(doList, aProgressIndicator)):
             return(_('%s media reordered') % len(doList))
         else:
             return(_('Reordering failed!'))
@@ -1152,13 +1178,13 @@ class FilterByDate(MediaFilter):
         if (dateFrom
             and (entry.getOrganizer().getDateTaken()) < dateFrom):
             Logger.debug('FilterByDate.isFiltered(): From date %s filters %s' % (dateFrom, entry))
-            return(True)
+            return True
         dateTo = self.getDateTo()
         if (dateTo
             and (dateTo < entry.getOrganizer().getDateTaken())):
             Logger.debug('FilterByDate.isFiltered(): To date filters %s' % entry)
-            return(True)
-        return(super(FilterByDate, self).filteredByConditions(entry))
+            return True
+        return super(FilterByDate, self).filteredByConditions(entry)
 
 
 

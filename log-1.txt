@@ -1,9 +1,15 @@
-22:30:24| MediaFiler.__main__(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
-22:30:24| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model']
-22:30:24| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model\\MediaOrganization']
-22:30:24| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\UI']
-22:30:24| MediaFiler.getLoggableModules(): Returning ['MediaFiler', 'Model.CachingController', 'Model.Entry', 'Model.GlobalConfigurationOptions', 'Model.Group', 'Model.Image', 'Model.Installer', 'Model.MediaClassHandler', 'Model.MediaCollection', 'Model.MediaFilter', 'Model.MediaMap', 'Model.MediaNameHandler', 'Model.MediaOrganization', 'Model.MediaOrganization.OrganizationByDate', 'Model.MediaOrganization.OrganizationByName', 'Model.Movie', 'Model.Single', 'UI.GUIId', 'UI.Importing', 'UI.MediaCanvasPane', 'UI.MediaClassificationPane', 'UI.MediaFilterPane', 'UI.MediaNamePane', 'UI.MediaTreePane', 'UI.PresentationControlPane']
-22:30:24| Installer.checkInstallation(): Checking folders at "S:\amazonia"...
-22:30:24| Installer.checkInstallation(): Installation at "S:\amazonia" is ok
-22:30:24| Installer.ensureInstallationOk(): Changing working directory to "S:\amazonia"
-22:30:24| MediaFiler.__main__(): Now permanently logging to "S:\amazonia\lib\log-1.txt"
+20:25:22| MediaFilerApp.OnInit(): Temporarily logging to "N:\project\MediaFiler\log-1.txt"
+20:25:22| MediaCanvasPane.onResize(...
+20:25:22| MediaCanvasPane.onResize(): Ignored because no entry to display
+20:25:22| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model']
+20:25:22| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\Model\\MediaOrganization']
+20:25:22| MediaFiler.getLoggableModules(): Looking at ['N:\\project\\MediaFiler\\UI']
+20:25:22| MediaFiler.getLoggableModules(): Returning ['MediaFiler', 'Model.CachingController', 'Model.Entry', 'Model.GlobalConfigurationOptions', 'Model.Group', 'Model.Image', 'Model.Installer', 'Model.MediaClassHandler', 'Model.MediaCollection', 'Model.MediaFilter', 'Model.MediaMap', 'Model.MediaNameHandler', 'Model.MediaOrganization', 'Model.MediaOrganization.OrganizationByDate', 'Model.MediaOrganization.OrganizationByName', 'Model.Movie', 'Model.NewMediaFilter', 'Model.Single', 'UI.GUIId', 'UI.Importing', 'UI.MediaCanvasPane', 'UI.MediaClassificationPane', 'UI.MediaFilterPane', 'UI.MediaNamePane', 'UI.MediaTreePane', 'UI.NewMediaFilterPane', 'UI.PresentationControlPane', 'nobi.wx.PhasedProgressBar']
+20:25:22| MediaCanvasPane.onResize(...
+20:25:22| MediaCanvasPane.onResize(): Ignored because no entry to display
+20:25:22| MediaCanvasPane.onResize(...
+20:25:22| MediaCanvasPane.onResize(): Ignored because no entry to display
+20:25:22| Installer.checkInstallation(): Checking folders at "N:\shared\images"...
+20:25:22| Installer.checkInstallation(): Installation at "N:\shared\images" is ok
+20:25:22| Installer.ensureInstallationOk(): Changing working directory to "N:\shared\images"
+20:25:22| MediaFilerApp.OnInit(): Now permanently logging to "N:\shared\images\lib\log-1.txt"

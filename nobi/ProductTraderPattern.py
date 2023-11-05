@@ -48,13 +48,13 @@ class SimpleProductTrader(object):
 
 
 # Getters
-    def isKnown(self, specString):
-        """Return True is specString is a known specification, i.e., getClassFor() would return a valid class.
-        
-        String specString
-        Return Boolean
-        """
-        return(specString in self.productRegistry)
+    # def isKnown(self, specString):
+    #     """Return True is specString is a known specification, i.e., getClassFor() would return a valid class.
+    #
+    #     String specString
+    #     Return Boolean
+    #     """
+    #     return(specString in self.productRegistry)
 
 
     def getClassFor(self, specString):
@@ -64,7 +64,7 @@ class SimpleProductTrader(object):
         
         Returns Class
         """
-        if (self.isKnown(specString)):
+        if (specString in self.productRegistry):
             return(self.productRegistry[specString])
         else:
             raise(BaseException('Specification "%s" not found in registry of SimpleProductTrader' % specString))
@@ -86,4 +86,46 @@ class SimpleProductTrader(object):
             Logger.warning('Overwriting specification "%s" in SimpleProductTrader' % specString) 
         self.productRegistry[specString] = clas
 
+
+
+class DefaultProductTrader(SimpleProductTrader): 
+    """Implement a Product Trader with a default class to use.
+    """
+# Constants
+# Class Methods
+# Lifecycle
+    def __init__(self, defaultClass):
+        """Create a SimpleProductTrader which returns a default class for unknown specifications.
+        """
+        # inheritance
+        super(DefaultProductTrader, self).__init__()
+        # internal state
+        self.defaultClass = defaultClass
+        # 
+        return(None)
+
+
+
+# Getters
+    def getClassFor(self, specString):
+        """Return the class to which specString is mapped, or the default class when specString was not registered.
+        
+        Returns Class
+        """
+        try: 
+            result = super(DefaultProductTrader, self).getClassFor(specString)
+        except: 
+            result = self.defaultClass
+        return result
+
+
+    def getClasses(self):
+        """Return the set of classes registered, including the default one.
+        """
+        result = super(DefaultProductTrader, self).getClasses()
+        result.add(self.defaultClass)
+        return result
+
+
+# Setters
 

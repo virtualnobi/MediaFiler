@@ -69,10 +69,12 @@ class Entry(Observable):
         Return Boolean indicating whether extension is handled by Entry
         """
         try:
-            Installer.getProductTrader().getClassFor(extension.lower())
+            cls = Installer.getProductTrader().getClassFor(extension.lower())
+            if (cls.__name__ == 'Single'):  # Single is fallback class covering any extension
+                return False
         except:  # no class registered for this extension
-            return(False)
-        return(True)
+            return False
+        return True
 
 
     @classmethod
@@ -100,12 +102,12 @@ class Entry(Observable):
         """Return an instance of (a subclass of) Entry to represent the given media file.
 
         model imageFilerModel
-        path String
+        path String 
         Returns an instance of (a subclass of) Entry 
         """
         subclass = self.getSubclassForPath(path)
         if (subclass):
-            return(subclass(model, path))
+            return subclass(model, path)
         else:
             return(None)
 
@@ -135,7 +137,7 @@ class Entry(Observable):
         self.bitmap = None
         # self.metadata = None  # for lazy loading
         self.initFromPath(path)
-        Logger.debug('Entry(): Created %s' % self)
+#        Logger.debug('Entry(): Created %s' % self)
 
 
     def initFromPath(self, path):
@@ -164,6 +166,29 @@ class Entry(Observable):
             self.setKnownElementsDictionary({})
             self.setUnknownElements(set())
         self.organizer = self.model.organizationStrategy(self, path)
+
+
+    def remove(self):  # TODO: inform MediaOrganization as well, to release names
+        """Remove self from the image set. 
+        
+        Move the image file into the trash directory.
+        """
+        self.changedAspect('remove')
+        self.setParentGroup(None)
+        self.releaseCacheWithPriority(self.__class__.CachingLevelRawData)
+        self.releaseCacheWithPriority(self.__class__.CachingLevelFullsizeBitmap)
+        self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
+        # move to trash
+        oldName = self.getPath()
+        newName = os.path.join(self.model.rootDirectory, 
+                               Installer.getTrashPath(), 
+                               (self.getFilename() + '.' + self.getExtension()))
+        newName = makeUnique(newName)
+        Logger.debug('Trashing "%s" (into "%s")' % (oldName, newName))
+        try:
+            os.rename(oldName, newName)
+        except Exception as e: 
+            Logger.error('Trashing "%s" failed:\n%s' % (oldName, e))
 
 
 
@@ -212,6 +237,10 @@ class Entry(Observable):
 
 
     def setTreeItemID(self, treeItemID):
+        """TODO: breaks when moving an entry to a non-existing group. It's created, but then: 
+        Entry(): Created <class 'Model.Group.Group'> from N:\shared\images\images\2000\2000-04\2000-04-11
+        Entry.setTreeItemId(): Setting tree item ID to None for N:\shared\images\images\2000\2000-04\2000-04-11!
+        """
         if (not treeItemID):
             print('Entry.setTreeItemId(): Setting tree item ID to None for %s!' % self.getPath())
         self.treeItemID = treeItemID
@@ -223,29 +252,6 @@ class Entry(Observable):
         Boolean flag
         """
         self.filteredFlag = flag
-
-
-    def remove(self):  # TODO: inform MediaOrganization as well, to release names
-        """Remove self from the image set. 
-        
-        Move the image file into the trash directory.
-        """
-        self.changedAspect('remove')
-        self.setParentGroup(None)
-        self.releaseCacheWithPriority(self.__class__.CachingLevelRawData)
-        self.releaseCacheWithPriority(self.__class__.CachingLevelFullsizeBitmap)
-        self.releaseCacheWithPriority(self.__class__.CachingLevelThumbnailBitmap)
-        # move to trash
-        oldName = self.getPath()
-        newName = os.path.join(self.model.rootDirectory, 
-                               Installer.getTrashPath(), 
-                               (self.getFilename() + '.' + self.getExtension()))
-        newName = makeUnique(newName)
-        Logger.debug('Trashing "%s" (into "%s")' % (oldName, newName))
-        try:
-            os.rename(oldName, newName)
-        except Exception as e: 
-            Logger.error('Trashing "%s" failed:\n%s' % (oldName, e))
 
 
 # Getters
@@ -429,6 +435,7 @@ class Entry(Observable):
     def getNextEntry(self, entry=None, filtering=False):  # @UnusedVariable
         """Return the next entry following self.
         
+        Entry entry required for Group, not Single.
         Return MediaFiler.Entry or None
         """
         if (entry == None):
@@ -622,11 +629,11 @@ class Entry(Observable):
         raise NotImplementedError
 
 
-## Context Menu Functions
+# Context Menu Functions
     def filterImages(self, identical, aProgressIndicator=None):
-        """Set the filter so that only images are visible which have the elements that self has.
+        """Set the filter so that only images are visible which have the tags that self has.
          
-        Boolean IDENTICAL controls whether the filter shall exclude all elements not shared with self. 
+        Boolean identical controls whether the filter shall exclude all tags not shared with self. 
         ProgressIndicator aProgressIndicator
         """
         Logger.debug('Entry.filterImages(%s)' % identical)
@@ -640,7 +647,7 @@ class Entry(Observable):
                 if element in self.getKnownTags():
                     required.add(element)
                     classCovered = True  # element of this class is required
-            if (identical  
+            if (identical
                 and (not classCovered)):  # no element of this class is required, so prohibit the class
                 prohibited.add(className)
         # for identical filtering, check unknown elements as well
@@ -650,9 +657,9 @@ class Entry(Observable):
         # turn on filter
         Logger.debug('(Identical=%s) Filtering required %s, prohibited %s, unknown %s)' % (identical, required, prohibited, unknown))
         self.model.getFilter().setConditions(active=True,
-                                             required=required, 
-                                             prohibited=prohibited, 
-                                             unknownRequired=unknown)
+                                             tagsRequired=required, 
+                                             tagsProhibited=prohibited, 
+                                             anyUnknownTagRequired=unknown)
 
 
     def removeNewIndicator(self):

@@ -16,6 +16,7 @@ import wx
 from nobi import SecureConfigParser
 from nobi import ProductTraderPattern
 ## Project
+from Model.Single import Single
 from Model import GlobalConfigurationOptions
 from Model.MediaClassHandler import MediaClassHandler
 import UI
@@ -29,8 +30,13 @@ try:
     LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
     Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['en'])
 except BaseException as e:  # likely an IOError because no translation file found
-    print('%s: Cannot initialize translation engine from path %s; using original texts (error following).' % (__file__, LocalesPath))
-    print(e)
+    try:
+        language = os.environ['LANG']
+    except:
+        print('%s: No LANG environment variable found!' % (__file__))
+    else:
+        print('%s: No translation found at %s; using originals instead of %s. Complete error:' % (__file__, LocalesPath, language))
+        print(e)
     def _(message): return message
 else:
     _ = Translation.gettext
@@ -51,14 +57,15 @@ InitialFilename = u'initial.jpg'
 SplashFilename = u'splash.bmp'
 LogFilename = u'log-%d.txt'
 TrashFolder = u'trash'
+FilterFolder = u'filters'
 ImportFolder = u'import'
 
 
 
 # Variables
 Logger = logging.getLogger()
-ProductTrader = ProductTraderPattern.SimpleProductTrader()
-
+# ProductTrader = ProductTraderPattern.SimpleProductTrader()
+ProductTrader = ProductTraderPattern.DefaultProductTrader(Single)
 
 
 # Setters
@@ -125,6 +132,12 @@ def getTrashPath():
     return(os.path.join(CurrentPath, TrashFolder))
 
 
+def getFilterPath():
+    """Return the path to the saved filter directory.
+    """
+    return(os.path.join(CurrentPath, FilterFolder))
+
+
 def getImportFolder():
     """Return the path to the default import directory.
     """
@@ -174,6 +187,9 @@ def checkInstallation():
         return(False)
     if (not os.path.isdir(getTrashPath())):
         Logger.debug('Installer.checkInstallation(): Trash directory does not exist')
+        return(False)
+    if (not os.path.isdir(getFilterPath())):
+        Logger.debug('Installer.checkInstallation(): Filter directory does not exist')
         return(False)
     Logger.debug('Installer.checkInstallation(): Installation at "%s" is ok' % CurrentPath)
     return(True)
@@ -230,6 +246,9 @@ def install():
         if (not os.path.isdir(getTrashPath())):
             os.makedirs(getTrashPath())
             Logger.debug('Installer.install(): Trash folder created')
+        if (not os.path.isdir(getFilterPath())):
+            os.makedirs(getFilterPath())
+            Logger.debug('Installer.install(): Filter folder created')
         if (not os.path.isdir(getImportFolder())):
             os.makedirs(getImportFolder())
             Logger.debug('Installer.install(): Import folder created')

@@ -10,16 +10,16 @@ from __future__ import print_function
 ## standard
 from decimal import Decimal
 import os
-# import shlex
-#import sys
-# import subprocess
+import gettext
 import logging
 import hashlib
+from operator import indexOf
 ## contributed
 import wx
 ## nobi
 ## project
 # from Model import GlobalConfigurationOptions
+import UI
 from UI import GUIId
 from .Entry import Entry
 from .CachingController import CachingController
@@ -27,12 +27,29 @@ from .MediaClassHandler import MediaClassHandler
 from Model import Installer
 
 
+
+# Internationalization
+# requires "PackagePath = __path__[0]" in _init_.py
+try:
+    LocalesPath = os.path.join(UI.PackagePath, '..', 'locale')
+    Translation = gettext.translation('MediaFiler', LocalesPath)  #, languages=['en'])
+except BaseException as e:  # likely an IOError because no translation file found
+    print('%s: Cannot initialize translation engine from path %s; using original texts (error following).' % (__file__, LocalesPath))
+    print(e)
+    def _(message): return message
+else:
+#     _ = Translation.ugettext
+    _ = Translation.gettext  # Python 3
+def N_(message): return message
+
+
+
 # Package Variables
 Logger = logging.getLogger(__name__)
 
 
 
-class ImageBitmap(wx.StaticBitmap):
+class MediaBitmap(wx.StaticBitmap):
     """An extension to wx.StaticBitmap which remembers the Entry it displays. 
      
     This class is used as the bitmap to display on UI.MediaCanvasPane.MediaCanvas. 
@@ -73,6 +90,9 @@ class Single(Entry):
 # Constants
     ConfigurationOptionEmailClient = 'editor-email'
     InputLengthForKey = (1024 * 8)
+    PreviewImageFilename = 'Generic.jpg'
+    RawImageWidth = 300  # width of image constructed from media file name
+    RawImageHeight = 200
 
 
 
@@ -80,31 +100,62 @@ class Single(Entry):
 # Class Methods
     @classmethod
     def getMediaTypeName(cls):
-        """Return a translatable name for the subclasses of Single, for filter creation.
+        """Return a translatable name for media types for filter creation.
+        
+        Includes Single for generic file handling for unknown file types, and all its subclasses for known file types.
+        
+        Return String
         """
-        raise NotImplementedError
+        # raise NotImplementedError
+        return _('Media')
 
 
     @classmethod
     def getRawImageFromPath(cls, aMediaCollection, path):
         """Return a raw image to represent the media content of the given file.
         
+        Thanks to https://stackoverflow.com/questions/2583549/how-to-draw-text-in-a-bitmap-using-wxpython
+        
         Model.MediaCollection aMediaCollection
-        String path
-        Return 
+        String path specifying the file system path to load from
+        Return wx.Image
+            or None
         """
-        Logger.error('Single.getRawImageFromPath(): Subclass should implement this method!')
-        return(None)
-
+        # Logger.error('Single.getRawImageFromPath(): Subclass should implement this method!')
+        # return(None)
+        print('Single.getRawImageFromPath: Creating text bitmap for "%s' % path)
+        (root, ext) = os.path.splitext(path)
+        ext = ext[1:4]
+        name = root[len(aMediaCollection.getRootDirectory()):]
+        bmp = wx.Bitmap(Single.RawImageWidth, Single.RawImageHeight)
+        dc = wx.MemoryDC(bmp)
+        dc.SetBackground(wx.Brush(wx.TheColourDatabase.Find('BLACK')))  # @UndefinedVariable
+        dc.Clear()
+        # dc.SetForeground(wx.Brush(wx.TheColourDatabase.Find('WHITE')))
+        # dc.DrawRectangle(10, 10, (Single.RawImageWidth - 20), (Single.RawImageHeight - 20))
+        dc.SetFont(wx.Font(wx.FontInfo(84).FaceName("Arial").Bold()))
+        # dc.GetTextForeground()  # For whatever reason, SetTextBackground only exists after GetTextBackground was called
+        dc.SetTextForeground(wx.TheColourDatabase.Find('LIGHT GREY'))  # @UndefinedVariable 
+        textWidth, textHeight = dc.GetTextExtent(ext)
+        dc.DrawText(ext, (Single.RawImageWidth - textWidth) / 2, (Single.RawImageHeight - textHeight) / 2) # display text in center
+        dc.SetFont(wx.Font(wx.FontInfo(12).FaceName("Helvetica")))
+        # dc.GetTextForeground()  # For whatever reason, SetTextBackground only exists after GetTextBackground was called
+        dc.SetTextForeground(wx.TheColourDatabase.Find('WHITE'))  # @UndefinedVariable
+        textWidth, textHeight = dc.GetTextExtent(name)
+        dc.DrawText(name, (Single.RawImageWidth - textWidth) / 2, (Single.RawImageHeight - 2*textHeight)) # display text below center
+        dc.SelectObject(wx.NullBitmap)
+        return bmp.ConvertToImage()
+        
 
 
     @classmethod
     def getConfigurationOptionExternalViewer(self):
         """Return the configuration option to retrieve the command string for an external viewer of self.
         
-        The string must contain the %1 spec which is replaced by the media file name.
+        The result string must contain "%1" which is replaced by the media file name.
         
-        Return the external command string, or None if none given.
+        Return String
+            or None if there is no external viewer
         """
         return(None)
 
@@ -191,15 +242,15 @@ class Single(Entry):
         Returns Array of Entry. 
         """
         if (self.filteredFlag):
-            return([])
+            return []
         else:
-            return([self])
+            return [self]
 
 
     def getResolution(self):
         """Return the product of image width times height, for filtering.
         """
-        return(self.getRawImageWidth() * self.getRawImageHeight())
+        return (self.getRawImageWidth() * self.getRawImageHeight())
 
 
     def getContextMenu(self):
@@ -249,20 +300,19 @@ class Single(Entry):
             or None
         """
         message = None
-        Logger.debug('Single.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath()))
-        print('Single.runContextMenu(): Function %d on "%s"' % (menuId, self.getPath())) 
+        Logger.debug('Single.runContextMenuItem(): Function %d on "%s"' % (menuId, self.getPath()))
         if (menuId == GUIId.StartExternalViewer):
             message = self.runExternalViewer(parentWindow)
         elif (menuId == GUIId.SendMail):
             message = self.sendMail(parentWindow)
-        elif ((GUIId.ShowDuplicates <= menuId)
-              and (menuId < (GUIId.ShowDuplicates + GUIId.MaxNumberDuplicates))):  # don't allow equality, since it's used for overflow indicator, see .constructDuplicateMenu()
-            duplicateIndex = (menuId - GUIId.ShowDuplicates)
-            duplicate = self.duplicates[duplicateIndex]
-            self.getModel().setSelectedEntry(duplicate)
+        elif (menuId in GUIId.ShowDuplicatesIDs): 
+            duplicateIdx = indexOf(GUIId.ShowDuplicatesIDs, menuId)
+            if (duplicateIdx < GUIId.MaxNumberDuplicates):  # don't allow equality, since it's used for overflow indicator, see .constructDuplicateMenu()
+                duplicate = self.duplicates[duplicateIdx]
+                self.getModel().setSelectedEntry(duplicate)
         else:
             message = super(Single, self).runContextMenuItem(menuId, parentWindow)
-        return(message)
+        return message
 
 
     def getSizeString(self):
@@ -270,7 +320,7 @@ class Single(Entry):
         
         Return a String
         """
-        return('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
+        return ('%dx%d' % (self.getRawImageWidth(), self.getRawImageHeight()))
 
 
 
@@ -295,7 +345,7 @@ class Single(Entry):
             int(self.fileSize)  # check whether self.fileSize is an integer value
         except: 
             self.fileSize = (int(os.stat(self.getPath()).st_size / 1024) + 1)
-        return(self.fileSize)
+        return self.fileSize
         
 
     def isIdenticalContent(self, anEntry):
@@ -305,15 +355,15 @@ class Single(Entry):
         
         Returns a Boolean indicating that self and anEntry are identical
         """
-        return(super(Single, self).isIdenticalContent(anEntry) 
-               and (self.getFileSize() == anEntry.getFileSize()))
+        return (super(Single, self).isIdenticalContent(anEntry) 
+                and (self.getFileSize() == anEntry.getFileSize()))
 
 
     def getRawImage(self):
         """Retrieve raw data (JPG or PNG or GIF) for media.
         """
         if (self.rawImage):
-            return(self.rawImage)
+            return self.rawImage
         encodedPath = self.getPath()  # .encode(sys.getfilesystemencoding())
         try:
             self.rawImage = self.__class__.getRawImageFromPath(self.model, encodedPath)
@@ -416,12 +466,12 @@ class Single(Entry):
 
     
     def getBitmap(self, width, height):
-        """Return an MediaFiler.Single.ImageBitmap for self's image, resized to fit into given size.
+        """Return an MediaFiler.Single.MediaBitmap for self's image, resized to fit into given size.
         
         Number width
         Number height
         Boolean cacheAsThumbnail indicates whether width x height is fullsize or thumbnail
-        Returns MediaFiler.Single.ImageBitmap
+        Returns MediaFiler.Single.MediaBitmap
         """
         (w, h) = self.getSizeFittedTo(width, height)
         if ((self.bitmap == None)
@@ -448,15 +498,15 @@ class Single(Entry):
         Return wx.Menu
         """
         result = wx.Menu()
-        duplicateId = GUIId.ShowDuplicates
+        duplicateIdx = 0  # GUIId.ShowDuplicates
         for duplicate in self.getDuplicates():
-            result.Append(duplicateId, item=duplicate.getIdentifier())
-            print('Associating "%s" with %d' % (duplicate.getIdentifier(), duplicateId))
-            duplicateId = (duplicateId + 1)
-            if ((GUIId.ShowDuplicates + GUIId.MaxNumberDuplicates - 1) < duplicateId):
-                result.Append(duplicateId, _('(%d duplicates in total)' % len(self.getDuplicates())))
+            result.Append(GUIId.ShowDuplicatesIDs[duplicateIdx], item=duplicate.getIdentifier())
+            print('Associating "%s" with %d' % (duplicate.getIdentifier(), duplicateIdx))
+            duplicateIdx = (duplicateIdx + 1)
+            if (GUIId.MaxNumberDuplicates == duplicateIdx):
+                result.Append(GUIId.ShowDuplicatesIDs[duplicateIdx], (_('(%d duplicates in total)') % len(self.getDuplicates())))
                 break
-        return(result)
+        return result 
 
 
 
@@ -471,14 +521,9 @@ class Single(Entry):
 
     def sendMail(self, parentWindow):
         """Open the email client as listed in the configuration with self's media as attachment.
+
+        wx.Window parentWindow is the window on which to display an error dialog, if needed
         """
         self.getModel().runConfiguredProgram(Single.ConfigurationOptionEmailClient, self.getPath(), parentWindow)
-#         emailClient = self.model.getConfiguration(Single.ConfigurationOptionEmailClient)        
-#         if (emailClient):
-#             emailClient = emailClient.replace(GlobalConfigurationOptions.Parameter, self.getPath())
-#             commandArgs = shlex.split(emailClient)
-# #             subprocess.call(commandArgs, shell=False, stderr=subprocess.STDOUT)  # err=OUT needed due to win_subprocess bug
-#             subprocess.run(commandArgs, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout  # Python 3
-
 
 

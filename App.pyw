@@ -7,13 +7,12 @@
 # Imports
 ## standard
 import os 
-#import subprocess
 import gettext
 import shutil
-#import shlex
 import logging
 import time
 import pkgutil
+from operator import indexOf
 ## contributed
 import wx.aui
 import wx.lib.dialogs
@@ -39,9 +38,9 @@ from UI.MediaTreePane import MediaTreeCtrl
 from UI.MediaCanvasPane import MediaCanvas
 from UI.MediaNamePane import MediaNamePane
 from UI.MediaClassificationPane import MediaClassificationPane
-from pickle import NONE
-from Model.MediaOrganization import MediaOrganization
+# from Model.MediaOrganization import MediaOrganization
 from Model.MediaOrganization.OrganizationByName import OrganizationByName
+from UI.NewMediaFilterPane import NewMediaFilterPane
 
 
 
@@ -61,7 +60,10 @@ def N_(message): return message
 
 
 
-print('Compiling MediaFiler...')
+# Package Variables
+Logger = logging.getLogger(__name__)
+
+
 
 class MediaFiler(wx.Frame, Observer, Observable):   
     """A Python 2.7 GUI application which lets you organize media (images and videos). 
@@ -125,6 +127,9 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.filterPane = MediaFilterPane(self, size=wx.Size(310, 0))
         self.paneManager.AddPane(self.filterPane,
                                  wx.aui.AuiPaneInfo().Name('filter').Caption(self.PaneCaptionFilter).Left().Layer(3).CloseButton(True).Show(self.showFilterPane))
+        self.newFilterPane = NewMediaFilterPane(self)
+        self.paneManager.AddPane(self.newFilterPane, 
+                                 wx.aui.AuiPaneInfo().Name('filter2').Caption(self.PaneCaptionFilter).Left().Layer(3).CloseButton(True).Show(self.showFilterPane))
         # - image tree, can be hidden, initially visible
         self.showTreePane = True
         self.imageTree = MediaTreeCtrl(self, pos=wx.Point(0, 0), size=wx.Size(350, 0))
@@ -164,14 +169,20 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """Populate the file menu with recently used image directories
         """
         # TODO: replace fixed entries by dynamic history
-        index = GUIId.LoadRecentDirectory;
-        self.recentRootDirectories = ['N:\\shared\\images', 
-                                      'Y:\\home\\Lars\\LarsBilder', 
-                                      'Y:\\home\\Paul\\PaulsBilder', 
-                                      'Y:\\home\\Gilla\\GillasBilder']
-        for name in self.recentRootDirectories:
-            menu.Append (index, name)
-            index = (index + 1)
+        self.recentRootDirectories = {}
+        idx = 0
+        for dirName in ['N:\\shared\\images\\images', 
+                     'D:\\Lars\\LarsBilder\\images', 
+                     'D:\\Paul\\PaulsBilder\\images', 
+                     'D:\\Gilla\\GillasBilder\\images',
+                     'D:\\Martina\\MartinasBilder\\images']:
+            self.recentRootDirectories[idx] = dirName
+            menu.Append(GUIId.LoadRecentDirectoryIDs[idx], dirName)
+            self.Bind(wx.EVT_MENU, self.onLoadRecent, id=GUIId.LoadRecentDirectoryIDs[idx])
+            idx = (idx + 1)
+            if (GUIId.MaxNumberRecentFiles <= idx):
+                MediaFiler.Logger.warn('MediaFiler.populateFileMenu(): Limiting recent files to %s.' % GUIId.MaxNumberRecentFiles)
+                break
 
 
     def populatePerspectivesMenu(self, menu):  # @UnusedVariable
@@ -189,10 +200,11 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.paneManager.GetPane('present').Hide()
         self.paneManager.GetPane('log').Hide()
         self.perspectives[self.PerspectiveIndexClassify] = self.paneManager.SavePerspective()
-        self.perspectives_menu.Append((GUIId.LoadPerspective + self.PerspectiveIndexClassify), 
+        self.perspectives_menu.Append(GUIId.LoadPerspectiveIDs[self.PerspectiveIndexClassify], 
                                       self.PerspectiveNameClassify)
         # perspective "Filter" to filter media
         self.paneManager.GetPane('filter').Show().Left()
+        self.paneManager.GetPane('filter2').Show().Left().BestSize(wx.Size(100,100))
         self.paneManager.GetPane('tree').Show().Left().BestSize(wx.Size(600,1))
         self.paneManager.GetPane('classification').Hide()
         self.paneManager.GetPane('canvas').Show().Center()
@@ -200,7 +212,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.paneManager.GetPane('present').Hide()
         self.paneManager.GetPane('log').Hide()
         self.perspectives[self.PerspectiveIndexFilter] = self.paneManager.SavePerspective()
-        self.perspectives_menu.Append((GUIId.LoadPerspective + self.PerspectiveIndexFilter), 
+        self.perspectives_menu.Append(GUIId.LoadPerspectiveIDs[self.PerspectiveIndexFilter], 
                                       self.PerspectiveNameFilter)
         # perspective "Present" to present media
         self.paneManager.GetPane('filter').Hide()
@@ -211,11 +223,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.paneManager.GetPane('present').Show().Bottom()
         self.paneManager.GetPane('log').Hide()
         self.perspectives[self.PerspectiveIndexPresent] = self.paneManager.SavePerspective()
-        self.perspectives_menu.Append((GUIId.LoadPerspective + self.PerspectiveIndexPresent), 
+        self.perspectives_menu.Append(GUIId.LoadPerspectiveIDs[self.PerspectiveIndexPresent], 
                                       self.PerspectiveNamePresent)
         # perspective "All" containing all panes
         self.perspectives_menu.AppendSeparator()
         self.paneManager.GetPane('filter').Show().Left()
+        self.paneManager.GetPane('filter2').Show().Left().BestSize(wx.Size(100,100))
         self.paneManager.GetPane('tree').Show().Left().BestSize(wx.Size(600,1))
         self.paneManager.GetPane('classification').Show().Left()
         self.paneManager.GetPane('canvas').Show().Center()
@@ -223,11 +236,11 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.paneManager.GetPane('present').Show().Bottom()
         self.paneManager.GetPane('log').Hide()
         self.perspectives[self.PerspectiveIndexAll] = self.paneManager.SavePerspective()
-        self.perspectives_menu.Append((GUIId.LoadPerspective + self.PerspectiveIndexAll), 
+        self.perspectives_menu.Append(GUIId.LoadPerspectiveIDs[self.PerspectiveIndexAll], 
                                       self.PerspectiveNameAll)
         # last used perspective 
         self.perspectives_menu.AppendSeparator()
-        self.perspectives_menu.Append((GUIId.LoadPerspective + GUIId.MaxNumberPerspectives - 1),
+        self.perspectives_menu.Append(GUIId.LoadPerspectiveIDs[GUIId.MaxNumberPerspectives - 1],
                                       self.PerspectiveNameLastUsed)
         #menu.Append(GUIId.CreatePerspective, 'Create Perspective')
         # TODO: if perspective loaded, add "Remove this perspective" entry
@@ -319,12 +332,12 @@ class MediaFiler(wx.Frame, Observer, Observable):
         modules = self.getLoggableModules()
         cnt = 0
         for module in modules:
-            result.AppendCheckItem((GUIId.ManageLogging + cnt), module)
+            result.AppendCheckItem(GUIId.ManageLoggingIDs[cnt], module)
+            result.Check(GUIId.ManageLoggingIDs[cnt], (not logging.getLogger(module).hasHandlers()))
             cnt = (cnt + 1)
             if (GUIId.MaxNumberLogging < cnt):
-                MediaFiler.Logger.debug('MediaFiler.getLoggingMenu(): Restricting menu length to %s' % GUIId.MaxNumberLogging)
+                MediaFiler.Logger.warn('MediaFiler.getLoggingMenu(): Restricting logging menu length to %s' % GUIId.MaxNumberLogging)
                 break
-        # TODO: store & retrieve logging state from configuration
         return(result)
 
 
@@ -340,7 +353,6 @@ class MediaFiler(wx.Frame, Observer, Observable):
         # events triggered from menu bar
         # - file menu
         self.Bind(wx.EVT_MENU, self.onChangeRoot, id=GUIId.ChangeRootDirectory)
-        self.Bind(wx.EVT_MENU_RANGE, self.onLoadRecent, id=GUIId.LoadRecentDirectory, id2=(GUIId.LoadRecentDirectory + GUIId.MaxNumberRecentFiles - 1))
         self.Bind(wx.EVT_MENU, self.onReload, id=GUIId.ReloadDirectory)
         self.Bind(wx.EVT_MENU, self.onExport, id=GUIId.ExportImages)
         self.Bind(wx.EVT_MENU, self.onRemoveDuplicatesElsewhere, id=GUIId.RemoveDuplicatesElsewhere)
@@ -358,7 +370,8 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.Bind(wx.EVT_MENU, self.onToggleLogPane, id=GUIId.ToggleLogPane)
         # - perspectives menu
         self.Bind (wx.EVT_MENU, self.onCreatePerspective, id=GUIId.CreatePerspective)
-        self.Bind (wx.EVT_MENU_RANGE, self.onRestorePerspective, id=GUIId.LoadPerspective, id2=(GUIId.LoadPerspective + GUIId.MaxNumberPerspectives - 1))
+        for wxIdRef in GUIId.LoadPerspectiveIDs:
+            self.Bind (wx.EVT_MENU, self.onRestorePerspective, id=wxIdRef)
         # - import menu
         self.Bind (wx.EVT_MENU, self.onImport, id=GUIId.TestImport)
         self.Bind (wx.EVT_MENU, self.onImport, id=GUIId.Import)
@@ -368,7 +381,9 @@ class MediaFiler(wx.Frame, Observer, Observable):
         self.Bind(wx.EVT_MENU, self.onCountTags, id=GUIId.CountTags)
         self.Bind(wx.EVT_MENU, self.onEditClasses, id=GUIId.EditClasses)
         self.Bind(wx.EVT_MENU, self.onEditNames, id=GUIId.EditNames)
-        self.Bind(wx.EVT_MENU, self.onLoggingChanged, id=GUIId.ManageLogging, id2=(GUIId.ManageLogging + GUIId.MaxNumberLogging))
+        self.Bind(wx.EVT_MENU, self.onLoggingChanged, id=GUIId.ManageLogging)
+        for wxIdRef in GUIId.ManageLoggingIDs:
+            self.Bind(wx.EVT_MENU, self.onLoggingChanged, id=wxIdRef)
         self.Bind(wx.EVT_MENU, self.onHarvestURLs, id=GUIId.HarvestURLs)
         # general events
         #        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -391,11 +406,13 @@ class MediaFiler(wx.Frame, Observer, Observable):
     def onLoadRecent(self, event):
         """Change root to selected recent root directory.
         """
-        indexOfRecent = (event.GetId() - GUIId.LoadRecentDirectory)
-        if (indexOfRecent <= len(self.recentRootDirectories)):
-            wx.GetApp().startProcessIndicator(_('Loading %s') % self.recentRootDirectories[indexOfRecent])
-            self.setModel(self.recentRootDirectories[indexOfRecent])
+        wxId = event.GetId()
+        if (wxId in GUIId.LoadRecentDirectoryIDs):
+            idx = indexOf(GUIId.LoadRecentDirectoryIDs, wxId)
+            wx.GetApp().startProcessIndicator(_('Loading %s') % self.recentRootDirectories[idx])
+            self.setModel(self.recentRootDirectories[idx])
             wx.GetApp().stopProcessIndicator()
+            
 
 
     def onChangeRoot(self, event):  # @UnusedVariable
@@ -606,7 +623,7 @@ class MediaFiler(wx.Frame, Observer, Observable):
     def onRestorePerspective (self, event):
         """Switch to the perspective selected by the user.
         """
-        perspectiveNumber = (event.GetId() - GUIId.LoadPerspective)
+        perspectiveNumber = indexOf(GUIId.LoadPerspectiveIDs, event.GetId())
         MediaFiler.Logger.debug('MediaFiler.onRestorePerspective(): Loading perspective %s = %s' % (perspectiveNumber, self.perspectives[perspectiveNumber]))
         self.paneManager.LoadPerspective(self.perspectives[perspectiveNumber])
         self.model.setConfiguration(GlobalConfigurationOptions.LastPerspective, str(perspectiveNumber))
@@ -651,10 +668,16 @@ class MediaFiler(wx.Frame, Observer, Observable):
                     log = self.model.importImages(importParameters)
                 except WindowsError as exc: 
                     if (exc.winerror == 3):
-                        dlg = wx.MessageDialog(self, _('No files to import'), _('Empty Directory'), (wx.OK | wx.ICON_INFORMATION))
+                        fileName = exc.filename
+                        if (os.path.isdir(fileName)):
+                            dlgMessage = (_('Directory "%s" is empty') % fileName)
+                            message = _('No files to import')
+                        else:  # probably regular file
+                            dlgMessage = (_('File cannot be read: "%s"') % fileName)
+                            message = _('Import failed')
+                        dlg = wx.MessageDialog(self, dlgMessage, _('Import Problem'), (wx.OK | wx.ICON_INFORMATION))
                         dlg.ShowModal()
                         dlg.Destroy()
-                        message = _('No files to import')
                     else:
                         raise exc
                 else:
@@ -815,9 +838,10 @@ class MediaFiler(wx.Frame, Observer, Observable):
         """
         menu = event.GetEventObject()
         menuId = event.GetId()
-        state = menu.IsChecked(menuId)
         loggableModules = self.getLoggableModules()
         moduleName = loggableModules[(menuId - GUIId.ManageLogging)]
+        # state = menu.IsChecked(menuId)  # depends on UI state
+        state = logging.getLogger(moduleName).hasHandlers()  # depends on logging state
         MediaFiler.Logger.debug('MediaFiler.onLoggingChanged(): Turning logging %s for %s' % (('On' if state else 'Off'), moduleName))
         if (state):
             logging.getLogger(moduleName).addHandler(self.__class__.LogHandlerInteractive)
@@ -929,8 +953,9 @@ class MediaFiler(wx.Frame, Observer, Observable):
         MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up name pane')
         self.namePane.setModel(self.model)
         processIndicator.beginStep()
-        MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up filter pane')
+        MediaFiler.Logger.debug('MediaFiler.setModel(): Setting up filter pane(s)')
         self.filterPane.setModel(self.model)
+        self.newFilterPane.setModel(self.model)
         MediaFiler.Logger.debug('MediaFiler.setModel(): Filter pane best size is %s' % self.filterPane.GetBestSize())
         self.paneManager.GetPane('filter').BestSize(self.filterPane.GetBestSize())
         processIndicator.beginStep()
@@ -1001,8 +1026,8 @@ class MediaFiler(wx.Frame, Observer, Observable):
                 loggedModules.remove('')
             for moduleName in loggedModules:
                 MediaFiler.Logger.debug('MediaFiler.setLoggedModules(): Continuing to log "%s"' % moduleName)
-                self.toolsMenu.Check(self.toolsMenu.FindItem(moduleName), True)
                 logging.getLogger(moduleName).addHandler(MediaFiler.LogHandlerInteractive)
+                # self.toolsMenu.Check(self.toolsMenu.FindItem(moduleName), True)  # should now be done when constructing menu in getLoggingMenu()
 
 
     def resizeProgressBar(self):
@@ -1012,7 +1037,6 @@ class MediaFiler(wx.Frame, Observer, Observable):
             self.progressbar.SetSize((rect.width-4, rect.height-4))
 
 
-print('Compiled MediaFiler, compiling MediaFilerApp...')
 
 class MediaFilerApp(ProgressSplashApp):
     """
@@ -1022,7 +1046,6 @@ class MediaFilerApp(ProgressSplashApp):
     def OnInit(self):
         """
         """
-        print('Creating MediaFilerApp...')
         self.duringOnInit = True
         fname = Installer.getSplashPath()
         ProgressSplashApp.OnInit(self, fname)
@@ -1056,7 +1079,7 @@ class MediaFilerApp(ProgressSplashApp):
         else:
             self.Exit()
         print('...MediaFilerApp created')
-        return(True)
+        return True 
 
 
 # Setters
@@ -1148,7 +1171,7 @@ class MediaFilerApp(ProgressSplashApp):
     def beginStep(self, message=None):
         if (not message):
             message = self.phaseInfoMessage
-        self.setInfoMessage('%s (%d)' % (message, self.numberOfStepsToGo))
+        self.setInfoMessage(message)  # ('%s (%d)' % (message, self.numberOfStepsToGo))
         self.numberOfStepsToGo = (self.numberOfStepsToGo - 1)
         self.getProgressBar().beginStep()
 
@@ -1207,9 +1230,7 @@ class MediaFilerApp(ProgressSplashApp):
 
 
 # section: Executable script
-print('Compiled MediaFilerApp, starting __main__')
 if __name__ == "__main__":
     app = MediaFilerApp(False)
-    print('Created MediaFilerApp')
     app.MainLoop()
 

@@ -49,8 +49,8 @@ class MediaNamePane(wx.Panel, Observer):
     and the Entry for changes of name.
     """
 # Constants
-    RenameImage = wx.NewId()  # identifier of "Rename" button
-    ReuseLastElements = wx.NewId()  # identifer of "Reuse Last" button
+    RenameImage = wx.NewIdRef()  # identifier of "Rename" button  TODO: move to GUIID
+    ReuseLastElements = wx.NewIdRef()  # identifer of "Reuse Last" button  TODO: move to GUIID
 
 
 
@@ -217,7 +217,6 @@ class MediaNamePane(wx.Panel, Observer):
         Boolean removeUnknownTags indicates whether unknown tags shall be cleared from entry
         """
         if (self.Validate()):
-#             wx.GetApp().startProcessIndicator(_('Renaming...'))
             pathInfo = self.entry.getOrganizer().getPathInfo()
             pathInfo.update(self.entry.getOrganizer().getValuesFromNamePane(self))
             if (removeUnknownTags == False):
@@ -238,5 +237,5 @@ class MediaNamePane(wx.Panel, Observer):
             else:
                 self.model.setSelectedEntry(resultingSelection) 
                 self.rememberElements()
-#             wx.GetApp().stopProcessIndicator()
+
 

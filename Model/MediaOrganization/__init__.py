@@ -16,6 +16,7 @@ from collections import OrderedDict
 import logging
 import gettext
 import itertools
+from operator import indexOf
 ## Contributed 
 import wx
 ## nobi
@@ -281,10 +282,10 @@ class MediaOrganization(object):
         """Return a wx.Menu representing the last locations media was moved to.
         """
         result = Menu()
-        moveToId = GUIId.SelectMoveTo
-        for menuItem in reversed(cls.MoveToLocations.keys()):
-            result.Append(moveToId, menuItem)
-            moveToId = (moveToId + 1)
+        moveToIdx = 0
+        for menuStr in reversed(cls.MoveToLocations.keys()):
+            result.Append(GUIId.SelectMoveToIDs[moveToIdx], menuStr)
+            moveToIdx = (moveToIdx + 1)
         return(result)
 
 
@@ -310,6 +311,17 @@ class MediaOrganization(object):
         """Add controls to aMediaFilterPane to filter according to the organization.
         """
         pass
+
+
+    @classmethod
+    def conditionsFromFilter(cls, aNewMediaFilterPane, aMediaFilter):  # @UnusedVariable
+        """Return a list of controls representing organization-specific filters.
+        
+        aNewMediaFilterPane is to be the parent of new controls
+        aMediaFilter is the filter to extract organization-specific conditions
+        Return List of wx.StaticText controls
+        """
+        return []
 
 
 
@@ -475,11 +487,14 @@ class MediaOrganization(object):
             if (currentNumber != None):
                 lastNumber = currentNumber
         renumberList.append(lastNumber + 1)
+        renumberList = renumberList[0:(GUIId.MaxNumberNumbers)]  # prevent overflow when accessing reserved wx.NewRefIds
         assignNumberMenu = wx.Menu()
         for i in renumberList:
-            assignNumberMenu.Append((GUIId.AssignNumber + i), (MediaOrganization.FormatNumber % i))
+            # assignNumberMenu.Append((GUIId.AssignNumber + i), (MediaOrganization.FormatNumber % i))
+            assignNumberMenu.Append(GUIId.AssignNumberIDs[i - 1], (MediaOrganization.FormatNumber % i))
             if (i == self.getNumber()):
-                assignNumberMenu.Enable((GUIId.AssignNumber + i), False)
+                # assignNumberMenu.Enable((GUIId.AssignNumber + i), False)
+                assignNumberMenu.Enable(GUIId.AssignNumberIDs[i - 1], False)
         return(assignNumberMenu)
 
 
@@ -492,16 +507,17 @@ class MediaOrganization(object):
         wx.Window parentWindow to display messages
         Return String describing execution status
         """
-        if ((GUIId.AssignNumber <= menuId)
-            and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
-            number = (menuId - GUIId.AssignNumber)
+        # if ((GUIId.AssignNumber <= menuId)
+        #     and (menuId <= (GUIId.AssignNumber + GUIId.MaxNumberNumbers))):
+        #     number = (menuId - GUIId.AssignNumber)
+        if (menuId in GUIId.AssignNumberIDs):
+            number = (indexOf(GUIId.AssignNumberIDs, menuId) + 1)
             Logger.debug('MediaOrganization.runContextMenu(): Renaming to number %d' % number)
             wx.GetApp().setInfoMessage(_('Renumbering...'))
             result = self.renumberTo(number, wx.GetApp().getProgressBar())
             return(result)
-        elif ((GUIId.SelectMoveTo <= menuId)
-              and (menuId <= (GUIId.SelectMoveTo + GUIId.MaxNumberMoveToLocations))):
-            number = (menuId - GUIId.SelectMoveTo)
+        elif (menuId in GUIId.SelectMoveToIDs):
+            number = indexOf(GUIId.SelectMoveToIDs, menuId)
             items = list(reversed(self.__class__.MoveToLocations.items()))
             newPathInfo = items[number][1]
             Logger.debug('MediaOrganization.runContextMenu(): Moving to %d-th move-to-location %s' % (number, newPathInfo))
@@ -666,9 +682,7 @@ class MediaOrganization(object):
         """
         result = {}
         for entry in self.getContext().getParentGroup().getSubEntries(filtering=False):
-            if ((self.getContext().model.organizedByDate)  # TODO: move to OrganizationByName
-                or (self.getScene() == entry.getOrganizer().getScene())):
-                result[entry.getOrganizer().getNumber()] = entry
+            result[entry.getOrganizer().getNumber()] = entry
         return(result)
 
 
@@ -721,6 +735,7 @@ class MediaOrganization(object):
         
         Number newNumber
         PhasedProgressBar progressBar
+        Return String to be displayed as message
         """
         Logger.debug('MediaOrganization.renumberTo(): Assigning new number %d to number %d' % (newNumber, self.getNumber()))
         numberToEntryMap = self.getNumberedEntriesMap()
@@ -736,11 +751,10 @@ class MediaOrganization(object):
             pathInfo = entry.getOrganizer().getPathInfo()
             pathInfo['number'] = then
             newPath = entry.getOrganizer().constructPath(**pathInfo)
-            renameList.append((entry, entry.getPath(), newPath))
+            renameList.append((entry, newPath))
             Logger.debug('from %s\n  to %s' % (entry.getPath(), newPath))
-#         Logger.debug('MediaOrganization.renumberTo(): Mapping names %s' % renameList)
-        if (self.__class__.ImageFilerModel.renameList(renameList)):
-            return(_('%d media renumbered' % len(renameList)))
+        if (self.__class__.ImageFilerModel.renameEntryList(renameList, progressBar)):
+            return((_('%d media renumbered') % len(renameList)))
         else:
             return(_('Renumbering failed!'))
 

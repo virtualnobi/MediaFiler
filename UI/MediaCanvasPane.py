@@ -19,7 +19,7 @@ from nobi.logging import profiledOnLogger
 ## project
 import UI
 from UI import GUIId
-from Model.Single import ImageBitmap
+from Model.Single import MediaBitmap
 
 
 
@@ -166,7 +166,7 @@ class MediaCanvas(wx.Panel, Observer):
 
 
     def onResize(self, event):
-        Logger.debug('MediaCanvasPane.onResize(): ...')
+        Logger.debug('MediaCanvasPane.onResize(...')
         (self.width, self.height) = self.GetSize()
         if (self.entry != None):
             if ((self.lastResizeEntry != self.entry) 
@@ -179,7 +179,9 @@ class MediaCanvas(wx.Panel, Observer):
                 displayedEntries = self.entry.getEntriesForDisplay()
                 self.sizeAndDisplayEntries(displayedEntries, progressIndicator=wx.GetApp())
             else:
-                print('MediaCanvasPane.onResize(): Ignored because size and selection unchanged')
+                Logger.debug('MediaCanvasPane.onResize(): Ignored because size and selection unchanged')
+        else:
+            Logger.warn('MediaCanvasPane.onResize(): Ignored because no entry to display')
 
 
 # Inheritance - ObserverPattern
@@ -336,7 +338,7 @@ class MediaCanvas(wx.Panel, Observer):
                 progressIndicator.beginStep()
             entry.addObserverForAspect(self, 'name')  # to reorder images when a name changes
             Logger.debug('MediaCanvasPane.sizeAndDisplayEntries(): at pixel (%d, %d) in column %d, placing "%s"' % (x, y, column, entry.getPath()))
-            bitmap = ImageBitmap(self, 
+            bitmap = MediaBitmap(self, 
                                  -1, 
                                  entry, 
                                  (x + (self.ImagePadding / 2)), 

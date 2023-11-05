@@ -6,10 +6,10 @@
 
 # Imports
 ## Standard
-import sys
+# import sys
 import copy
 import re
-import codecs
+# import codecs
 import logging
 ## Contributed
 ## nobi
@@ -336,65 +336,7 @@ class MediaClassHandler(object):
         self.classes = []
         self.knownElements = []
         try:
-#             classFile = codecs.open(pathname, encoding=sys.getfilesystemencoding())
             classFile = open(pathname, mode='rt')  # Python 3
-        except: 
-            raise IOError('Cannot open "%s" to read tag classes!' % pathname) 
-        for line in classFile:
-            #print ("Read line >%s<" % line)
-            line = line.strip()  # trim white space
-            if ((len (line) == 0) or (line[0] == '#')): # empty or comment line, ignore
-                #print ("Ignored empty or comment line")
-                pass
-            else: # non-comment, interpret
-                tokens = line.split()
-                className = tokens.pop(0) 
-                Logger.debug('MediaClassHandler.readClassesFromFile(): Definition of "%s" is "%s"' % (className, tokens))
-                multiple = False
-                required = []
-                requiredClasses = []
-                prohibited = []
-                elements = []
-                while (len(tokens) > 0):
-                    token = tokens.pop(0)
-                    if (token == '[]'):  # this is a multiple-selection class
-                        multiple = True
-                    elif (token[0] == '+'):
-                        name = token[1:]
-                        if (self.isLegalElement(name)):
-                            Logger.debug('MediaClassHandler.readClassesFromFile(): Required tag "%s"' % name)
-                            required.append(name)
-                        elif (self.getClassByName(name)):
-                            Logger.debug('MediaClassHandler.readClassesFromFile(): Required class "%s"' % name)
-                            requiredClasses.append(name)
-                        else:
-                            Logger.debug('MediaClassHandler.readClassesFromFile(): Requiring unknown tag "%s"' % name)
-                            required.append(name)
-                    elif (token[0] == '-'):
-                        prohibited.append(token[1:])
-                    else:
-                        #print ("Adding element %s" % token)
-                        elements.append(token)
-                aClass = {self.KeyName:className, 
-                          self.KeyRequired:required, 
-                          self.KeyRequiredClasses:requiredClasses,
-                          self.KeyProhibited:prohibited,
-                          self.KeyMultiple:multiple, 
-                          self.KeyElements:elements}
-                #print ("Found definition of %s" % aClass)
-                self.classes.append(aClass) 
-                self.knownElements.extend(elements)  # extend list of all known elements for filtering
-        classFile.close()
-
-    def readClassesFromFile3(self, pathname):
-        """Set self's internal state from the class definition in the given file.
-
-        String pathname contains the file name
-        """
-        self.classes = []
-        self.knownElements = []
-        try:
-            classFile = codecs.open(pathname, encoding=sys.getfilesystemencoding())
         except: 
             raise IOError('Cannot open "%s" to read tag classes!' % pathname) 
         for line in classFile:

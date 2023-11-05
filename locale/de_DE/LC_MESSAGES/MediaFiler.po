@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: 2020-02-28 15:42+Mitteleuropäische Zeit\n"
-"PO-Revision-Date: 2021-08-07 15:08+0200\n"
+"PO-Revision-Date: 2022-09-18 13:08+0200\n"
 "Last-Translator: nobi <virtualnobi@gmx.de>\n"
 "Language-Team: nobisoft <virtualnobi@gmx.de>\n"
 "Language: de_DE\n"
@@ -35,7 +35,7 @@ msgstr "Name"
 
 #: ..\App.pyw:66
 msgid "Classification"
-msgstr "Klassifikation"
+msgstr "Klassifizierung"
 
 #: ..\App.pyw:67
 msgid "Log"
@@ -87,7 +87,7 @@ msgstr "&Werkzeug"
 
 #: ..\App.pyw:378
 msgid "Loading %s"
-msgstr "Laden von %s"
+msgstr "Lade %s"
 
 #: ..\App.pyw:386
 msgid "Select New Image Directory:"
@@ -96,7 +96,7 @@ msgstr "Neues Medienverzeichnis auswählen:"
 #: ..\App.pyw:388
 #| msgid "Loading..."
 msgid "Loading %"
-msgstr ""
+msgstr "Lade %s"
 
 #: ..\App.pyw:397
 msgid "Reloading..."

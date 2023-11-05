@@ -72,7 +72,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         imglist = wx.ImageList(16, 16, True, 3)
         self.closedFolderIcon = imglist.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, wx.Size(16, 16)))  # Python 3
         self.openFolderIcon = imglist.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_OTHER, wx.Size(16, 16)))
-        self.fallBackTypeIconIndex = imglist.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16)))
+        self.fallBackTypeIcon = imglist.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, wx.Size(16, 16)))
         self.AssignImageList(imglist)
         # bind events triggered by tree
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSelectionChanged, self)
@@ -101,7 +101,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         # 
         self.typeIconsIndices = {}
         for c in Model.Installer.getProductTrader().getClasses():
-            pathname = os.path.join(Model.Installer.getLibraryPath(), (c.__name__ + '.jpg'))
+            pathname = os.path.join(Model.Installer.getLibraryPath(), c.PreviewImageFilename)
             try:
                 icon = wx.Image(os.path.join(Model.Installer.getLibraryPath(), pathname), 
                                 wx.BITMAP_TYPE_JPEG).Rescale(16, 16).ConvertToBitmap()
@@ -109,7 +109,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
                 self.typeIconsIndices[c] = index
             except Exception as e:
                 Logger.warning('MediaTreeCtrl.setModel(): Cannot find type icon for class "%s"' % c)
-                self.typeIconsIndices[c] = self.fallBackTypeIconIndex
+                self.typeIconsIndices[c] = self.fallBackTypeIcon
         #
         self.addSubTree(self.model.getRootEntry(), None)
         self.setEntry(self.model.getSelectedEntry())
@@ -124,7 +124,7 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
         Return the wx.TreeItemID of entry.
         """
         if (entry.filteredFlag):
-            print('MediaTreeCtrl.addSubTree(): Ignoring filtered Entry "%s"' % entry.getPath())
+            Logger.debug('MediaTreeCtrl.addSubTree(): Ignoring filtered Entry "%s"' % entry.getPath())
             return(None)
         # insert tree item
         if (entry.isGroup()):  # entry is a Group, add a collapsible node for entry
@@ -139,9 +139,9 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
                                        self.closedFolderIcon, 
                                        self.openFolderIcon, 
                                        data=entry)  # Python 3
-            if (node == None):  # should not happen, report
-                raise('MediaTreePane.addSubTree(): AppendItem() returned None for (%s, %s, %s, %s)' 
-                      % (parent, entry.getIdentifier(), self.closedFolderIcon, self.openFolderIcon, entry))
+                if (node == None):  # should not happen, report
+                    raise('MediaTreePane.addSubTree(): AppendItem() returned None for (%s, %s, %s, %s)' 
+                          % (parent, entry.getIdentifier(), self.closedFolderIcon, self.openFolderIcon, entry))
             for subentry in entry.getSubEntries():
                 if (not subentry.filteredFlag):
                     self.addSubTree(subentry, node)
@@ -153,17 +153,20 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
             if (node == None):  # should not happen, report
                 raise('MediaTreePane.addSubTree(): AppendItem() returned None for (%s, %s, %s, %s)' 
                       % (parent, entry.getIdentifier(), self.typeIconsIndices[entry.__class__], entry))
+        # store wx.TreeItemID in entry for reverse lookup
+        if (node == None):  # some valid TreemItemIDs evaluate to False!, su compare to None for safety
+            raise Exception('MediaTreePane.addSubTree(%s, %s): Cannot determine node ID for entry!' % (entry, parent))
+        entry.setTreeItemID(node)
+        self.verifySubtreeOk(entry) # check subtree whether their TreeItemIds are ok - to find error source
         # register as observer for entry
         entry.addObserverForAspect(self, 'name')
         entry.addObserverForAspect(self, 'remove')
         entry.addObserverForAspect(self, 'children')
-        # store wx.TreeItemID in entry for reverse lookup
-        entry.setTreeItemID(node)
-        self.verifySubtreeOk(entry) # check subtree whether their TreeItemIds are ok - to find error source
         self.SortChildren(node)
         return(node)
 
-    @profiledOnLogger(Logger, sort='cumulative')
+
+#     @profiledOnLogger(Logger, sort='cumulative')
     def setEntry(self, entry, expand=False):
         """Select the specified entry in the tree.
         
@@ -199,13 +202,14 @@ class MediaTreeCtrl (wx.TreeCtrl, Observable, Observer):
 
         
 # Event Handlers
+    @profiledOnLogger(Logger, sort='cumulative')
     def onSelectionChanged (self, event):
         """User changed the selection in the tree.
         """
         if (self.ignoreSelectionChanges): 
             pass
         else:
-            entry = self.GetItemData(event.GetItem())  # wxPython 4
+            entry = self.GetItemData(event.GetItem())
             Logger.debug('MediaTreeCtrl.onSelectionChanged(): Selecting "%s"' % entry)
             self.ignoreSelectionChanges = True
             wx.GetApp().startProcessIndicator()
